@@ -1,0 +1,106 @@
+// Modelo de datos real de Plei Marketplace Intelligence.
+//
+// Mapeo de nombres: el CSV fuente (export de Hex) usa "Division" y "Region"
+// al revés de como el negocio los llama. Acá los modelamos con el nombre
+// que tiene sentido de negocio, y dejamos la referencia al CSV en el comentario:
+//
+//   Region    (East / West)              <- columna CSV "Division"
+//   Market    (South Florida, Orlando..) <- columna CSV "Region"
+//   Facility  (una cancha/instalación)   <- columna CSV "Location"
+//   Game      (un partido/evento)        <- cada fila del CSV
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Region {
+  id      String   @id @default(cuid())
+  name    String   @unique // "East" | "West"
+  markets Market[]
+
+  @@map("regions")
+}
+
+model Market {
+  id         String     @id @default(cuid())
+  name       String     // "South Florida", "Orlando", "DMV | Baltimore", etc.
+  regionId   String
+  region     Region     @relation(fields: [regionId], references: [id])
+  facilities Facility[]
+
+  @@unique([name, regionId])
+  @@map("markets")
+}
+
+model Facility {
+  id       String @id @default(cuid())
+  name     String // columna CSV "Location"
+  marketId String
+  market   Market @relation(fields: [marketId], references: [id])
+  games    Game[]
+
+  @@unique([name, marketId])
+  @@index([marketId])
+  @@map("facilities")
+}
+
+enum GameStatus {
+  CONFIRMED
+  CANCELLED
+}
+
+// Categoría normalizada de motivo de cancelación. El CSV trae texto libre
+// con 291 variantes distintas (con mayúsculas/espacios inconsistentes);
+// esto es la versión limpia que usamos para generar insights confiables.
+enum CancellationCategory {
+  NOT_ENOUGH_PLAYERS
+  FACILITY_UNAVAILABLE
+  WEATHER
+  MAINTENANCE
+  HOLIDAY
+  OTHER
+}
+
+model Game {
+  id                    Int                   @id // "Game ID" del CSV, ya es único
+  facilityId            String
+  facility              Facility              @relation(fields: [facilityId], references: [id])
+  organizer             String                // "Plei" | "2026 Summer of Soccer" | "Plei Video"
+  date                  DateTime              @db.Date
+  time                  String                // hora de inicio, formato "HH:MM"
+  dayOfWeek             String
+  minPlayers            Int
+  maxPlayers            Int
+  finalPlayers          Int
+  waitlistPlayers       Int
+  droppedPlayers        Int
+  status                GameStatus
+  playersMissing        Int?
+  cancellationReasonRaw String?               // texto original del CSV, para auditoría
+  cancellationCategory  CancellationCategory?
+  confirmationLeadTime  Float?                // horas entre confirmación y el partido
+  eventRevenue          Float?
+  gamePrice             Float?
+  revenuePerPlayer      Float?
+  ratingCount           Int?
+  averageRating         Float?
+  createdAt             DateTime              @default(now())
+
+  @@index([facilityId])
+  @@index([date])
+  @@index([status])
+  // Compuestos: la mayoría de las consultas reales combinan estas columnas
+  // juntas (rango de fecha + status, o facility + status/fecha) desde que
+  // migramos a groupBy/aggregate — un índice compuesto sirve para ese patrón
+  // completo, no solo para filtrar por una columna sola.
+  @@index([date, status])
+  @@index([facilityId, status])
+  @@index([facilityId, date])
+  @@map("games")
+}

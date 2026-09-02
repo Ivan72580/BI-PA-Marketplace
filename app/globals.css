@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f6f7f9;
+  --foreground: #12161c;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  /* Ink */
+  --color-ink: #12161c;
+  --color-ink-muted: #5b6472;
+  --color-ink-faint: #97a1ad;
+
+  /* Superficies */
+  --color-surface: #ffffff;
+  --color-surface-sunken: #f6f7f9;
+  --color-surface-panel: #eef1ec;
+  --color-border: #e4e7ec;
+  --color-border-strong: #d3d8e0;
+
+  /* Semántico: verde cancha como acento primario (bueno/acción/marca),
+     rojo para cancelación, ámbar para atención */
+  --color-brand: #0d6e4f;
+  --color-brand-soft: #e4f2ec;
+  --color-danger: #b91c1c;
+  --color-danger-soft: #fbeaea;
+  --color-warning: #b45309;
+  --color-warning-soft: #fdf1e2;
+
+  --font-display: var(--font-space-grotesk);
+  --font-sans: var(--font-inter);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
