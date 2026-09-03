@@ -10,7 +10,8 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
-    "db:import": "tsx scripts/import-csv.ts data/events.csv"
+    "db:import": "tsx scripts/import-csv.ts data/events.csv",
+    "auto-import": "tsx scripts/auto-import.ts"
   },
   "dependencies": {
     "next": "^15.5.12",

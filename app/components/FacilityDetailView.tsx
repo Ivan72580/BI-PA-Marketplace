@@ -64,6 +64,7 @@ export default async function FacilityDetailView({
   period,
   granularity,
   compare,
+  comparePeriod,
   heatmapMetric,
   monthProjection,
   buildHref,
@@ -73,6 +74,7 @@ export default async function FacilityDetailView({
   period: ResolvedPeriod;
   granularity: Granularity;
   compare: boolean;
+  comparePeriod: ResolvedPeriod | null;
   heatmapMetric: "count" | "rate" | "confirmed";
   monthProjection: {
     monthLabel: string;
@@ -98,8 +100,8 @@ export default async function FacilityDetailView({
   ]);
 
   const compareData =
-    compare && period.priorDateFrom && period.priorDateTo
-      ? await getOverviewData({ ...filters, dateFrom: period.priorDateFrom, dateTo: period.priorDateTo })
+    compare && comparePeriod?.dateFrom && comparePeriod?.dateTo
+      ? await getOverviewData({ ...filters, dateFrom: comparePeriod.dateFrom, dateTo: comparePeriod.dateTo })
       : null;
 
   const MIN_GAMES_FOR_POSITION = 10;

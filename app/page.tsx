@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { resolveFilterNames, getFilterOptions, getMonthProjection, type FacilitySortKey } from "./lib/db/queries";
-import { resolvePeriod, todayISO, type Granularity, type ResolvedPeriod } from "./lib/period";
+import { resolvePeriod, shiftAnchor, todayISO, type Granularity, type ResolvedPeriod } from "./lib/period";
 import { buildQuery, type SP } from "./lib/searchParams";
 import FilterPanel from "./components/FilterPanel";
 import NetworkOverview from "./components/NetworkOverview";
@@ -32,9 +32,15 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
     period = resolvePeriod(granularity, anchor);
   }
 
-  // La comparación está siempre disponible cuando hay un período anterior
-  // definido — cada tarjeta decide individualmente si mostrarla.
-  const compare = Boolean(period.priorDateFrom && period.priorDateTo);
+  // Comparación contra el período INMEDIATAMENTE ANTERIOR (mes anterior si
+  // el filtro es mensual, trimestre anterior si es trimestral, etc.) — no
+  // contra el mismo período del año pasado. Reusa shiftAnchor + resolvePeriod
+  // para calcular el período completo anterior, cualquiera sea la granularidad.
+  const comparePeriod: ResolvedPeriod | null =
+    granularity === "all" || granularity === "custom"
+      ? null
+      : resolvePeriod(granularity, shiftAnchor(granularity, anchor, -1));
+  const compare = Boolean(comparePeriod?.dateFrom && comparePeriod?.dateTo);
 
   const filters = {
     regionId: sp.regionId,
@@ -93,7 +99,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
         </div>
       )}
 
-      <div className="flex items-center gap-4 flex-wrap mb-5">
+      <div className="flex items-center justify-between gap-4 flex-wrap mb-5">
         <h1 className="font-display text-2xl font-semibold text-ink shrink-0">
           {names.facilityName ?? "Overview"}
         </h1>
@@ -118,8 +124,8 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
 
       <FilterPanel regions={filterOptions.regions} markets={filterOptions.markets} facilities={filterOptions.facilities} />
 
-      {compare && period.priorLabel && (
-        <div className="text-xs text-ink-faint mb-4 -mt-3">Período anterior disponible para comparar: {period.priorLabel}</div>
+      {compare && comparePeriod?.label && (
+        <div className="text-xs text-ink-faint mb-4 -mt-3">Período anterior disponible para comparar: {comparePeriod.label}</div>
       )}
 
       {sp.facilityId ? (
@@ -127,6 +133,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
           facilityId={sp.facilityId}
           filters={filters}
           period={period}
+          comparePeriod={comparePeriod}
           granularity={granularity}
           compare={compare}
           heatmapMetric={heatmapMetric}
@@ -138,8 +145,10 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
           sp={sp}
           filters={filters}
           period={period}
+          comparePeriod={comparePeriod}
           compare={compare}
           facilitySort={facilitySort}
+          regions={filterOptions.regions}
         />
       )}
     </div>

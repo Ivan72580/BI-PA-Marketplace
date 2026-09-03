@@ -49,7 +49,7 @@ export default async function RegionConcentrationPies({
             />
           </Link>
           <div className="text-xs text-ink-faint mt-2 text-center">
-            {r.pareto.top80.facilityIds.length} facilities concentran el {formatPct(r.pareto.top80.pct)}
+            {r.pareto.total.toLocaleString("en-US")} confirmados en total · {r.pareto.top80.facilityIds.length} facilities concentran el {formatPct(r.pareto.top80.pct)}
           </div>
         </div>
       ))}

@@ -214,6 +214,31 @@ export const getOverviewData = cached("getOverviewData", getOverviewDataImpl);
 
 export type OverviewData = Awaited<ReturnType<typeof getOverviewDataImpl>>;
 
+// Para el insight "esta facility necesita atención": dado un motivo de
+// cancelación puntual (típicamente el #1 de la región), qué facility
+// concentra más cancelaciones por ese motivo específico.
+async function getTopCancellationFacilityForReasonImpl(
+  filters: OverviewFilters,
+  category: CancellationCategory
+): Promise<{ facilityId: string; name: string; count: number } | null> {
+  const where = buildWhere(filters);
+  const groups = await prisma.game.groupBy({
+    by: ["facilityId"],
+    where: { ...where, status: GameStatus.CANCELLED, cancellationCategory: category },
+    _count: { _all: true },
+  });
+  if (groups.length === 0) return null;
+
+  const top = [...groups].sort((a, b) => Number(b._count._all) - Number(a._count._all))[0];
+  const facility = await prisma.facility.findUnique({ where: { id: top.facilityId }, select: { name: true } });
+  return { facilityId: top.facilityId, name: facility?.name ?? "—", count: Number(top._count._all) };
+}
+
+export const getTopCancellationFacilityForReason = cached(
+  "getTopCancellationFacilityForReason",
+  getTopCancellationFacilityForReasonImpl
+);
+
 function generateOverviewInsights(m: {
   confirmationRate: number;
   cancellationRate: number;

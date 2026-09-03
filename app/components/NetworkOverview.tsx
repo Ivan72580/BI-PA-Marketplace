@@ -6,14 +6,17 @@ import {
   getHourPattern,
   getExtendedMetrics,
   getFacilityTable,
-  getConfirmedComposition,
+  getMarketFacilitySummary,
+  getTopCancellationFacilityForReason,
   type FacilitySortKey,
   type OverviewFilters,
+  type ReputationTier,
 } from "../lib/db/queries";
 import type { ResolvedPeriod } from "../lib/period";
 import { buildQuery, type SP } from "../lib/searchParams";
 import BarChart from "./charts/BarChart";
 import KpiCard from "./KpiCard";
+import ChangeBadge from "./ChangeBadge";
 import RankingCard, { type RankingRow } from "./RankingCard";
 import Tabs from "./Tabs";
 import GroupSection from "./GroupSection";
@@ -51,45 +54,73 @@ function Stat({ label, value, sublabel }: { label: string; value: string; sublab
   );
 }
 
+const TIER_LABEL: Record<ReputationTier, string> = {
+  platinum: "Platinum", bueno: "Bueno", intermedio: "Intermedio", a_revisar: "A revisar", sin_datos: "—",
+};
+const TIER_CLASS: Record<ReputationTier, string> = {
+  platinum: "bg-[#e0e7ff] text-[#4338ca]",
+  bueno: "bg-brand-soft text-brand",
+  intermedio: "bg-warning-soft text-warning",
+  a_revisar: "bg-danger-soft text-danger",
+  sin_datos: "bg-surface-sunken text-ink-faint",
+};
+
+type RegionScope = { regionId: string; regionName: string };
+
 export default async function NetworkOverview({
   sp,
   filters,
   period,
+  comparePeriod,
   compare,
   facilitySort,
+  regions,
 }: {
   sp: SP;
   filters: OverviewFilters;
   period: ResolvedPeriod;
+  comparePeriod: ResolvedPeriod | null;
   compare: boolean;
   facilitySort: FacilitySortKey;
+  regions: { id: string; name: string }[];
 }) {
-  const [data, hourPattern, extended, facilityTable, confirmedComposition] = await Promise.all([
+  // Regla central de esta página: sin filtro de región, nunca mostramos un
+  // "total" combinado — mostramos East y West en paralelo. El total mezclado
+  // no es información accionable (son dos negocios con dinámicas distintas).
+  const scopes: RegionScope[] = sp.regionId
+    ? [{ regionId: sp.regionId, regionName: "" }]
+    : regions.map((r) => ({ regionId: r.id, regionName: r.name }));
+  const isMultiScope = scopes.length > 1;
+
+  const [data, hourPattern, extended, facilityTable] = await Promise.all([
     getOverviewData(filters),
     getHourPattern(filters),
     getExtendedMetrics(filters),
     getFacilityTable(filters, facilitySort),
-    getConfirmedComposition(filters),
   ]);
 
   const compareData =
-    compare && period.priorDateFrom && period.priorDateTo
-      ? await getOverviewData({ ...filters, dateFrom: period.priorDateFrom, dateTo: period.priorDateTo })
+    compare && comparePeriod?.dateFrom && comparePeriod?.dateTo
+      ? await getOverviewData({ ...filters, dateFrom: comparePeriod.dateFrom, dateTo: comparePeriod.dateTo })
       : null;
 
   const contribution =
-    compareData && period.priorDateFrom && period.priorDateTo
+    compareData && comparePeriod?.dateFrom && comparePeriod?.dateTo
       ? await getContributionRanking(
           { regionId: sp.regionId, marketId: sp.marketId },
           { dateFrom: period.dateFrom!, dateTo: period.dateTo! },
-          { dateFrom: period.priorDateFrom, dateTo: period.priorDateTo }
+          { dateFrom: comparePeriod.dateFrom, dateTo: comparePeriod.dateTo }
         )
       : [];
 
   const allInsights = [...generateContributionInsights(contribution), ...data.insights];
 
+  const totalGamesDelta = compareData ? data.totalGames - compareData.totalGames : undefined;
+  const confirmedGamesDelta = compareData ? data.confirmedGames - compareData.confirmedGames : undefined;
+  const cancelledGamesDelta = compareData ? data.cancelledGames - compareData.cancelledGames : undefined;
   const confirmationDelta = compareData ? data.confirmationRate - compareData.confirmationRate : undefined;
   const cancellationDelta = compareData ? data.cancellationRate - compareData.cancellationRate : undefined;
+  const occupancyDelta = compareData ? data.avgFillRate - compareData.avgFillRate : undefined;
 
   const gamesByHourChart = {
     labels: data.gamesByHour.map((h) => h.hour),
@@ -98,23 +129,39 @@ export default async function NetworkOverview({
   const peakHour = [...data.gamesByHour].sort((a, b) => b.count - a.count)[0];
   const valleyHour = [...data.gamesByHour].sort((a, b) => a.count - b.count)[0];
 
-  // Horarios por tasa: solo tiene sentido comparar horarios entre sí a nivel
-  // red (no un heatmap día×hora, que mezclaría canchas muy distintas). No es
-  // clickeable como los rankings de facility — un horario no es un destino.
   const MIN_HOUR_SAMPLE = 10;
   const hourRateRows = [...hourPattern]
     .filter((h) => h.totalGames >= MIN_HOUR_SAMPLE)
     .sort((a, b) => b.confirmationRate - a.confirmationRate);
   const maxHourRate = Math.max(1, ...hourRateRows.map((h) => h.confirmationRate));
 
-  const cancellationChart = {
-    labels: data.cancellationBreakdown.map((c) => c.label),
-    datasets: [{ label: "Cancelaciones", data: data.cancellationBreakdown.map((c) => c.count), backgroundColor: "#b91c1c" }],
-  };
-  const confirmedCompositionChart = {
-    labels: confirmedComposition.segments.map((s) => s.label),
-    datasets: [{ label: "Partidos confirmados", data: confirmedComposition.segments.map((s) => s.count), backgroundColor: "#0d6e4f" }],
-  };
+  // ---------- Datos por scope (1 si hay región filtrada, East+West si no) ----------
+  const scopeData = await Promise.all(
+    scopes.map(async (scope) => {
+      const scopeFilters: OverviewFilters = { ...filters, regionId: scope.regionId };
+      const [top10, cancelledCurrent] = await Promise.all([
+        getMarketFacilitySummary(scopeFilters),
+        getOverviewData(scopeFilters),
+      ]);
+      const cancelledPrior =
+        compare && comparePeriod?.dateFrom && comparePeriod?.dateTo
+          ? await getOverviewData({ ...scopeFilters, dateFrom: comparePeriod.dateFrom, dateTo: comparePeriod.dateTo })
+          : null;
+
+      const topReason = cancelledCurrent.cancellationBreakdown[0] ?? null;
+      const topReasonFacility = topReason
+        ? await getTopCancellationFacilityForReason(scopeFilters, topReason.category)
+        : null;
+
+      return {
+        scope,
+        top10: [...top10].sort((a, b) => b.confirmedGames - a.confirmedGames).slice(0, 10),
+        current: cancelledCurrent,
+        prior: cancelledPrior,
+        topReasonFacility,
+      };
+    })
+  );
 
   // ---------- Tab: Resumen ----------
   const resumenContent = (
@@ -129,13 +176,16 @@ export default async function NetworkOverview({
         </SectionCard>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <KpiCard label="Partidos agendados" value={data.totalGames.toLocaleString("en-US")} sublabel="confirmados + cancelados, en el período" />
-          <KpiCard label="Partidos confirmados" value={data.confirmedGames.toLocaleString("en-US")} tone="brand" />
-          <KpiCard label="Partidos cancelados" value={data.cancelledGames.toLocaleString("en-US")} tone="danger" />
+          <KpiCard label="Partidos agendados" value={data.totalGames.toLocaleString("en-US")} delta={totalGamesDelta !== undefined ? totalGamesDelta / Math.max(1, (compareData?.totalGames ?? 1)) : undefined} staticDelta />
+          <KpiCard label="Partidos confirmados" value={data.confirmedGames.toLocaleString("en-US")} tone="brand" delta={confirmedGamesDelta !== undefined ? confirmedGamesDelta / Math.max(1, (compareData?.confirmedGames ?? 1)) : undefined} staticDelta />
+          <KpiCard label="Partidos cancelados" value={data.cancelledGames.toLocaleString("en-US")} tone="danger" delta={cancelledGamesDelta !== undefined ? cancelledGamesDelta / Math.max(1, (compareData?.cancelledGames ?? 1)) : undefined} deltaInvert staticDelta />
           <KpiCard label="Tasa de confirmación" value={formatPct(data.confirmationRate)} delta={confirmationDelta} tone="brand" staticDelta />
           <KpiCard label="Tasa de cancelación" value={formatPct(data.cancellationRate)} delta={cancellationDelta} deltaInvert tone="danger" staticDelta />
-          <KpiCard label="Ocupación (confirmados)" value={formatPct(data.avgFillRate)} sublabel="jugadores finales / cupo máximo" />
+          <KpiCard label="Ocupación (confirmados)" value={formatPct(data.avgFillRate)} delta={occupancyDelta} staticDelta />
         </div>
+        {comparePeriod?.label && (
+          <div className="text-[11px] text-ink-faint px-1">Variación vs. {comparePeriod.label} (período inmediatamente anterior)</div>
+        )}
       </GroupSection>
 
       {!sp.regionId && (
@@ -145,13 +195,107 @@ export default async function NetworkOverview({
       )}
 
       <GroupSection title="Composición">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <SectionCard title="Composición de partidos confirmados" subtitle="Pareto 80/20 por facility: nombradas hasta cubrir el 80%, el resto agrupado en «Otros»">
-            <BarChart data={confirmedCompositionChart} />
-          </SectionCard>
-          <SectionCard title="Motivos de cancelación">
-            <BarChart data={cancellationChart} />
-          </SectionCard>
+        <div className={`grid grid-cols-1 ${isMultiScope ? "lg:grid-cols-2" : ""} gap-5`}>
+          {scopeData.map(({ scope, top10 }) => (
+            <div key={scope.regionId}>
+            <SectionCard
+              title={isMultiScope ? `Top 10 facilities — ${scope.regionName}` : "Top 10 facilities"}
+              subtitle="Por partidos confirmados — mismo resumen que la página Market"
+            >
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-sm">
+                  <thead>
+                    <tr className="border-b border-border text-left text-ink-muted">
+                      <th className="py-1.5 px-2 font-normal">Facility</th>
+                      <th className="py-1.5 px-2 font-normal">Confirmados</th>
+                      <th className="py-1.5 px-2 font-normal">Cancelación</th>
+                      <th className="py-1.5 px-2 font-normal">Nivel</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {top10.map((f) => (
+                      <tr key={f.facilityId} className="border-b border-surface-sunken">
+                        <td className="py-1.5 px-2">
+                          <Link href={buildQuery(sp, { facilityId: f.facilityId, marketId: f.marketId, regionId: f.regionId })} className="text-brand hover:underline">
+                            {f.name}
+                          </Link>
+                        </td>
+                        <td className="py-1.5 px-2 text-brand">{f.confirmedGames}</td>
+                        <td className="py-1.5 px-2 text-ink">{formatPct(f.cancellationRate)}</td>
+                        <td className="py-1.5 px-2">
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded ${TIER_CLASS[f.reputationTier]}`}>{TIER_LABEL[f.reputationTier]}</span>
+                        </td>
+                      </tr>
+                    ))}
+                    {top10.length === 0 && (
+                      <tr><td colSpan={4} className="py-3 text-center text-ink-faint">Sin datos en este filtro.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </SectionCard>
+            </div>
+          ))}
+        </div>
+        <Link href="/market" className="text-xs text-brand inline-block px-1">Ver el detalle completo en Market →</Link>
+      </GroupSection>
+
+      <GroupSection title="Motivos de cancelación">
+        <SectionCard title="Comparativa por región" subtitle="Motivo principal y volumen total de cada región">
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-ink-muted">
+                  <th className="py-1.5 px-2 font-normal">Región</th>
+                  <th className="py-1.5 px-2 font-normal">Cancelados</th>
+                  <th className="py-1.5 px-2 font-normal">Tasa</th>
+                  <th className="py-1.5 px-2 font-normal">Motivo principal</th>
+                </tr>
+              </thead>
+              <tbody>
+                {scopeData.map(({ scope, current }) => (
+                  <tr key={scope.regionId} className="border-b border-surface-sunken">
+                    <td className="py-1.5 px-2 text-ink font-medium">{isMultiScope ? scope.regionName : "Este filtro"}</td>
+                    <td className="py-1.5 px-2 text-danger">{current.cancelledGames.toLocaleString("en-US")}</td>
+                    <td className="py-1.5 px-2 text-ink">{formatPct(current.cancellationRate)}</td>
+                    <td className="py-1.5 px-2 text-ink-muted">
+                      {current.cancellationBreakdown[0] ? `${current.cancellationBreakdown[0].label} (${formatPct(current.cancellationBreakdown[0].pct)})` : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </SectionCard>
+
+        <div className={`grid grid-cols-1 ${isMultiScope ? "lg:grid-cols-2" : ""} gap-5`}>
+          {scopeData.map(({ scope, current, prior, topReasonFacility }) => (
+            <div key={scope.regionId}>
+            <SectionCard title={isMultiScope ? `Ranking de motivos — ${scope.regionName}` : "Ranking de motivos"}>
+              <div className="space-y-2">
+                {current.cancellationBreakdown.map((reason) => {
+                  const priorReason = prior?.cancellationBreakdown.find((r) => r.category === reason.category);
+                  const delta = priorReason ? (reason.count - priorReason.count) / Math.max(1, priorReason.count) : null;
+                  return (
+                    <div key={reason.category} className="flex items-center justify-between text-sm">
+                      <span className="text-ink">{reason.label}</span>
+                      <span className="flex items-center gap-2 text-ink-muted">
+                        {reason.count} · {formatPct(reason.pct)}
+                        {compare && <ChangeBadge value={delta} invert />}
+                      </span>
+                    </div>
+                  );
+                })}
+                {current.cancellationBreakdown.length === 0 && <div className="text-sm text-ink-faint">Sin cancelaciones en este filtro.</div>}
+              </div>
+              {topReasonFacility && current.cancellationBreakdown[0] && (
+                <div className="mt-4 pt-3 border-t border-surface-sunken text-sm text-ink">
+                  ⚠ <Link href={buildQuery(sp, { facilityId: topReasonFacility.facilityId, regionId: scope.regionId })} className="text-brand hover:underline font-medium">{topReasonFacility.name}</Link> es la que más aporta a &quot;{current.cancellationBreakdown[0].label}&quot; en {isMultiScope ? scope.regionName : "este filtro"} ({topReasonFacility.count} de {current.cancellationBreakdown[0].count}) — vale la pena revisarla.
+                </div>
+              )}
+            </SectionCard>
+            </div>
+          ))}
         </div>
       </GroupSection>
 
@@ -304,7 +448,7 @@ export default async function NetworkOverview({
           <>
             <RankingCard
               title="Contribución al cambio"
-              subtitle={`Cada facility comparada contra su propio comportamiento en ${period.priorLabel} — no contra el promedio de otras`}
+              subtitle={`Cada facility comparada contra su propio comportamiento en ${comparePeriod?.label ?? "el período anterior"} — no contra el promedio de otras`}
               rows={contributionRows}
               buildHref={(facilityId, marketId, regionId) => buildQuery(sp, { facilityId, marketId, regionId })}
               formatValue={(v) => `${v}`}

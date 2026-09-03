@@ -89,6 +89,25 @@ Cuando tengas un export nuevo desde Hex:
 
 Es seguro repetirlo las veces que haga falta — el importador sincroniza (inserta lo nuevo y actualiza lo que cambió, como un rating cargado después del partido), no duplica ni requiere que armes ningún archivo distinto cada vez.
 
+**Sobre la ventana de 2 años del export**: el importador solo toca los partidos que están presentes en el CSV que le pasás — nunca borra nada que no aparezca ahí. Un partido de hace 3 años que ya no entra en la ventana de la exportación se queda intacto en la base, no se pierde.
+
+### Automatizarlo (opcional): que se sincronice solo todos los días
+
+En vez del paso manual de arriba, `npm run auto-import` busca en tu carpeta de Descargas el archivo más reciente con el patrón `events_output_YYYY-MM-XXXXXXX.csv`, lo copia a `data/events.csv`, y corre la sincronización — todo en un solo comando.
+
+Para que corra solo una vez por día, programalo con el **Programador de Tareas de Windows**:
+
+1. Abrí "Programador de tareas" (buscalo en el menú de inicio).
+2. "Crear tarea básica" → nombre a tu gusto (ej: "Sync Plei diario").
+3. Desencadenador: "Diariamente", elegí el horario que prefieras (ideal: después de la hora en que sueles descargar el export de Hex).
+4. Acción: "Iniciar un programa".
+   - Programa/script: `cmd.exe`
+   - Argumentos: `/c npm run auto-import`
+   - Iniciar en: la ruta completa de tu proyecto (ej: `D:\Backup\BI App\marketplace-intelligence-main`)
+5. Terminar. Podés probarlo enseguida haciendo clic derecho sobre la tarea → "Ejecutar", sin esperar al horario programado.
+
+Si no bajaste ningún export nuevo ese día, el script no encuentra nada y no hace nada (no rompe nada, solo no tiene novedades que sincronizar).
+
 ## Caché y performance (agregado para que aguante crecimiento de datos y varios usuarios a la vez)
 
 Las consultas pesadas (Overview, tabla de facilities, heatmap, etc.) ahora se cachean 5 minutos server-side — si dos personas (o dos pestañas tuyas) miran el mismo filtro dentro de esa ventana, la segunda carga es instantánea, no recalcula nada. No requiere ninguna configuración de tu parte, ya viene activo.
