@@ -90,7 +90,7 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
       <div>
         <h1 className="font-display text-2xl font-semibold text-ink mb-1">Trends</h1>
         <div className="text-sm text-ink-faint mb-2 max-w-2xl">
-          Tendencias, consistencia de horarios y patrones estacionales — pensado para responder "¿qué esperar?" en cada market y cada facility, no solo "qué pasó".
+          Tendencias, consistencia de horarios y patrones estacionales — pensado para responder &quot;¿qué esperar?&quot; en cada market y cada facility, no solo &quot;qué pasó&quot;.
         </div>
         <div className="max-w-2xl mx-auto mt-12">
           <div className="rounded-3xl bg-gradient-to-br from-brand-soft to-surface-panel border-2 border-brand/30 p-12 text-center shadow-sm">
@@ -217,7 +217,7 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
 
       <GroupSection title="Patrón estacional reciente del market">
         <p className="text-xs text-ink-faint -mt-1 mb-1 px-1">
-          Últimos 12 meses reales (no agregado histórico) — cada variable por separado, para ver la evolución concreta más allá del patrón general que ya muestra el "clima" de arriba a la derecha.
+          Últimos 12 meses reales (no agregado histórico) — cada variable por separado, para ver la evolución concreta más allá del patrón general que ya muestra el &quot;clima&quot; de arriba a la derecha.
         </p>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           <SectionCard title="Tasa de confirmación"><LineChart data={singleLineChart(recentMonthly.map((p) => Math.round(p.confirmationRate * 1000) / 10), METRIC_COLORS.confirmation)} /></SectionCard>
@@ -404,7 +404,6 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
     })()
   );
 
-  const marketName = filterOptions.markets.find((m) => m.id === sp.marketId)?.name ?? "";
   const marketsInRegion = filterOptions.markets.filter((m) => m.regionId === sp.regionId);
 
   return (
@@ -413,7 +412,7 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
         <div>
           <h1 className="font-display text-2xl font-semibold text-ink mb-1">Trends</h1>
           <div className="text-sm text-ink-faint mb-2 max-w-xl">
-            Tendencias, consistencia de horarios y patrones estacionales — "¿qué esperar?", no solo "qué pasó".
+            Tendencias, consistencia de horarios y patrones estacionales — &quot;¿qué esperar?&quot;, no solo &quot;qué pasó&quot;.
           </div>
           <div className="flex items-center gap-1.5 text-sm">
             <span className="text-ink-faint">{filterOptions.regions.find((r) => r.id === sp.regionId)?.name}</span>

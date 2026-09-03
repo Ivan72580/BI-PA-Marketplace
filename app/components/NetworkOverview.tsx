@@ -10,7 +10,7 @@ import {
   type FacilitySortKey,
   type OverviewFilters,
 } from "../lib/db/queries";
-import type { ResolvedPeriod, Granularity } from "../lib/period";
+import type { ResolvedPeriod } from "../lib/period";
 import { buildQuery, type SP } from "../lib/searchParams";
 import BarChart from "./charts/BarChart";
 import KpiCard from "./KpiCard";
@@ -55,17 +55,13 @@ export default async function NetworkOverview({
   sp,
   filters,
   period,
-  granularity,
   compare,
-  heatmapMetric,
   facilitySort,
 }: {
   sp: SP;
   filters: OverviewFilters;
   period: ResolvedPeriod;
-  granularity: Granularity;
   compare: boolean;
-  heatmapMetric: "count" | "rate" | "confirmed";
   facilitySort: FacilitySortKey;
 }) {
   const [data, hourPattern, extended, facilityTable, confirmedComposition] = await Promise.all([

@@ -20,6 +20,29 @@ const DAY_LABEL: Record<string, string> = {
   Monday: "Lunes", Tuesday: "Martes", Wednesday: "Miércoles", Thursday: "Jueves", Friday: "Viernes", Saturday: "Sábado", Sunday: "Domingo",
 };
 
+// Declarado afuera de DetalleTable a propósito: un componente definido
+// dentro del render se recrea en cada re-render, lo cual React (y el lint
+// de Next.js) marca como error real, no solo advertencia.
+function SortableTh({
+  sortableKey,
+  label,
+  activeSortKey,
+  sortDir,
+  onSort,
+}: {
+  sortableKey: SortKey;
+  label: string;
+  activeSortKey: SortKey;
+  sortDir: "asc" | "desc";
+  onSort: (key: SortKey) => void;
+}) {
+  return (
+    <th className="py-1.5 px-2 font-normal cursor-pointer select-none hover:text-ink" onClick={() => onSort(sortableKey)}>
+      {label} {activeSortKey === sortableKey ? (sortDir === "asc" ? "↑" : "↓") : ""}
+    </th>
+  );
+}
+
 export default function DetalleTable({ items, total }: { items: GameListItem[]; total: number }) {
   const [dayFilter, setDayFilter] = useState("Todos");
   const [statusFilter, setStatusFilter] = useState("Todos");
@@ -59,12 +82,6 @@ export default function DetalleTable({ items, total }: { items: GameListItem[]; 
 
   const selectClass = "rounded-lg border border-border-strong bg-surface px-2 py-1 text-xs text-ink";
 
-  const Th = ({ sortableKey, label }: { sortableKey: SortKey; label: string }) => (
-    <th className="py-1.5 px-2 font-normal cursor-pointer select-none hover:text-ink" onClick={() => toggleSort(sortableKey)}>
-      {label} {sortKey === sortableKey ? (sortDir === "asc" ? "↑" : "↓") : ""}
-    </th>
-  );
-
   return (
     <div>
       <div className="flex flex-wrap gap-2 mb-3">
@@ -89,13 +106,13 @@ export default function DetalleTable({ items, total }: { items: GameListItem[]; 
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-border text-left text-ink-muted">
-              <Th sortableKey="date" label="Fecha" />
-              <Th sortableKey="dayOfWeek" label="Día" />
-              <Th sortableKey="time" label="Hora" />
+              <SortableTh sortableKey="date" label="Fecha" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+              <SortableTh sortableKey="dayOfWeek" label="Día" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+              <SortableTh sortableKey="time" label="Hora" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
               <th className="py-1.5 px-2 font-normal">Facility</th>
-              <Th sortableKey="status" label="Estado" />
-              <Th sortableKey="finalPlayers" label="Jugadores" />
-              <Th sortableKey="cancellationReason" label="Motivo cancelación" />
+              <SortableTh sortableKey="status" label="Estado" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+              <SortableTh sortableKey="finalPlayers" label="Jugadores" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+              <SortableTh sortableKey="cancellationReason" label="Motivo cancelación" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
             </tr>
           </thead>
           <tbody>

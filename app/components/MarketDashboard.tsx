@@ -296,7 +296,7 @@ export default async function MarketDashboard({
                 <th className="py-1.5 px-2 font-normal">Facility</th>
                 <th className="py-1.5 px-2 font-normal">Conversión</th>
                 <th className="py-1.5 px-2 font-normal">Abandono</th>
-                <th className="py-1.5 px-2 font-normal">Cancelados "casi llegan"</th>
+                <th className="py-1.5 px-2 font-normal">Cancelados &quot;casi llegan&quot;</th>
               </tr>
             </thead>
             <tbody>

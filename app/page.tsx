@@ -138,9 +138,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
           sp={sp}
           filters={filters}
           period={period}
-          granularity={granularity}
           compare={compare}
-          heatmapMetric={heatmapMetric}
           facilitySort={facilitySort}
         />
       )}
