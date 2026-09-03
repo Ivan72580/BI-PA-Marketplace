@@ -18,6 +18,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       const email = profile?.email ?? "";
       return email.toLowerCase().endsWith(`@${ALLOWED_DOMAIN.toLowerCase()}`);
     },
+    // Este es el que de verdad bloquea el acceso: sin él, "auth as middleware"
+    // solo adjunta la sesión al pedido pero no redirige a nadie a /login.
+    authorized({ auth }) {
+      return !!auth?.user;
+    },
   },
   pages: {
     signIn: "/login",
