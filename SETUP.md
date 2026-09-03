@@ -48,6 +48,7 @@ Si vas a compartir la app por un link que no sea `localhost` (por ejemplo, una v
 
 ```bash
 npm install
+npx prisma generate                                    # genera el cliente de Prisma — no depender del postinstall automático
 npx prisma migrate dev --name init                    # crea las tablas en tu base
 npx prisma migrate dev --name add_composite_indexes    # agrega los índices de performance
 npm run db:import                                      # sincroniza data/events.csv (upsert real)
