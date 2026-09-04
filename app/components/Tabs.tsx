@@ -7,7 +7,7 @@ export default function Tabs({ tabs, defaultActiveId }: { tabs: { id: string; la
 
   return (
     <div>
-      <div className="flex gap-1 border-b border-border mb-6 overflow-x-auto">
+      <div className="flex gap-1 border-b border-border mb-6 flex-wrap">
         {tabs.map((t) => (
           <button
             key={t.id}

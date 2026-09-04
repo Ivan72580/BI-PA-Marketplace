@@ -34,11 +34,37 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
 
   // Comparación contra el período INMEDIATAMENTE ANTERIOR (mes anterior si
   // el filtro es mensual, trimestre anterior si es trimestral, etc.) — no
-  // contra el mismo período del año pasado. Reusa shiftAnchor + resolvePeriod
-  // para calcular el período completo anterior, cualquiera sea la granularidad.
+  // contra el mismo período del año pasado.
+  //
+  // Caso especial: si estamos viendo el mes EN CURSO (todavía no cerrado, la
+  // vista por defecto), comparar contra el mes anterior COMPLETO sería
+  // engañoso — un mes a mitad de camino siempre "pierde" contra un mes
+  // entero. Ahí comparamos contra el mismo tramo de días del mes anterior
+  // (si estamos al día 15, contra el 1-15 del mes pasado, no el 1-31).
+  const isDefaultCurrentMonth = granularity === "month" && anchor.slice(0, 7) === todayISO().slice(0, 7);
+
+  function resolvePartialPriorMonth(): ResolvedPeriod {
+    const now = new Date();
+    const dayOfMonth = now.getUTCDate();
+    const prevMonthAnchor = shiftAnchor("month", anchor, -1);
+    const prevMonthStart = resolvePeriod("month", prevMonthAnchor).dateFrom!;
+    const partialEnd = new Date(prevMonthStart);
+    partialEnd.setUTCDate(prevMonthStart.getUTCDate() + dayOfMonth - 1);
+    partialEnd.setUTCHours(23, 59, 59, 999);
+    const monthLabel = prevMonthStart.toLocaleDateString("es-AR", { month: "short", timeZone: "UTC" });
+    return {
+      dateFrom: prevMonthStart,
+      dateTo: partialEnd,
+      label: `${prevMonthStart.getUTCDate()}–${partialEnd.getUTCDate()} ${monthLabel} (mismo tramo)`,
+      priorLabel: null,
+    };
+  }
+
   const comparePeriod: ResolvedPeriod | null =
     granularity === "all" || granularity === "custom"
       ? null
+      : isDefaultCurrentMonth
+      ? resolvePartialPriorMonth()
       : resolvePeriod(granularity, shiftAnchor(granularity, anchor, -1));
   const compare = Boolean(comparePeriod?.dateFrom && comparePeriod?.dateTo);
 
@@ -56,6 +82,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
   const facilitySort: FacilitySortKey = validSorts.includes(sp.facilitySort as FacilitySortKey)
     ? (sp.facilitySort as FacilitySortKey)
     : "games";
+  const facilitySortDir: "asc" | "desc" = sp.facilitySortDir === "asc" ? "asc" : "desc";
 
   const [names, filterOptions, monthProjection] = await Promise.all([
     resolveFilterNames(sp),
@@ -67,39 +94,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
 
   return (
     <div>
-      {/* Breadcrumb: solo aparece si hay algo filtrado — el estado "sin filtro"
-          ya lo comunica el propio panel de filtros, no hace falta repetirlo. */}
-      {hasFilter && (
-        <div className="flex flex-wrap items-center gap-1.5 text-sm mb-2">
-          <Link href={buildQuery(sp, { regionId: undefined, marketId: undefined, facilityId: undefined })} className="text-brand">
-            ‹ Limpiar filtros
-          </Link>
-          {names.regionName && (
-            <>
-              <span className="text-ink-faint">›</span>
-              <Link href={buildQuery(sp, { marketId: undefined, facilityId: undefined })} className={sp.marketId ? "text-brand" : "text-ink font-medium"}>
-                {names.regionName}
-              </Link>
-            </>
-          )}
-          {names.marketName && (
-            <>
-              <span className="text-ink-faint">›</span>
-              <Link href={buildQuery(sp, { facilityId: undefined })} className={sp.facilityId ? "text-brand" : "text-ink font-medium"}>
-                {names.marketName}
-              </Link>
-            </>
-          )}
-          {names.facilityName && (
-            <>
-              <span className="text-ink-faint">›</span>
-              <span className="text-ink font-medium">{names.facilityName}</span>
-            </>
-          )}
-        </div>
-      )}
-
-      <div className="flex items-center justify-between gap-4 flex-wrap mb-5">
+      <div className="flex items-center justify-between gap-4 flex-wrap mb-6 pb-5 border-b border-border">
         <h1 className="font-display text-2xl font-semibold text-ink shrink-0">
           {names.facilityName ?? "Overview"}
         </h1>
@@ -122,7 +117,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
         </div>
       </div>
 
-      <FilterPanel regions={filterOptions.regions} markets={filterOptions.markets} facilities={filterOptions.facilities} />
+      <FilterPanel regions={filterOptions.regions} markets={filterOptions.markets} facilities={filterOptions.facilities} hasFilter={hasFilter} clearHref={buildQuery(sp, { regionId: undefined, marketId: undefined, facilityId: undefined })} />
 
       {compare && comparePeriod?.label && (
         <div className="text-xs text-ink-faint mb-4 -mt-3">Período anterior disponible para comparar: {comparePeriod.label}</div>
@@ -148,6 +143,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
           comparePeriod={comparePeriod}
           compare={compare}
           facilitySort={facilitySort}
+          facilitySortDir={facilitySortDir}
           regions={filterOptions.regions}
         />
       )}

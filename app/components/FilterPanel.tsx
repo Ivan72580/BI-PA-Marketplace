@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { resolvePeriod, shiftAnchor, todayISO, type Granularity } from "../lib/period";
 
@@ -49,12 +50,16 @@ export default function FilterPanel({
   facilities,
   showTimeControls = true,
   showFacility = true,
+  hasFilter = false,
+  clearHref,
 }: {
   regions: Option[];
   markets: Option[];
   facilities: Option[];
   showTimeControls?: boolean;
   showFacility?: boolean;
+  hasFilter?: boolean;
+  clearHref?: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -185,6 +190,12 @@ export default function FilterPanel({
             </span>
           )}
         </>
+      )}
+
+      {hasFilter && clearHref && (
+        <Link href={clearHref} className="text-sm text-brand hover:underline ml-auto shrink-0">
+          Limpiar filtros
+        </Link>
       )}
     </div>
   );

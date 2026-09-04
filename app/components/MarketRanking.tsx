@@ -61,8 +61,8 @@ export default async function MarketRanking({
                       {r.name}
                     </Link>
                   </td>
-                  <td className="py-1.5 px-2 text-brand">{r.confirmedGames}</td>
-                  <td className="py-1.5 px-2 text-danger">{r.cancelledGames}</td>
+                  <td className="py-1.5 px-2 text-ink">{r.confirmedGames}</td>
+                  <td className="py-1.5 px-2 text-ink">{r.cancelledGames}</td>
                   <td className="py-1.5 px-2 text-ink">{formatPct(r.conversionRate)}</td>
                   <td className="py-1.5 px-2 text-ink">{r.medianLeadTime !== null ? r.medianLeadTime.toFixed(1) : "—"}</td>
                   <td className="py-1.5 px-2 text-ink">{r.avgWaitlist !== null ? r.avgWaitlist.toFixed(1) : "—"}</td>

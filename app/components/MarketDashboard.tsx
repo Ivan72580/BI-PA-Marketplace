@@ -303,8 +303,8 @@ export default async function MarketDashboard({
               {engagementRows.slice(0, 30).map((f) => (
                 <tr key={f.facilityId} className="border-b border-surface-sunken">
                   <td className="py-1.5 px-2 text-ink">{f.name}</td>
-                  <td className="py-1.5 px-2 text-brand">{formatPct(f.conversionRate)}</td>
-                  <td className="py-1.5 px-2 text-danger">{formatPct(f.abandonmentRate)}</td>
+                  <td className="py-1.5 px-2 text-ink">{formatPct(f.conversionRate)}</td>
+                  <td className="py-1.5 px-2 text-ink">{formatPct(f.abandonmentRate)}</td>
                   <td className="py-1.5 px-2 text-ink-muted">{f.nearMissCancelledCount} ({f.cancelledGames > 0 ? formatPct(f.nearMissCancelledPct) : "—"})</td>
                 </tr>
               ))}

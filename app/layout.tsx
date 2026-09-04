@@ -1,7 +1,7 @@
 import "./globals.css";
 import { Space_Grotesk, Inter } from "next/font/google";
 import Sidebar from "./components/Sidebar";
-import Header from "./components/Header";
+import UserMenu from "./components/UserMenu";
 import { GlobalProvider } from "./context/GlobalContext";
 
 const spaceGrotesk = Space_Grotesk({
@@ -26,11 +26,8 @@ export default function RootLayout({
       <body className="m-0 antialiased">
         <GlobalProvider>
           <div className="flex min-h-screen">
-            <Sidebar />
-            <div className="flex flex-1 flex-col min-w-0">
-              <Header />
-              <main className="flex-1 bg-background px-8 py-8">{children}</main>
-            </div>
+            <Sidebar userMenu={<UserMenu />} />
+            <main className="flex-1 min-w-0 bg-background px-8 py-8">{children}</main>
           </div>
         </GlobalProvider>
       </body>

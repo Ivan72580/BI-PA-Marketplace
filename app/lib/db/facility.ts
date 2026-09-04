@@ -119,7 +119,7 @@ export type FacilityTableRow = {
   avgLeadTime: number | null;
 };
 
-async function getFacilityTableImpl(filters: OverviewFilters, sortBy: FacilitySortKey = "games") {
+async function getFacilityTableImpl(filters: OverviewFilters, sortBy: FacilitySortKey = "games", sortDir: "asc" | "desc" = "desc") {
   const where = buildWhere(filters);
   const cancelledWhere: Prisma.GameWhereInput = { ...where, status: GameStatus.CANCELLED };
 
@@ -197,13 +197,15 @@ async function getFacilityTableImpl(filters: OverviewFilters, sortBy: FacilitySo
     })
     .filter((r): r is FacilityTableRow => r !== null);
 
-  const sorters: Record<FacilitySortKey, (a: FacilityTableRow, b: FacilityTableRow) => number> = {
-    games: (a, b) => b.totalGames - a.totalGames,
-    cancellationRate: (a, b) => b.cancellationRate - a.cancellationRate,
-    rating: (a, b) => (b.avgRating ?? -1) - (a.avgRating ?? -1),
-    price: (a, b) => (b.avgPrice ?? -1) - (a.avgPrice ?? -1),
+  const valueGetters: Record<FacilitySortKey, (r: FacilityTableRow) => number> = {
+    games: (r) => r.totalGames,
+    cancellationRate: (r) => r.cancellationRate,
+    rating: (r) => r.avgRating ?? -1,
+    price: (r) => r.avgPrice ?? -1,
   };
-  rows = rows.sort(sorters[sortBy] ?? sorters.games);
+  const getValue = valueGetters[sortBy] ?? valueGetters.games;
+  const dir = sortDir === "asc" ? 1 : -1;
+  rows = rows.sort((a, b) => (getValue(a) - getValue(b)) * dir);
 
   return rows;
 }

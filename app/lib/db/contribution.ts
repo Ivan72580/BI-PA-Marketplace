@@ -7,18 +7,18 @@ export type ContributionRow = {
   marketId: string;
   regionId: string;
   label: string;
-  excessCancellations: number; // positivo = canceló más de lo esperado según su propio historial
-  curRate: number;
-  priorRate: number;
-  ratePointsChange: number;
+  excessCancellations: number; // positivo = canceló más de lo esperado según su propia tasa del período anterior
+  excessConfirmations: number; // positivo = confirmó más de lo esperado según su propia tasa del período anterior
+  curCancelRate: number;
+  priorCancelRate: number;
   curTotal: number;
   priorTotal: number;
 };
 
 // Responde "¿quién explica el cambio?", comparando a cada facility contra SU
-// PROPIO comportamiento en el período anterior (no contra un promedio ajeno).
-// excessCancellations = cancelaciones reales - las que se esperarían si esa
-// facility hubiese mantenido su propia tasa histórica.
+// PROPIO comportamiento en el período anterior (no contra un promedio ajeno,
+// ni contra un histórico más amplio — específicamente el período con el que
+// se está comparando en el resto de la página).
 async function getContributionRankingImpl(
   filters: Omit<OverviewFilters, "dateFrom" | "dateTo">,
   current: { dateFrom: Date; dateTo: Date },
@@ -76,45 +76,45 @@ async function getContributionRankingImpl(
   const rows: ContributionRow[] = Array.from(map.entries())
     .filter(([, a]) => a.curTotal >= MIN_GAMES_FOR_CONTRIBUTION && a.priorTotal >= MIN_GAMES_FOR_CONTRIBUTION)
     .map(([facilityId, a]) => {
-      const priorRate = a.priorCancelled / a.priorTotal;
-      const curRate = a.curCancelled / a.curTotal;
-      const expectedCancelled = a.curTotal * priorRate;
+      const priorCancelRate = a.priorCancelled / a.priorTotal;
+      const curCancelRate = a.curCancelled / a.curTotal;
+      const expectedCancelled = a.curTotal * priorCancelRate;
+      const expectedConfirmed = a.curTotal * (1 - priorCancelRate);
+      const curConfirmed = a.curTotal - a.curCancelled;
       return {
         facilityId,
         marketId: a.marketId,
         regionId: a.regionId,
         label: a.name,
         excessCancellations: Math.round((a.curCancelled - expectedCancelled) * 10) / 10,
-        curRate,
-        priorRate,
-        ratePointsChange: curRate - priorRate,
+        excessConfirmations: Math.round((curConfirmed - expectedConfirmed) * 10) / 10,
+        curCancelRate,
+        priorCancelRate,
         curTotal: a.curTotal,
         priorTotal: a.priorTotal,
       };
-    })
-    .sort((a, b) => Math.abs(b.excessCancellations) - Math.abs(a.excessCancellations))
-    .slice(0, 10);
+    });
 
   return rows;
 }
 
 export const getContributionRanking = cached("getContributionRanking", getContributionRankingImpl);
 
-export function generateContributionInsights(rows: ContributionRow[]): string[] {
+export function generateContributionInsights(rows: ContributionRow[], comparePeriodLabel: string): string[] {
   const MIN_MAGNITUDE = 3; // menos de 3 partidos de diferencia no vale la pena destacarlo
   const insights: string[] = [];
 
-  const worsened = rows.filter((r) => r.excessCancellations >= MIN_MAGNITUDE)[0];
+  const worsened = [...rows].filter((r) => r.excessCancellations >= MIN_MAGNITUDE).sort((a, b) => b.excessCancellations - a.excessCancellations)[0];
   if (worsened) {
     insights.push(
-      `⚠ ${worsened.label} explica buena parte del cambio: pasó de ${(worsened.priorRate * 100).toFixed(0)}% a ${(worsened.curRate * 100).toFixed(0)}% de cancelación (+${worsened.excessCancellations.toFixed(1)} cancelaciones más de lo esperado según su propio historial).`
+      `⚠ ${worsened.label} explica buena parte del cambio: pasó de ${(worsened.priorCancelRate * 100).toFixed(0)}% a ${(worsened.curCancelRate * 100).toFixed(0)}% de cancelación respecto a ${comparePeriodLabel} (+${worsened.excessCancellations.toFixed(1)} cancelaciones más de lo esperado).`
     );
   }
 
   const improved = [...rows].filter((r) => r.excessCancellations <= -MIN_MAGNITUDE).sort((a, b) => a.excessCancellations - b.excessCancellations)[0];
   if (improved) {
     insights.push(
-      `✓ ${improved.label} mejoró notablemente: pasó de ${(improved.priorRate * 100).toFixed(0)}% a ${(improved.curRate * 100).toFixed(0)}% de cancelación (${improved.excessCancellations.toFixed(1)} cancelaciones menos de lo esperado según su propio historial).`
+      `✓ ${improved.label} mejoró notablemente: pasó de ${(improved.priorCancelRate * 100).toFixed(0)}% a ${(improved.curCancelRate * 100).toFixed(0)}% de cancelación respecto a ${comparePeriodLabel} (${improved.excessCancellations.toFixed(1)} cancelaciones menos de lo esperado).`
     );
   }
 

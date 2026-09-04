@@ -105,3 +105,41 @@ async function getExtendedMetricsImpl(filters: OverviewFilters) {
 }
 
 export const getExtendedMetrics = cached("getExtendedMetrics", getExtendedMetricsImpl);
+
+// ---------- Top facilities por lista de espera y por abandono ----------
+
+export type DemandLeaderRow = { facilityId: string; name: string; value: number };
+
+async function getDemandLeadersImpl(filters: OverviewFilters): Promise<{ waitlist: DemandLeaderRow[]; dropped: DemandLeaderRow[] }> {
+  const where = buildWhere(filters);
+
+  const groups = await prisma.game.groupBy({
+    by: ["facilityId"],
+    where,
+    _sum: { waitlistPlayers: true, droppedPlayers: true },
+  });
+
+  type FacilityNameInfo = { id: string; name: string };
+  const facilityIds = groups.map((g) => g.facilityId);
+  const facilityInfoRows = (await prisma.facility.findMany({
+    where: { id: { in: facilityIds } },
+    select: { id: true, name: true },
+  })) as FacilityNameInfo[];
+  const nameMap = new Map(facilityInfoRows.map((f): [string, string] => [f.id, f.name]));
+
+  const waitlist = groups
+    .map((g) => ({ facilityId: g.facilityId, name: nameMap.get(g.facilityId) ?? "—", value: g._sum.waitlistPlayers ?? 0 }))
+    .filter((r) => r.value > 0)
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 3);
+
+  const dropped = groups
+    .map((g) => ({ facilityId: g.facilityId, name: nameMap.get(g.facilityId) ?? "—", value: g._sum.droppedPlayers ?? 0 }))
+    .filter((r) => r.value > 0)
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 3);
+
+  return { waitlist, dropped };
+}
+
+export const getDemandLeaders = cached("getDemandLeaders", getDemandLeadersImpl);

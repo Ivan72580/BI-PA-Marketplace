@@ -21,7 +21,8 @@ export default function KpiCard({
   staticDelta?: boolean;
 }) {
   const [showDelta, setShowDelta] = useState(false);
-  const valueColor = tone === "brand" ? "text-brand" : tone === "danger" ? "text-danger" : "text-ink";
+  // Regla: los valores siempre en el mismo color — solo la variación % es
+  // verde o rojo según corresponda (eso lo resuelve ChangeBadge).
   const hasComparison = delta !== undefined;
   const deltaVisible = staticDelta || showDelta;
 
@@ -43,7 +44,7 @@ export default function KpiCard({
         )}
       </div>
       <div className="flex items-baseline gap-2.5 flex-wrap">
-        <div className={`font-display text-3xl font-semibold ${valueColor}`}>{value}</div>
+        <div className="font-display text-3xl font-semibold text-ink">{value}</div>
         {deltaVisible && hasComparison && <ChangeBadge value={delta ?? null} invert={deltaInvert} />}
       </div>
       {sublabel && <div className="text-xs text-ink-faint mt-1">{sublabel}</div>}

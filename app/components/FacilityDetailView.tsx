@@ -155,7 +155,7 @@ export default async function FacilityDetailView({
           <p className="text-sm text-ink leading-relaxed">
             Este mes lleva una <span className="font-semibold text-brand">tasa de confirmación del {formatPct(monthProjection.confirmationRateSoFar)}</span>
             {" "}({monthProjection.confirmedSoFar} de {monthProjection.totalSoFar} partidos programados), con{" "}
-            <span className="font-semibold text-danger">{formatPct(monthProjection.cancellationRateSoFar)} de cancelación</span>
+            <span className="font-semibold text-ink">{formatPct(monthProjection.cancellationRateSoFar)} de cancelación</span>
             {" "}({monthProjection.cancelledSoFar} partidos)
             {historicalAvgConfirmationRate !== null && (
               <>

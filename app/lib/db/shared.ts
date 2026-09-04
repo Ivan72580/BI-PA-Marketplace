@@ -49,7 +49,7 @@ export const DAY_LABEL_ES: Record<string, string> = {
 // Umbrales compartidos entre módulos, para que un mismo criterio de
 // "muestra mínima representativa" no quede duplicado (y potencialmente
 // desincronizado) en cada archivo.
-export const MIN_GAMES_FOR_RANKING = 10;
+export const MIN_GAMES_FOR_RANKING = 7; // 1 partido por día en una semana
 export const MIN_GAMES_FOR_CONTRIBUTION = 5;
 export const MAX_NAMED_SEGMENTS = 20;
 

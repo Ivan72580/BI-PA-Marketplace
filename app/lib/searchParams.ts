@@ -7,6 +7,7 @@ export type SP = {
   compare?: string;
   heatmapMetric?: string;
   facilitySort?: string;
+  facilitySortDir?: string;
   customFrom?: string;
   customTo?: string;
 };
