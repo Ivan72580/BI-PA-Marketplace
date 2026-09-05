@@ -51,7 +51,7 @@ export default function Sidebar({ userMenu }: { userMenu: ReactNode }) {
 
   if (collapsed) {
     return (
-      <div className="w-14 shrink-0 bg-[#0e1712] flex flex-col items-center py-6">
+      <div className="w-14 h-full shrink-0 bg-[#0e1712] flex flex-col items-center py-6">
         <button
           type="button"
           onClick={() => setCollapsed(false)}
@@ -83,7 +83,7 @@ export default function Sidebar({ userMenu }: { userMenu: ReactNode }) {
   }
 
   return (
-    <div className="w-60 shrink-0 bg-[#0e1712] px-5 py-6 flex flex-col">
+    <div className="w-60 h-full shrink-0 bg-[#0e1712] px-5 py-6 flex flex-col">
       <div className="mb-8 px-1 flex items-center justify-between">
         <div>
           <div className="font-display text-lg font-semibold text-white">Plei</div>

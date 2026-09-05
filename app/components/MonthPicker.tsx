@@ -15,7 +15,7 @@ export default function MonthPicker({ paramName, value }: { paramName: string; v
         if (!e.target.value) return;
         const params = new URLSearchParams(searchParams.toString());
         params.set(paramName, e.target.value);
-        router.push(`${pathname}?${params.toString()}`);
+        router.push(`${pathname}?${params.toString()}`, { scroll: false });
       }}
       className="rounded-lg border border-border-strong bg-surface px-2.5 py-1 text-sm text-ink cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand/30"
     />

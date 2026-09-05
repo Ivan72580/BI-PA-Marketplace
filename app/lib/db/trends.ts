@@ -473,6 +473,47 @@ function generateSlotInsights(cells: SlotConsistencyCell[], priorMonthLabel: str
 
 export const getSlotConsistency = cached("getSlotConsistency", getSlotConsistencyImpl);
 
+// ---------- Performance reciente por slot (últimas N semanas) ----------
+// Complementa la consistencia histórica (mensual, multi-mes) con una mirada
+// más corta: ¿cómo viene funcionando este slot en las últimas 8 semanas?
+// Sirve para detectar demanda emergente que todavía no acumuló suficientes
+// meses como para aparecer "consistente" en el heatmap principal.
+
+export type SlotRecentRow = { day: string; dayLabel: string; hour: string; confirmationRate: number; totalGames: number };
+
+async function getSlotRecentPerformanceImpl(filters: OverviewFilters, weeks = 8): Promise<SlotRecentRow[]> {
+  const now = new Date();
+  const windowStart = new Date(now);
+  windowStart.setUTCDate(windowStart.getUTCDate() - weeks * 7);
+
+  const where = buildWhere({ ...filters, dateFrom: windowStart, dateTo: now });
+  const games = (await prisma.game.findMany({ where, select: { dayOfWeek: true, time: true, status: true } })) as { dayOfWeek: string; time: string; status: "CONFIRMED" | "CANCELLED" }[];
+
+  const map = new Map<string, { confirmed: number; total: number }>();
+  for (const g of games) {
+    const hour = g.time?.slice(0, 2);
+    if (!hour || !g.dayOfWeek) continue;
+    const key = `${g.dayOfWeek}|${hour}`;
+    const entry = map.get(key) ?? { confirmed: 0, total: 0 };
+    entry.total += 1;
+    if (g.status === "CONFIRMED") entry.confirmed += 1;
+    map.set(key, entry);
+  }
+
+  return Array.from(map.entries()).map(([key, v]) => {
+    const [day, hour] = key.split("|");
+    return {
+      day,
+      dayLabel: DAY_LABEL_ES[day] ?? day,
+      hour: `${hour}h`,
+      confirmationRate: v.total > 0 ? v.confirmed / v.total : 0,
+      totalGames: v.total,
+    };
+  });
+}
+
+export const getSlotRecentPerformance = cached("getSlotRecentPerformance", getSlotRecentPerformanceImpl);
+
 // ---------- Patrón estacional: 6 variables por mes calendario (multi-año) ----------
 //
 // A diferencia de la serie temporal (que sigue el calendario real, año tras
@@ -605,7 +646,7 @@ export const getSeasonalPattern = cached("getSeasonalPattern", getSeasonalPatter
 // últimos 12 meses — la evolución reciente de cada variable, por separado.
 
 export type RecentMonthPoint = {
-  monthKey: string; // "YYYY-MM"
+  monthKey: string; // "YYYY-MM" o "YYYY-Www" según la unidad
   monthLabel: string;
   confirmationRate: number;
   cancellationRate: number;
@@ -613,27 +654,77 @@ export type RecentMonthPoint = {
   avgWaitlist: number;
   medianLeadTime: number | null;
   conversionRate: number;
+  hasData: boolean; // false = bucket futuro o sin partidos todavía, para no confundir "0%" con "sin datos"
 };
 
-async function getRecentMonthlyPatternImpl(filters: OverviewFilters, months = 12): Promise<RecentMonthPoint[]> {
-  const now = new Date();
-  const windowStart = new Date(now);
-  windowStart.setUTCMonth(windowStart.getUTCMonth() - months);
+function mondayOf(d: Date): Date {
+  const day = (d.getUTCDay() + 6) % 7; // Lunes=0
+  const m = new Date(d);
+  m.setUTCDate(m.getUTCDate() - day);
+  m.setUTCHours(0, 0, 0, 0);
+  return m;
+}
 
-  const where = buildWhere({ ...filters, dateFrom: windowStart, dateTo: now });
-  const games = (await prisma.game.findMany({
-    where,
-    select: {
-      date: true, status: true, finalPlayers: true, maxPlayers: true,
-      droppedPlayers: true, waitlistPlayers: true, confirmationLeadTime: true,
-    },
-  })) as SeasonalRow[];
+// Enumera TODOS los buckets entre windowStart y windowEnd (incluso los que
+// todavía no tienen datos porque son futuros dentro del período elegido) —
+// así el eje del gráfico siempre llega hasta el final real del período
+// (ej: hasta diciembre si se eligió "Semestre", aunque solo julio-septiembre
+// tengan datos todavía).
+function enumerateBuckets(windowStart: Date, windowEnd: Date, unit: "month" | "week"): { key: string; label: string }[] {
+  const buckets: { key: string; label: string }[] = [];
+  if (unit === "month") {
+    const cursor = new Date(Date.UTC(windowStart.getUTCFullYear(), windowStart.getUTCMonth(), 1));
+    const end = new Date(Date.UTC(windowEnd.getUTCFullYear(), windowEnd.getUTCMonth(), 1));
+    while (cursor <= end) {
+      const key = `${cursor.getUTCFullYear()}-${String(cursor.getUTCMonth() + 1).padStart(2, "0")}`;
+      const label = cursor.toLocaleDateString("es-AR", { month: "short", timeZone: "UTC" });
+      buckets.push({ key, label });
+      cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+    }
+  } else {
+    const cursor = mondayOf(windowStart);
+    const end = windowEnd;
+    let weekNum = 1;
+    while (cursor <= end) {
+      const key = cursor.toISOString().slice(0, 10);
+      const label = `Sem ${weekNum}`;
+      buckets.push({ key, label });
+      cursor.setUTCDate(cursor.getUTCDate() + 7);
+      weekNum += 1;
+    }
+  }
+  return buckets;
+}
+
+async function getSeasonalWindowPatternImpl(
+  filters: OverviewFilters,
+  windowStart: Date,
+  windowEnd: Date,
+  bucketUnit: "month" | "week"
+): Promise<RecentMonthPoint[]> {
+  const now = new Date();
+  const dataEnd = windowEnd < now ? windowEnd : now;
+
+  const where = buildWhere({ ...filters, dateFrom: windowStart, dateTo: dataEnd });
+  const games =
+    dataEnd >= windowStart
+      ? ((await prisma.game.findMany({
+          where,
+          select: {
+            date: true, status: true, finalPlayers: true, maxPlayers: true,
+            droppedPlayers: true, waitlistPlayers: true, confirmationLeadTime: true,
+          },
+        })) as SeasonalRow[])
+      : [];
 
   type Bucket = { confirmed: number; cancelled: number; sumFinal: number; sumMax: number; sumDropped: number; sumWaitlist: number; gameCount: number; leadTimes: number[] };
   const buckets = new Map<string, Bucket>();
 
   for (const g of games) {
-    const key = `${g.date.getUTCFullYear()}-${String(g.date.getUTCMonth() + 1).padStart(2, "0")}`;
+    const key =
+      bucketUnit === "month"
+        ? `${g.date.getUTCFullYear()}-${String(g.date.getUTCMonth() + 1).padStart(2, "0")}`
+        : mondayOf(g.date).toISOString().slice(0, 10);
     const b = buckets.get(key) ?? { confirmed: 0, cancelled: 0, sumFinal: 0, sumMax: 0, sumDropped: 0, sumWaitlist: 0, gameCount: 0, leadTimes: [] };
     if (g.status === "CONFIRMED") {
       b.confirmed += 1;
@@ -649,26 +740,32 @@ async function getRecentMonthlyPatternImpl(filters: OverviewFilters, months = 12
     buckets.set(key, b);
   }
 
-  return Array.from(buckets.entries())
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([key, b]) => {
-      const total = b.confirmed + b.cancelled;
-      const [y, m] = key.split("-").map(Number);
-      const monthLabel = new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString("es-AR", { month: "short", year: "2-digit", timeZone: "UTC" });
+  const allBuckets = enumerateBuckets(windowStart, windowEnd, bucketUnit);
+
+  return allBuckets.map(({ key, label }) => {
+    const b = buckets.get(key);
+    if (!b) {
       return {
-        monthKey: key,
-        monthLabel,
-        confirmationRate: total > 0 ? b.confirmed / total : 0,
-        cancellationRate: total > 0 ? b.cancelled / total : 0,
-        occupancyRate: b.sumMax > 0 ? b.sumFinal / b.sumMax : 0,
-        avgWaitlist: b.gameCount > 0 ? b.sumWaitlist / b.gameCount : 0,
-        medianLeadTime: medianOf(b.leadTimes),
-        conversionRate: computeConversionRate(b.sumFinal, b.sumDropped),
+        monthKey: key, monthLabel: label, confirmationRate: 0, cancellationRate: 0,
+        occupancyRate: 0, avgWaitlist: 0, medianLeadTime: null, conversionRate: 0, hasData: false,
       };
-    });
+    }
+    const total = b.confirmed + b.cancelled;
+    return {
+      monthKey: key,
+      monthLabel: label,
+      confirmationRate: total > 0 ? b.confirmed / total : 0,
+      cancellationRate: total > 0 ? b.cancelled / total : 0,
+      occupancyRate: b.sumMax > 0 ? b.sumFinal / b.sumMax : 0,
+      avgWaitlist: b.gameCount > 0 ? b.sumWaitlist / b.gameCount : 0,
+      medianLeadTime: medianOf(b.leadTimes),
+      conversionRate: computeConversionRate(b.sumFinal, b.sumDropped),
+      hasData: total > 0,
+    };
+  });
 }
 
-export const getRecentMonthlyPattern = cached("getRecentMonthlyPattern", getRecentMonthlyPatternImpl);
+export const getSeasonalWindowPattern = cached("getSeasonalWindowPattern", getSeasonalWindowPatternImpl);
 
 // ---------- Resumen "clima" por trimestre del año (multi-año, para referencia estática) ----------
 // Agrega los 4 trimestres calendario (no fijos a un año particular) usando

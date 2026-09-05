@@ -26,7 +26,9 @@ export default function RootLayout({
       <body className="m-0 antialiased">
         <GlobalProvider>
           <div className="flex min-h-screen">
-            <Sidebar userMenu={<UserMenu />} />
+            <div className="sticky top-0 h-screen shrink-0">
+              <Sidebar userMenu={<UserMenu />} />
+            </div>
             <main className="flex-1 min-w-0 bg-background px-8 py-8">{children}</main>
           </div>
         </GlobalProvider>

@@ -29,7 +29,7 @@ export default function TabFilters({
       if (!v || v === "All") params.delete(k);
       else params.set(k, v);
     }
-    router.push(`${pathname}?${params.toString()}`);
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
   }
 
   const selectClass =

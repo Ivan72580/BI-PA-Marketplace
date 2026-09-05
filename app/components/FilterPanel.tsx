@@ -90,7 +90,7 @@ export default function FilterPanel({
       if (v === undefined || v === "All" || v === "") params.delete(k);
       else params.set(k, v);
     }
-    router.push(`${pathname}?${params.toString()}`);
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
   }
 
   const selectClass =
@@ -150,7 +150,7 @@ export default function FilterPanel({
               params.delete("period");
               params.delete("customFrom");
               params.delete("customTo");
-              router.push(`${pathname}?${params.toString()}`);
+              router.push(`${pathname}?${params.toString()}`, { scroll: false });
             }}
           >
             {GRANULARITY_OPTIONS.map((o) => (
