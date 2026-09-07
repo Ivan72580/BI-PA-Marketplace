@@ -25,8 +25,9 @@ export type MarketFacilityRow = {
   conversionRate: number;
   abandonmentRate: number;
   avgPrice: number | null;
-  avgDailyPlayers: number | null; // jugadores confirmados totales / días del rango filtrado
-  grossProfitEstimate: number | null; // ticket promedio × jugadores promedio por día × días del rango
+  avgPlayersPerGame: number | null; // jugadores confirmados totales / cantidad de partidos confirmados
+  avgGamesPerMonth: number; // partidos confirmados en el mes seleccionado
+  grossProfitEstimate: number | null; // ticket promedio × jugadores promedio por partido × partidos del mes
   medianLeadTime: number | null;
   nearMissCancelledCount: number; // cancelados que llegaron a >=50% del mínimo
   nearMissCancelledPct: number; // % de los cancelados de esa facility
@@ -50,13 +51,6 @@ async function getMarketFacilitySummaryImpl(filters: OverviewFilters): Promise<M
   const where = buildWhere(filters);
   const confirmedWhere = { ...where, status: GameStatus.CONFIRMED };
   const cancelledWhere = { ...where, status: GameStatus.CANCELLED };
-
-  // Días del rango filtrado — solo tiene sentido "jugadores promedio por día"
-  // si hay un rango de fechas definido (ej: un mes puntual).
-  const daysInRange =
-    filters.dateFrom && filters.dateTo
-      ? Math.max(1, Math.round((filters.dateTo.getTime() - filters.dateFrom.getTime()) / 86400000) + 1)
-      : null;
 
   const [
     totals,
@@ -138,8 +132,9 @@ async function getMarketFacilitySummaryImpl(filters: OverviewFilters): Promise<M
       const nearMiss = nearMissByFacility.get(t.facilityId) ?? 0;
       const marketTotal = confirmedByMarket.get(info.marketId) ?? 0;
       const price = priceMap.get(t.facilityId) ?? null;
-      const avgDailyPlayers = daysInRange !== null ? occ.final / daysInRange : null;
-      const grossProfitEstimate = price !== null && avgDailyPlayers !== null && daysInRange !== null ? price * avgDailyPlayers * daysInRange : null;
+      const avgPlayersPerGame = confirmed > 0 ? occ.final / confirmed : null;
+      const avgGamesPerMonth = confirmed;
+      const grossProfitEstimate = price !== null && avgPlayersPerGame !== null ? price * avgPlayersPerGame * avgGamesPerMonth : null;
 
       return {
         facilityId: t.facilityId,
@@ -157,7 +152,8 @@ async function getMarketFacilitySummaryImpl(filters: OverviewFilters): Promise<M
         conversionRate: eng.final + eng.dropped > 0 ? eng.final / (eng.final + eng.dropped) : 0,
         abandonmentRate: eng.final + eng.dropped > 0 ? eng.dropped / (eng.final + eng.dropped) : 0,
         avgPrice: price,
-        avgDailyPlayers,
+        avgPlayersPerGame,
+        avgGamesPerMonth,
         grossProfitEstimate,
         medianLeadTime: median(leadTimeByFacility.get(t.facilityId) ?? []),
         nearMissCancelledCount: nearMiss,

@@ -246,14 +246,15 @@ export default async function MarketDashboard({
   const precioContent = (
     <div className="space-y-5">
       <TabFilters regions={filterOptions.regions} markets={filterOptions.markets} />
-      <SectionCard title="Ticket promedio, jugadores por día y gross profit estimado" subtitle={`${month} — gross profit = ticket promedio × jugadores promedio por día × días del mes`}>
+      <SectionCard title="Ticket promedio, jugadores por partido y gross profit estimado" subtitle={`${month} — gross profit = ticket promedio × jugadores promedio por partido × partidos confirmados del mes`}>
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr className="border-b border-border text-left text-ink-muted">
                 <th className="py-1.5 px-2 font-normal">Facility</th>
                 <th className="py-1.5 px-2 font-normal">Ticket promedio</th>
-                <th className="py-1.5 px-2 font-normal">Jugadores/día</th>
+                <th className="py-1.5 px-2 font-normal">Jugadores/partido</th>
+                <th className="py-1.5 px-2 font-normal">Partidos/mes</th>
                 <th className="py-1.5 px-2 font-normal">Gross profit estimado</th>
               </tr>
             </thead>
@@ -262,19 +263,21 @@ export default async function MarketDashboard({
                 <tr key={f.facilityId} className="border-b border-surface-sunken">
                   <td className="py-1.5 px-2 text-ink">{f.name}</td>
                   <td className="py-1.5 px-2 text-ink">{formatUSD2(f.avgPrice ?? 0)}</td>
-                  <td className="py-1.5 px-2 text-ink">{f.avgDailyPlayers !== null ? f.avgDailyPlayers.toFixed(1) : "—"}</td>
+                  <td className="py-1.5 px-2 text-ink">{f.avgPlayersPerGame !== null ? f.avgPlayersPerGame.toFixed(1) : "—"}</td>
+                  <td className="py-1.5 px-2 text-ink">{f.avgGamesPerMonth}</td>
                   <td className="py-1.5 px-2 text-ink">{f.grossProfitEstimate !== null ? formatUSD(f.grossProfitEstimate) : "—"}</td>
                 </tr>
               ))}
-              {priceRows.length === 0 && <tr><td colSpan={4} className="py-4 text-center text-ink-faint">Sin datos de precio en este filtro.</td></tr>}
+              {priceRows.length === 0 && <tr><td colSpan={5} className="py-4 text-center text-ink-faint">Sin datos de precio en este filtro.</td></tr>}
             </tbody>
           </table>
         </div>
         <Glossary
           items={[
             { term: "Ticket promedio", def: "precio promedio cobrado por jugador, sin redondear." },
-            { term: "Jugadores/día", def: "jugadores confirmados totales del mes / cantidad de días del mes." },
-            { term: "Gross profit estimado", def: "ticket promedio × jugadores/día × días del mes — cálculo simple, no contempla costos de la facility (no disponibles en esta base)." },
+            { term: "Jugadores/partido", def: "jugadores confirmados totales del mes / cantidad de partidos confirmados — no se diluye por días sin partido." },
+            { term: "Partidos/mes", def: "partidos confirmados en el mes seleccionado." },
+            { term: "Gross profit estimado", def: "ticket promedio × jugadores/partido × partidos del mes — cálculo simple, no contempla costos de la facility (no disponibles en esta base)." },
           ]}
         />
       </SectionCard>
