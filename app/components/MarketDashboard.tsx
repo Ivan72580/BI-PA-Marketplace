@@ -12,6 +12,7 @@ import ChangeBadge from "./ChangeBadge";
 import Tabs from "./Tabs";
 import TabFilters from "./TabFilters";
 import RegionConcentrationPies from "./RegionConcentrationPies";
+import PriceTable from "./PriceTable";
 
 function formatPct(n: number) {
   return `${(n * 100).toFixed(1)}%`;
@@ -93,7 +94,7 @@ export default async function MarketDashboard({
   };
 
   const reputationRows = [...summary].sort((a, b) => (b.reputationScore ?? -1) - (a.reputationScore ?? -1));
-  const priceRows = [...summary].filter((f) => f.avgPrice !== null).sort((a, b) => (b.avgPrice ?? 0) - (a.avgPrice ?? 0));
+  const priceRows = summary.filter((f) => f.avgPrice !== null);
   const engagementRows = [...summary].sort((a, b) => b.nearMissCancelledCount - a.nearMissCancelledCount);
   const totalNearMiss = summary.reduce((s, f) => s + f.nearMissCancelledCount, 0);
   const totalCancelled = summary.reduce((s, f) => s + f.cancelledGames, 0);
@@ -246,37 +247,13 @@ export default async function MarketDashboard({
   const precioContent = (
     <div className="space-y-5">
       <TabFilters regions={filterOptions.regions} markets={filterOptions.markets} />
-      <SectionCard title="Ticket promedio, jugadores por partido y gross profit estimado" subtitle={`${month} — gross profit = ticket promedio × jugadores promedio por partido × partidos confirmados del mes`}>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-ink-muted">
-                <th className="py-1.5 px-2 font-normal">Facility</th>
-                <th className="py-1.5 px-2 font-normal">Ticket promedio</th>
-                <th className="py-1.5 px-2 font-normal">Jugadores/partido</th>
-                <th className="py-1.5 px-2 font-normal">Partidos/mes</th>
-                <th className="py-1.5 px-2 font-normal">Gross profit estimado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {priceRows.slice(0, 30).map((f) => (
-                <tr key={f.facilityId} className="border-b border-surface-sunken">
-                  <td className="py-1.5 px-2 text-ink">{f.name}</td>
-                  <td className="py-1.5 px-2 text-ink">{formatUSD2(f.avgPrice ?? 0)}</td>
-                  <td className="py-1.5 px-2 text-ink">{f.avgPlayersPerGame !== null ? f.avgPlayersPerGame.toFixed(1) : "—"}</td>
-                  <td className="py-1.5 px-2 text-ink">{f.avgGamesPerMonth}</td>
-                  <td className="py-1.5 px-2 text-ink">{f.grossProfitEstimate !== null ? formatUSD(f.grossProfitEstimate) : "—"}</td>
-                </tr>
-              ))}
-              {priceRows.length === 0 && <tr><td colSpan={5} className="py-4 text-center text-ink-faint">Sin datos de precio en este filtro.</td></tr>}
-            </tbody>
-          </table>
-        </div>
+      <SectionCard title="Ticket promedio, jugadores por partido y gross profit estimado" subtitle={`${month} — gross profit = ticket promedio × jugadores promedio por partido × partidos confirmados del mes. Columnas ordenables: click = mayor a menor, de nuevo = menor a mayor, de nuevo = vuelve al orden por defecto`}>
+        <PriceTable rows={priceRows} />
         <Glossary
           items={[
             { term: "Ticket promedio", def: "precio promedio cobrado por jugador, sin redondear." },
             { term: "Jugadores/partido", def: "jugadores confirmados totales del mes / cantidad de partidos confirmados — no se diluye por días sin partido." },
-            { term: "Partidos/mes", def: "partidos confirmados en el mes seleccionado." },
+            { term: "Partidos/mes", def: "partidos confirmados en el mes seleccionado. Este es el orden por defecto." },
             { term: "Gross profit estimado", def: "ticket promedio × jugadores/partido × partidos del mes — cálculo simple, no contempla costos de la facility (no disponibles en esta base)." },
           ]}
         />
