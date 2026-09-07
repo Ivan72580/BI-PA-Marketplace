@@ -192,10 +192,10 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
 
       <GroupSection title="Tendencia del market">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <MetricTrendCard title="Tasa de confirmación" chartData={seriesChart("confirmationRate", METRIC_COLORS.confirmation)} currentValue={currentSummary.confirmationRate} priorValue={priorSummary?.confirmationRate ?? null} comparePeriodLabel={comparePeriod.label} formatValue={formatPct} />
-          <MetricTrendCard title="Tasa de cancelación" chartData={seriesChart("cancellationRate", METRIC_COLORS.cancellation)} currentValue={currentSummary.cancellationRate} priorValue={priorSummary?.cancellationRate ?? null} comparePeriodLabel={comparePeriod.label} formatValue={formatPct} />
-          <MetricTrendCard title="Ocupación" chartData={seriesChart("occupancyRate", METRIC_COLORS.occupancy)} currentValue={currentSummary.occupancyRate} priorValue={priorSummary?.occupancyRate ?? null} comparePeriodLabel={comparePeriod.label} formatValue={formatPct} />
-          <MetricTrendCard title="Conversión" chartData={seriesChart("conversionRate", METRIC_COLORS.conversion)} currentValue={currentSummary.conversionRate} priorValue={priorSummary?.conversionRate ?? null} comparePeriodLabel={comparePeriod.label} formatValue={formatPct} />
+          <MetricTrendCard title="Tasa de confirmación" chartData={seriesChart("confirmationRate", METRIC_COLORS.confirmation)} currentValue={currentSummary.confirmationRate} priorValue={priorSummary?.confirmationRate ?? null} comparePeriodLabel={comparePeriod.label} />
+          <MetricTrendCard title="Tasa de cancelación" chartData={seriesChart("cancellationRate", METRIC_COLORS.cancellation)} currentValue={currentSummary.cancellationRate} priorValue={priorSummary?.cancellationRate ?? null} comparePeriodLabel={comparePeriod.label} />
+          <MetricTrendCard title="Ocupación" chartData={seriesChart("occupancyRate", METRIC_COLORS.occupancy)} currentValue={currentSummary.occupancyRate} priorValue={priorSummary?.occupancyRate ?? null} comparePeriodLabel={comparePeriod.label} />
+          <MetricTrendCard title="Conversión" chartData={seriesChart("conversionRate", METRIC_COLORS.conversion)} currentValue={currentSummary.conversionRate} priorValue={priorSummary?.conversionRate ?? null} comparePeriodLabel={comparePeriod.label} />
         </div>
         {series.length <= 1 && <div className="text-sm text-ink-faint px-1">No hay suficiente historial en este período.</div>}
       </GroupSection>

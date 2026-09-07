@@ -4,20 +4,22 @@ import { useState } from "react";
 import LineChart from "./charts/LineChart";
 import ChangeBadge from "./ChangeBadge";
 
+function formatPct(n: number) {
+  return `${(n * 100).toFixed(1)}%`;
+}
+
 export default function MetricTrendCard({
   title,
   chartData,
   currentValue,
   priorValue,
   comparePeriodLabel,
-  formatValue,
 }: {
   title: string;
   chartData: { labels: string[]; datasets: { label: string; data: number[]; borderColor: string; backgroundColor: string; tension: number }[] };
   currentValue: number;
   priorValue: number | null;
   comparePeriodLabel: string;
-  formatValue: (v: number) => string;
 }) {
   const [showCompare, setShowCompare] = useState(false);
   const delta = priorValue !== null ? currentValue - priorValue : null;
@@ -41,9 +43,9 @@ export default function MetricTrendCard({
 
       {showCompare && priorValue !== null && (
         <div className="flex items-baseline gap-2 mb-2">
-          <span className="text-lg font-semibold text-ink">{formatValue(currentValue)}</span>
+          <span className="text-lg font-semibold text-ink">{formatPct(currentValue)}</span>
           <ChangeBadge value={delta} />
-          <span className="text-xs text-ink-faint">vs. {formatValue(priorValue)}</span>
+          <span className="text-xs text-ink-faint">vs. {formatPct(priorValue)}</span>
         </div>
       )}
 
