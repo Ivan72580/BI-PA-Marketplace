@@ -49,69 +49,91 @@ export default function Sidebar({ userMenu }: { userMenu: ReactNode }) {
         : "text-white/60 hover:text-white hover:bg-white/5"
     }`;
 
-  if (collapsed) {
-    return (
-      <div className="w-14 h-full shrink-0 bg-[#0e1712] flex flex-col items-center py-6">
-        <button
-          type="button"
-          onClick={() => setCollapsed(false)}
-          title="Mostrar navegación"
-          className="text-white/50 hover:text-white text-sm px-2 py-1.5 rounded-md hover:bg-white/10 mb-6"
-        >
-          »
-        </button>
-        <nav className="flex flex-col items-center gap-1">
-          {links.map((l) => {
-            const Icon = l.icon;
-            return (
-              <Link
-                key={l.href}
-                href={l.href}
-                title={l.label}
-                className={`p-2.5 rounded-lg transition-colors ${
-                  pathname === l.href ? "bg-brand text-white" : "text-white/50 hover:text-white hover:bg-white/5"
-                }`}
-              >
-                <Icon />
-              </Link>
-            );
-          })}
-        </nav>
-        {/* El usuario/logout queda oculto a propósito cuando está colapsado */}
-      </div>
-    );
-  }
-
   return (
-    <div className="w-60 h-full shrink-0 bg-[#0e1712] px-5 py-6 flex flex-col">
-      <div className="mb-8 px-1 flex items-center justify-between">
-        <div>
-          <div className="font-display text-lg font-semibold text-white">Plei</div>
-          <div className="text-xs text-white/40">Marketplace Intelligence</div>
-        </div>
-        <button
-          type="button"
-          onClick={() => setCollapsed(true)}
-          title="Ocultar navegación"
-          className="text-white/40 hover:text-white text-sm px-1.5 py-1 rounded-md hover:bg-white/10"
-        >
-          «
-        </button>
+    <>
+      {/* Desktop / tablet ancho: rail vertical, colapsable, oculto en mobile */}
+      <div className="hidden md:block h-full">
+        {collapsed ? (
+          <div className="w-14 h-full shrink-0 bg-[#0e1712] flex flex-col items-center py-6">
+            <button
+              type="button"
+              onClick={() => setCollapsed(false)}
+              title="Mostrar navegación"
+              className="text-white/50 hover:text-white text-sm px-2 py-1.5 rounded-md hover:bg-white/10 mb-6"
+            >
+              »
+            </button>
+            <nav className="flex flex-col items-center gap-1">
+              {links.map((l) => {
+                const Icon = l.icon;
+                return (
+                  <Link
+                    key={l.href}
+                    href={l.href}
+                    title={l.label}
+                    className={`p-2.5 rounded-lg transition-colors ${
+                      pathname === l.href ? "bg-brand text-white" : "text-white/50 hover:text-white hover:bg-white/5"
+                    }`}
+                  >
+                    <Icon />
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
+        ) : (
+          <div className="w-60 h-full shrink-0 bg-[#0e1712] px-5 py-6 flex flex-col">
+            <div className="mb-8 px-1 flex items-center justify-between">
+              <div>
+                <div className="font-display text-lg font-semibold text-white">Plei</div>
+                <div className="text-xs text-white/40">Marketplace Intelligence</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCollapsed(true)}
+                title="Ocultar navegación"
+                className="text-white/40 hover:text-white text-sm px-1.5 py-1 rounded-md hover:bg-white/10"
+              >
+                «
+              </button>
+            </div>
+
+            <nav className="flex-1">
+              {links.map((l) => {
+                const Icon = l.icon;
+                return (
+                  <Link key={l.href} href={l.href} className={linkClass(l.href)}>
+                    <Icon />
+                    {l.label}
+                  </Link>
+                );
+              })}
+            </nav>
+
+            <div className="pt-4 mt-4 border-t border-white/10 px-1">{userMenu}</div>
+          </div>
+        )}
       </div>
 
-      <nav className="flex-1">
+      {/* Mobile: barra fija abajo, no ocupa ancho de pantalla */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#0e1712] border-t border-white/10 flex items-center justify-around px-2 py-2">
         {links.map((l) => {
           const Icon = l.icon;
           return (
-            <Link key={l.href} href={l.href} className={linkClass(l.href)}>
+            <Link
+              key={l.href}
+              href={l.href}
+              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-[10px] ${
+                pathname === l.href ? "text-white" : "text-white/50"
+              }`}
+            >
               <Icon />
               {l.label}
             </Link>
           );
         })}
-      </nav>
-
-      <div className="pt-4 mt-4 border-t border-white/10 px-1">{userMenu}</div>
-    </div>
+        <div className="text-[10px]">{userMenu}</div>
+      </div>
+    </>
   );
 }

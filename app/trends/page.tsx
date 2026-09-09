@@ -33,6 +33,7 @@ type SP = {
   regionId?: string; marketId?: string; facilityId?: string;
   granularity?: string; period?: string; compare?: string;
   slotMonth?: string; detalleGranularity?: string; detallePeriod?: string;
+  mustHoldWindow?: string; avoidWindow?: string;
 };
 
 const TREND_GRANULARITIES: Granularity[] = ["year", "semester", "quarter", "month"];
@@ -261,12 +262,17 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
       const detallePeriod = resolvePeriod(detalleGranularity, detalleAnchor);
       const detalleFilters: OverviewFilters = { ...marketFilters, facilityId: sp.facilityId, dateFrom: detallePeriod.dateFrom, dateTo: detallePeriod.dateTo };
 
-      const [dayPattern, hourPattern, formatPattern, mustHave, avoid, recentPerf, gameList, facilitySeries] = await Promise.all([
+      const mustHoldWindow = sp.mustHoldWindow === "3" ? 3 : 6;
+      const avoidWindow = sp.avoidWindow === "3" ? 3 : 6;
+
+      const [dayPattern, hourPattern, formatPattern, mustHave, avoid, mustHaveRecent, avoidRecent, recentPerf, gameList, facilitySeries] = await Promise.all([
         getDayOfWeekPattern(facilityFilters),
         getHourPattern(facilityFilters),
         getFormatPattern(facilityFilters),
         getSlotConsistency(slotFilters, slotMonth, "confirmed"),
         getSlotConsistency(slotFilters, slotMonth, "cancelled"),
+        getSlotConsistency(slotFilters, slotMonth, "confirmed", mustHoldWindow),
+        getSlotConsistency(slotFilters, slotMonth, "cancelled", avoidWindow),
         getSlotRecentPerformance(slotFilters, 8),
         getGameList(detalleFilters, 100),
         getMetricSeriesInWindow(facilityFilters, unit, period.dateFrom!, period.dateTo!),
@@ -313,6 +319,11 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
 
       // Slots que deben sostenerse sí o sí: alta consistencia histórica (≥75%).
       const mustHoldSlots = [...mustHave.cells].filter((c) => c.consistencyPct >= 0.75).sort((a, b) => b.consistencyPct - a.consistencyPct);
+      // Para que "remover o evitar" no resalte lo mismo que "no puede faltar":
+      // se suprime cualquier slot que ya esté establecido como confiable en
+      // la ventana correspondiente (histórico con histórico, reciente con reciente).
+      const establishedHistorical = new Set(mustHave.cells.filter((c) => c.consistencyPct >= 0.75).map((c) => `${c.day}|${c.hour}`));
+      const establishedRecent = new Set(mustHaveRecent.cells.filter((c) => c.consistencyPct >= 0.75).map((c) => `${c.day}|${c.hour}`));
       // Slots emergentes: no llegan todavía al umbral histórico, pero vienen
       // funcionando bien en las últimas 8 semanas (>45% de confirmación).
       const establishedKeys = new Set(mustHoldSlots.map((c) => `${c.day}|${c.hour}`));
@@ -340,37 +351,67 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
           )}
 
           <GroupSection title="Consistencia de horarios">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-              <SectionCard title="Qué partidos no pueden faltar" subtitle="Slots con 75%+ de consistencia se destacan con más color">
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="text-xs text-ink-faint">Mes:</span>
-                  <MonthPicker paramName="slotMonth" value={slotMonth} />
+            <SectionCard title="Qué partidos no pueden faltar" subtitle="Verde — slots con 75%+ de consistencia se destacan con más color. Comparación en paralelo: histórico completo vs. ventana reciente elegible">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-xs text-ink-faint">Mes:</span>
+                <MonthPicker paramName="slotMonth" value={slotMonth} />
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                <div>
+                  <div className="text-xs text-ink-faint mb-2">Histórico completo</div>
+                  {mustHave.totalMonthsObserved >= 2 ? (
+                    <SlotConsistencyHeatmap days={mustHave.days} hours={mustHave.hours} cells={mustHave.cells} selectedMonthLabel={slotMonth} priorYearLabel={mustHave.priorYearMonth} colorScheme="green" />
+                  ) : (
+                    <div className="text-sm text-ink-faint">No hay suficiente historial mensual todavía.</div>
+                  )}
                 </div>
-                {mustHave.totalMonthsObserved >= 2 ? (
-                  <SlotConsistencyHeatmap days={mustHave.days} hours={mustHave.hours} cells={mustHave.cells} selectedMonthLabel={slotMonth} priorYearLabel={mustHave.priorYearMonth} />
-                ) : (
-                  <div className="text-sm text-ink-faint">No hay suficiente historial mensual todavía.</div>
-                )}
-                <div className="mt-4 pt-3 border-t border-surface-sunken space-y-1.5">
-                  {mustHave.insights.map((insight, i) => <div key={i} className="text-sm text-ink font-medium">{insight}</div>)}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-ink-faint">Ventana reciente</span>
+                    <LinkSelect paramName="mustHoldWindow" value={String(mustHoldWindow)} options={[{ value: "3", label: "Últimos 3 meses" }, { value: "6", label: "Últimos 6 meses" }]} />
+                  </div>
+                  {mustHaveRecent.totalMonthsObserved >= 2 ? (
+                    <SlotConsistencyHeatmap days={mustHaveRecent.days} hours={mustHaveRecent.hours} cells={mustHaveRecent.cells} selectedMonthLabel={slotMonth} priorYearLabel={mustHaveRecent.priorYearMonth} colorScheme="green" />
+                  ) : (
+                    <div className="text-sm text-ink-faint">No hay suficiente historial en esta ventana todavía.</div>
+                  )}
                 </div>
-              </SectionCard>
+              </div>
+              <div className="mt-4 pt-3 border-t border-surface-sunken space-y-1.5">
+                {mustHave.insights.map((insight, i) => <div key={i} className="text-sm text-ink font-medium">{insight}</div>)}
+              </div>
+            </SectionCard>
 
-              <SectionCard title="Qué partidos remover o evitar agendar" subtitle="Misma lógica, mirando qué slots cancelan de forma consistente">
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="text-xs text-ink-faint">Mes:</span>
-                  <MonthPicker paramName="slotMonth" value={slotMonth} />
+            <SectionCard title="Qué partidos remover o evitar agendar" subtitle="Rojo — misma lógica, mirando qué slots cancelan de forma consistente. Los slots ya destacados arriba como 'no pueden faltar' se muestran apagados acá, para no confundir">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-xs text-ink-faint">Mes:</span>
+                <MonthPicker paramName="slotMonth" value={slotMonth} />
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                <div>
+                  <div className="text-xs text-ink-faint mb-2">Histórico completo</div>
+                  {avoid.totalMonthsObserved >= 2 ? (
+                    <SlotConsistencyHeatmap days={avoid.days} hours={avoid.hours} cells={avoid.cells} selectedMonthLabel={slotMonth} priorYearLabel={avoid.priorYearMonth} colorScheme="red" suppressedKeys={establishedHistorical} />
+                  ) : (
+                    <div className="text-sm text-ink-faint">No hay suficiente historial mensual todavía.</div>
+                  )}
                 </div>
-                {avoid.totalMonthsObserved >= 2 ? (
-                  <SlotConsistencyHeatmap days={avoid.days} hours={avoid.hours} cells={avoid.cells} selectedMonthLabel={slotMonth} priorYearLabel={avoid.priorYearMonth} />
-                ) : (
-                  <div className="text-sm text-ink-faint">No hay suficiente historial mensual todavía.</div>
-                )}
-                <div className="mt-4 pt-3 border-t border-surface-sunken space-y-1.5">
-                  {avoid.insights.map((insight, i) => <div key={i} className="text-sm text-ink font-medium">{insight}</div>)}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-ink-faint">Ventana reciente</span>
+                    <LinkSelect paramName="avoidWindow" value={String(avoidWindow)} options={[{ value: "3", label: "Últimos 3 meses" }, { value: "6", label: "Últimos 6 meses" }]} />
+                  </div>
+                  {avoidRecent.totalMonthsObserved >= 2 ? (
+                    <SlotConsistencyHeatmap days={avoidRecent.days} hours={avoidRecent.hours} cells={avoidRecent.cells} selectedMonthLabel={slotMonth} priorYearLabel={avoidRecent.priorYearMonth} colorScheme="red" suppressedKeys={establishedRecent} />
+                  ) : (
+                    <div className="text-sm text-ink-faint">No hay suficiente historial en esta ventana todavía.</div>
+                  )}
                 </div>
-              </SectionCard>
-            </div>
+              </div>
+              <div className="mt-4 pt-3 border-t border-surface-sunken space-y-1.5">
+                {avoid.insights.map((insight, i) => <div key={i} className="text-sm text-ink font-medium">{insight}</div>)}
+              </div>
+            </SectionCard>
 
             <SectionCard title="Slots que hay que sostener sí o sí" subtitle="Consistencia histórica ≥75% — la lista explícita detrás del heatmap de arriba">
               {mustHoldSlots.length > 0 ? (

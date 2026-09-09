@@ -354,10 +354,15 @@ function shiftYearMonth(ym: string, deltaMonths: number): string {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
-async function getSlotConsistencyImpl(filters: OverviewFilters, selectedMonth: string /* "YYYY-MM" */, mode: SlotConsistencyMode = "confirmed") {
-  // Todo el histórico disponible (no el filtro de tiempo activo): la
-  // consistencia se mide contra el comportamiento completo, no un recorte.
-  const where = buildWhere(filters);
+async function getSlotConsistencyImpl(
+  filters: OverviewFilters,
+  selectedMonth: string /* "YYYY-MM" */,
+  mode: SlotConsistencyMode = "confirmed",
+  windowMonths?: number // si se pasa, acota a los últimos N meses en vez de todo el histórico
+) {
+  const where = windowMonths
+    ? buildWhere({ ...filters, dateFrom: (() => { const d = new Date(); d.setUTCMonth(d.getUTCMonth() - windowMonths); return d; })() })
+    : buildWhere(filters); // todo el histórico disponible por defecto
   const games = (await prisma.game.findMany({
     where,
     select: { date: true, dayOfWeek: true, time: true, status: true },

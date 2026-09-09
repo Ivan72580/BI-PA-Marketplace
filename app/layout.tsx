@@ -29,7 +29,7 @@ export default function RootLayout({
             <div className="sticky top-0 h-screen shrink-0">
               <Sidebar userMenu={<UserMenu />} />
             </div>
-            <main className="flex-1 min-w-0 bg-background px-8 py-8">{children}</main>
+            <main className="flex-1 min-w-0 bg-background px-4 py-4 pb-20 md:px-8 md:py-8 md:pb-8">{children}</main>
           </div>
         </GlobalProvider>
       </body>
