@@ -2,7 +2,7 @@ import { GameStatus } from "@prisma/client";
 import { prisma } from "./prisma";
 import { cached } from "./cache";
 import { buildWhere, DAY_ORDER, DAY_LABEL_ES, sortHoursByOperatingDay, type OverviewFilters } from "./shared";
-import { inferFormat } from "./format";
+import { combineFormatLabel } from "./format";
 
 export type TrendBucket = "week" | "month" | "quarter" | "semester" | "year";
 
@@ -271,28 +271,42 @@ async function getFormatPatternImpl(filters: OverviewFilters): Promise<PatternRo
   const confirmedWhere = { ...where, status: GameStatus.CONFIRMED };
   const cancelledWhere = { ...where, status: GameStatus.CANCELLED };
 
-  const [totals, cancelledGroups, occupancyGroups, engagementGroups] = await Promise.all([
-    prisma.game.groupBy({ by: ["maxPlayers"], where, _count: { _all: true } }),
-    prisma.game.groupBy({ by: ["maxPlayers"], where: cancelledWhere, _count: { _all: true } }),
-    prisma.game.groupBy({ by: ["maxPlayers"], where: confirmedWhere, _sum: { finalPlayers: true, maxPlayers: true } }),
-    prisma.game.groupBy({ by: ["maxPlayers"], where, _sum: { finalPlayers: true, droppedPlayers: true } }),
-  ]);
+  const groupKeys = ["gameSize", "fieldType", "maxPlayers"];
+  type FormatGroupTotal = { gameSize: string | null; fieldType: string | null; maxPlayers: number; _count: { _all: number } };
+  type FormatGroupOcc = { gameSize: string | null; fieldType: string | null; maxPlayers: number; _sum: { finalPlayers: number | null; maxPlayers: number | null } };
+  type FormatGroupEng = { gameSize: string | null; fieldType: string | null; maxPlayers: number; _sum: { finalPlayers: number | null; droppedPlayers: number | null } };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const groupBy = prisma.game.groupBy as any;
 
-  const cancelledMap = new Map<number, number>(cancelledGroups.map((g) => [g.maxPlayers, Number(g._count._all)]));
-  const occMap = new Map<number, { final: number; max: number }>(
-    occupancyGroups.map((g) => [g.maxPlayers, { final: g._sum.finalPlayers ?? 0, max: g._sum.maxPlayers ?? 0 }])
+  const [totals, cancelledGroups, occupancyGroups, engagementGroups] = (await Promise.all([
+    groupBy({ by: groupKeys, where, _count: { _all: true } }),
+    groupBy({ by: groupKeys, where: cancelledWhere, _count: { _all: true } }),
+    groupBy({ by: groupKeys, where: confirmedWhere, _sum: { finalPlayers: true, maxPlayers: true } }),
+    groupBy({ by: groupKeys, where, _sum: { finalPlayers: true, droppedPlayers: true } }),
+  ])) as [FormatGroupTotal[], FormatGroupTotal[], FormatGroupOcc[], FormatGroupEng[]];
+
+  // Clave compuesta para los mapas intermedios — la etiqueta final se arma
+  // recién al combinar (gameSize/fieldType pueden repetirse con distinto
+  // maxPlayers de fallback, pero para el mismo gameSize+fieldType siempre
+  // dan la misma etiqueta combinada).
+  const keyOf = (g: { gameSize: string | null; fieldType: string | null; maxPlayers: number }) => `${g.gameSize ?? ""}|${g.fieldType ?? ""}|${g.maxPlayers}`;
+
+  const cancelledMap = new Map<string, number>(cancelledGroups.map((g) => [keyOf(g), Number(g._count._all)]));
+  const occMap = new Map<string, { final: number; max: number }>(
+    occupancyGroups.map((g) => [keyOf(g), { final: g._sum.finalPlayers ?? 0, max: g._sum.maxPlayers ?? 0 }])
   );
-  const engMap = new Map<number, { final: number; dropped: number }>(
-    engagementGroups.map((g) => [g.maxPlayers, { final: g._sum.finalPlayers ?? 0, dropped: g._sum.droppedPlayers ?? 0 }])
+  const engMap = new Map<string, { final: number; dropped: number }>(
+    engagementGroups.map((g) => [keyOf(g), { final: g._sum.finalPlayers ?? 0, dropped: g._sum.droppedPlayers ?? 0 }])
   );
 
   const map = new Map<string, { confirmed: number; cancelled: number; sumFinal: number; sumMax: number; sumDropped: number }>();
   for (const t of totals) {
-    const label = inferFormat(t.maxPlayers).label;
+    const label = combineFormatLabel(t.gameSize, t.fieldType, t.maxPlayers);
+    const k = keyOf(t);
     const total = Number(t._count._all);
-    const cancelled = cancelledMap.get(t.maxPlayers) ?? 0;
-    const occ = occMap.get(t.maxPlayers) ?? { final: 0, max: 0 };
-    const eng = engMap.get(t.maxPlayers) ?? { final: 0, dropped: 0 };
+    const cancelled = cancelledMap.get(k) ?? 0;
+    const occ = occMap.get(k) ?? { final: 0, max: 0 };
+    const eng = engMap.get(k) ?? { final: 0, dropped: 0 };
     const entry = map.get(label) ?? { confirmed: 0, cancelled: 0, sumFinal: 0, sumMax: 0, sumDropped: 0 };
     entry.confirmed += total - cancelled;
     entry.cancelled += cancelled;
@@ -344,9 +358,11 @@ export type SlotConsistencyCell = {
   selectedMonthCount: number; // partidos del status elegido en el mes seleccionado
   priorYearCount: number; // ídem, mismo mes, año anterior
   priorMonthCount: number; // ídem, mes calendario inmediatamente anterior
+  dominantFormat: string | null; // cancha (tipo + tamaño) más frecuente en este slot, para el status elegido
+  dominantFormatCount: number; // cuántos partidos de ese status en este slot tuvieron ese formato
 };
 
-type SlotRow = { date: Date; dayOfWeek: string; time: string; status: "CONFIRMED" | "CANCELLED" };
+type SlotRow = { date: Date; dayOfWeek: string; time: string; status: "CONFIRMED" | "CANCELLED"; gameSize: string | null; fieldType: string | null; maxPlayers: number };
 
 function shiftYearMonth(ym: string, deltaMonths: number): string {
   const [y, m] = ym.split("-").map(Number);
@@ -365,8 +381,9 @@ async function getSlotConsistencyImpl(
     : buildWhere(filters); // todo el histórico disponible por defecto
   const games = (await prisma.game.findMany({
     where,
-    select: { date: true, dayOfWeek: true, time: true, status: true },
-  })) as SlotRow[];
+    select: { date: true, dayOfWeek: true, time: true, status: true, gameSize: true, fieldType: true, maxPlayers: true },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any)) as unknown as SlotRow[];
 
   const targetStatus = mode === "confirmed" ? "CONFIRMED" : "CANCELLED";
 
@@ -380,6 +397,7 @@ async function getSlotConsistencyImpl(
   const priorYearCounts = new Map<string, number>();
   const priorMonthCounts = new Map<string, number>();
   const hoursSet = new Set<string>();
+  const slotFormatCounts = new Map<string, Map<string, number>>(); // "day|hour" -> { "Indoor 7v7": 12, ... }
 
   for (const g of games) {
     const hour = g.time?.slice(0, 2);
@@ -399,6 +417,11 @@ async function getSlotConsistencyImpl(
     if (monthKey === selectedMonth) selectedCounts.set(slotKey, (selectedCounts.get(slotKey) ?? 0) + 1);
     if (monthKey === priorYearMonth) priorYearCounts.set(slotKey, (priorYearCounts.get(slotKey) ?? 0) + 1);
     if (monthKey === priorMonth) priorMonthCounts.set(slotKey, (priorMonthCounts.get(slotKey) ?? 0) + 1);
+
+    const formatLabel = combineFormatLabel(g.gameSize, g.fieldType, g.maxPlayers);
+    const formatMap = slotFormatCounts.get(slotKey) ?? new Map<string, number>();
+    formatMap.set(formatLabel, (formatMap.get(formatLabel) ?? 0) + 1);
+    slotFormatCounts.set(slotKey, formatMap);
   }
 
   const totalMonthsObserved = allMonths.size;
@@ -409,6 +432,19 @@ async function getSlotConsistencyImpl(
     for (const hour of hours) {
       const slotKey = `${day}|${hour}`;
       const monthsPresent = slotMonths.get(slotKey)?.size ?? 0;
+
+      let dominantFormat: string | null = null;
+      let dominantFormatCount = 0;
+      const formatMap = slotFormatCounts.get(slotKey);
+      if (formatMap) {
+        for (const [label, count] of formatMap.entries()) {
+          if (count > dominantFormatCount) {
+            dominantFormat = label;
+            dominantFormatCount = count;
+          }
+        }
+      }
+
       cells.push({
         day,
         dayLabel: DAY_LABEL_ES[day] ?? day,
@@ -419,6 +455,8 @@ async function getSlotConsistencyImpl(
         selectedMonthCount: selectedCounts.get(slotKey) ?? 0,
         priorYearCount: priorYearCounts.get(slotKey) ?? 0,
         priorMonthCount: priorMonthCounts.get(slotKey) ?? 0,
+        dominantFormat,
+        dominantFormatCount,
       });
     }
   }

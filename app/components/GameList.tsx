@@ -8,6 +8,7 @@ type GameListItem = {
   finalPlayers: number;
   maxPlayers: number;
   cancellationReason: string | null;
+  fieldLabel: string;
 };
 
 const DAY_LABEL_ES: Record<string, string> = {
@@ -39,6 +40,7 @@ export default function GameList({ items, total, showFacility }: { items: GameLi
                   <th className="py-1.5 px-2 font-normal">Día</th>
                   <th className="py-1.5 px-2 font-normal">Hora</th>
                   {showFacility && <th className="py-1.5 px-2 font-normal">Facility</th>}
+                  <th className="py-1.5 px-2 font-normal">Cancha</th>
                   <th className="py-1.5 px-2 font-normal">Estado</th>
                   <th className="py-1.5 px-2 font-normal">Jugadores</th>
                   <th className="py-1.5 px-2 font-normal">Motivo cancelación</th>
@@ -51,6 +53,7 @@ export default function GameList({ items, total, showFacility }: { items: GameLi
                     <td className="py-1.5 px-2 text-ink">{DAY_LABEL_ES[g.dayOfWeek] ?? g.dayOfWeek}</td>
                     <td className="py-1.5 px-2 text-ink">{g.time}</td>
                     {showFacility && <td className="py-1.5 px-2 text-ink">{g.facilityName}</td>}
+                    <td className="py-1.5 px-2 text-ink">{g.fieldLabel}</td>
                     <td className="py-1.5 px-2">
                       <span className={g.status === "CONFIRMED" ? "text-brand font-medium" : "text-danger font-medium"}>
                         {g.status === "CONFIRMED" ? "Confirmado" : "Cancelado"}

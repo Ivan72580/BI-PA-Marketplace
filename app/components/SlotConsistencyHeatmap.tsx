@@ -9,6 +9,8 @@ type SlotConsistencyCell = {
   totalMonthsObserved: number;
   selectedMonthCount: number;
   priorYearCount: number;
+  dominantFormat: string | null;
+  dominantFormatCount: number;
 };
 
 const DAY_KEYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -87,8 +89,12 @@ export default function SlotConsistencyHeatmap({
 
               const suppressedNote = isSuppressed ? "\n(no se resalta acá — ya es un slot destacado en el heatmap opuesto)" : "";
 
+              const formatText = cell?.dominantFormat
+                ? `\nCancha más frecuente: ${cell.dominantFormat} (${cell.dominantFormatCount} de ${cell.monthsPresent > 0 ? "estos" : "los"} partidos)`
+                : "";
+
               const title = cell
-                ? `${days[i]} ${h} — ${(cell.consistencyPct * 100).toFixed(0)}% de consistencia (${cell.monthsPresent} de ${cell.totalMonthsObserved} meses)\n${selectedMonthLabel}: ${cell.selectedMonthCount} confirmados\n${priorYearLabel}: ${cell.priorYearCount} confirmados${changeText ? `\n${changeText}` : ""}${suppressedNote}`
+                ? `${days[i]} ${h} — ${(cell.consistencyPct * 100).toFixed(0)}% de consistencia (${cell.monthsPresent} de ${cell.totalMonthsObserved} meses)\n${selectedMonthLabel}: ${cell.selectedMonthCount} confirmados\n${priorYearLabel}: ${cell.priorYearCount} confirmados${changeText ? `\n${changeText}` : ""}${formatText}${suppressedNote}`
                 : "";
 
               return (

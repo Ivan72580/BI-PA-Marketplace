@@ -77,6 +77,8 @@ model Game {
   dayOfWeek             String
   minPlayers            Int
   maxPlayers            Int
+  gameSize              String?               // "Game Size" del CSV — dato directo (ej "7v7"), reemplaza la inferencia por Max Players
+  fieldType             String?               // extraído de "Field" — solo cuando el dato tiene especificidad real (tipo o nombre), null si es solo un identificador (ej "Field #1")
   finalPlayers          Int
   waitlistPlayers       Int
   droppedPlayers        Int

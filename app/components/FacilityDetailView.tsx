@@ -270,7 +270,7 @@ export default async function FacilityDetailView({
 
         <SectionCard
           title="Formato de partidos"
-          subtitle="Formatos fijos (4v4 a 12v12) según Max Players — el resto se agrupa en «Otros»"
+          subtitle="Tamaño real (Game Size del dataset) combinado con el tipo de cancha cuando está especificado — ej: «Indoor 7v7»"
         >
           {formatBreakdown.length > 0 ? (
             <div className="space-y-2">

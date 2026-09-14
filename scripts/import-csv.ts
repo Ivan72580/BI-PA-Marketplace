@@ -20,12 +20,14 @@ const prisma = new PrismaClient();
 type CsvRow = {
   "Game ID": string;
   "Location": string;
+  "Field": string;
   "Region": string; // = Market en nuestro modelo
   "Division": string; // = Region (East/West) en nuestro modelo
   "Organizer": string;
   "Date": string;
   "Time": string;
   "Day of the Week": string;
+  "Game Size": string;
   "Min Players": string;
   "Max Players": string;
   "Final Players": string;
@@ -41,6 +43,55 @@ type CsvRow = {
   "Rating Count": string;
   "Average Rating": string;
 };
+
+// Extrae el tipo/nombre de cancha de la columna "Field", cuando el dato
+// tiene especificidad real — descarta lo que es solo un identificador
+// (ej "Field #1", "Field #6", "2C", "J1") y deja esos casos en null (solo
+// queda el Game Size para esa fila). Lógica validada contra los ~200.000
+// valores reales del CSV de septiembre 2026 antes de aplicarla acá.
+const FORMAT_TOKEN = /\d{1,2}\s*v\s*\d{1,2}/gi;
+const CODE_FIELD = /\b[\da-z]{1,3}\s*fields?\b/gi; // "2C Field" (código ANTES de "Field")
+const FIELD_IDENTIFIER = /\bfields?\s*#?\s*[\da-z]{1,3}\b/gi; // "Field #1", "Field A"
+const KNOWN_REGION_LEAKAGE = new Set(["east", "west", "north", "south"]);
+const BARE_CODE = /^[a-z]{1,2}\d{1,2}$|^\d{1,2}[a-z]{1,2}$|^\d{1,3}$/i;
+const TRAILING_CODE = /\s+[a-z]{0,2}\d{1,3}[a-z]{0,2}$/i;
+
+function cleanParensContent(full: string, inner: string): string {
+  let stripped = inner.replace(FORMAT_TOKEN, "");
+  stripped = stripped.replace(/[/\-&\s]+/g, "");
+  if (stripped === "" || BARE_CODE.test(stripped.trim())) return " ";
+  return `(${inner})`;
+}
+
+function extractFieldType(raw: string | undefined | null): string | null {
+  if (!raw || !raw.trim()) return null;
+  let s = raw.trim();
+  if (KNOWN_REGION_LEAKAGE.has(s.toLowerCase())) return null;
+
+  s = s.replace(/\(([^)]*)\)/g, (full, inner) => cleanParensContent(full, inner));
+  // Orden importa: el formato (ej "8v8") se saca ANTES de CODE_FIELD, si no
+  // "8v8 Field" se confunde con un código de cancha de 3 caracteres.
+  s = s.replace(FORMAT_TOKEN, " ");
+  s = s.replace(CODE_FIELD, " ");
+  s = s.replace(FIELD_IDENTIFIER, " ");
+  s = s.replace(/[()]/g, " ");
+  s = s.replace(/[/&]/g, " ");
+  s = s.replace(/#\s*\d+\b/g, " ");
+  s = s.replace(/-\s*\d+\b/g, " "); // "- 1", "- 2" sueltos de "6v6 - (1)"
+  s = s.replace(/\s+/g, " ").trim().replace(/^[\s\-,]+|[\s\-,]+$/g, "");
+
+  if (!s || BARE_CODE.test(s)) return null;
+
+  // Sacar número/código de cancha pegado al final ("Turf Field 2" -> "Turf Field")
+  let prev = "";
+  while (prev !== s) {
+    prev = s;
+    s = s.replace(TRAILING_CODE, "").trim();
+  }
+
+  if (!s || BARE_CODE.test(s)) return null;
+  return s;
+}
 
 // Normaliza las 291 variantes de texto libre del CSV en categorías
 // consistentes y accionables para el motor de insights.
@@ -106,6 +157,8 @@ async function main() {
     dayOfWeek: string;
     minPlayers: number;
     maxPlayers: number;
+    gameSize: string | null;
+    fieldType: string | null;
     finalPlayers: number;
     waitlistPlayers: number;
     droppedPlayers: number;
@@ -213,6 +266,8 @@ async function main() {
       dayOfWeek: row["Day of the Week"]?.trim() || "",
       minPlayers: toIntOrNull(row["Min Players"]) ?? 0,
       maxPlayers: toIntOrNull(row["Max Players"]) ?? 0,
+      gameSize: row["Game Size"]?.trim() || null,
+      fieldType: extractFieldType(row["Field"]),
       finalPlayers: toIntOrNull(row["Final Players"]) ?? 0,
       waitlistPlayers: toIntOrNull(row["Waitlist Players"]) ?? 0,
       droppedPlayers: toIntOrNull(row["Dropped Players"]) ?? 0,

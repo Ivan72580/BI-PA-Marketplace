@@ -418,7 +418,10 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
                 <div className="space-y-2">
                   {mustHoldSlots.map((c) => (
                     <div key={`${c.day}-${c.hour}`} className="flex items-center justify-between text-sm">
-                      <span className="text-ink">{c.dayLabel} {c.hour}</span>
+                      <span className="text-ink">
+                        {c.dayLabel} {c.hour}
+                        {c.dominantFormat && <span className="text-ink-faint"> · {c.dominantFormat}</span>}
+                      </span>
                       <span className="text-ink-muted">
                         {(c.consistencyPct * 100).toFixed(0)}% de consistencia
                         <span className="text-ink-faint"> · {c.selectedMonthCount} este mes {c.priorMonthCount !== c.selectedMonthCount ? `(${c.priorMonthCount} el mes pasado)` : ""}</span>
@@ -462,7 +465,7 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
           </GroupSection>
 
           <GroupSection title="Por formato">
-            <SectionCard title="Las 4 métricas por formato de partido" subtitle="Formatos fijos (4v4 a 12v12) — el resto agrupado en «Otros»">
+            <SectionCard title="Las 4 métricas por formato de partido" subtitle="Tamaño real + tipo de cancha cuando está especificado — ej: «Turf Field 6v6»">
               <BarChart data={fourSeriesDatasets(formatPattern)} />
             </SectionCard>
           </GroupSection>

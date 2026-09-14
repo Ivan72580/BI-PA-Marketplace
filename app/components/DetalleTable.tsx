@@ -12,9 +12,10 @@ type GameListItem = {
   finalPlayers: number;
   maxPlayers: number;
   cancellationReason: string | null;
+  fieldLabel: string;
 };
 
-type SortKey = "date" | "dayOfWeek" | "time" | "status" | "finalPlayers" | "cancellationReason";
+type SortKey = "date" | "dayOfWeek" | "time" | "status" | "finalPlayers" | "cancellationReason" | "fieldLabel";
 
 const DAY_LABEL: Record<string, string> = {
   Monday: "Lunes", Tuesday: "Martes", Wednesday: "Miércoles", Thursday: "Jueves", Friday: "Viernes", Saturday: "Sábado", Sunday: "Domingo",
@@ -64,8 +65,8 @@ export default function DetalleTable({ items, total }: { items: GameListItem[]; 
       if (sortKey === "finalPlayers") {
         cmp = a.finalPlayers - b.finalPlayers;
       } else {
-        const av = sortKey === "date" ? a.date : sortKey === "dayOfWeek" ? a.dayOfWeek : sortKey === "time" ? a.time : sortKey === "status" ? a.status : a.cancellationReason;
-        const bv = sortKey === "date" ? b.date : sortKey === "dayOfWeek" ? b.dayOfWeek : sortKey === "time" ? b.time : sortKey === "status" ? b.status : b.cancellationReason;
+        const av = sortKey === "date" ? a.date : sortKey === "dayOfWeek" ? a.dayOfWeek : sortKey === "time" ? a.time : sortKey === "status" ? a.status : sortKey === "fieldLabel" ? a.fieldLabel : a.cancellationReason;
+        const bv = sortKey === "date" ? b.date : sortKey === "dayOfWeek" ? b.dayOfWeek : sortKey === "time" ? b.time : sortKey === "status" ? b.status : sortKey === "fieldLabel" ? b.fieldLabel : b.cancellationReason;
         cmp = String(av ?? "").localeCompare(String(bv ?? ""));
       }
       return sortDir === "asc" ? cmp : -cmp;
@@ -110,6 +111,7 @@ export default function DetalleTable({ items, total }: { items: GameListItem[]; 
               <SortableTh sortableKey="dayOfWeek" label="Día" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
               <SortableTh sortableKey="time" label="Hora" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
               <th className="py-1.5 px-2 font-normal">Facility</th>
+              <SortableTh sortableKey="fieldLabel" label="Cancha" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
               <SortableTh sortableKey="status" label="Estado" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
               <SortableTh sortableKey="finalPlayers" label="Jugadores" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
               <SortableTh sortableKey="cancellationReason" label="Motivo cancelación" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
@@ -122,6 +124,7 @@ export default function DetalleTable({ items, total }: { items: GameListItem[]; 
                 <td className="py-1.5 px-2 text-ink">{DAY_LABEL[g.dayOfWeek] ?? g.dayOfWeek}</td>
                 <td className="py-1.5 px-2 text-ink">{g.time}</td>
                 <td className="py-1.5 px-2 text-ink">{g.facilityName}</td>
+                <td className="py-1.5 px-2 text-ink">{g.fieldLabel}</td>
                 <td className="py-1.5 px-2">
                   <span className={g.status === "CONFIRMED" ? "text-brand" : "text-danger"}>{g.status === "CONFIRMED" ? "Confirmado" : "Cancelado"}</span>
                 </td>
@@ -130,7 +133,7 @@ export default function DetalleTable({ items, total }: { items: GameListItem[]; 
               </tr>
             ))}
             {filtered.length === 0 && (
-              <tr><td colSpan={7} className="py-4 text-center text-ink-faint">Sin partidos que coincidan con el filtro.</td></tr>
+              <tr><td colSpan={8} className="py-4 text-center text-ink-faint">Sin partidos que coincidan con el filtro.</td></tr>
             )}
           </tbody>
         </table>

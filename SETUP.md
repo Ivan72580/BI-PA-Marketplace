@@ -51,6 +51,7 @@ npm install
 npx prisma generate                                    # genera el cliente de Prisma — no depender del postinstall automático
 npx prisma migrate dev --name init                    # crea las tablas en tu base
 npx prisma migrate dev --name add_composite_indexes    # agrega los índices de performance
+npx prisma migrate dev --name add_game_size_and_field_type  # nuevo: columnas gameSize/fieldType
 npm run db:import                                      # sincroniza data/events.csv (upsert real)
 ```
 
