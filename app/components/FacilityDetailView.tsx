@@ -128,14 +128,14 @@ export default async function FacilityDetailView({
 
   const cancellationChart = {
     labels: data.cancellationBreakdown.map((c) => c.label),
-    datasets: [{ label: "Cancelaciones", data: data.cancellationBreakdown.map((c) => c.count), backgroundColor: "#b91c1c" }],
+    datasets: [{ label: "Cancelaciones", data: data.cancellationBreakdown.map((c) => c.count), backgroundColor: "#ff4b33" }],
   };
 
   const evolutionChartData = {
     labels: evolutionSeries.map((m) => m.label),
     datasets: [
       { label: "Tasa de confirmación", data: evolutionSeries.map((m) => Math.round(m.confirmationRate * 1000) / 10), borderColor: "#16755c", backgroundColor: "rgba(22,117,92,0.1)", tension: 0.3 },
-      { label: "Tasa de cancelación", data: evolutionSeries.map((m) => Math.round(m.cancellationRate * 1000) / 10), borderColor: "#b91c1c", backgroundColor: "rgba(185,28,28,0.1)", tension: 0.3 },
+      { label: "Tasa de cancelación", data: evolutionSeries.map((m) => Math.round(m.cancellationRate * 1000) / 10), borderColor: "#ff4b33", backgroundColor: "rgba(255,75,51,0.1)", tension: 0.3 },
     ],
   };
   const evolutionUnitLabel = evolutionWindow.unit === "week" ? "semanal" : "mensual";

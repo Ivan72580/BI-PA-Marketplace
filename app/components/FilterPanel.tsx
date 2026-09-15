@@ -94,7 +94,7 @@ export default function FilterPanel({
   }
 
   const selectClass =
-    "rounded-lg border border-border-strong bg-surface px-3 py-1.5 text-sm text-ink cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand/30";
+    "rounded-lg border border-border-strong bg-surface px-2.5 py-1 text-sm text-ink cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand/30";
 
   return (
     <div className="rounded-xl bg-surface-panel border border-border px-5 py-4 mb-6 flex flex-wrap items-center gap-3">

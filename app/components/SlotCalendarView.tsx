@@ -40,7 +40,9 @@ export default function SlotCalendarView({
   suppressedKeys?: Set<string>;
 }) {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [expandedGridKey, setExpandedGridKey] = useState<string | null>(null);
   const colors = COLOR[colorScheme];
+  const MAX_VISIBLE = 2;
 
   const grid = new Map<string, SlotConsistencyCell[]>();
   for (const c of cells) {
@@ -66,12 +68,16 @@ export default function SlotCalendarView({
             <div className="text-[9px] text-ink-faint flex items-start justify-end pr-1 pt-0.5">{h.replace("h", "")}</div>
             {DAY_KEYS.map((dayKey) => {
               const gridKey = `${dayKey}|${h}`;
-              const slotCells = (grid.get(gridKey) ?? []).filter(
-                (c) => !suppressedKeys?.has(`${c.day}|${c.hour}|${c.formatLabel}`)
-              );
+              const allSlotCells = (grid.get(gridKey) ?? [])
+                .filter((c) => !suppressedKeys?.has(`${c.day}|${c.hour}|${c.formatLabel}`))
+                .sort((a, b) => b.consistencyPct - a.consistencyPct);
+              const isExpanded = expandedGridKey === gridKey;
+              const visibleCells = isExpanded ? allSlotCells : allSlotCells.slice(0, MAX_VISIBLE);
+              const hiddenCount = allSlotCells.length - visibleCells.length;
+
               return (
                 <div key={gridKey} className="relative min-h-[26px] rounded border border-border bg-surface-sunken/40 p-[2px] flex flex-col gap-[2px]">
-                  {slotCells.map((c) => {
+                  {visibleCells.map((c) => {
                     const isHighlight = c.consistencyPct >= HIGHLIGHT_THRESHOLD;
                     const cellKey = `${c.day}|${c.hour}|${c.formatLabel}`;
                     const isSelected = selectedKey === cellKey;
@@ -105,6 +111,24 @@ export default function SlotCalendarView({
                       </div>
                     );
                   })}
+                  {hiddenCount > 0 && !isExpanded && (
+                    <button
+                      type="button"
+                      onClick={() => setExpandedGridKey(gridKey)}
+                      className="text-[8px] text-ink-faint hover:text-ink-muted text-center leading-none py-[1px]"
+                    >
+                      +{hiddenCount} más
+                    </button>
+                  )}
+                  {isExpanded && (
+                    <button
+                      type="button"
+                      onClick={() => setExpandedGridKey(null)}
+                      className="text-[8px] text-ink-faint hover:text-ink-muted text-center leading-none py-[1px]"
+                    >
+                      ver menos
+                    </button>
+                  )}
                 </div>
               );
             })}

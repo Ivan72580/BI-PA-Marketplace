@@ -38,7 +38,7 @@ type SP = {
 
 const TREND_GRANULARITIES: Granularity[] = ["year", "semester", "quarter", "month"];
 const GRANULARITY_LABEL: Record<string, string> = { year: "Año", semester: "Semestre", quarter: "Trimestre", month: "Mes" };
-const METRIC_COLORS = { confirmation: "#16755c", cancellation: "#b91c1c", occupancy: "#4ade80", conversion: "#0b3b2e" };
+const METRIC_COLORS = { confirmation: "#16755c", cancellation: "#ff4b33", occupancy: "#4ade80", conversion: "#0b3b2e" };
 
 function formatPct(n: number) {
   return `${(n * 100).toFixed(1)}%`;
@@ -380,7 +380,7 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
                               <LinkSelect paramName="mustHoldWindow" value={String(mustHoldWindow)} options={[{ value: "3", label: "3 meses" }, { value: "6", label: "6 meses" }]} />
                             </div>
                             {mustHaveRecent.totalMonthsObserved >= 2 ? (
-                              <SlotCalendarView days={mustHaveRecent.days} hours={mustHaveRecent.hours} cells={mustHaveRecent.cells} colorScheme="green" />
+                              <SlotCalendarView days={mustHave.days} hours={mustHave.hours} cells={mustHaveRecent.cells} colorScheme="green" />
                             ) : (
                               <div className="text-sm text-ink-faint">No hay suficiente historial en esta ventana todavía.</div>
                             )}
@@ -402,7 +402,7 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
                           <div>
                             <div className="text-xs text-ink-faint mb-2">Histórico completo</div>
                             {avoid.totalMonthsObserved >= 2 ? (
-                              <SlotCalendarView days={avoid.days} hours={avoid.hours} cells={avoid.cells} colorScheme="red" suppressedKeys={establishedHistorical} />
+                              <SlotCalendarView days={mustHave.days} hours={mustHave.hours} cells={avoid.cells} colorScheme="red" suppressedKeys={establishedHistorical} />
                             ) : (
                               <div className="text-sm text-ink-faint">No hay suficiente historial mensual todavía.</div>
                             )}
@@ -413,7 +413,7 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
                               <LinkSelect paramName="avoidWindow" value={String(avoidWindow)} options={[{ value: "3", label: "3 meses" }, { value: "6", label: "6 meses" }]} />
                             </div>
                             {avoidRecent.totalMonthsObserved >= 2 ? (
-                              <SlotCalendarView days={avoidRecent.days} hours={avoidRecent.hours} cells={avoidRecent.cells} colorScheme="red" suppressedKeys={establishedRecent} />
+                              <SlotCalendarView days={mustHave.days} hours={mustHave.hours} cells={avoidRecent.cells} colorScheme="red" suppressedKeys={establishedRecent} />
                             ) : (
                               <div className="text-sm text-ink-faint">No hay suficiente historial en esta ventana todavía.</div>
                             )}
