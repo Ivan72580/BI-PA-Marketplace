@@ -18,7 +18,7 @@ import FilterPanel from "../components/FilterPanel";
 import LineChart from "../components/charts/LineChart";
 import BarChart from "../components/charts/BarChart";
 import MetricTrendCard from "../components/MetricTrendCard";
-import SlotConsistencyHeatmap from "../components/SlotConsistencyHeatmap";
+import SlotCalendarView from "../components/SlotCalendarView";
 import MonthPicker from "../components/MonthPicker";
 import DatePicker from "../components/DatePicker";
 import LinkSelect from "../components/LinkSelect";
@@ -320,10 +320,10 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
       // Slots que deben sostenerse sí o sí: alta consistencia histórica (≥75%).
       const mustHoldSlots = [...mustHave.cells].filter((c) => c.consistencyPct >= 0.75).sort((a, b) => b.consistencyPct - a.consistencyPct);
       // Para que "remover o evitar" no resalte lo mismo que "no puede faltar":
-      // se suprime cualquier slot que ya esté establecido como confiable en
-      // la ventana correspondiente (histórico con histórico, reciente con reciente).
-      const establishedHistorical = new Set(mustHave.cells.filter((c) => c.consistencyPct >= 0.75).map((c) => `${c.day}|${c.hour}`));
-      const establishedRecent = new Set(mustHaveRecent.cells.filter((c) => c.consistencyPct >= 0.75).map((c) => `${c.day}|${c.hour}`));
+      // se suprime cualquier slot (día+hora+formato exacto) que ya esté
+      // establecido como confiable en la ventana correspondiente.
+      const establishedHistorical = new Set(mustHave.cells.filter((c) => c.consistencyPct >= 0.75).map((c) => `${c.day}|${c.hour}|${c.formatLabel}`));
+      const establishedRecent = new Set(mustHaveRecent.cells.filter((c) => c.consistencyPct >= 0.75).map((c) => `${c.day}|${c.hour}|${c.formatLabel}`));
       // Slots emergentes: no llegan todavía al umbral histórico, pero vienen
       // funcionando bien en las últimas 8 semanas (>45% de confirmación).
       const establishedKeys = new Set(mustHoldSlots.map((c) => `${c.day}|${c.hour}`));
@@ -351,27 +351,32 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
           )}
 
           <GroupSection title="Consistencia de horarios">
-            <SectionCard title="Qué partidos no pueden faltar" subtitle="Verde — slots con 75%+ de consistencia se destacan con más color. Comparación en paralelo: histórico completo vs. ventana reciente elegible">
-              <div className="flex items-center gap-3 mb-4">
-                <span className="text-xs text-ink-faint">Mes:</span>
-                <MonthPicker paramName="slotMonth" value={slotMonth} />
-              </div>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <SectionCard
+              title="Qué partidos no pueden faltar"
+              subtitle="Verde — clickeá cualquier slot para ver el insight completo. Cada slot es facility + día + hora + tipo de cancha + tamaño"
+              action={
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-ink-faint">Mes:</span>
+                  <MonthPicker paramName="slotMonth" value={slotMonth} />
+                </div>
+              }
+            >
+              <div className="space-y-6">
                 <div>
                   <div className="text-xs text-ink-faint mb-2">Histórico completo</div>
                   {mustHave.totalMonthsObserved >= 2 ? (
-                    <SlotConsistencyHeatmap days={mustHave.days} hours={mustHave.hours} cells={mustHave.cells} selectedMonthLabel={slotMonth} priorYearLabel={mustHave.priorYearMonth} colorScheme="green" />
+                    <SlotCalendarView days={mustHave.days} hours={mustHave.hours} cells={mustHave.cells} colorScheme="green" />
                   ) : (
                     <div className="text-sm text-ink-faint">No hay suficiente historial mensual todavía.</div>
                   )}
                 </div>
-                <div>
+                <div className="pt-4 border-t border-surface-sunken">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs text-ink-faint">Ventana reciente</span>
                     <LinkSelect paramName="mustHoldWindow" value={String(mustHoldWindow)} options={[{ value: "3", label: "Últimos 3 meses" }, { value: "6", label: "Últimos 6 meses" }]} />
                   </div>
                   {mustHaveRecent.totalMonthsObserved >= 2 ? (
-                    <SlotConsistencyHeatmap days={mustHaveRecent.days} hours={mustHaveRecent.hours} cells={mustHaveRecent.cells} selectedMonthLabel={slotMonth} priorYearLabel={mustHaveRecent.priorYearMonth} colorScheme="green" />
+                    <SlotCalendarView days={mustHaveRecent.days} hours={mustHaveRecent.hours} cells={mustHaveRecent.cells} colorScheme="green" />
                   ) : (
                     <div className="text-sm text-ink-faint">No hay suficiente historial en esta ventana todavía.</div>
                   )}
@@ -382,27 +387,32 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
               </div>
             </SectionCard>
 
-            <SectionCard title="Qué partidos remover o evitar agendar" subtitle="Rojo — misma lógica, mirando qué slots cancelan de forma consistente. Los slots ya destacados arriba como 'no pueden faltar' se muestran apagados acá, para no confundir">
-              <div className="flex items-center gap-3 mb-4">
-                <span className="text-xs text-ink-faint">Mes:</span>
-                <MonthPicker paramName="slotMonth" value={slotMonth} />
-              </div>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <SectionCard
+              title="Qué partidos remover o evitar agendar"
+              subtitle="Rojo — misma lógica, mirando qué slots cancelan de forma consistente. Los slots ya destacados arriba como 'no pueden faltar' se muestran apagados acá, para no confundir"
+              action={
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-ink-faint">Mes:</span>
+                  <MonthPicker paramName="slotMonth" value={slotMonth} />
+                </div>
+              }
+            >
+              <div className="space-y-6">
                 <div>
                   <div className="text-xs text-ink-faint mb-2">Histórico completo</div>
                   {avoid.totalMonthsObserved >= 2 ? (
-                    <SlotConsistencyHeatmap days={avoid.days} hours={avoid.hours} cells={avoid.cells} selectedMonthLabel={slotMonth} priorYearLabel={avoid.priorYearMonth} colorScheme="red" suppressedKeys={establishedHistorical} />
+                    <SlotCalendarView days={avoid.days} hours={avoid.hours} cells={avoid.cells} colorScheme="red" suppressedKeys={establishedHistorical} />
                   ) : (
                     <div className="text-sm text-ink-faint">No hay suficiente historial mensual todavía.</div>
                   )}
                 </div>
-                <div>
+                <div className="pt-4 border-t border-surface-sunken">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs text-ink-faint">Ventana reciente</span>
                     <LinkSelect paramName="avoidWindow" value={String(avoidWindow)} options={[{ value: "3", label: "Últimos 3 meses" }, { value: "6", label: "Últimos 6 meses" }]} />
                   </div>
                   {avoidRecent.totalMonthsObserved >= 2 ? (
-                    <SlotConsistencyHeatmap days={avoidRecent.days} hours={avoidRecent.hours} cells={avoidRecent.cells} selectedMonthLabel={slotMonth} priorYearLabel={avoidRecent.priorYearMonth} colorScheme="red" suppressedKeys={establishedRecent} />
+                    <SlotCalendarView days={avoidRecent.days} hours={avoidRecent.hours} cells={avoidRecent.cells} colorScheme="red" suppressedKeys={establishedRecent} />
                   ) : (
                     <div className="text-sm text-ink-faint">No hay suficiente historial en esta ventana todavía.</div>
                   )}
@@ -413,14 +423,13 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
               </div>
             </SectionCard>
 
-            <SectionCard title="Slots que hay que sostener sí o sí" subtitle="Consistencia histórica ≥75% — la lista explícita detrás del heatmap de arriba">
+            <SectionCard title="Slots que hay que sostener sí o sí" subtitle="Consistencia histórica ≥75%, por facility + día + hora + tipo + tamaño — la lista explícita detrás del calendario de arriba">
               {mustHoldSlots.length > 0 ? (
                 <div className="space-y-2">
                   {mustHoldSlots.map((c) => (
-                    <div key={`${c.day}-${c.hour}`} className="flex items-center justify-between text-sm">
+                    <div key={`${c.day}-${c.hour}-${c.formatLabel}`} className="flex items-center justify-between text-sm">
                       <span className="text-ink">
-                        {c.dayLabel} {c.hour}
-                        {c.dominantFormat && <span className="text-ink-faint"> · {c.dominantFormat}</span>}
+                        {c.dayLabel} {c.hour} <span className="text-ink-faint">· {c.formatLabel}</span>
                       </span>
                       <span className="text-ink-muted">
                         {(c.consistencyPct * 100).toFixed(0)}% de consistencia

@@ -352,14 +352,14 @@ export type SlotConsistencyCell = {
   day: string;
   dayLabel: string;
   hour: string;
-  consistencyPct: number; // % de los meses observados con al menos 1 partido del status elegido en ese slot
+  formatLabel: string; // "Indoor 7v7", o solo el tamaño si no hay tipo de cancha específico
+  consistencyPct: number; // % de los meses observados con al menos 1 partido de este slot exacto (día+hora+formato)
   monthsPresent: number;
   totalMonthsObserved: number;
-  selectedMonthCount: number; // partidos del status elegido en el mes seleccionado
-  priorYearCount: number; // ídem, mismo mes, año anterior
-  priorMonthCount: number; // ídem, mes calendario inmediatamente anterior
-  dominantFormat: string | null; // cancha (tipo + tamaño) más frecuente en este slot, para el status elegido
-  dominantFormatCount: number; // cuántos partidos de ese status en este slot tuvieron ese formato
+  selectedMonthCount: number;
+  priorYearCount: number;
+  priorMonthCount: number;
+  insight: string; // insight puntual para este slot exacto (facility ya viene del filtro + día + hora + tipo + tamaño)
 };
 
 type SlotRow = { date: Date; dayOfWeek: string; time: string; status: "CONFIRMED" | "CANCELLED"; gameSize: string | null; fieldType: string | null; maxPlayers: number };
@@ -391,13 +391,12 @@ async function getSlotConsistencyImpl(
   const priorYearMonth = `${selYear - 1}-${String(selMonthNum).padStart(2, "0")}`;
   const priorMonth = shiftYearMonth(selectedMonth, -1);
 
-  const slotMonths = new Map<string, Set<string>>(); // "day|hour" -> meses con >=1 partido del status elegido
+  const slotMonths = new Map<string, Set<string>>(); // "day|hour|format" -> meses con >=1 partido del status elegido
   const allMonths = new Set<string>();
   const selectedCounts = new Map<string, number>();
   const priorYearCounts = new Map<string, number>();
   const priorMonthCounts = new Map<string, number>();
   const hoursSet = new Set<string>();
-  const slotFormatCounts = new Map<string, Map<string, number>>(); // "day|hour" -> { "Indoor 7v7": 12, ... }
 
   for (const g of games) {
     const hour = g.time?.slice(0, 2);
@@ -408,7 +407,8 @@ async function getSlotConsistencyImpl(
 
     const monthKey = `${g.date.getUTCFullYear()}-${String(g.date.getUTCMonth() + 1).padStart(2, "0")}`;
     allMonths.add(monthKey);
-    const slotKey = `${day}|${hour}`;
+    const formatLabel = combineFormatLabel(g.gameSize, g.fieldType, g.maxPlayers);
+    const slotKey = `${day}|${hour}|${formatLabel}`;
 
     const set = slotMonths.get(slotKey) ?? new Set<string>();
     set.add(monthKey);
@@ -417,49 +417,37 @@ async function getSlotConsistencyImpl(
     if (monthKey === selectedMonth) selectedCounts.set(slotKey, (selectedCounts.get(slotKey) ?? 0) + 1);
     if (monthKey === priorYearMonth) priorYearCounts.set(slotKey, (priorYearCounts.get(slotKey) ?? 0) + 1);
     if (monthKey === priorMonth) priorMonthCounts.set(slotKey, (priorMonthCounts.get(slotKey) ?? 0) + 1);
-
-    const formatLabel = combineFormatLabel(g.gameSize, g.fieldType, g.maxPlayers);
-    const formatMap = slotFormatCounts.get(slotKey) ?? new Map<string, number>();
-    formatMap.set(formatLabel, (formatMap.get(formatLabel) ?? 0) + 1);
-    slotFormatCounts.set(slotKey, formatMap);
   }
 
   const totalMonthsObserved = allMonths.size;
   const hours = sortHoursByOperatingDay(Array.from(hoursSet));
 
+  // Una celda por cada combinación día+hora+formato que efectivamente tuvo
+  // al menos un partido del status elegido — no se enumeran combinaciones
+  // vacías (a diferencia de antes, acá el universo de formatos posibles no
+  // está acotado de antemano).
   const cells: SlotConsistencyCell[] = [];
-  for (const day of DAY_ORDER) {
-    for (const hour of hours) {
-      const slotKey = `${day}|${hour}`;
-      const monthsPresent = slotMonths.get(slotKey)?.size ?? 0;
-
-      let dominantFormat: string | null = null;
-      let dominantFormatCount = 0;
-      const formatMap = slotFormatCounts.get(slotKey);
-      if (formatMap) {
-        for (const [label, count] of formatMap.entries()) {
-          if (count > dominantFormatCount) {
-            dominantFormat = label;
-            dominantFormatCount = count;
-          }
-        }
-      }
-
-      cells.push({
-        day,
-        dayLabel: DAY_LABEL_ES[day] ?? day,
-        hour: `${hour}h`,
-        consistencyPct: totalMonthsObserved > 0 ? monthsPresent / totalMonthsObserved : 0,
-        monthsPresent,
-        totalMonthsObserved,
-        selectedMonthCount: selectedCounts.get(slotKey) ?? 0,
-        priorYearCount: priorYearCounts.get(slotKey) ?? 0,
-        priorMonthCount: priorMonthCounts.get(slotKey) ?? 0,
-        dominantFormat,
-        dominantFormatCount,
-      });
-    }
+  for (const [slotKey, monthsSet] of slotMonths.entries()) {
+    const [day, hour, formatLabel] = slotKey.split("|");
+    const monthsPresent = monthsSet.size;
+    const cellData = {
+      consistencyPct: totalMonthsObserved > 0 ? monthsPresent / totalMonthsObserved : 0,
+      monthsPresent,
+      totalMonthsObserved,
+      selectedMonthCount: selectedCounts.get(slotKey) ?? 0,
+      priorMonthCount: priorMonthCounts.get(slotKey) ?? 0,
+    };
+    cells.push({
+      day,
+      dayLabel: DAY_LABEL_ES[day] ?? day,
+      hour: `${hour}h`,
+      formatLabel,
+      ...cellData,
+      priorYearCount: priorYearCounts.get(slotKey) ?? 0,
+      insight: generateCellInsight(cellData, priorMonth, mode),
+    });
   }
+  cells.sort((a, b) => b.consistencyPct - a.consistencyPct);
 
   const insights = generateSlotInsights(cells, priorMonth, mode);
 
@@ -481,6 +469,32 @@ async function getSlotConsistencyImpl(
 const ESTABLISHED_THRESHOLD = 0.5; // slot ya considerado "habitual"
 const MIN_DROP = 2; // partidos de diferencia mínimos para que valga destacarlo
 
+// Insight para una celda puntual (facility ya viene del filtro + día + hora
+// + tipo + tamaño) — pensado para mostrarse al clickear/tocar ese slot
+// específico en la vista tipo calendario.
+function generateCellInsight(
+  cell: { consistencyPct: number; monthsPresent: number; totalMonthsObserved: number; selectedMonthCount: number; priorMonthCount: number },
+  priorMonthLabel: string,
+  mode: SlotConsistencyMode
+): string {
+  const noun = mode === "confirmed" ? "confirmados" : "cancelados";
+  const pct = (cell.consistencyPct * 100).toFixed(0);
+
+  if (cell.consistencyPct >= ESTABLISHED_THRESHOLD) {
+    if (cell.priorMonthCount - cell.selectedMonthCount >= MIN_DROP) {
+      return `Slot consolidado (${pct}% de consistencia), pero cayó de ${cell.priorMonthCount} a ${cell.selectedMonthCount} ${noun} respecto a ${priorMonthLabel} — vale la pena revisarlo.`;
+    }
+    return `Slot consolidado — ${pct}% de consistencia en ${cell.monthsPresent} de ${cell.totalMonthsObserved} meses observados.`;
+  }
+  if (cell.selectedMonthCount > 0 && cell.priorMonthCount > 0) {
+    return `2 meses seguidos con partidos ${noun} (todavía ${pct}% de consistencia) — podría estar consolidándose, vale la pena seguirlo.`;
+  }
+  if (cell.monthsPresent === 0) {
+    return `Sin partidos ${noun} registrados en este slot todavía.`;
+  }
+  return `${pct}% de consistencia (${cell.monthsPresent} de ${cell.totalMonthsObserved} meses) — esporádico por ahora.`;
+}
+
 function generateSlotInsights(cells: SlotConsistencyCell[], priorMonthLabel: string, mode: SlotConsistencyMode): string[] {
   const insights: string[] = [];
   const noun = mode === "confirmed" ? "confirmados" : "cancelados";
@@ -491,7 +505,7 @@ function generateSlotInsights(cells: SlotConsistencyCell[], priorMonthLabel: str
   if (declining) {
     const verb = mode === "confirmed" ? "vale la pena revisar qué cambió" : "buena señal, pero vale la pena confirmar que no sea una casualidad del mes";
     insights.push(
-      `⚠ ${declining.dayLabel} ${declining.hour} venía siendo un slot consistente (${(declining.consistencyPct * 100).toFixed(0)}% de los meses con ${noun}), pero cayó de ${declining.priorMonthCount} a ${declining.selectedMonthCount} partidos ${noun} respecto a ${priorMonthLabel} — ${verb}.`
+      `⚠ ${declining.dayLabel} ${declining.hour} (${declining.formatLabel}) venía siendo un slot consistente (${(declining.consistencyPct * 100).toFixed(0)}% de los meses con ${noun}), pero cayó de ${declining.priorMonthCount} a ${declining.selectedMonthCount} partidos ${noun} respecto a ${priorMonthLabel} — ${verb}.`
     );
   }
 
@@ -503,7 +517,7 @@ function generateSlotInsights(cells: SlotConsistencyCell[], priorMonthLabel: str
       ? "podría estar convirtiéndose en un horario estable, vale la pena seguirlo"
       : "podría estar convirtiéndose en un horario problemático, vale la pena revisarlo antes de que se consolide";
     insights.push(
-      `↗ ${emerging.dayLabel} ${emerging.hour} tuvo partidos ${noun} dos meses seguidos, pese a no ser todavía un slot consistente históricamente (${(emerging.consistencyPct * 100).toFixed(0)}%) — ${tail}.`
+      `↗ ${emerging.dayLabel} ${emerging.hour} (${emerging.formatLabel}) tuvo partidos ${noun} dos meses seguidos, pese a no ser todavía un slot consistente históricamente (${(emerging.consistencyPct * 100).toFixed(0)}%) — ${tail}.`
     );
   }
 
