@@ -28,7 +28,7 @@ const valueLabelsPlugin: Plugin<"line"> = {
         if (raw === null || raw === undefined) return;
         ctx.save();
         ctx.font = "600 10px var(--font-sans), sans-serif";
-        ctx.fillStyle = (dataset.borderColor as string) ?? "#12161c";
+        ctx.fillStyle = (dataset.borderColor as string) ?? "#0b3b2e";
         ctx.textAlign = "center";
         ctx.fillText(`${raw}%`, point.x, point.y - 8);
         ctx.restore();

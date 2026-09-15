@@ -44,7 +44,7 @@ export default function KpiCard({
         )}
       </div>
       <div className="flex items-baseline gap-2.5 flex-wrap">
-        <div className="font-display text-3xl font-semibold text-ink">{value}</div>
+        <div className="font-display text-4xl font-bold text-ink tracking-tight">{value}</div>
         {deltaVisible && hasComparison && <ChangeBadge value={delta ?? null} invert={deltaInvert} />}
       </div>
       {sublabel && <div className="text-xs text-ink-faint mt-1">{sublabel}</div>}

@@ -1,30 +1,38 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f6f7f9;
-  --foreground: #12161c;
+  --background: #ffffff;
+  --foreground: #0b3b2e;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
 
-  /* Ink */
-  --color-ink: #12161c;
-  --color-ink-muted: #5b6472;
-  --color-ink-faint: #97a1ad;
+  /* Ink — verde muy oscuro de la paleta en vez de negro puro (más cálido,
+     on-brand), con los tonos apagados derivados del mismo verde en vez de
+     gris neutro, para que hasta lo "callado" siga siendo parte de la marca */
+  --color-ink: #0b3b2e;
+  --color-ink-muted: #5c6b65;
+  --color-ink-faint: #94a39d;
 
   /* Superficies */
   --color-surface: #ffffff;
-  --color-surface-sunken: #f6f7f9;
-  --color-surface-panel: #eef1ec;
-  --color-border: #e4e7ec;
-  --color-border-strong: #d3d8e0;
+  --color-surface-sunken: #f3faf7;
+  --color-surface-panel: #e6faf5;
+  --color-border: #dceae5;
+  --color-border-strong: #bfd9d0;
 
-  /* Semántico: verde cancha como acento primario (bueno/acción/marca),
-     rojo para cancelación, ámbar para atención */
-  --color-brand: #0d6e4f;
-  --color-brand-soft: #e4f2ec;
+  /* Semántico — paleta de la marca (4 verdes + B&N) más un rojo puntual
+     reservado solo para cancelación/negativo, por legibilidad.
+     --color-accent (#4ADE80) es el verde "enérgico": se usa como fondo,
+     en gráficos, badges y acentos — no como texto fino sobre blanco, donde
+     no tendría contraste suficiente. Para valores/KPIs que deben resaltar,
+     se usa tamaño y peso tipográfico en --color-ink o --color-brand. */
+  --color-brand: #16755c;
+  --color-brand-soft: #e6faf5;
+  --color-accent: #4ade80;
+  --color-accent-soft: #dffcea;
   --color-danger: #b91c1c;
   --color-danger-soft: #fbeaea;
   --color-warning: #b45309;

@@ -39,7 +39,7 @@ const TIER_LABEL: Record<ReputationTier, string> = {
   platinum: "Platinum", bueno: "Bueno", intermedio: "Intermedio", a_revisar: "A revisar", sin_datos: "Sin datos suficientes",
 };
 const TIER_CLASS: Record<ReputationTier, string> = {
-  platinum: "bg-[#e0e7ff] text-[#4338ca]",
+  platinum: "bg-[#0b3b2e] text-white",
   bueno: "bg-brand-soft text-brand",
   intermedio: "bg-warning-soft text-warning",
   a_revisar: "bg-danger-soft text-danger",
@@ -56,7 +56,7 @@ function monthRange(month: string): { dateFrom: Date; dateTo: Date } {
   return { dateFrom: new Date(Date.UTC(y, m - 1, 1)), dateTo: new Date(Date.UTC(y, m, 0, 23, 59, 59)) };
 }
 
-const PIE_COLORS = ["#0d6e4f","#16a06a","#2fae7f","#4fbd94","#6fccaa","#8fdbbf","#afe9d4","#cff8e9","#0a5940","#0f8358","#3bab7c","#5fbf98","#83d3b3","#a7e7cf","#cbfbea","#7c8ba1"];
+const PIE_COLORS = ["#0b3b2e","#104834","#15543b","#1a6141","#1e6d47","#237a4e","#288654","#2d935a","#329f60","#37ac67","#3bb86d","#40c573","#45d17a","#4ade80","#a7e7cf","#7c8ba1"];
 
 export default async function MarketDashboard({
   sp,

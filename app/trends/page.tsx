@@ -38,7 +38,7 @@ type SP = {
 
 const TREND_GRANULARITIES: Granularity[] = ["year", "semester", "quarter", "month"];
 const GRANULARITY_LABEL: Record<string, string> = { year: "Año", semester: "Semestre", quarter: "Trimestre", month: "Mes" };
-const METRIC_COLORS = { confirmation: "#0d6e4f", cancellation: "#b91c1c", occupancy: "#2563eb", conversion: "#9333ea" };
+const METRIC_COLORS = { confirmation: "#16755c", cancellation: "#b91c1c", occupancy: "#4ade80", conversion: "#0b3b2e" };
 
 function formatPct(n: number) {
   return `${(n * 100).toFixed(1)}%`;
@@ -213,8 +213,8 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
           <SectionCard title="Tasa de cancelación"><LineChart data={singleLineChart(seasonal.map((p) => Math.round(p.cancellationRate * 1000) / 10), METRIC_COLORS.cancellation)} /></SectionCard>
           <SectionCard title="Ocupación"><LineChart data={singleLineChart(seasonal.map((p) => Math.round(p.occupancyRate * 1000) / 10), METRIC_COLORS.occupancy)} /></SectionCard>
           <SectionCard title="Conversión"><LineChart data={singleLineChart(seasonal.map((p) => Math.round(p.conversionRate * 1000) / 10), METRIC_COLORS.conversion)} /></SectionCard>
-          <SectionCard title="Waitlist promedio"><LineChart data={singleLineChart(seasonal.map((p) => Math.round(p.avgWaitlist * 10) / 10), "#f59e0b")} /></SectionCard>
-          <SectionCard title="Lead time (mediana)"><LineChart data={singleLineChart(seasonal.map((p) => Math.round((p.medianLeadTime ?? 0) * 10) / 10), "#64748b")} /></SectionCard>
+          <SectionCard title="Waitlist promedio"><LineChart data={singleLineChart(seasonal.map((p) => Math.round(p.avgWaitlist * 10) / 10), "#6b7280")} /></SectionCard>
+          <SectionCard title="Lead time (mediana)"><LineChart data={singleLineChart(seasonal.map((p) => Math.round((p.medianLeadTime ?? 0) * 10) / 10), "#9ca3af")} /></SectionCard>
         </div>
       </GroupSection>
     </div>

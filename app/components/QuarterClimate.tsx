@@ -14,7 +14,7 @@ export default function QuarterClimate({ points }: { points: QuarterClimatePoint
               key={p.quarter}
               title={`${p.label} — ${(p.confirmationRate * 100).toFixed(0)}% de confirmación histórica (${p.totalGames.toLocaleString("en-US")} partidos)`}
               className="rounded-lg py-2 text-center"
-              style={{ background: `rgba(13,110,79,${intensity.toFixed(2)})` }}
+              style={{ background: `rgba(22,117,92,${intensity.toFixed(2)})` }}
             >
               <div className="text-[10px] font-semibold text-ink">{p.label}</div>
               <div className="text-[10px] text-ink">{(p.confirmationRate * 100).toFixed(0)}%</div>

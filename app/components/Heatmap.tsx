@@ -11,7 +11,7 @@ type HeatmapCell = {
 };
 
 function cellColor(intensity: number, tone: "red" | "green") {
-  const rgb = tone === "red" ? "185,28,28" : "13,110,79";
+  const rgb = tone === "red" ? "185,28,28" : "22,117,92";
   return `rgba(${rgb},${intensity.toFixed(2)})`;
 }
 

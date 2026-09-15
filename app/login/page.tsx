@@ -2,22 +2,13 @@ import { signIn } from "@/app/lib/auth";
 
 export default function LoginPage() {
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: "20px",
-        backgroundColor: "#f8fafc",
-      }}
-    >
-      <div style={{ fontSize: "22px", fontWeight: 700, color: "#0f172a" }}>
-        Plei · Marketplace Intelligence
+    <div className="min-h-screen flex flex-col items-center justify-center gap-6 bg-gradient-to-br from-brand-soft to-surface px-6">
+      <div className="text-center">
+        <div className="font-display text-3xl font-semibold text-ink mb-2">Plei</div>
+        <div className="text-sm text-ink-muted">Marketplace Intelligence</div>
       </div>
-      <div style={{ fontSize: "14px", color: "#64748b", marginBottom: "10px" }}>
-        Ingresá con tu cuenta de Google Workspace de la empresa
+      <div className="text-sm text-ink-faint max-w-xs text-center">
+        Ingresá con tu cuenta de Google Workspace de la empresa para continuar.
       </div>
       <form
         action={async () => {
@@ -27,16 +18,7 @@ export default function LoginPage() {
       >
         <button
           type="submit"
-          style={{
-            padding: "12px 28px",
-            borderRadius: "8px",
-            background: "#2563eb",
-            color: "white",
-            border: "none",
-            fontSize: "15px",
-            fontWeight: 600,
-            cursor: "pointer",
-          }}
+          className="px-7 py-3 rounded-xl bg-brand text-white text-sm font-semibold hover:opacity-90 transition-opacity shadow-sm"
         >
           Ingresar con Google
         </button>

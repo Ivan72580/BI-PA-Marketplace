@@ -72,7 +72,7 @@ const TIER_LABEL: Record<ReputationTier, string> = {
   platinum: "Platinum", bueno: "Bueno", intermedio: "Intermedio", a_revisar: "A revisar", sin_datos: "—",
 };
 const TIER_CLASS: Record<ReputationTier, string> = {
-  platinum: "bg-[#e0e7ff] text-[#4338ca]",
+  platinum: "bg-[#0b3b2e] text-white",
   bueno: "bg-brand-soft text-brand",
   intermedio: "bg-warning-soft text-warning",
   a_revisar: "bg-danger-soft text-danger",

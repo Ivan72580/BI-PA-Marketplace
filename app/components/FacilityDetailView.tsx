@@ -134,7 +134,7 @@ export default async function FacilityDetailView({
   const evolutionChartData = {
     labels: evolutionSeries.map((m) => m.label),
     datasets: [
-      { label: "Tasa de confirmación", data: evolutionSeries.map((m) => Math.round(m.confirmationRate * 1000) / 10), borderColor: "#0d6e4f", backgroundColor: "rgba(13,110,79,0.1)", tension: 0.3 },
+      { label: "Tasa de confirmación", data: evolutionSeries.map((m) => Math.round(m.confirmationRate * 1000) / 10), borderColor: "#16755c", backgroundColor: "rgba(22,117,92,0.1)", tension: 0.3 },
       { label: "Tasa de cancelación", data: evolutionSeries.map((m) => Math.round(m.cancellationRate * 1000) / 10), borderColor: "#b91c1c", backgroundColor: "rgba(185,28,28,0.1)", tension: 0.3 },
     ],
   };
