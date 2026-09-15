@@ -351,112 +351,121 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
           )}
 
           <GroupSection title="Consistencia de horarios">
-            <SectionCard
-              title="Qué partidos no pueden faltar"
-              subtitle="Verde — clickeá cualquier slot para ver el insight completo. Cada slot es facility + día + hora + tipo de cancha + tamaño"
-              action={
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-ink-faint">Mes:</span>
-                  <MonthPicker paramName="slotMonth" value={slotMonth} />
-                </div>
-              }
-            >
-              <div className="space-y-6">
-                <div>
-                  <div className="text-xs text-ink-faint mb-2">Histórico completo</div>
-                  {mustHave.totalMonthsObserved >= 2 ? (
-                    <SlotCalendarView days={mustHave.days} hours={mustHave.hours} cells={mustHave.cells} colorScheme="green" />
-                  ) : (
-                    <div className="text-sm text-ink-faint">No hay suficiente historial mensual todavía.</div>
-                  )}
-                </div>
-                <div className="pt-4 border-t border-surface-sunken">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-ink-faint">Ventana reciente</span>
-                    <LinkSelect paramName="mustHoldWindow" value={String(mustHoldWindow)} options={[{ value: "3", label: "Últimos 3 meses" }, { value: "6", label: "Últimos 6 meses" }]} />
-                  </div>
-                  {mustHaveRecent.totalMonthsObserved >= 2 ? (
-                    <SlotCalendarView days={mustHaveRecent.days} hours={mustHaveRecent.hours} cells={mustHaveRecent.cells} colorScheme="green" />
-                  ) : (
-                    <div className="text-sm text-ink-faint">No hay suficiente historial en esta ventana todavía.</div>
-                  )}
-                </div>
-              </div>
-              <div className="mt-4 pt-3 border-t border-surface-sunken space-y-1.5">
-                {mustHave.insights.map((insight, i) => <div key={i} className="text-sm text-ink font-medium">{insight}</div>)}
-              </div>
-            </SectionCard>
+            <div className="flex items-center gap-3 -mb-1">
+              <span className="text-xs text-ink-faint">Mes de referencia:</span>
+              <MonthPicker paramName="slotMonth" value={slotMonth} />
+            </div>
 
-            <SectionCard
-              title="Qué partidos remover o evitar agendar"
-              subtitle="Rojo — misma lógica, mirando qué slots cancelan de forma consistente. Los slots ya destacados arriba como 'no pueden faltar' se muestran apagados acá, para no confundir"
-              action={
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-ink-faint">Mes:</span>
-                  <MonthPicker paramName="slotMonth" value={slotMonth} />
-                </div>
-              }
-            >
-              <div className="space-y-6">
-                <div>
-                  <div className="text-xs text-ink-faint mb-2">Histórico completo</div>
-                  {avoid.totalMonthsObserved >= 2 ? (
-                    <SlotCalendarView days={avoid.days} hours={avoid.hours} cells={avoid.cells} colorScheme="red" suppressedKeys={establishedHistorical} />
-                  ) : (
-                    <div className="text-sm text-ink-faint">No hay suficiente historial mensual todavía.</div>
-                  )}
-                </div>
-                <div className="pt-4 border-t border-surface-sunken">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-ink-faint">Ventana reciente</span>
-                    <LinkSelect paramName="avoidWindow" value={String(avoidWindow)} options={[{ value: "3", label: "Últimos 3 meses" }, { value: "6", label: "Últimos 6 meses" }]} />
-                  </div>
-                  {avoidRecent.totalMonthsObserved >= 2 ? (
-                    <SlotCalendarView days={avoidRecent.days} hours={avoidRecent.hours} cells={avoidRecent.cells} colorScheme="red" suppressedKeys={establishedRecent} />
-                  ) : (
-                    <div className="text-sm text-ink-faint">No hay suficiente historial en esta ventana todavía.</div>
-                  )}
-                </div>
-              </div>
-              <div className="mt-4 pt-3 border-t border-surface-sunken space-y-1.5">
-                {avoid.insights.map((insight, i) => <div key={i} className="text-sm text-ink font-medium">{insight}</div>)}
-              </div>
-            </SectionCard>
+            <div className="rounded-2xl bg-surface border border-border p-5">
+              <Tabs
+                tabs={[
+                  {
+                    id: "confirmed",
+                    label: "Confirmados",
+                    content: (
+                      <div className="space-y-4">
+                        <p className="text-xs text-ink-faint">Verde — clickeá cualquier slot para ver el insight. Cada slot es facility + día + hora + tipo de cancha + tamaño</p>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                          <div>
+                            <div className="text-xs text-ink-faint mb-2">Histórico completo</div>
+                            {mustHave.totalMonthsObserved >= 2 ? (
+                              <SlotCalendarView days={mustHave.days} hours={mustHave.hours} cells={mustHave.cells} colorScheme="green" />
+                            ) : (
+                              <div className="text-sm text-ink-faint">No hay suficiente historial mensual todavía.</div>
+                            )}
+                          </div>
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-xs text-ink-faint">Ventana reciente</span>
+                              <LinkSelect paramName="mustHoldWindow" value={String(mustHoldWindow)} options={[{ value: "3", label: "3 meses" }, { value: "6", label: "6 meses" }]} />
+                            </div>
+                            {mustHaveRecent.totalMonthsObserved >= 2 ? (
+                              <SlotCalendarView days={mustHaveRecent.days} hours={mustHaveRecent.hours} cells={mustHaveRecent.cells} colorScheme="green" />
+                            ) : (
+                              <div className="text-sm text-ink-faint">No hay suficiente historial en esta ventana todavía.</div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="pt-3 border-t border-surface-sunken space-y-1.5">
+                          {mustHave.insights.map((insight, i) => <div key={i} className="text-sm text-ink font-medium">{insight}</div>)}
+                        </div>
+                      </div>
+                    ),
+                  },
+                  {
+                    id: "cancelled",
+                    label: "Cancelados",
+                    content: (
+                      <div className="space-y-4">
+                        <p className="text-xs text-ink-faint">Rojo — misma lógica, mirando qué slots cancelan de forma consistente. Los slots ya destacados como &quot;no pueden faltar&quot; se muestran apagados acá, para no confundir</p>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                          <div>
+                            <div className="text-xs text-ink-faint mb-2">Histórico completo</div>
+                            {avoid.totalMonthsObserved >= 2 ? (
+                              <SlotCalendarView days={avoid.days} hours={avoid.hours} cells={avoid.cells} colorScheme="red" suppressedKeys={establishedHistorical} />
+                            ) : (
+                              <div className="text-sm text-ink-faint">No hay suficiente historial mensual todavía.</div>
+                            )}
+                          </div>
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-xs text-ink-faint">Ventana reciente</span>
+                              <LinkSelect paramName="avoidWindow" value={String(avoidWindow)} options={[{ value: "3", label: "3 meses" }, { value: "6", label: "6 meses" }]} />
+                            </div>
+                            {avoidRecent.totalMonthsObserved >= 2 ? (
+                              <SlotCalendarView days={avoidRecent.days} hours={avoidRecent.hours} cells={avoidRecent.cells} colorScheme="red" suppressedKeys={establishedRecent} />
+                            ) : (
+                              <div className="text-sm text-ink-faint">No hay suficiente historial en esta ventana todavía.</div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="pt-3 border-t border-surface-sunken space-y-1.5">
+                          {avoid.insights.map((insight, i) => <div key={i} className="text-sm text-ink font-medium">{insight}</div>)}
+                        </div>
+                      </div>
+                    ),
+                  },
+                ]}
+              />
+            </div>
 
-            <SectionCard title="Slots que hay que sostener sí o sí" subtitle="Consistencia histórica ≥75%, por facility + día + hora + tipo + tamaño — la lista explícita detrás del calendario de arriba">
-              {mustHoldSlots.length > 0 ? (
-                <div className="space-y-2">
-                  {mustHoldSlots.map((c) => (
-                    <div key={`${c.day}-${c.hour}-${c.formatLabel}`} className="flex items-center justify-between text-sm">
-                      <span className="text-ink">
-                        {c.dayLabel} {c.hour} <span className="text-ink-faint">· {c.formatLabel}</span>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              <SectionCard title="Slots que hay que sostener sí o sí" subtitle="Consistencia histórica ≥75%">
+                {mustHoldSlots.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {mustHoldSlots.map((c) => (
+                      <span
+                        key={`${c.day}-${c.hour}-${c.formatLabel}`}
+                        title={`${c.selectedMonthCount} este mes · ${c.priorMonthCount} el mes pasado`}
+                        className="text-[11px] bg-brand-soft text-brand rounded-full px-2.5 py-1 whitespace-nowrap"
+                      >
+                        {c.dayLabel.slice(0, 3)} {c.hour} · {c.formatLabel} · {(c.consistencyPct * 100).toFixed(0)}%
                       </span>
-                      <span className="text-ink-muted">
-                        {(c.consistencyPct * 100).toFixed(0)}% de consistencia
-                        <span className="text-ink-faint"> · {c.selectedMonthCount} este mes {c.priorMonthCount !== c.selectedMonthCount ? `(${c.priorMonthCount} el mes pasado)` : ""}</span>
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-sm text-ink-faint">Todavía no hay slots con consistencia suficiente para listar acá.</div>
-              )}
-            </SectionCard>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-ink-faint">Todavía no hay slots con consistencia suficiente para listar acá.</div>
+                )}
+              </SectionCard>
 
-            <SectionCard title="Slots a evaluar" subtitle="Todavía no son 'consistentes' históricamente, pero vienen con >45% de confirmación en las últimas 8 semanas — vale la pena seguirlos">
-              {emergingSlots.length > 0 ? (
-                <div className="space-y-2">
-                  {emergingSlots.map((s) => (
-                    <div key={`${s.day}-${s.hour}`} className="flex items-center justify-between text-sm">
-                      <span className="text-ink">{s.dayLabel} {s.hour}</span>
-                      <span className="text-ink-muted">{formatPct(s.confirmationRate)} de confirmación <span className="text-ink-faint">· {s.totalGames} partidos en 8 semanas</span></span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-sm text-ink-faint">Sin slots emergentes por ahora.</div>
-              )}
-            </SectionCard>
+              <SectionCard title="Slots a evaluar" subtitle="Sin consolidar históricamente, pero >45% de confirmación en las últimas 8 semanas">
+                {emergingSlots.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {emergingSlots.map((s) => (
+                      <span
+                        key={`${s.day}-${s.hour}`}
+                        title={`${s.totalGames} partidos en 8 semanas`}
+                        className="text-[11px] bg-warning-soft text-warning rounded-full px-2.5 py-1 whitespace-nowrap"
+                      >
+                        {s.dayLabel.slice(0, 3)} {s.hour} · {formatPct(s.confirmationRate)}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-ink-faint">Sin slots emergentes por ahora.</div>
+                )}
+              </SectionCard>
+            </div>
 
             <Glossary items={[{ term: "Consistencia", def: "% de los meses observados en los que ese día+hora tuvo al menos un partido del status correspondiente." }]} />
           </GroupSection>

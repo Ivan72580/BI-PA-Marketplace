@@ -20,8 +20,8 @@ const DAY_KEYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Satur
 const HIGHLIGHT_THRESHOLD = 0.75;
 
 const COLOR = {
-  green: { chipStrong: "bg-brand text-white", chip: "bg-brand-soft text-brand", panel: "bg-brand-soft border-brand/30" },
-  red: { chipStrong: "bg-danger text-white", chip: "bg-danger-soft text-danger", panel: "bg-danger-soft border-danger/30" },
+  green: { chipStrong: "bg-brand text-white", chip: "bg-brand-soft text-brand", panel: "bg-brand border-brand" },
+  red: { chipStrong: "bg-danger text-white", chip: "bg-danger-soft text-danger", panel: "bg-danger border-danger" },
 } as const;
 
 export default function SlotCalendarView({
@@ -39,7 +39,7 @@ export default function SlotCalendarView({
   // se ocultan acá para no mostrar el mismo slot marcado en los dos lados.
   suppressedKeys?: Set<string>;
 }) {
-  const [selected, setSelected] = useState<SlotConsistencyCell | null>(null);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const colors = COLOR[colorScheme];
 
   const grid = new Map<string, SlotConsistencyCell[]>();
@@ -51,68 +51,66 @@ export default function SlotCalendarView({
   }
 
   return (
-    <div>
-      <div className="overflow-x-auto">
-        <div
-          className="grid gap-1"
-          style={{ gridTemplateColumns: `52px repeat(${days.length}, minmax(96px, 1fr))`, minWidth: `${52 + days.length * 96}px` }}
-        >
-          <div />
-          {days.map((d) => (
-            <div key={d} className="text-xs font-medium text-ink-muted text-center pb-1.5">{d}</div>
-          ))}
+    <div className="overflow-x-auto pb-2">
+      <div
+        className="grid gap-[3px]"
+        style={{ gridTemplateColumns: `38px repeat(${days.length}, minmax(56px, 1fr))`, minWidth: `${38 + days.length * 56}px` }}
+      >
+        <div />
+        {days.map((d) => (
+          <div key={d} className="text-[10px] font-medium text-ink-muted text-center pb-1 truncate">{d.slice(0, 3)}</div>
+        ))}
 
-          {hours.map((h) => (
-            <Fragment key={h}>
-              <div className="text-[11px] text-ink-faint flex items-start justify-end pr-1.5 pt-1.5">{h}</div>
-              {DAY_KEYS.map((dayKey) => {
-                const gridKey = `${dayKey}|${h}`;
-                const slotCells = (grid.get(gridKey) ?? []).filter(
-                  (c) => !suppressedKeys?.has(`${c.day}|${c.hour}|${c.formatLabel}`)
-                );
-                return (
-                  <div key={gridKey} className="min-h-[54px] rounded-lg border border-border bg-surface-sunken/40 p-1 flex flex-col gap-1">
-                    {slotCells.map((c) => {
-                      const isHighlight = c.consistencyPct >= HIGHLIGHT_THRESHOLD;
-                      const isSelected = selected?.day === c.day && selected?.hour === c.hour && selected?.formatLabel === c.formatLabel;
-                      return (
+        {hours.map((h) => (
+          <Fragment key={h}>
+            <div className="text-[9px] text-ink-faint flex items-start justify-end pr-1 pt-0.5">{h.replace("h", "")}</div>
+            {DAY_KEYS.map((dayKey) => {
+              const gridKey = `${dayKey}|${h}`;
+              const slotCells = (grid.get(gridKey) ?? []).filter(
+                (c) => !suppressedKeys?.has(`${c.day}|${c.hour}|${c.formatLabel}`)
+              );
+              return (
+                <div key={gridKey} className="relative min-h-[26px] rounded border border-border bg-surface-sunken/40 p-[2px] flex flex-col gap-[2px]">
+                  {slotCells.map((c) => {
+                    const isHighlight = c.consistencyPct >= HIGHLIGHT_THRESHOLD;
+                    const cellKey = `${c.day}|${c.hour}|${c.formatLabel}`;
+                    const isSelected = selectedKey === cellKey;
+                    return (
+                      <div key={c.formatLabel} className="relative">
                         <button
-                          key={c.formatLabel}
                           type="button"
-                          onClick={() => setSelected(isSelected ? null : c)}
-                          className={`text-left rounded px-1.5 py-1 text-[10px] leading-tight transition-opacity hover:opacity-80 ${
+                          onClick={() => setSelectedKey(isSelected ? null : cellKey)}
+                          title={`${c.formatLabel} — ${(c.consistencyPct * 100).toFixed(0)}%`}
+                          className={`w-full text-left rounded px-1 py-0.5 text-[9px] leading-tight truncate transition-opacity hover:opacity-80 ${
                             isHighlight ? colors.chipStrong : colors.chip
                           } ${isSelected ? "ring-2 ring-offset-1 ring-ink/40" : ""}`}
                         >
-                          <div className="font-medium truncate" title={c.formatLabel}>{c.formatLabel}</div>
-                          <div className="opacity-90">{(c.consistencyPct * 100).toFixed(0)}%</div>
+                          {(c.consistencyPct * 100).toFixed(0)}%
                         </button>
-                      );
-                    })}
-                  </div>
-                );
-              })}
-            </Fragment>
-          ))}
-        </div>
-      </div>
 
-      {selected && (
-        <div className={`mt-4 rounded-xl border p-4 ${colors.panel}`}>
-          <div className="flex items-center justify-between mb-1.5 gap-2">
-            <div className="text-sm font-semibold text-ink">
-              {selected.dayLabel} {selected.hour} · {selected.formatLabel}
-            </div>
-            <button type="button" onClick={() => setSelected(null)} className="text-xs text-ink-faint hover:text-ink shrink-0">
-              cerrar ✕
-            </button>
-          </div>
-          <div className="text-sm text-ink mb-2">{selected.insight}</div>
-          <div className="text-xs text-ink-faint">
-            {(selected.consistencyPct * 100).toFixed(0)}% de consistencia · {selected.monthsPresent} de {selected.totalMonthsObserved} meses observados · {selected.selectedMonthCount} este mes · {selected.priorYearCount} el mismo mes del año pasado
-          </div>
-        </div>
-      )}
+                        {isSelected && (
+                          <div
+                            className={`absolute z-30 top-full left-0 mt-1 w-56 rounded-lg border p-3 shadow-lg text-white ${colors.panel}`}
+                          >
+                            <div className="flex items-center justify-between gap-2 mb-1">
+                              <div className="text-xs font-semibold">{c.dayLabel} {c.hour} · {c.formatLabel}</div>
+                              <button type="button" onClick={() => setSelectedKey(null)} className="text-white/70 hover:text-white text-xs shrink-0">✕</button>
+                            </div>
+                            <div className="text-xs leading-snug mb-1.5">{c.insight}</div>
+                            <div className="text-[10px] text-white/80">
+                              {c.monthsPresent} de {c.totalMonthsObserved} meses · {c.selectedMonthCount} este mes · {c.priorYearCount} año pasado
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </Fragment>
+        ))}
+      </div>
     </div>
   );
 }
