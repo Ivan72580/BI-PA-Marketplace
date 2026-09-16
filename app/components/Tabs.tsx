@@ -15,10 +15,10 @@ export default function Tabs({ tabs, defaultActiveId }: { tabs: { id: string; la
               key={t.id}
               type="button"
               onClick={() => setActive(t.id)}
-              className={`relative px-5 py-2.5 text-sm font-medium whitespace-nowrap transition-colors rounded-t-xl -mb-px ${
+              className={`relative px-5 py-2.5 text-sm whitespace-nowrap transition-colors rounded-t-xl -mb-px ${
                 isActive
-                  ? "bg-surface text-ink z-10 shadow-[0_-2px_8px_rgba(11,59,46,0.06)]"
-                  : "bg-transparent text-ink-faint hover:text-ink-muted"
+                  ? "bg-surface text-ink font-bold z-10 shadow-[0_-2px_8px_rgba(11,59,46,0.06)]"
+                  : "bg-transparent text-ink-muted font-medium hover:text-ink"
               }`}
             >
               {t.label}

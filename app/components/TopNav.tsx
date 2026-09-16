@@ -50,11 +50,11 @@ export default function TopNav({
   const pathname = usePathname();
 
   return (
-    <div className="sticky top-0 z-40 bg-[#0b3b2e]/95 backdrop-blur-xl border-b border-white/5">
+    <div className="sticky top-0 z-40 bg-[#0b3b2e]/95 backdrop-blur-xl">
       <div className="flex items-center gap-1 px-4 md:px-6">
         <div className="font-display text-base font-semibold text-white pr-4 shrink-0">Plei</div>
 
-        <nav className="flex items-end gap-1 flex-1 min-w-0 overflow-x-auto">
+        <nav className="flex items-end self-stretch gap-1 flex-1 min-w-0 overflow-x-auto">
           {links.map((l) => {
             const Icon = l.icon;
             const isActive = pathname === l.href;
@@ -62,8 +62,8 @@ export default function TopNav({
               <Link
                 key={l.href}
                 href={l.href}
-                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium whitespace-nowrap rounded-t-xl transition-colors ${
-                  isActive ? "bg-[#f5fffa] text-ink" : "text-white/75 hover:text-white hover:bg-white/5"
+                className={`flex items-center gap-2 px-4 py-2.5 text-sm whitespace-nowrap rounded-t-xl transition-colors ${
+                  isActive ? "bg-[#f5fffa] text-ink font-bold" : "text-white/75 font-medium hover:text-white hover:bg-white/5"
                 }`}
               >
                 <Icon />
