@@ -94,11 +94,11 @@ export default function FilterPanel({
   }
 
   const selectClass =
-    "rounded-lg border border-border-strong bg-surface px-2.5 py-1 text-sm text-ink cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand/30";
+    "rounded-md border border-border bg-surface/60 px-2 py-0.5 text-xs text-ink-muted cursor-pointer focus:outline-none focus:ring-1 focus:ring-brand/30 hover:border-border-strong hover:text-ink transition-colors";
 
   return (
-    <div className="rounded-xl bg-surface-panel border border-border px-5 py-4 mb-6 flex flex-wrap items-center gap-3">
-      <span className="text-xs text-ink-muted mr-1">Filtrar por</span>
+    <div className="border-b border-border/70 px-1 py-1.5 mb-5 flex flex-wrap items-center gap-1.5">
+      <span className="text-[10px] text-ink-faint mr-0.5 uppercase tracking-wide">Filtro</span>
 
       <select
         className={selectClass}
@@ -137,7 +137,7 @@ export default function FilterPanel({
 
       {showTimeControls && (
         <>
-          <span className="w-px h-5 bg-border-strong mx-1" />
+          <span className="w-px h-3.5 bg-border mx-0.5" />
 
           <select
             className={selectClass}
@@ -159,16 +159,16 @@ export default function FilterPanel({
           </select>
 
           {granularity === "custom" && (
-            <span className="flex items-center gap-1.5">
+            <span className="flex items-center gap-1">
               <input type="date" value={customFrom} onChange={(e) => update({ customFrom: e.target.value })} className={selectClass} />
-              <span className="text-xs text-ink-faint">a</span>
+              <span className="text-[10px] text-ink-faint">a</span>
               <input type="date" value={customTo} onChange={(e) => update({ customTo: e.target.value })} className={selectClass} />
             </span>
           )}
 
           {granularity !== "custom" && granularity !== "all" && period && (
-            <span className="flex items-center gap-2">
-              <button type="button" onClick={() => update({ period: prevAnchor })} className="text-brand text-lg px-1">‹</button>
+            <span className="flex items-center gap-1">
+              <button type="button" onClick={() => update({ period: prevAnchor })} className="text-ink-faint hover:text-brand text-sm px-0.5 leading-none">‹</button>
               {granularity === "month" && (
                 <input type="month" value={anchor.slice(0, 7)} onChange={(e) => update({ period: `${e.target.value}-01` })} className={selectClass} />
               )}
@@ -184,17 +184,17 @@ export default function FilterPanel({
                 />
               )}
               {granularity !== "month" && granularity !== "day" && granularity !== "week" && (
-                <span className="text-sm font-medium text-ink min-w-[110px] text-center">{period.label}</span>
+                <span className="text-xs text-ink-muted min-w-[90px] text-center">{period.label}</span>
               )}
-              <button type="button" onClick={() => update({ period: nextAnchor })} className="text-brand text-lg px-1">›</button>
+              <button type="button" onClick={() => update({ period: nextAnchor })} className="text-ink-faint hover:text-brand text-sm px-0.5 leading-none">›</button>
             </span>
           )}
         </>
       )}
 
       {hasFilter && clearHref && (
-        <Link href={clearHref} className="text-sm text-brand hover:underline ml-auto shrink-0">
-          Limpiar filtros
+        <Link href={clearHref} className="text-[11px] text-ink-faint hover:text-brand ml-auto shrink-0">
+          Limpiar
         </Link>
       )}
     </div>

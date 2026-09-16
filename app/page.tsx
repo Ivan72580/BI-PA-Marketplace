@@ -95,7 +95,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
   return (
     <div>
       <div className="flex items-center justify-between gap-4 flex-wrap mb-6 pb-5 border-b border-border">
-        <h1 className="font-display text-2xl font-semibold text-ink shrink-0">
+        <h1 className="font-display text-3xl font-bold text-ink shrink-0">
           {names.facilityName ?? "Overview"}
         </h1>
 

@@ -31,7 +31,7 @@ export default function RootLayout({
             </div>
             <main
               className="flex-1 min-w-0 px-4 py-4 pb-20 md:px-8 md:py-8 md:pb-8"
-              style={{ background: "linear-gradient(160deg, #e6faf5 0%, #eef8f4 45%, #f3faf7 100%)" }}
+              style={{ background: "linear-gradient(160deg, #f5fffa 0%, #eff9f4 100%)" }}
             >
               {children}
             </main>

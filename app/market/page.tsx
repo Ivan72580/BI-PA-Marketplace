@@ -68,7 +68,7 @@ export default async function MarketPage({ searchParams }: { searchParams: Promi
             )}
           </div>
 
-          <h1 className="font-display text-2xl font-semibold text-ink mb-1">Market</h1>
+          <h1 className="font-display text-3xl font-bold text-ink mb-1">Market</h1>
           <div className="text-sm text-ink-faint mb-5">Concentración, participación, reputación, precio y engagement por facility</div>
         </>
       )}

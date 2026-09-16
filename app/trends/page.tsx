@@ -93,7 +93,7 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
   if (!sp.regionId || !sp.marketId) {
     return (
       <div>
-        <h1 className="font-display text-2xl font-semibold text-ink mb-1">Trends</h1>
+        <h1 className="font-display text-3xl font-bold text-ink mb-1">Trends</h1>
         <div className="text-sm text-ink-faint mb-2 max-w-2xl">
           Tendencias, consistencia de horarios y patrones estacionales — pensado para responder &quot;¿qué esperar?&quot; en cada market y cada facility, no solo &quot;qué pasó&quot;.
         </div>
@@ -517,7 +517,7 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
     <div>
       <div className="flex items-start justify-between gap-6 flex-wrap mb-2">
         <div>
-          <h1 className="font-display text-2xl font-semibold text-ink mb-1">Trends</h1>
+          <h1 className="font-display text-3xl font-bold text-ink mb-1">Trends</h1>
           <div className="text-sm text-ink-faint mb-2 max-w-xl">
             Tendencias, consistencia de horarios y patrones estacionales — &quot;¿qué esperar?&quot;, no solo &quot;qué pasó&quot;.
           </div>
