@@ -20,8 +20,8 @@ const DAY_KEYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Satur
 const HIGHLIGHT_THRESHOLD = 0.75;
 
 const COLOR = {
-  green: { chipStrong: "bg-brand text-white", chip: "bg-brand-soft text-brand", panel: "bg-brand border-brand" },
-  red: { chipStrong: "bg-danger text-white", chip: "bg-danger-soft text-danger", panel: "bg-danger border-danger" },
+  green: { chipStrong: "bg-brand text-white", chip: "bg-brand-soft text-brand", panel: "bg-brand/80 border-white/20" },
+  red: { chipStrong: "bg-danger text-white", chip: "bg-danger-soft text-danger", panel: "bg-danger/80 border-white/20" },
 } as const;
 
 export default function SlotCalendarView({
@@ -96,7 +96,7 @@ export default function SlotCalendarView({
 
                         {isSelected && (
                           <div
-                            className={`absolute z-30 top-full left-0 mt-1 w-56 rounded-lg border p-3 shadow-lg text-white ${colors.panel}`}
+                            className={`absolute z-30 top-full left-0 mt-1 w-56 rounded-2xl border p-3 shadow-xl backdrop-blur-md text-white ${colors.panel}`}
                           >
                             <div className="flex items-center justify-between gap-2 mb-1">
                               <div className="text-xs font-semibold">{c.dayLabel} {c.hour} · {c.formatLabel}</div>

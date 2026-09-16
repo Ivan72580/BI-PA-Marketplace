@@ -27,7 +27,7 @@ export default function KpiCard({
   const deltaVisible = staticDelta || showDelta;
 
   return (
-    <div className="rounded-2xl bg-surface border border-border p-5">
+    <div className="rounded-2xl bg-surface border border-border shadow-sm hover:shadow-md transition-shadow p-5">
       <div className="flex items-start justify-between gap-2 mb-1.5">
         <div className="text-sm text-ink-muted">{label}</div>
         {hasComparison && !staticDelta && (

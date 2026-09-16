@@ -54,7 +54,7 @@ export default function Sidebar({ userMenu }: { userMenu: ReactNode }) {
       {/* Desktop / tablet ancho: rail vertical, colapsable, oculto en mobile */}
       <div className="hidden md:block h-full">
         {collapsed ? (
-          <div className="w-14 h-full shrink-0 bg-[#0b3b2e] flex flex-col items-center py-6">
+          <div className="w-14 h-full shrink-0 bg-[#0b3b2e]/85 backdrop-blur-xl border-r border-white/5 flex flex-col items-center py-6">
             <button
               type="button"
               onClick={() => setCollapsed(false)}
@@ -82,7 +82,7 @@ export default function Sidebar({ userMenu }: { userMenu: ReactNode }) {
             </nav>
           </div>
         ) : (
-          <div className="w-60 h-full shrink-0 bg-[#0b3b2e] px-5 py-6 flex flex-col">
+          <div className="w-60 h-full shrink-0 bg-[#0b3b2e]/85 backdrop-blur-xl border-r border-white/5 px-5 py-6 flex flex-col">
             <div className="mb-8 px-1 flex items-center justify-between">
               <div>
                 <div className="font-display text-lg font-semibold text-white">Plei</div>
@@ -116,7 +116,7 @@ export default function Sidebar({ userMenu }: { userMenu: ReactNode }) {
       </div>
 
       {/* Mobile: barra fija abajo, no ocupa ancho de pantalla */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#0b3b2e] border-t border-white/10 flex items-center justify-around px-2 py-2">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#0b3b2e]/90 backdrop-blur-xl border-t border-white/10 flex items-center justify-around px-2 py-2">
         {links.map((l) => {
           const Icon = l.icon;
           return (

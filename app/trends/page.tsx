@@ -56,7 +56,7 @@ function buildTrendsQuery(current: SP, overrides: Partial<SP>): string {
 
 function SectionCard({ title, subtitle, action, children }: { title: string; subtitle?: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl bg-surface border border-border p-5">
+    <div className="rounded-2xl bg-surface border border-border shadow-sm hover:shadow-md transition-shadow p-5">
       <div className="flex items-center justify-between mb-0.5">
         <h3 className="text-sm font-medium text-ink">{title}</h3>
         {action}
@@ -70,7 +70,7 @@ function SectionCard({ title, subtitle, action, children }: { title: string; sub
 
 function Stat({ label, value, sublabel, delta, deltaInvert }: { label: string; value: string; sublabel?: string; delta?: number | null; deltaInvert?: boolean }) {
   return (
-    <div className="rounded-2xl bg-surface border border-border p-5">
+    <div className="rounded-2xl bg-surface border border-border shadow-sm hover:shadow-md transition-shadow p-5">
       <div className="text-xs text-ink-faint mb-1">{label}</div>
       <div className="flex items-baseline gap-2 flex-wrap">
         <div className="font-display text-xl font-semibold text-ink">{value}</div>
@@ -356,7 +356,7 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
               <MonthPicker paramName="slotMonth" value={slotMonth} />
             </div>
 
-            <div className="rounded-2xl bg-surface border border-border p-5">
+            <div className="rounded-2xl bg-surface border border-border shadow-sm hover:shadow-md transition-shadow p-5">
               <Tabs
                 tabs={[
                   {

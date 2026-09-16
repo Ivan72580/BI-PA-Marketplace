@@ -26,7 +26,7 @@ function formatUSD2(n: number) {
 
 function SectionCard({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl bg-surface border border-border p-5">
+    <div className="rounded-2xl bg-surface border border-border shadow-sm hover:shadow-md transition-shadow p-5">
       <h3 className="text-sm font-medium text-ink mb-0.5">{title}</h3>
       {subtitle && <p className="text-xs text-ink-faint mb-4">{subtitle}</p>}
       {!subtitle && <div className="mb-2" />}

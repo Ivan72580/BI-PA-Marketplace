@@ -46,7 +46,7 @@ function withRankChange<T extends { facilityId: string }>(rows: T[], priorOrder:
 
 function SectionCard({ title, subtitle, action, children }: { title: string; subtitle?: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl bg-surface border border-border p-5">
+    <div className="rounded-2xl bg-surface border border-border shadow-sm hover:shadow-md transition-shadow p-5">
       <div className="flex items-center justify-between mb-1">
         <h3 className="text-sm font-medium text-ink">{title}</h3>
         {action}
