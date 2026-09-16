@@ -5,7 +5,7 @@ export default async function UserMenu() {
 
   return (
     <div className="flex items-center justify-between gap-2">
-      <span className="text-xs text-white/50 truncate">{session?.user?.name ?? session?.user?.email ?? "Invitado"}</span>
+      <span className="text-xs text-white/70 truncate">{session?.user?.name ?? session?.user?.email ?? "Invitado"}</span>
       {session && (
         <form
           action={async () => {
@@ -13,7 +13,7 @@ export default async function UserMenu() {
             await signOut({ redirectTo: "/login" });
           }}
         >
-          <button type="submit" className="text-xs text-white/50 hover:text-white shrink-0">
+          <button type="submit" className="text-xs text-white/70 hover:text-white shrink-0">
             Salir
           </button>
         </form>

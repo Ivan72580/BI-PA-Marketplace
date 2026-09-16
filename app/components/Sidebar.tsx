@@ -46,7 +46,7 @@ export default function Sidebar({ userMenu }: { userMenu: ReactNode }) {
     `flex items-center gap-2.5 rounded-lg px-4 py-2.5 text-sm mb-1 transition-colors ${
       pathname === path
         ? "bg-brand text-white font-medium"
-        : "text-white/60 hover:text-white hover:bg-white/5"
+        : "text-white/75 hover:text-white hover:bg-white/5"
     }`;
 
   return (
@@ -54,12 +54,12 @@ export default function Sidebar({ userMenu }: { userMenu: ReactNode }) {
       {/* Desktop / tablet ancho: rail vertical, colapsable, oculto en mobile */}
       <div className="hidden md:block h-full">
         {collapsed ? (
-          <div className="w-14 h-full shrink-0 bg-[#0b3b2e]/85 backdrop-blur-xl border-r border-white/5 flex flex-col items-center py-6">
+          <div className="w-14 h-full shrink-0 bg-[#0b3b2e]/95 backdrop-blur-xl border-r border-white/5 flex flex-col items-center py-6">
             <button
               type="button"
               onClick={() => setCollapsed(false)}
               title="Mostrar navegación"
-              className="text-white/50 hover:text-white text-sm px-2 py-1.5 rounded-md hover:bg-white/10 mb-6"
+              className="text-white/70 hover:text-white text-sm px-2 py-1.5 rounded-md hover:bg-white/10 mb-6"
             >
               »
             </button>
@@ -72,7 +72,7 @@ export default function Sidebar({ userMenu }: { userMenu: ReactNode }) {
                     href={l.href}
                     title={l.label}
                     className={`p-2.5 rounded-lg transition-colors ${
-                      pathname === l.href ? "bg-brand text-white" : "text-white/50 hover:text-white hover:bg-white/5"
+                      pathname === l.href ? "bg-brand text-white" : "text-white/70 hover:text-white hover:bg-white/5"
                     }`}
                   >
                     <Icon />
@@ -82,17 +82,17 @@ export default function Sidebar({ userMenu }: { userMenu: ReactNode }) {
             </nav>
           </div>
         ) : (
-          <div className="w-60 h-full shrink-0 bg-[#0b3b2e]/85 backdrop-blur-xl border-r border-white/5 px-5 py-6 flex flex-col">
+          <div className="w-60 h-full shrink-0 bg-[#0b3b2e]/95 backdrop-blur-xl border-r border-white/5 px-5 py-6 flex flex-col">
             <div className="mb-8 px-1 flex items-center justify-between">
               <div>
                 <div className="font-display text-lg font-semibold text-white">Plei</div>
-                <div className="text-xs text-white/40">Marketplace Intelligence</div>
+                <div className="text-xs text-white/60">Marketplace Intelligence</div>
               </div>
               <button
                 type="button"
                 onClick={() => setCollapsed(true)}
                 title="Ocultar navegación"
-                className="text-white/40 hover:text-white text-sm px-1.5 py-1 rounded-md hover:bg-white/10"
+                className="text-white/60 hover:text-white text-sm px-1.5 py-1 rounded-md hover:bg-white/10"
               >
                 «
               </button>
@@ -124,7 +124,7 @@ export default function Sidebar({ userMenu }: { userMenu: ReactNode }) {
               key={l.href}
               href={l.href}
               className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-[10px] ${
-                pathname === l.href ? "text-white" : "text-white/50"
+                pathname === l.href ? "text-white" : "text-white/70"
               }`}
             >
               <Icon />

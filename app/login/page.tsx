@@ -18,7 +18,7 @@ export default function LoginPage() {
       >
         <button
           type="submit"
-          className="px-7 py-3 rounded-xl bg-brand text-white text-sm font-semibold hover:opacity-90 transition-opacity shadow-sm"
+          className="px-7 py-3 rounded-xl bg-brand text-white text-sm font-semibold hover:brightness-90 transition-[filter] shadow-sm"
         >
           Ingresar con Google
         </button>

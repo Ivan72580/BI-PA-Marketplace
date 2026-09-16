@@ -20,8 +20,8 @@ const DAY_KEYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Satur
 const HIGHLIGHT_THRESHOLD = 0.75;
 
 const COLOR = {
-  green: { chipStrong: "bg-brand text-white", chip: "bg-brand-soft text-brand", panel: "bg-brand/80 border-white/20" },
-  red: { chipStrong: "bg-danger text-white", chip: "bg-danger-soft text-danger", panel: "bg-danger/80 border-white/20" },
+  green: { chipStrong: "bg-brand text-white", chip: "bg-brand-soft text-brand", panel: "bg-brand/95 border-white/20" },
+  red: { chipStrong: "bg-danger text-white", chip: "bg-danger-soft text-danger", panel: "bg-danger/95 border-white/20" },
 } as const;
 
 export default function SlotCalendarView({
@@ -87,7 +87,7 @@ export default function SlotCalendarView({
                           type="button"
                           onClick={() => setSelectedKey(isSelected ? null : cellKey)}
                           title={`${c.formatLabel} — ${(c.consistencyPct * 100).toFixed(0)}%`}
-                          className={`w-full text-left rounded px-1 py-0.5 text-[9px] leading-tight truncate transition-opacity hover:opacity-80 ${
+                          className={`w-full text-left rounded px-1 py-0.5 text-[9px] leading-tight truncate transition-[filter] hover:brightness-90 ${
                             isHighlight ? colors.chipStrong : colors.chip
                           } ${isSelected ? "ring-2 ring-offset-1 ring-ink/40" : ""}`}
                         >
