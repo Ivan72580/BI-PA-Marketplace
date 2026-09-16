@@ -19,6 +19,7 @@ import LineChart from "../components/charts/LineChart";
 import BarChart from "../components/charts/BarChart";
 import MetricTrendCard from "../components/MetricTrendCard";
 import SlotCalendarView from "../components/SlotCalendarView";
+import SlotSummaryTable, { type SlotSummaryRow } from "../components/SlotSummaryTable";
 import MonthPicker from "../components/MonthPicker";
 import DatePicker from "../components/DatePicker";
 import LinkSelect from "../components/LinkSelect";
@@ -319,18 +320,42 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
 
       // Slots que deben sostenerse sí o sí: alta consistencia histórica (≥75%).
       const mustHoldSlots = [...mustHave.cells].filter((c) => c.consistencyPct >= 0.75).sort((a, b) => b.consistencyPct - a.consistencyPct);
+      // Espejo para cancelados: slots que consistentemente cancelan (≥75%).
+      const avoidHoldSlots = [...avoid.cells].filter((c) => c.consistencyPct >= 0.75).sort((a, b) => b.consistencyPct - a.consistencyPct);
       // Para que "remover o evitar" no resalte lo mismo que "no puede faltar":
       // se suprime cualquier slot (día+hora+formato exacto) que ya esté
       // establecido como confiable en la ventana correspondiente.
       const establishedHistorical = new Set(mustHave.cells.filter((c) => c.consistencyPct >= 0.75).map((c) => `${c.day}|${c.hour}|${c.formatLabel}`));
       const establishedRecent = new Set(mustHaveRecent.cells.filter((c) => c.consistencyPct >= 0.75).map((c) => `${c.day}|${c.hour}|${c.formatLabel}`));
       // Slots emergentes: no llegan todavía al umbral histórico, pero vienen
-      // funcionando bien en las últimas 8 semanas (>45% de confirmación).
-      const establishedKeys = new Set(mustHoldSlots.map((c) => `${c.day}|${c.hour}`));
+      // funcionando bien (o mal, para cancelados) en las últimas 8 semanas.
+      const establishedKeys = new Set(mustHoldSlots.map((c) => `${c.day}|${c.hour}|${c.formatLabel}`));
+      const avoidEstablishedKeys = new Set(avoidHoldSlots.map((c) => `${c.day}|${c.hour}|${c.formatLabel}`));
       const emergingSlots = recentPerf
-        .filter((s) => s.confirmationRate > 0.45 && s.totalGames >= 3 && !establishedKeys.has(`${s.day}|${s.hour}`))
+        .filter((s) => s.confirmationRate > 0.45 && s.totalGames >= 3 && !establishedKeys.has(`${s.day}|${s.hour}|${s.formatLabel}`))
         .sort((a, b) => b.confirmationRate - a.confirmationRate)
         .slice(0, 8);
+      const avoidEmergingSlots = recentPerf
+        .filter((s) => s.cancellationRate > 0.45 && s.totalGames >= 3 && !avoidEstablishedKeys.has(`${s.day}|${s.hour}|${s.formatLabel}`))
+        .sort((a, b) => b.cancellationRate - a.cancellationRate)
+        .slice(0, 8);
+
+      const mustHoldRows: SlotSummaryRow[] = mustHoldSlots.map((c) => ({
+        key: `${c.day}-${c.hour}-${c.formatLabel}`, day: c.day, dayLabel: c.dayLabel, hour: c.hour, formatLabel: c.formatLabel,
+        pct: c.consistencyPct, detail: `${c.selectedMonthCount} este mes · ${c.priorMonthCount} el mes pasado`,
+      }));
+      const avoidHoldRows: SlotSummaryRow[] = avoidHoldSlots.map((c) => ({
+        key: `${c.day}-${c.hour}-${c.formatLabel}`, day: c.day, dayLabel: c.dayLabel, hour: c.hour, formatLabel: c.formatLabel,
+        pct: c.consistencyPct, detail: `${c.selectedMonthCount} este mes · ${c.priorMonthCount} el mes pasado`,
+      }));
+      const emergingRows: SlotSummaryRow[] = emergingSlots.map((s) => ({
+        key: `${s.day}-${s.hour}-${s.formatLabel}`, day: s.day, dayLabel: s.dayLabel, hour: s.hour, formatLabel: s.formatLabel,
+        pct: s.confirmationRate, detail: `${s.confirmedCount} confirmados de ${s.totalGames} en 8 semanas`,
+      }));
+      const avoidEmergingRows: SlotSummaryRow[] = avoidEmergingSlots.map((s) => ({
+        key: `${s.day}-${s.hour}-${s.formatLabel}`, day: s.day, dayLabel: s.dayLabel, hour: s.hour, formatLabel: s.formatLabel,
+        pct: s.cancellationRate, detail: `${s.cancelledCount} cancelados de ${s.totalGames} en 8 semanas`,
+      }));
 
       return (
         <div className="space-y-5">
@@ -389,6 +414,19 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
                         <div className="pt-3 border-t border-surface-sunken space-y-1.5">
                           {mustHave.insights.map((insight, i) => <div key={i} className="text-sm text-ink font-medium">{insight}</div>)}
                         </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 pt-2">
+                          <div>
+                            <div className="text-sm font-medium text-ink mb-0.5">Slots que hay que sostener sí o sí</div>
+                            <div className="text-xs text-ink-faint mb-2">Consistencia histórica ≥75% — ordenable por columna</div>
+                            <SlotSummaryTable rows={mustHoldRows} colorScheme="green" />
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-ink mb-0.5">Slots a evaluar</div>
+                            <div className="text-xs text-ink-faint mb-2">Sin consolidar históricamente, pero &gt;45% de confirmación en las últimas 8 semanas</div>
+                            <SlotSummaryTable rows={emergingRows} colorScheme="green" />
+                          </div>
+                        </div>
                       </div>
                     ),
                   },
@@ -422,49 +460,24 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
                         <div className="pt-3 border-t border-surface-sunken space-y-1.5">
                           {avoid.insights.map((insight, i) => <div key={i} className="text-sm text-ink font-medium">{insight}</div>)}
                         </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 pt-2">
+                          <div>
+                            <div className="text-sm font-medium text-ink mb-0.5">Slots que hay que evitar consistentemente</div>
+                            <div className="text-xs text-ink-faint mb-2">Consistencia histórica de cancelación ≥75% — ordenable por columna</div>
+                            <SlotSummaryTable rows={avoidHoldRows} colorScheme="red" />
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-ink mb-0.5">Slots problemáticos a evaluar</div>
+                            <div className="text-xs text-ink-faint mb-2">Sin consolidar históricamente, pero &gt;45% de cancelación en las últimas 8 semanas</div>
+                            <SlotSummaryTable rows={avoidEmergingRows} colorScheme="red" />
+                          </div>
+                        </div>
                       </div>
                     ),
                   },
                 ]}
               />
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-              <SectionCard title="Slots que hay que sostener sí o sí" subtitle="Consistencia histórica ≥75%">
-                {mustHoldSlots.length > 0 ? (
-                  <div className="flex flex-wrap gap-1.5">
-                    {mustHoldSlots.map((c) => (
-                      <span
-                        key={`${c.day}-${c.hour}-${c.formatLabel}`}
-                        title={`${c.selectedMonthCount} este mes · ${c.priorMonthCount} el mes pasado`}
-                        className="text-[11px] bg-brand-soft text-brand rounded-full px-2.5 py-1 whitespace-nowrap"
-                      >
-                        {c.dayLabel.slice(0, 3)} {c.hour} · {c.formatLabel} · {(c.consistencyPct * 100).toFixed(0)}%
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-sm text-ink-faint">Todavía no hay slots con consistencia suficiente para listar acá.</div>
-                )}
-              </SectionCard>
-
-              <SectionCard title="Slots a evaluar" subtitle="Sin consolidar históricamente, pero >45% de confirmación en las últimas 8 semanas">
-                {emergingSlots.length > 0 ? (
-                  <div className="flex flex-wrap gap-1.5">
-                    {emergingSlots.map((s) => (
-                      <span
-                        key={`${s.day}-${s.hour}`}
-                        title={`${s.totalGames} partidos en 8 semanas`}
-                        className="text-[11px] bg-warning-soft text-warning rounded-full px-2.5 py-1 whitespace-nowrap"
-                      >
-                        {s.dayLabel.slice(0, 3)} {s.hour} · {formatPct(s.confirmationRate)}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-sm text-ink-faint">Sin slots emergentes por ahora.</div>
-                )}
-              </SectionCard>
             </div>
 
             <Glossary items={[{ term: "Consistencia", def: "% de los meses observados en los que ese día+hora tuvo al menos un partido del status correspondiente." }]} />

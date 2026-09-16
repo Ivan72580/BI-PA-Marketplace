@@ -536,7 +536,17 @@ export const getSlotConsistency = cached("getSlotConsistency", getSlotConsistenc
 // Sirve para detectar demanda emergente que todavía no acumuló suficientes
 // meses como para aparecer "consistente" en el heatmap principal.
 
-export type SlotRecentRow = { day: string; dayLabel: string; hour: string; confirmationRate: number; totalGames: number };
+export type SlotRecentRow = {
+  day: string;
+  dayLabel: string;
+  hour: string;
+  formatLabel: string;
+  confirmedCount: number;
+  cancelledCount: number;
+  totalGames: number;
+  confirmationRate: number;
+  cancellationRate: number;
+};
 
 async function getSlotRecentPerformanceImpl(filters: OverviewFilters, weeks = 8): Promise<SlotRecentRow[]> {
   const now = new Date();
@@ -544,27 +554,37 @@ async function getSlotRecentPerformanceImpl(filters: OverviewFilters, weeks = 8)
   windowStart.setUTCDate(windowStart.getUTCDate() - weeks * 7);
 
   const where = buildWhere({ ...filters, dateFrom: windowStart, dateTo: now });
-  const games = (await prisma.game.findMany({ where, select: { dayOfWeek: true, time: true, status: true } })) as { dayOfWeek: string; time: string; status: "CONFIRMED" | "CANCELLED" }[];
+  const games = (await prisma.game.findMany({
+    where,
+    select: { dayOfWeek: true, time: true, status: true, gameSize: true, fieldType: true, maxPlayers: true },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any)) as unknown as { dayOfWeek: string; time: string; status: "CONFIRMED" | "CANCELLED"; gameSize: string | null; fieldType: string | null; maxPlayers: number }[];
 
-  const map = new Map<string, { confirmed: number; total: number }>();
+  const map = new Map<string, { confirmed: number; cancelled: number }>();
   for (const g of games) {
     const hour = g.time?.slice(0, 2);
     if (!hour || !g.dayOfWeek) continue;
-    const key = `${g.dayOfWeek}|${hour}`;
-    const entry = map.get(key) ?? { confirmed: 0, total: 0 };
-    entry.total += 1;
+    const formatLabel = combineFormatLabel(g.gameSize, g.fieldType, g.maxPlayers);
+    const key = `${g.dayOfWeek}|${hour}|${formatLabel}`;
+    const entry = map.get(key) ?? { confirmed: 0, cancelled: 0 };
     if (g.status === "CONFIRMED") entry.confirmed += 1;
+    else entry.cancelled += 1;
     map.set(key, entry);
   }
 
   return Array.from(map.entries()).map(([key, v]) => {
-    const [day, hour] = key.split("|");
+    const [day, hour, formatLabel] = key.split("|");
+    const total = v.confirmed + v.cancelled;
     return {
       day,
       dayLabel: DAY_LABEL_ES[day] ?? day,
       hour: `${hour}h`,
-      confirmationRate: v.total > 0 ? v.confirmed / v.total : 0,
-      totalGames: v.total,
+      formatLabel,
+      confirmedCount: v.confirmed,
+      cancelledCount: v.cancelled,
+      totalGames: total,
+      confirmationRate: total > 0 ? v.confirmed / total : 0,
+      cancellationRate: total > 0 ? v.cancelled / total : 0,
     };
   });
 }

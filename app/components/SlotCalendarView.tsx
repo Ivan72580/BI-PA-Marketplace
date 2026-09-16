@@ -19,6 +19,13 @@ type SlotConsistencyCell = {
 const DAY_KEYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const HIGHLIGHT_THRESHOLD = 0.75;
 
+// Versión corta para el chip (ej "Indoor 7v7" -> "7v7") — el label completo
+// sigue disponible en el título/popover al clickear.
+function shortSize(formatLabel: string): string {
+  const match = formatLabel.match(/\d{1,2}v\d{1,2}/i);
+  return match ? match[0] : formatLabel;
+}
+
 const COLOR = {
   green: { chipStrong: "bg-brand text-white", chip: "bg-brand-soft text-brand", panel: "bg-brand/95 border-white/20" },
   red: { chipStrong: "bg-danger text-white", chip: "bg-danger-soft text-danger", panel: "bg-danger/95 border-white/20" },
@@ -56,7 +63,7 @@ export default function SlotCalendarView({
     <div className="overflow-x-auto pb-2">
       <div
         className="grid gap-[3px]"
-        style={{ gridTemplateColumns: `38px repeat(${days.length}, minmax(56px, 1fr))`, minWidth: `${38 + days.length * 56}px` }}
+        style={{ gridTemplateColumns: `38px repeat(${days.length}, 56px)`, minWidth: `${38 + days.length * 56}px` }}
       >
         <div />
         {days.map((d) => (
@@ -76,7 +83,7 @@ export default function SlotCalendarView({
               const hiddenCount = allSlotCells.length - visibleCells.length;
 
               return (
-                <div key={gridKey} className="relative min-h-[26px] rounded border border-border bg-surface-sunken/40 p-[2px] flex flex-col gap-[2px]">
+                <div key={gridKey} className="relative min-h-[34px] rounded border border-border bg-surface-sunken/40 p-[2px] flex flex-col gap-[2px]">
                   {visibleCells.map((c) => {
                     const isHighlight = c.consistencyPct >= HIGHLIGHT_THRESHOLD;
                     const cellKey = `${c.day}|${c.hour}|${c.formatLabel}`;
@@ -91,7 +98,8 @@ export default function SlotCalendarView({
                             isHighlight ? colors.chipStrong : colors.chip
                           } ${isSelected ? "ring-2 ring-offset-1 ring-ink/40" : ""}`}
                         >
-                          {(c.consistencyPct * 100).toFixed(0)}%
+                          <div className="font-semibold">{(c.consistencyPct * 100).toFixed(0)}%</div>
+                          <div className="opacity-80 truncate">{shortSize(c.formatLabel)}</div>
                         </button>
 
                         {isSelected && (
