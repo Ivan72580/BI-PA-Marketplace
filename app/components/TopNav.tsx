@@ -63,7 +63,7 @@ export default function TopNav({
                 key={l.href}
                 href={l.href}
                 className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium whitespace-nowrap rounded-t-xl transition-colors ${
-                  isActive ? "bg-surface text-ink" : "text-white/75 hover:text-white hover:bg-white/5"
+                  isActive ? "bg-[#f5fffa] text-ink" : "text-white/75 hover:text-white hover:bg-white/5"
                 }`}
               >
                 <Icon />

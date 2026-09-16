@@ -13,6 +13,7 @@ import Tabs from "./Tabs";
 import TabFilters from "./TabFilters";
 import RegionConcentrationPies from "./RegionConcentrationPies";
 import PriceTable from "./PriceTable";
+import EngagementTable from "./EngagementTable";
 
 function formatPct(n: number) {
   return `${(n * 100).toFixed(1)}%`;
@@ -247,14 +248,14 @@ export default async function MarketDashboard({
   const precioContent = (
     <div className="space-y-5">
       <TabFilters regions={filterOptions.regions} markets={filterOptions.markets} />
-      <SectionCard title="Ticket promedio, jugadores por partido y gross profit estimado" subtitle={`${month} — gross profit = ticket promedio × jugadores promedio por partido × partidos confirmados del mes. Columnas ordenables: click = mayor a menor, de nuevo = menor a mayor, de nuevo = vuelve al orden por defecto`}>
+      <SectionCard title="Ticket promedio, jugadores por partido y revenue estimado" subtitle={`${month} — revenue = ticket promedio × jugadores promedio por partido × partidos confirmados del mes. Columnas ordenables: click = mayor a menor, de nuevo = menor a mayor, de nuevo = vuelve al orden por defecto`}>
         <PriceTable rows={priceRows} />
         <Glossary
           items={[
             { term: "Ticket promedio", def: "precio promedio cobrado por jugador, sin redondear." },
             { term: "Jugadores/partido", def: "jugadores confirmados totales del mes / cantidad de partidos confirmados — no se diluye por días sin partido." },
             { term: "Partidos/mes", def: "partidos confirmados en el mes seleccionado. Este es el orden por defecto." },
-            { term: "Gross profit estimado", def: "ticket promedio × jugadores/partido × partidos del mes — cálculo simple, no contempla costos de la facility (no disponibles en esta base)." },
+            { term: "Revenue estimado", def: "ticket promedio × jugadores/partido × partidos del mes — cálculo simple, no contempla costos de la facility (no disponibles en esta base)." },
           ]}
         />
       </SectionCard>
@@ -269,28 +270,7 @@ export default async function MarketDashboard({
         <span className="font-semibold">{totalNearMiss.toLocaleString("en-US")}</span> de {totalCancelled.toLocaleString("en-US")} partidos cancelados en {month} ({totalCancelled > 0 ? formatPct(totalNearMiss / totalCancelled) : "0%"}) habían llegado a la mitad o más del mínimo de jugadores necesario.
       </div>
       <SectionCard title="Engagement y abandono por facility">
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-ink-muted">
-                <th className="py-1.5 px-2 font-normal">Facility</th>
-                <th className="py-1.5 px-2 font-normal">Conversión</th>
-                <th className="py-1.5 px-2 font-normal">Abandono</th>
-                <th className="py-1.5 px-2 font-normal">Cancelados &quot;casi llegan&quot;</th>
-              </tr>
-            </thead>
-            <tbody>
-              {engagementRows.slice(0, 30).map((f) => (
-                <tr key={f.facilityId} className="border-b border-surface-sunken">
-                  <td className="py-1.5 px-2 text-ink">{f.name}</td>
-                  <td className="py-1.5 px-2 text-ink">{formatPct(f.conversionRate)}</td>
-                  <td className="py-1.5 px-2 text-ink">{formatPct(f.abandonmentRate)}</td>
-                  <td className="py-1.5 px-2 text-ink-muted">{f.nearMissCancelledCount} ({f.cancelledGames > 0 ? formatPct(f.nearMissCancelledPct) : "—"})</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <EngagementTable rows={engagementRows} />
         <div className="mt-4 pt-3 border-t border-surface-sunken space-y-1.5">
           <div className="text-[11px] text-ink-faint"><span className="font-medium text-ink-muted">Conversión:</span> jugadores finales / (finales + abandonos) — proxy a nivel partido, no seguimiento de jugador individual.</div>
           <div className="text-[11px] text-ink-faint"><span className="font-medium text-ink-muted">Abandono:</span> de los jugadores que se anotaron, qué % se bajó antes del partido.</div>

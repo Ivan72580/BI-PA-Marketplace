@@ -27,7 +27,7 @@ export type MarketFacilityRow = {
   avgPrice: number | null;
   avgPlayersPerGame: number | null; // jugadores confirmados totales / cantidad de partidos confirmados
   avgGamesPerMonth: number; // partidos confirmados en el mes seleccionado
-  grossProfitEstimate: number | null; // ticket promedio × jugadores promedio por partido × partidos del mes
+  revenueEstimate: number | null; // ticket promedio × jugadores promedio por partido × partidos del mes
   medianLeadTime: number | null;
   nearMissCancelledCount: number; // cancelados que llegaron a >=50% del mínimo
   nearMissCancelledPct: number; // % de los cancelados de esa facility
@@ -134,7 +134,7 @@ async function getMarketFacilitySummaryImpl(filters: OverviewFilters): Promise<M
       const price = priceMap.get(t.facilityId) ?? null;
       const avgPlayersPerGame = confirmed > 0 ? occ.final / confirmed : null;
       const avgGamesPerMonth = confirmed;
-      const grossProfitEstimate = price !== null && avgPlayersPerGame !== null ? price * avgPlayersPerGame * avgGamesPerMonth : null;
+      const revenueEstimate = price !== null && avgPlayersPerGame !== null ? price * avgPlayersPerGame * avgGamesPerMonth : null;
 
       return {
         facilityId: t.facilityId,
@@ -154,7 +154,7 @@ async function getMarketFacilitySummaryImpl(filters: OverviewFilters): Promise<M
         avgPrice: price,
         avgPlayersPerGame,
         avgGamesPerMonth,
-        grossProfitEstimate,
+        revenueEstimate,
         medianLeadTime: median(leadTimeByFacility.get(t.facilityId) ?? []),
         nearMissCancelledCount: nearMiss,
         nearMissCancelledPct: cancelled > 0 ? nearMiss / cancelled : 0,

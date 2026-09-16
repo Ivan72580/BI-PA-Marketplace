@@ -8,10 +8,10 @@ type PriceRow = {
   avgPrice: number | null;
   avgPlayersPerGame: number | null;
   avgGamesPerMonth: number;
-  grossProfitEstimate: number | null;
+  revenueEstimate: number | null;
 };
 
-type SortKey = "name" | "avgPrice" | "avgPlayersPerGame" | "avgGamesPerMonth" | "grossProfitEstimate";
+type SortKey = "name" | "avgPrice" | "avgPlayersPerGame" | "avgGamesPerMonth" | "revenueEstimate";
 type SortDir = "desc" | "asc";
 
 function formatUSD(n: number) {
@@ -58,8 +58,8 @@ export default function PriceTable({ rows }: { rows: PriceRow[] }) {
 
     return [...rows].sort((a, b) => {
       if (key === "name") return a.name.localeCompare(b.name) * factor;
-      const av = key === "avgPrice" ? a.avgPrice : key === "avgPlayersPerGame" ? a.avgPlayersPerGame : key === "avgGamesPerMonth" ? a.avgGamesPerMonth : a.grossProfitEstimate;
-      const bv = key === "avgPrice" ? b.avgPrice : key === "avgPlayersPerGame" ? b.avgPlayersPerGame : key === "avgGamesPerMonth" ? b.avgGamesPerMonth : b.grossProfitEstimate;
+      const av = key === "avgPrice" ? a.avgPrice : key === "avgPlayersPerGame" ? a.avgPlayersPerGame : key === "avgGamesPerMonth" ? a.avgGamesPerMonth : a.revenueEstimate;
+      const bv = key === "avgPrice" ? b.avgPrice : key === "avgPlayersPerGame" ? b.avgPlayersPerGame : key === "avgGamesPerMonth" ? b.avgGamesPerMonth : b.revenueEstimate;
       return ((av ?? -1) - (bv ?? -1)) * factor;
     });
   }, [rows, sortKey, sortDir]);
@@ -73,7 +73,7 @@ export default function PriceTable({ rows }: { rows: PriceRow[] }) {
             <SortableTh label="Ticket promedio" sortableKey="avgPrice" activeKey={sortKey} sortDir={sortDir} onSort={handleClick} />
             <SortableTh label="Jugadores/partido" sortableKey="avgPlayersPerGame" activeKey={sortKey} sortDir={sortDir} onSort={handleClick} />
             <SortableTh label="Partidos/mes" sortableKey="avgGamesPerMonth" activeKey={sortKey} sortDir={sortDir} onSort={handleClick} />
-            <SortableTh label="Gross profit estimado" sortableKey="grossProfitEstimate" activeKey={sortKey} sortDir={sortDir} onSort={handleClick} />
+            <SortableTh label="Revenue estimado" sortableKey="revenueEstimate" activeKey={sortKey} sortDir={sortDir} onSort={handleClick} />
           </tr>
         </thead>
         <tbody>
@@ -83,7 +83,7 @@ export default function PriceTable({ rows }: { rows: PriceRow[] }) {
               <td className="py-1.5 px-2 text-ink">{formatUSD2(f.avgPrice ?? 0)}</td>
               <td className="py-1.5 px-2 text-ink">{f.avgPlayersPerGame !== null ? f.avgPlayersPerGame.toFixed(1) : "—"}</td>
               <td className="py-1.5 px-2 text-ink">{f.avgGamesPerMonth}</td>
-              <td className="py-1.5 px-2 text-ink">{f.grossProfitEstimate !== null ? formatUSD(f.grossProfitEstimate) : "—"}</td>
+              <td className="py-1.5 px-2 text-ink">{f.revenueEstimate !== null ? formatUSD(f.revenueEstimate) : "—"}</td>
             </tr>
           ))}
           {sorted.length === 0 && (
