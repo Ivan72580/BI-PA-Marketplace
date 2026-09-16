@@ -15,10 +15,10 @@ export default function Tabs({ tabs, defaultActiveId }: { tabs: { id: string; la
               key={t.id}
               type="button"
               onClick={() => setActive(t.id)}
-              className={`relative px-5 py-2.5 text-sm font-medium whitespace-nowrap transition-colors rounded-t-xl border -mb-px ${
+              className={`relative px-5 py-2.5 text-sm font-medium whitespace-nowrap transition-colors rounded-t-xl -mb-px ${
                 isActive
-                  ? "bg-surface border-border border-b-surface text-ink z-10"
-                  : "bg-transparent border-transparent text-ink-faint hover:text-ink-muted"
+                  ? "bg-surface text-ink z-10 shadow-[0_-2px_8px_rgba(11,59,46,0.06)]"
+                  : "bg-transparent text-ink-faint hover:text-ink-muted"
               }`}
             >
               {t.label}
@@ -26,7 +26,7 @@ export default function Tabs({ tabs, defaultActiveId }: { tabs: { id: string; la
           );
         })}
       </div>
-      <div className="rounded-b-2xl rounded-tr-2xl border border-border bg-surface p-4">
+      <div className="rounded-b-2xl rounded-tr-2xl bg-surface p-4 shadow-md">
         {tabs.map((t) => (
           <div key={t.id} className={active === t.id ? "block" : "hidden"}>
             {t.content}

@@ -58,7 +58,7 @@ export default function RankingCard({
   const barColor = tone === "danger" ? "bg-danger/70" : "bg-brand/70";
 
   return (
-    <div className="rounded-2xl bg-surface border border-border p-5">
+    <div className="rounded-2xl bg-surface shadow-sm hover:shadow-lg transition-shadow p-5">
       <h3 className="text-sm font-medium text-ink mb-0.5">{title}</h3>
       {subtitle && <p className="text-xs text-ink-faint mb-4">{subtitle}</p>}
       {rows.length === 0 && <div className="text-sm text-ink-faint">Sin datos suficientes.</div>}

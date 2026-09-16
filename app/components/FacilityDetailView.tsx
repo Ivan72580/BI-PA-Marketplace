@@ -28,7 +28,7 @@ function formatPct(n: number) {
 
 function SectionCard({ title, subtitle, action, children }: { title: string; subtitle?: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl bg-surface border border-border shadow-sm hover:shadow-md transition-shadow p-5">
+    <div className="rounded-2xl bg-surface shadow-sm hover:shadow-lg transition-shadow p-5">
       <div className="flex items-center justify-between mb-1">
         <h3 className="text-sm font-medium text-ink">{title}</h3>
         {action}
@@ -149,7 +149,7 @@ export default async function FacilityDetailView({
   return (
     <div className="space-y-5">
       {/* Estado actual del mes en curso: introduce y contextualiza el resto de la página */}
-      <div className="rounded-2xl bg-surface border border-border shadow-sm hover:shadow-md transition-shadow p-5">
+      <div className="rounded-2xl bg-surface shadow-sm hover:shadow-lg transition-shadow p-5">
         <h3 className="text-sm font-medium text-ink mb-2">Estado actual — {monthProjection.monthLabel}</h3>
         {monthProjection.totalSoFar > 0 && monthProjection.confirmationRateSoFar !== null && monthProjection.cancellationRateSoFar !== null ? (
           <p className="text-sm text-ink leading-relaxed">
@@ -208,7 +208,7 @@ export default async function FacilityDetailView({
 
         {/* Posición relativa dentro de su propio market */}
         {context && positionIndex >= 0 && (
-          <div className="rounded-xl bg-surface-panel border border-border px-5 py-3 text-sm text-ink">
+          <div className="rounded-xl bg-surface-panel px-5 py-3 text-sm text-ink shadow-sm">
             Es la <span className="font-semibold">#{positionIndex + 1} de {marketPeers.length}</span> facilities de <span className="font-medium">{context.marketName}</span> por tasa de cancelación
             {positionIndex < 3 && marketPeers.length > 5 && <span className="text-danger"> — entre las peores de su market</span>}
             {positionIndex >= marketPeers.length - 3 && marketPeers.length > 5 && <span className="text-brand"> — entre las mejores de su market</span>}

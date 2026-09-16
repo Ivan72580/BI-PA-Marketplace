@@ -46,7 +46,7 @@ function withRankChange<T extends { facilityId: string }>(rows: T[], priorOrder:
 
 function SectionCard({ title, subtitle, action, children }: { title: string; subtitle?: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl bg-surface border border-border shadow-sm hover:shadow-md transition-shadow p-5">
+    <div className="rounded-2xl bg-surface shadow-sm hover:shadow-lg transition-shadow p-5">
       <div className="flex items-center justify-between mb-1">
         <h3 className="text-sm font-medium text-ink">{title}</h3>
         {action}
@@ -407,7 +407,7 @@ export default async function NetworkOverview({
                   <Stat label="Revenue total" value={formatUSD(current.totalRevenue)} sublabel="dato secundario" />
                 </div>
               </SectionCard>
-              <div className="rounded-xl border border-border px-5 py-3.5">
+              <div className="rounded-xl bg-surface-panel px-5 py-3.5 shadow-sm">
                 <div className="text-xs text-ink-faint mb-2">Por organizador</div>
                 <div className="flex flex-wrap gap-x-6 gap-y-1.5">
                   {extended.organizerBreakdown.map((o) => (
@@ -536,7 +536,7 @@ export default async function NetworkOverview({
           </GroupSection>
 
           <div className="mt-5">
-            <details className="rounded-2xl bg-surface border border-border p-5">
+            <details className="rounded-2xl bg-surface shadow-sm p-5">
               <summary className="cursor-pointer text-sm font-medium text-ink">
                 Todas las facilities {isMultiScope ? `— ${scope.regionName}` : ""} <span className="text-ink-faint font-normal">({facilityTable.length} — click para desplegar)</span>
               </summary>

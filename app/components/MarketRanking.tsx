@@ -39,7 +39,7 @@ export default async function MarketRanking({
       </div>
       <div className="text-sm text-ink-faint mb-5">{target.facilityIds.length} facilities en este grupo</div>
 
-      <div className="rounded-2xl bg-surface border border-border p-5">
+      <div className="rounded-2xl bg-surface shadow-sm hover:shadow-lg transition-shadow p-5">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-sm">
             <thead>

@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import FacilitySearch from "./FacilitySearch";
 
 // Íconos simples e inline (sin dependencia nueva) — se ven igual colapsado o expandido.
 function OverviewIcon() {
@@ -32,13 +33,30 @@ function MarketIcon() {
   );
 }
 
+function SearchIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  );
+}
+
 const links: { href: string; label: string; icon: () => ReactNode }[] = [
   { href: "/", label: "Overview", icon: OverviewIcon },
   { href: "/trends", label: "Trends", icon: TrendsIcon },
   { href: "/market", label: "Market", icon: MarketIcon },
 ];
 
-export default function Sidebar({ userMenu }: { userMenu: ReactNode }) {
+export default function Sidebar({
+  userMenu,
+  facilities,
+  markets,
+}: {
+  userMenu: ReactNode;
+  facilities: { id: string; name: string; marketId: string }[];
+  markets: { id: string; name: string; regionId: string }[];
+}) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
 
@@ -62,6 +80,14 @@ export default function Sidebar({ userMenu }: { userMenu: ReactNode }) {
               className="text-white/70 hover:text-white text-sm px-2 py-1.5 rounded-md hover:bg-white/10 mb-6"
             >
               »
+            </button>
+            <button
+              type="button"
+              onClick={() => setCollapsed(false)}
+              title="Buscar facility"
+              className="p-2.5 rounded-lg text-white/70 hover:text-white hover:bg-white/5 transition-colors mb-2"
+            >
+              <SearchIcon />
             </button>
             <nav className="flex flex-col items-center gap-1">
               {links.map((l) => {
@@ -96,6 +122,10 @@ export default function Sidebar({ userMenu }: { userMenu: ReactNode }) {
               >
                 «
               </button>
+            </div>
+
+            <div className="mb-5">
+              <FacilitySearch facilities={facilities} markets={markets} />
             </div>
 
             <nav className="flex-1">

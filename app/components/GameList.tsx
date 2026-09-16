@@ -18,7 +18,7 @@ const DAY_LABEL_ES: Record<string, string> = {
 
 export default function GameList({ items, total, showFacility }: { items: GameListItem[]; total: number; showFacility: boolean }) {
   return (
-    <details className="rounded-2xl bg-surface border border-border p-5">
+    <details className="rounded-2xl bg-surface shadow-sm p-5">
       <summary className="cursor-pointer text-sm font-medium text-ink">
         Ver partidos individuales ({total.toLocaleString("en-US")})
       </summary>

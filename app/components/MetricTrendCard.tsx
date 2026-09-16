@@ -25,7 +25,7 @@ export default function MetricTrendCard({
   const delta = priorValue !== null ? currentValue - priorValue : null;
 
   return (
-    <div className="rounded-2xl bg-surface border border-border p-5">
+    <div className="rounded-2xl bg-surface shadow-sm hover:shadow-lg transition-shadow p-5">
       <div className="flex items-center justify-between mb-1 gap-2">
         <h3 className="text-sm font-medium text-ink">{title}</h3>
         {priorValue !== null && (

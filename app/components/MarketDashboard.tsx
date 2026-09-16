@@ -26,7 +26,7 @@ function formatUSD2(n: number) {
 
 function SectionCard({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl bg-surface border border-border shadow-sm hover:shadow-md transition-shadow p-5">
+    <div className="rounded-2xl bg-surface shadow-sm hover:shadow-lg transition-shadow p-5">
       <h3 className="text-sm font-medium text-ink mb-0.5">{title}</h3>
       {subtitle && <p className="text-xs text-ink-faint mb-4">{subtitle}</p>}
       {!subtitle && <div className="mb-2" />}
@@ -134,11 +134,11 @@ export default async function MarketDashboard({
           </SectionCard>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Link href={buildQuery({ view: "ranking", group: "top80", month })} className="block rounded-xl border border-border p-4 hover:border-brand transition-colors">
+            <Link href={buildQuery({ view: "ranking", group: "top80", month })} className="block rounded-xl bg-surface shadow-sm hover:shadow-lg transition-shadow p-4">
               <div className="text-sm font-medium text-brand">Ver detalle del grupo 80%</div>
               <div className="text-xs text-ink-faint mt-1">{pareto.top80.facilityIds.length} facilities · {formatPct(pareto.top80.pct)} de los confirmados</div>
             </Link>
-            <Link href={buildQuery({ view: "ranking", group: "others", month })} className="block rounded-xl border border-border p-4 hover:border-brand transition-colors">
+            <Link href={buildQuery({ view: "ranking", group: "others", month })} className="block rounded-xl bg-surface shadow-sm hover:shadow-lg transition-shadow p-4">
               <div className="text-sm font-medium text-ink-muted">Ver detalle del grupo «Otros» (20%)</div>
               <div className="text-xs text-ink-faint mt-1">{pareto.others.facilityIds.length} facilities · {formatPct(pareto.others.pct)} de los confirmados</div>
             </Link>
@@ -160,7 +160,7 @@ export default async function MarketDashboard({
         <SectionCard title="Markets por partidos confirmados" subtitle={`${month} — clickeá un market para ver la participación de sus facilities`}>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {marketRanking.map((m) => (
-              <Link key={m.marketId} href={buildQuery({ marketId: m.marketId })} className="block rounded-2xl bg-surface border border-border p-4 hover:border-brand transition-colors">
+              <Link key={m.marketId} href={buildQuery({ marketId: m.marketId })} className="block rounded-2xl bg-surface shadow-sm hover:shadow-lg transition-shadow p-4">
                 <div className="text-sm font-medium text-brand">{m.marketName}</div>
                 <div className="flex items-baseline gap-2 mt-2">
                   <div className="font-display text-xl font-semibold text-ink">{m.confirmedGames.toLocaleString("en-US")}</div>
@@ -181,7 +181,7 @@ export default async function MarketDashboard({
               const shareChange = priorShare !== null && priorShare > 0 ? (f.marketSharePct - priorShare) / priorShare : null;
               const trendsHref = `/trends?${new URLSearchParams({ facilityId: f.facilityId, marketId: f.marketId, regionId: f.regionId }).toString()}`;
               return (
-                <Link key={f.facilityId} href={trendsHref} className="block rounded-2xl bg-surface border border-border p-4 hover:border-brand transition-colors">
+                <Link key={f.facilityId} href={trendsHref} className="block rounded-2xl bg-surface shadow-sm hover:shadow-lg transition-shadow p-4">
                   <div className="text-sm font-medium text-brand">{f.name}</div>
                   <div className="flex items-baseline gap-2 mt-2">
                     <div className="font-display text-xl font-semibold text-ink">{formatPct(f.marketSharePct)}</div>

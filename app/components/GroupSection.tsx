@@ -14,7 +14,7 @@ export default function GroupSection({
   const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <div className="rounded-3xl bg-surface border border-border p-4 shadow-sm">
+    <div className="rounded-3xl bg-surface p-4 shadow-md">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}

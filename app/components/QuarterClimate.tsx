@@ -4,7 +4,7 @@ export default function QuarterClimate({ points }: { points: QuarterClimatePoint
   const max = Math.max(...points.map((p) => p.confirmationRate), 0.01);
 
   return (
-    <div className="rounded-2xl bg-surface border border-border p-4 w-full sm:w-[220px]">
+    <div className="rounded-2xl bg-surface shadow-sm p-4 w-full sm:w-[220px]">
       <div className="text-xs text-ink-faint mb-2 text-center">Estacionalidad histórica</div>
       <div className="grid grid-cols-4 gap-1.5">
         {points.map((p) => {

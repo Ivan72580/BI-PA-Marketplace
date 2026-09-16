@@ -33,7 +33,7 @@ export default async function RegionConcentrationPies({
   return (
     <div className={`grid grid-cols-1 ${regionPies.length > 1 ? "lg:grid-cols-2" : ""} gap-5`}>
       {regionPies.map((r) => (
-        <div key={r.regionId} className="rounded-2xl bg-surface border border-border p-5">
+        <div key={r.regionId} className="rounded-2xl bg-surface shadow-sm hover:shadow-lg transition-shadow p-5">
           <h3 className="text-sm font-medium text-ink mb-0.5">Concentración de confirmados — {r.regionName}</h3>
           <p className="text-xs text-ink-faint mb-4">Pareto 80/20 — clickeá para ver el detalle completo</p>
           <Link href={buildHref(r.regionId)} className="block">
