@@ -18,9 +18,15 @@ export default function LoginPage() {
       >
         <button
           type="submit"
-          className="px-7 py-3 rounded-xl bg-brand text-white text-sm font-semibold hover:brightness-90 transition-[filter] shadow-sm"
+          title="Ingresar con Google"
+          aria-label="Ingresar con Google"
+          className="w-16 h-16 rounded-full bg-brand text-white flex items-center justify-center hover:brightness-90 transition-[filter] shadow-md"
         >
-          Ingresar con Google
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+            <polyline points="10 17 15 12 10 7" />
+            <line x1="15" y1="12" x2="3" y2="12" />
+          </svg>
         </button>
       </form>
     </div>
