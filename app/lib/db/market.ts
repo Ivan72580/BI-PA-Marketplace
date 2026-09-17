@@ -459,3 +459,98 @@ async function getMarketRankingImpl(
 }
 
 export const getMarketRanking = cached("getMarketRanking", getMarketRankingImpl);
+
+// ---------- Ranking de markets por variación de tasa de confirmación ----------
+// Distinto del ranking anterior a propósito: ese mide volumen (cuántos
+// partidos confirmados hay y cuánto creció ese número), que no es comparable
+// entre markets de tamaño muy distinto. Este mide tasa de confirmación
+// (confirmados / total), que sí es comparable — y es la métrica que la app
+// prioriza en toda la aplicación. Pensado para landing pages tipo "elegí
+// dónde mirar": ordena por magnitud de variación (mejoró o empeoró mucho),
+// no por tamaño.
+
+export type MarketConfirmationRankingRow = {
+  marketId: string;
+  marketName: string;
+  totalGames: number;
+  confirmationRate: number;
+  priorConfirmationRate: number | null;
+  // Diferencia de tasas como fracción (0.05 = 5 puntos porcentuales), no
+  // como porcentaje ya multiplicado — mismo formato que el resto de la app
+  // usa para alimentar <ChangeBadge value={...} />.
+  changePts: number | null;
+};
+
+async function getMarketConfirmationRankingImpl(
+  filters: Omit<OverviewFilters, "dateFrom" | "dateTo">,
+  month: string /* YYYY-MM */
+): Promise<MarketConfirmationRankingRow[]> {
+  const [year, monthNum] = month.split("-").map(Number);
+  const dateFrom = new Date(Date.UTC(year, monthNum - 1, 1));
+  const dateTo = new Date(Date.UTC(year, monthNum, 0, 23, 59, 59));
+
+  const priorAnchor = new Date(Date.UTC(year, monthNum - 2, 1));
+  const priorYear = priorAnchor.getUTCFullYear();
+  const priorMonthNum = priorAnchor.getUTCMonth() + 1;
+  const priorDateFrom = new Date(Date.UTC(priorYear, priorMonthNum - 1, 1));
+  const priorDateTo = new Date(Date.UTC(priorYear, priorMonthNum, 0, 23, 59, 59));
+
+  const where = buildWhere({ ...filters, dateFrom, dateTo });
+  const priorWhere = buildWhere({ ...filters, dateFrom: priorDateFrom, dateTo: priorDateTo });
+
+  type FacilityMarketInfo = { id: string; marketId: string; market: { name: string } };
+  const [currentGroups, priorGroups, facilityInfoRows] = await Promise.all([
+    prisma.game.groupBy({ by: ["facilityId", "status"], where, _count: { _all: true } }),
+    prisma.game.groupBy({ by: ["facilityId", "status"], where: priorWhere, _count: { _all: true } }),
+    prisma.facility.findMany({ select: { id: true, marketId: true, market: { select: { name: true } } } }) as unknown as Promise<FacilityMarketInfo[]>,
+  ]);
+
+  const facilityMarketMap = new Map(facilityInfoRows.map((f): [string, { marketId: string; marketName: string }] => [f.id, { marketId: f.marketId, marketName: f.market.name }]));
+
+  function tallyByMarket(groups: { facilityId: string; status: GameStatus; _count: { _all: number } }[]) {
+    const totals = new Map<string, { confirmed: number; total: number }>();
+    for (const g of groups) {
+      const info = facilityMarketMap.get(g.facilityId);
+      if (!info) continue;
+      const entry = totals.get(info.marketId) ?? { confirmed: 0, total: 0 };
+      entry.total += Number(g._count._all);
+      if (g.status === GameStatus.CONFIRMED) entry.confirmed += Number(g._count._all);
+      totals.set(info.marketId, entry);
+    }
+    return totals;
+  }
+
+  const currentByMarket = tallyByMarket(currentGroups as unknown as { facilityId: string; status: GameStatus; _count: { _all: number } }[]);
+  const priorByMarket = tallyByMarket(priorGroups as unknown as { facilityId: string; status: GameStatus; _count: { _all: number } }[]);
+
+  const marketNames = new Map<string, string>();
+  for (const f of facilityInfoRows) marketNames.set(f.marketId, f.market.name);
+
+  const rows: MarketConfirmationRankingRow[] = Array.from(currentByMarket.entries())
+    .filter(([, cur]) => cur.total >= MIN_GAMES_FOR_RANKING)
+    .map(([marketId, cur]) => {
+      const prior = priorByMarket.get(marketId);
+      const confirmationRate = cur.total > 0 ? cur.confirmed / cur.total : 0;
+      const priorConfirmationRate = prior && prior.total >= MIN_GAMES_FOR_RANKING ? prior.confirmed / prior.total : null;
+      return {
+        marketId,
+        marketName: marketNames.get(marketId) ?? "—",
+        totalGames: cur.total,
+        confirmationRate,
+        priorConfirmationRate,
+        changePts: priorConfirmationRate !== null ? confirmationRate - priorConfirmationRate : null,
+      };
+    });
+
+  // Los movimientos más grandes (para bien o para mal) primero; los markets
+  // sin punto de comparación quedan al final, no arriba, para no tapar
+  // información accionable con ruido de "sin datos".
+  return rows.sort((a, b) => {
+    if (a.changePts === null && b.changePts === null) return b.confirmationRate - a.confirmationRate;
+    if (a.changePts === null) return 1;
+    if (b.changePts === null) return -1;
+    return Math.abs(b.changePts) - Math.abs(a.changePts);
+  });
+}
+
+export const getMarketConfirmationRanking = cached("getMarketConfirmationRanking", getMarketConfirmationRankingImpl);
