@@ -1,7 +1,6 @@
 import Link from "next/link";
 import {
   getFilterOptions,
-  resolveFilterNames,
   getDaySnapshot,
   getDayBaseline,
   getDayEvolution,
@@ -13,6 +12,7 @@ import {
 } from "../lib/db/queries";
 import { todayISO } from "../lib/period";
 import FilterPanel from "../components/FilterPanel";
+import DailyBreadcrumb from "../components/DailyBreadcrumb";
 import GroupSection from "../components/GroupSection";
 import ChangeBadge from "../components/ChangeBadge";
 import Glossary from "../components/Glossary";
@@ -128,7 +128,6 @@ function buildDayInsights(summary: DaySummary, baseline: DayBaseline, evolution:
 export default async function DailyPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
   const filterOptions = await getFilterOptions();
-  const names = await resolveFilterNames(sp);
 
   // ---------- Selección obligatoria: región, market Y facility ----------
   // A diferencia de Trends/Market (que admiten un panorama agregado), esta
@@ -179,13 +178,7 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
   return (
     <div className="space-y-5">
       <div>
-        <div className="flex flex-wrap gap-1.5 text-sm mb-2">
-          <Link href={buildDailyQuery(sp, { marketId: undefined, facilityId: undefined })} className="text-brand">{names.regionName}</Link>
-          <span className="text-ink-faint">›</span>
-          <Link href={buildDailyQuery(sp, { facilityId: undefined })} className="text-brand">{names.marketName}</Link>
-          <span className="text-ink-faint">›</span>
-          <span className="text-ink font-medium">{names.facilityName}</span>
-        </div>
+        <DailyBreadcrumb regions={filterOptions.regions} markets={filterOptions.markets} facilities={filterOptions.facilities} sp={sp} />
         <h1 className="font-display text-3xl font-bold text-ink mb-1">Seguimiento diario</h1>
         <div className="text-sm text-ink-faint">{summary.dayLabel} {dateISO} — {summary.facilityName}</div>
       </div>
