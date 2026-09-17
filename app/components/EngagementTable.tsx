@@ -1,10 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 
 type EngagementRow = {
   facilityId: string;
   name: string;
+  marketId: string;
+  regionId: string;
   conversionRate: number;
   abandonmentRate: number;
   nearMissCancelledCount: number;
@@ -75,7 +78,11 @@ export default function EngagementTable({ rows }: { rows: EngagementRow[] }) {
         <tbody>
           {sorted.slice(0, 30).map((f) => (
             <tr key={f.facilityId} className="border-b border-surface-sunken">
-              <td className="py-1.5 px-2 text-ink">{f.name}</td>
+              <td className="py-1.5 px-2">
+                <Link href={`/trends?regionId=${f.regionId}&marketId=${f.marketId}&facilityId=${f.facilityId}`} className="text-brand hover:underline">
+                  {f.name}
+                </Link>
+              </td>
               <td className="py-1.5 px-2 text-ink">{formatPct(f.conversionRate)}</td>
               <td className="py-1.5 px-2 text-ink">{formatPct(f.abandonmentRate)}</td>
               <td className="py-1.5 px-2 text-ink-muted">{f.nearMissCancelledCount} ({f.cancelledGames > 0 ? formatPct(f.nearMissCancelledPct) : "—"})</td>

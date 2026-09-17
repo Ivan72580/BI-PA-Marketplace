@@ -38,6 +38,9 @@ function formatPct(n: number) {
 function formatUSD(n: number) {
   return n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 }
+function formatUSD2(n: number) {
+  return n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 });
+}
 function isValidDate(s: string | undefined): s is string {
   return !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
 }
@@ -211,11 +214,16 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <Stat label="Partidos" value={String(summary.totalGames)} sublabel={`${summary.confirmedGames} confirmados · ${summary.cancelledGames} cancelados`} />
             <Stat label="Confirmación" value={formatPct(summary.confirmationRate)} delta={baseline.occurrences >= 3 ? summary.confirmationRate - baseline.avgConfirmationRate : undefined} />
             <Stat label="Ocupación" value={formatPct(summary.occupancyRate)} delta={baseline.occurrences >= 3 ? summary.occupancyRate - baseline.avgOccupancyRate : undefined} />
             <Stat label="Revenue del día" value={formatUSD(summary.totalRevenue)} sublabel={summary.avgRating != null ? `Rating promedio: ${summary.avgRating.toFixed(1)}` : undefined} />
+            <Stat
+              label="Precio x jugador"
+              value={summary.avgRevenuePerPlayer != null ? formatUSD2(summary.avgRevenuePerPlayer) : "—"}
+              sublabel={summary.avgGamePrice != null ? `Ticket promedio: ${formatUSD2(summary.avgGamePrice)}` : undefined}
+            />
           </div>
 
           <GroupSection title="Variación e insights del día">
@@ -250,13 +258,21 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
                       {g.status === "CONFIRMED" ? "Confirmado" : "Cancelado"}
                     </span>
                   </div>
-                  <div className="text-xs text-ink-muted mb-1.5">{g.formatLabel}</div>
+                  <div className="text-xs text-ink-muted mb-1.5">{g.formatLabel} · {g.organizer}</div>
                   <div className="text-xs text-ink-faint space-y-0.5">
-                    <div>{g.finalPlayers}/{g.maxPlayers} jugadores{g.waitlistPlayers > 0 ? ` · ${g.waitlistPlayers} en espera` : ""}{g.droppedPlayers > 0 ? ` · ${g.droppedPlayers} abandonaron` : ""}</div>
+                    <div>{g.finalPlayers}/{g.maxPlayers} jugadores (mín. {g.minPlayers}){g.waitlistPlayers > 0 ? ` · ${g.waitlistPlayers} en espera` : ""}{g.droppedPlayers > 0 ? ` · ${g.droppedPlayers} abandonaron` : ""}</div>
+                    {g.status === "CANCELLED" && g.playersMissing != null && g.playersMissing > 0 && (
+                      <div>Faltaron {g.playersMissing} jugador(es) para el mínimo</div>
+                    )}
                     {g.cancellationReason && <div>Motivo: {g.cancellationReason}</div>}
                     {g.confirmationLeadTime != null && <div>Lead time: {g.confirmationLeadTime.toFixed(1)}h</div>}
+                    {g.gamePrice != null && (
+                      <div>Precio: {formatUSD2(g.gamePrice)}{g.revenuePerPlayer != null ? ` · ${formatUSD2(g.revenuePerPlayer)}/jugador` : ""}</div>
+                    )}
                     {g.eventRevenue != null && <div>Revenue: {formatUSD(g.eventRevenue)}</div>}
-                    {g.averageRating != null && <div>Rating: {g.averageRating.toFixed(1)}</div>}
+                    {g.averageRating != null && (
+                      <div>Rating: {g.averageRating.toFixed(1)}{g.ratingCount != null && g.ratingCount > 0 ? ` (${g.ratingCount})` : ""}</div>
+                    )}
                   </div>
                 </div>
               ))}

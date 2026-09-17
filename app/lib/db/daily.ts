@@ -41,14 +41,20 @@ export type DayGameCard = {
   id: number;
   time: string;
   formatLabel: string;
+  organizer: string;
   status: "CONFIRMED" | "CANCELLED";
+  minPlayers: number;
   finalPlayers: number;
   maxPlayers: number;
   waitlistPlayers: number;
   droppedPlayers: number;
+  playersMissing: number | null;
   cancellationReason: string | null;
   confirmationLeadTime: number | null;
+  gamePrice: number | null;
   eventRevenue: number | null;
+  revenuePerPlayer: number | null;
+  ratingCount: number | null;
   averageRating: number | null;
 };
 
@@ -65,6 +71,8 @@ export type DaySummary = {
   occupancyRate: number;
   conversionRate: number;
   totalRevenue: number;
+  avgGamePrice: number | null;
+  avgRevenuePerPlayer: number | null;
   avgRating: number | null;
   cancellationBreakdown: { category: string; label: string; count: number }[];
   games: DayGameCard[];
@@ -73,16 +81,22 @@ export type DaySummary = {
 type DayRow = {
   id: number;
   time: string;
+  organizer: string;
   status: "CONFIRMED" | "CANCELLED";
+  minPlayers: number;
   finalPlayers: number;
   maxPlayers: number;
   waitlistPlayers: number;
   droppedPlayers: number;
+  playersMissing: number | null;
   gameSize: string | null;
   fieldType: string | null;
   cancellationCategory: CancellationCategory | null;
   confirmationLeadTime: number | null;
+  gamePrice: number | null;
   eventRevenue: number | null;
+  revenuePerPlayer: number | null;
+  ratingCount: number | null;
   averageRating: number | null;
 };
 
@@ -98,14 +112,16 @@ async function getDaySnapshotImpl(facilityId: string, dateISO: string): Promise<
       where,
       orderBy: { time: "asc" },
       select: {
-        id: true, time: true, status: true, finalPlayers: true, maxPlayers: true,
-        waitlistPlayers: true, droppedPlayers: true, gameSize: true, fieldType: true,
-        cancellationCategory: true, confirmationLeadTime: true, eventRevenue: true, averageRating: true,
+        id: true, time: true, organizer: true, status: true, minPlayers: true, finalPlayers: true, maxPlayers: true,
+        waitlistPlayers: true, droppedPlayers: true, playersMissing: true, gameSize: true, fieldType: true,
+        cancellationCategory: true, confirmationLeadTime: true, gamePrice: true, eventRevenue: true,
+        revenuePerPlayer: true, ratingCount: true, averageRating: true,
       },
     }) as Promise<DayRow[]>,
   ]);
 
-  let confirmed = 0, cancelled = 0, sumFinal = 0, sumMax = 0, sumDropped = 0, revenue = 0, ratingSum = 0, ratingCount = 0;
+  let confirmed = 0, cancelled = 0, sumFinal = 0, sumMax = 0, sumDropped = 0, revenue = 0;
+  let ratingSum = 0, ratingCount = 0, priceSum = 0, priceCount = 0, revPerPlayerSum = 0, revPerPlayerCount = 0;
   const cancelCounts = new Map<string, number>();
 
   const cards: DayGameCard[] = games.map((g) => {
@@ -121,19 +137,27 @@ async function getDaySnapshotImpl(facilityId: string, dateISO: string): Promise<
     sumDropped += g.droppedPlayers ?? 0;
     if (g.eventRevenue) revenue += g.eventRevenue;
     if (g.averageRating != null) { ratingSum += g.averageRating; ratingCount += 1; }
+    if (g.gamePrice != null) { priceSum += g.gamePrice; priceCount += 1; }
+    if (g.revenuePerPlayer != null) { revPerPlayerSum += g.revenuePerPlayer; revPerPlayerCount += 1; }
 
     return {
       id: g.id,
       time: g.time,
       formatLabel: combineFormatLabel(g.gameSize, g.fieldType, g.maxPlayers),
+      organizer: g.organizer,
       status: g.status,
+      minPlayers: g.minPlayers,
       finalPlayers: g.finalPlayers,
       maxPlayers: g.maxPlayers,
       waitlistPlayers: g.waitlistPlayers,
       droppedPlayers: g.droppedPlayers,
+      playersMissing: g.playersMissing,
       cancellationReason: g.cancellationCategory ? labelForCancellationCategory(g.cancellationCategory) : null,
       confirmationLeadTime: g.confirmationLeadTime,
+      gamePrice: g.gamePrice,
       eventRevenue: g.eventRevenue,
+      revenuePerPlayer: g.revenuePerPlayer,
+      ratingCount: g.ratingCount,
       averageRating: g.averageRating,
     };
   });
@@ -156,6 +180,8 @@ async function getDaySnapshotImpl(facilityId: string, dateISO: string): Promise<
     occupancyRate: sumMax > 0 ? sumFinal / sumMax : 0,
     conversionRate: sumFinal + sumDropped > 0 ? sumFinal / (sumFinal + sumDropped) : 0,
     totalRevenue: revenue,
+    avgGamePrice: priceCount > 0 ? priceSum / priceCount : null,
+    avgRevenuePerPlayer: revPerPlayerCount > 0 ? revPerPlayerSum / revPerPlayerCount : null,
     avgRating: ratingCount > 0 ? ratingSum / ratingCount : null,
     cancellationBreakdown,
     games: cards,

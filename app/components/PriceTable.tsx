@@ -1,10 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 
 type PriceRow = {
   facilityId: string;
   name: string;
+  marketId: string;
+  regionId: string;
   avgPrice: number | null;
   avgPlayersPerGame: number | null;
   avgGamesPerMonth: number;
@@ -79,7 +82,11 @@ export default function PriceTable({ rows }: { rows: PriceRow[] }) {
         <tbody>
           {sorted.slice(0, 30).map((f) => (
             <tr key={f.facilityId} className="border-b border-surface-sunken">
-              <td className="py-1.5 px-2 text-ink">{f.name}</td>
+              <td className="py-1.5 px-2">
+                <Link href={`/trends?regionId=${f.regionId}&marketId=${f.marketId}&facilityId=${f.facilityId}`} className="text-brand hover:underline">
+                  {f.name}
+                </Link>
+              </td>
               <td className="py-1.5 px-2 text-ink">{formatUSD2(f.avgPrice ?? 0)}</td>
               <td className="py-1.5 px-2 text-ink">{f.avgPlayersPerGame !== null ? f.avgPlayersPerGame.toFixed(1) : "—"}</td>
               <td className="py-1.5 px-2 text-ink">{f.avgGamesPerMonth}</td>
