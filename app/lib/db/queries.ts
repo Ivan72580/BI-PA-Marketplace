@@ -14,6 +14,9 @@
 //   extended.ts       - organizador, satisfacción, demanda, lead time, precio
 //   facility.ts       - contexto, evolución temporal y tabla completa por facility
 //   seasonality.ts    - serie mensual, overlay interanual e insights
+//   trends.ts          - series por bucket, patrones día/hora/formato, consistencia de slots, estacionalidad
+//   market.ts          - resumen y ranking por facility/market
+//   daily.ts           - seguimiento diario: foto del día, línea base, evolución y calendario "sí o sí"
 
 export * from "./shared";
 export * from "./filters";
@@ -29,3 +32,4 @@ export * from "./seasonality";
 export * from "./format";
 export * from "./trends";
 export * from "./market";
+export * from "./daily";
