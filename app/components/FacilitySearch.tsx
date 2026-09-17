@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, type KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 
 type Facility = { id: string; name: string; marketId: string };
@@ -9,8 +9,10 @@ type Market = { id: string; name: string; regionId: string };
 export default function FacilitySearch({ facilities, markets }: { facilities: Facility[]; markets: Market[] }) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
+  const [highlighted, setHighlighted] = useState(0);
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   const marketById = useMemo(() => new Map(markets.map((m) => [m.id, m])), [markets]);
 
@@ -19,6 +21,12 @@ export default function FacilitySearch({ facilities, markets }: { facilities: Fa
     const q = query.toLowerCase();
     return facilities.filter((f) => f.name.toLowerCase().includes(q)).slice(0, 8);
   }, [query, facilities]);
+
+  // Mantiene visible la opción resaltada cuando se navega con las flechas
+  // y la lista tiene scroll.
+  useEffect(() => {
+    itemRefs.current[highlighted]?.scrollIntoView({ block: "nearest" });
+  }, [highlighted]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -38,6 +46,23 @@ export default function FacilitySearch({ facilities, markets }: { facilities: Fa
     router.push(`/trends?regionId=${market.regionId}&marketId=${market.id}&facilityId=${f.id}`);
   }
 
+  function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (!open || results.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlighted((i) => (i + 1) % results.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlighted((i) => (i - 1 + results.length) % results.length);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const target = results[highlighted];
+      if (target) goToFacility(target);
+    } else if (e.key === "Escape") {
+      setOpen(false);
+    }
+  }
+
   return (
     <div ref={containerRef} className="relative">
       <div className="relative">
@@ -51,8 +76,10 @@ export default function FacilitySearch({ facilities, markets }: { facilities: Fa
           onChange={(e) => {
             setQuery(e.target.value);
             setOpen(true);
+            setHighlighted(0);
           }}
           onFocus={() => setOpen(true)}
+          onKeyDown={handleKeyDown}
           placeholder="Buscar facility..."
           className="w-full rounded-lg bg-white/10 text-white placeholder:text-white/40 text-xs pl-8 pr-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-white/30 focus:bg-white/15 transition-colors"
         />
@@ -60,12 +87,18 @@ export default function FacilitySearch({ facilities, markets }: { facilities: Fa
 
       {open && results.length > 0 && (
         <div className="absolute z-50 top-full left-0 right-0 mt-1.5 rounded-xl bg-surface shadow-xl py-1 max-h-64 overflow-y-auto">
-          {results.map((f) => (
+          {results.map((f, i) => (
             <button
               key={f.id}
+              ref={(el) => {
+                itemRefs.current[i] = el;
+              }}
               type="button"
+              onMouseEnter={() => setHighlighted(i)}
               onClick={() => goToFacility(f)}
-              className="w-full text-left px-3 py-2 text-sm text-ink hover:bg-brand-soft transition-colors truncate block"
+              className={`w-full text-left px-3 py-2 text-sm transition-colors truncate block ${
+                i === highlighted ? "bg-brand-soft text-ink" : "text-ink hover:bg-brand-soft"
+              }`}
             >
               {f.name}
             </button>

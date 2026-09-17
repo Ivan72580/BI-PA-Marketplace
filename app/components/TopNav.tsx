@@ -3,6 +3,7 @@
 import { type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion } from "framer-motion";
 import FacilitySearch from "./FacilitySearch";
 
 function OverviewIcon() {
@@ -62,12 +63,21 @@ export default function TopNav({
               <Link
                 key={l.href}
                 href={l.href}
-                className={`flex items-center gap-2 px-4 py-2.5 text-sm whitespace-nowrap rounded-t-xl transition-colors ${
-                  isActive ? "bg-[#f5fffa] text-ink font-bold" : "text-white/75 font-medium hover:text-white hover:bg-white/5"
+                className={`relative flex items-center gap-2 px-4 py-2.5 text-sm whitespace-nowrap rounded-t-xl transition-colors ${
+                  isActive ? "text-ink font-bold" : "text-white/75 font-medium hover:text-white hover:bg-white/5"
                 }`}
               >
-                <Icon />
-                {l.label}
+                {isActive && (
+                  <motion.span
+                    layoutId="topnav-active-bg"
+                    className="absolute inset-0 rounded-t-xl bg-[#f5fffa]"
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
+                  />
+                )}
+                <span className="relative flex items-center gap-2">
+                  <Icon />
+                  {l.label}
+                </span>
               </Link>
             );
           })}

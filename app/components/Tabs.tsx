@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, useId, type ReactNode } from "react";
+import { motion } from "framer-motion";
 
 export default function Tabs({ tabs, defaultActiveId }: { tabs: { id: string; label: string; content: ReactNode }[]; defaultActiveId?: string }) {
   const [active, setActive] = useState(defaultActiveId && tabs.some((t) => t.id === defaultActiveId) ? defaultActiveId : tabs[0]?.id);
+  const groupId = useId();
 
   return (
     <div>
@@ -16,12 +18,17 @@ export default function Tabs({ tabs, defaultActiveId }: { tabs: { id: string; la
               type="button"
               onClick={() => setActive(t.id)}
               className={`relative px-5 py-2.5 text-sm whitespace-nowrap transition-colors rounded-t-xl -mb-px ${
-                isActive
-                  ? "bg-surface text-ink font-bold z-10 shadow-[0_-2px_8px_rgba(11,59,46,0.06)]"
-                  : "bg-transparent text-ink-muted font-medium hover:text-ink"
+                isActive ? "text-ink font-bold z-10" : "bg-transparent text-ink-muted font-medium hover:text-ink"
               }`}
             >
-              {t.label}
+              {isActive && (
+                <motion.span
+                  layoutId={`${groupId}-tab-bg`}
+                  className="absolute inset-0 rounded-t-xl bg-surface shadow-[0_-2px_8px_rgba(11,59,46,0.06)]"
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
+                />
+              )}
+              <span className="relative">{t.label}</span>
             </button>
           );
         })}
