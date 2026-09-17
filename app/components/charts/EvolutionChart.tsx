@@ -6,12 +6,14 @@ import {
   LinearScale,
   PointElement,
   LineElement,
+  Filler,
   Tooltip,
   Legend,
   type ChartData,
   type Plugin,
 } from "chart.js";
 import { Line } from "react-chartjs-2";
+import { withHaloStyle } from "@/app/lib/chartHalo";
 
 // Plugin propio: dibuja el valor de cada punto directamente sobre el gráfico,
 // para no depender de pasar el mouse por encima. No requiere ninguna
@@ -37,19 +39,21 @@ const valueLabelsPlugin: Plugin<"line"> = {
   },
 };
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
 export default function EvolutionChart({ data }: { data: ChartData<"line"> }) {
+  const haloData = { ...data, datasets: withHaloStyle(data.datasets) };
   return (
     <div style={{ height: 240 }}>
       <Line
-        data={data}
+        data={haloData}
         plugins={[valueLabelsPlugin]}
         options={{
           maintainAspectRatio: false,
           layout: { padding: { top: 16 } },
+          interaction: { intersect: false, mode: "index" },
           plugins: { legend: { position: "bottom" } },
-          scales: { y: { ticks: { callback: (v) => `${v}%` } } },
+          scales: { y: { beginAtZero: true, ticks: { callback: (v) => `${v}%` } } },
         }}
       />
     </div>
