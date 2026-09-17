@@ -8,6 +8,7 @@ import {
   getDayOfWeekPattern,
   getHourPattern,
   getFormatPattern,
+  getNetworkFormatLeaderboard,
   getSlotConsistency,
   getSlotRecentPerformance,
   getGameList,
@@ -115,6 +116,22 @@ function RateBarList({
   );
 }
 
+function buildQuarterInsights(points: { quarter: number; label: string; confirmationRate: number; totalGames: number }[]): string[] {
+  const totalGames = points.reduce((s, p) => s + p.totalGames, 0);
+  if (totalGames === 0) return [];
+  const avgRate = points.reduce((s, p) => s + p.confirmationRate * p.totalGames, 0) / totalGames;
+  const best = points.reduce((a, b) => (b.confirmationRate > a.confirmationRate ? b : a), points[0]);
+  const worst = points.reduce((a, b) => (b.confirmationRate < a.confirmationRate ? b : a), points[0]);
+
+  return points.map((p) => {
+    if (best.quarter === worst.quarter) return `${p.label}: sin variación relevante entre trimestres.`;
+    if (p.quarter === best.quarter) return `${p.label}: el trimestre más fuerte del año.`;
+    if (p.quarter === worst.quarter) return `${p.label}: el trimestre más flojo del año.`;
+    const rel = p.confirmationRate >= avgRate ? "por encima" : "por debajo";
+    return `${p.label}: ${rel} del promedio anual.`;
+  });
+}
+
 export default async function TrendsPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
   const filterOptions = await getFilterOptions();
@@ -122,12 +139,12 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
   // ---------- Pantalla de selección obligatoria ----------
   if (!sp.regionId || !sp.marketId) {
     const landingMonth = todayISO().slice(0, 7);
-    const [marketMovers, networkClimate, networkDayPattern, networkHourPattern, networkFormatPattern] = await Promise.all([
+    const [marketMovers, networkClimate, networkDayPattern, networkHourPattern, networkFormatLeaderboard] = await Promise.all([
       getMarketConfirmationRanking({}, landingMonth),
       getQuarterClimate({}),
       getDayOfWeekPattern({}),
       getHourPattern({}),
-      getFormatPattern({}),
+      getNetworkFormatLeaderboard(),
     ]);
     type MarketMeta = { id: string; name: string; regionId: string };
     const marketMeta = new Map<string, MarketMeta>(
@@ -138,8 +155,16 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
       filterOptions.regions.map((r: RegionMeta): [string, RegionMeta] => [r.id, r])
     );
     const topMovers = marketMovers.filter((m: { marketId: string }) => marketMeta.has(m.marketId)).slice(0, 10);
-    const hourRows = [...networkHourPattern].filter((h) => h.totalGames >= MIN_SAMPLE_FOR_RATE_BAR).sort((a, b) => b.confirmationRate - a.confirmationRate);
-    const formatRows = [...networkFormatPattern].filter((f) => f.totalGames >= MIN_SAMPLE_FOR_RATE_BAR).sort((a, b) => b.confirmationRate - a.confirmationRate).slice(0, 8);
+    const hourRows = [...networkHourPattern]
+      .filter((h) => h.totalGames >= MIN_SAMPLE_FOR_RATE_BAR)
+      .sort((a, b) => b.confirmationRate - a.confirmationRate)
+      .slice(0, 10);
+    const formatRows = [...networkFormatLeaderboard]
+      .filter((f) => f.totalGames >= MIN_SAMPLE_FOR_RATE_BAR)
+      .sort((a, b) => b.confirmationRate - a.confirmationRate)
+      .slice(0, 10)
+      .map((f) => ({ ...f, label: f.facilityName ? `${f.label} · ${f.facilityName}` : f.label }));
+    const quarterInsights = buildQuarterInsights(networkClimate);
 
     return (
       <div>
@@ -148,14 +173,12 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
           Tendencias, consistencia de horarios y patrones estacionales — pensado para responder &quot;¿qué esperar?&quot; en cada market y cada facility, no solo &quot;qué pasó&quot;.
         </div>
 
-        <div className="rounded-2xl bg-brand-soft/50 border border-brand/25 px-5 py-3.5 flex items-center justify-between gap-4 flex-wrap">
+        <div className="rounded-2xl bg-brand-soft/50 border border-brand/25 px-5 py-3 flex items-center justify-between gap-4 flex-wrap">
           <div className="min-w-0">
             <div className="text-sm font-semibold text-ink">Elegí una región y un market para ver el detalle</div>
             <div className="text-xs text-ink-muted">Mezclar mercados muy distintos entre sí no aporta información accionable.</div>
           </div>
-          <div className="rounded-xl bg-surface border border-brand/40 p-1 shadow-sm shrink-0">
-            <FilterPanel regions={filterOptions.regions} markets={filterOptions.markets} facilities={filterOptions.facilities} showTimeControls={false} showFacility={false} />
-          </div>
+          <FilterPanel regions={filterOptions.regions} markets={filterOptions.markets} facilities={filterOptions.facilities} showTimeControls={false} showFacility={false} bare />
         </div>
 
         <div className="mt-6">
@@ -199,8 +222,17 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
                 )}
               </SectionCard>
 
-              <div className="flex justify-center">
-                <QuarterClimate points={networkClimate} />
+              <div className="space-y-3">
+                <div className="flex justify-center">
+                  <QuarterClimate points={networkClimate} />
+                </div>
+                {quarterInsights.length > 0 && (
+                  <ul className="text-[11px] text-ink-faint space-y-1 max-w-[220px] mx-auto list-disc pl-4">
+                    {quarterInsights.map((line) => (
+                      <li key={line}>{line}</li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </div>
 

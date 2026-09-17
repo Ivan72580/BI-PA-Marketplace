@@ -52,6 +52,7 @@ export default function FilterPanel({
   showFacility = true,
   hasFilter = false,
   clearHref,
+  bare = false,
 }: {
   regions: Option[];
   markets: Option[];
@@ -60,6 +61,11 @@ export default function FilterPanel({
   showFacility?: boolean;
   hasFilter?: boolean;
   clearHref?: string;
+  // Sin el chip "FILTRO", sin borde inferior ni margen — para cuando el
+  // selector ya vive dentro de otro contenedor con su propio fondo/borde
+  // (ej. el banner de selección de Trends) y no debe generar una caja
+  // dentro de otra caja.
+  bare?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -97,8 +103,8 @@ export default function FilterPanel({
     "rounded-md border border-border bg-surface/60 px-2 py-0.5 text-xs text-ink-muted cursor-pointer focus:outline-none focus:ring-1 focus:ring-brand/30 hover:border-border-strong hover:text-ink transition-colors";
 
   return (
-    <div className="border-b border-border/70 px-1 py-1.5 mb-5 flex flex-wrap items-center gap-1.5">
-      <span className="text-[10px] text-ink-faint mr-0.5 uppercase tracking-wide">Filtro</span>
+    <div className={bare ? "flex flex-wrap items-center gap-2" : "border-b border-border/70 px-1 py-1.5 mb-5 flex flex-wrap items-center gap-1.5"}>
+      {!bare && <span className="text-[10px] text-ink-faint mr-0.5 uppercase tracking-wide">Filtro</span>}
 
       <select
         className={selectClass}

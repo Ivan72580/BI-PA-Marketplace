@@ -336,6 +336,71 @@ async function getFormatPatternImpl(filters: OverviewFilters): Promise<PatternRo
 
 export const getFormatPattern = cached("getFormatPattern", getFormatPatternImpl);
 
+// ---------- Leaderboard de formatos a nivel red (con atribución de facility) ----------
+// Distinta de getFormatPattern a propósito: esa agrupa solo por
+// gameSize+fieldType+maxPlayers, sin rastro de a qué facility pertenece cada
+// partido. Eso funciona bien cuando ya hay un market/facility seleccionado
+// (el contexto está en el filtro), pero a nivel red muchas etiquetas de
+// fieldType son en realidad el nombre propio de una sola facility (ej.
+// "Cover Field 9v9" de R9 Ronaldo Academy) — mostrarlas sin decir de dónde
+// salen deja el dato "en el aire". Esta función agrupa también por
+// facilityId para poder decir, cuando una etiqueta aparece en una sola
+// facility, a cuál pertenece; cuando aparece en varias, queda como dato
+// genérico de red (facilityName: null).
+
+export type NetworkFormatRow = {
+  key: string;
+  label: string;
+  totalGames: number;
+  confirmationRate: number;
+  cancellationRate: number;
+  facilityName: string | null;
+};
+
+async function getNetworkFormatLeaderboardImpl(): Promise<NetworkFormatRow[]> {
+  const groupKeys = ["facilityId", "gameSize", "fieldType", "maxPlayers"];
+  type FormatFacilityGroup = { facilityId: string; gameSize: string | null; fieldType: string | null; maxPlayers: number; _count: { _all: number } };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const groupBy = prisma.game.groupBy as any;
+
+  type FacilityNameRow = { id: string; name: string };
+  const [totals, cancelledGroups, facilities] = await Promise.all([
+    groupBy({ by: groupKeys, _count: { _all: true } }) as Promise<FormatFacilityGroup[]>,
+    groupBy({ by: groupKeys, where: { status: GameStatus.CANCELLED }, _count: { _all: true } }) as Promise<FormatFacilityGroup[]>,
+    prisma.facility.findMany({ select: { id: true, name: true } }) as unknown as Promise<FacilityNameRow[]>,
+  ]);
+
+  const facilityNames = new Map(facilities.map((f): [string, string] => [f.id, f.name]));
+  const groupKey = (g: FormatFacilityGroup) => `${g.facilityId}|${g.gameSize ?? ""}|${g.fieldType ?? ""}|${g.maxPlayers}`;
+  const cancelledMap = new Map(cancelledGroups.map((g) => [groupKey(g), Number(g._count._all)]));
+
+  const byLabel = new Map<string, { confirmed: number; total: number; facilityIds: Set<string> }>();
+  for (const t of totals) {
+    const label = combineFormatLabel(t.gameSize, t.fieldType, t.maxPlayers);
+    const total = Number(t._count._all);
+    const cancelled = cancelledMap.get(groupKey(t)) ?? 0;
+    const entry = byLabel.get(label) ?? { confirmed: 0, total: 0, facilityIds: new Set<string>() };
+    entry.total += total;
+    entry.confirmed += total - cancelled;
+    entry.facilityIds.add(t.facilityId);
+    byLabel.set(label, entry);
+  }
+
+  return Array.from(byLabel.entries()).map(([label, v]) => {
+    const onlyFacilityId = v.facilityIds.size === 1 ? Array.from(v.facilityIds)[0] : null;
+    return {
+      key: label,
+      label,
+      totalGames: v.total,
+      confirmationRate: v.total > 0 ? v.confirmed / v.total : 0,
+      cancellationRate: v.total > 0 ? (v.total - v.confirmed) / v.total : 0,
+      facilityName: onlyFacilityId ? facilityNames.get(onlyFacilityId) ?? null : null,
+    };
+  });
+}
+
+export const getNetworkFormatLeaderboard = cached("getNetworkFormatLeaderboard", getNetworkFormatLeaderboardImpl);
+
 // ---------- Consistencia de horarios (día×hora, por mes, con comparación interanual) ----------
 //
 // Con mode="confirmed" responde "¿qué partidos no pueden faltar?": para cada
