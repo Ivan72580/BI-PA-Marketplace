@@ -87,6 +87,34 @@ function bucketForGranularity(g: Granularity): "week" | "month" {
   return g === "year" || g === "semester" ? "month" : "week";
 }
 
+const MIN_SAMPLE_FOR_RATE_BAR = 10;
+
+function RateBarList({
+  rows,
+}: {
+  rows: { key: string; label: string; confirmationRate: number; cancellationRate: number; totalGames: number }[];
+}) {
+  if (rows.length === 0) return <div className="text-sm text-ink-faint">Sin datos suficientes.</div>;
+  return (
+    <div className="space-y-2.5">
+      {rows.map((r) => (
+        <div key={r.key}>
+          <div className="flex justify-between text-xs mb-1 gap-2">
+            <span className="text-ink truncate">{r.label}</span>
+            <span className="text-ink-faint shrink-0">
+              {formatPct(r.confirmationRate)} <span className="text-ink-faint/70">· {r.totalGames.toLocaleString("en-US")}</span>
+            </span>
+          </div>
+          <div className="h-1.5 rounded-full overflow-hidden flex bg-surface-sunken">
+            <div className="h-1.5 bg-brand" style={{ width: `${r.confirmationRate * 100}%` }} />
+            <div className="h-1.5 bg-danger" style={{ width: `${r.cancellationRate * 100}%` }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default async function TrendsPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
   const filterOptions = await getFilterOptions();
@@ -94,51 +122,58 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
   // ---------- Pantalla de selección obligatoria ----------
   if (!sp.regionId || !sp.marketId) {
     const landingMonth = todayISO().slice(0, 7);
-    const [marketMovers, networkClimate, networkDayPattern] = await Promise.all([
+    const [marketMovers, networkClimate, networkDayPattern, networkHourPattern, networkFormatPattern] = await Promise.all([
       getMarketConfirmationRanking({}, landingMonth),
       getQuarterClimate({}),
       getDayOfWeekPattern({}),
+      getHourPattern({}),
+      getFormatPattern({}),
     ]);
     type MarketMeta = { id: string; name: string; regionId: string };
     const marketMeta = new Map<string, MarketMeta>(
       filterOptions.markets.map((m: MarketMeta): [string, MarketMeta] => [m.id, m])
     );
-    const topMovers = marketMovers.filter((m: { marketId: string }) => marketMeta.has(m.marketId)).slice(0, 6);
+    type RegionMeta = { id: string; name: string };
+    const regionMeta = new Map<string, RegionMeta>(
+      filterOptions.regions.map((r: RegionMeta): [string, RegionMeta] => [r.id, r])
+    );
+    const topMovers = marketMovers.filter((m: { marketId: string }) => marketMeta.has(m.marketId)).slice(0, 10);
+    const hourRows = [...networkHourPattern].filter((h) => h.totalGames >= MIN_SAMPLE_FOR_RATE_BAR).sort((a, b) => b.confirmationRate - a.confirmationRate);
+    const formatRows = [...networkFormatPattern].filter((f) => f.totalGames >= MIN_SAMPLE_FOR_RATE_BAR).sort((a, b) => b.confirmationRate - a.confirmationRate).slice(0, 8);
 
     return (
       <div>
         <h1 className="font-display text-3xl font-bold text-ink mb-1">Trends</h1>
-        <div className="text-sm text-ink-faint mb-2 max-w-2xl">
+        <div className="text-sm text-ink-faint mb-4 max-w-2xl">
           Tendencias, consistencia de horarios y patrones estacionales — pensado para responder &quot;¿qué esperar?&quot; en cada market y cada facility, no solo &quot;qué pasó&quot;.
         </div>
-        <div className="max-w-2xl mx-auto mt-12">
-          <div className="rounded-3xl bg-gradient-to-br from-brand-soft to-surface-panel border-2 border-brand/30 p-12 text-center shadow-sm">
-            <div className="text-2xl font-display font-semibold text-ink mb-3">Elegí una región y un market para empezar</div>
-            <div className="text-sm text-ink-muted mb-8 max-w-md mx-auto">
-              Las tendencias solo dicen algo útil comparando dentro de un mismo market — mezclar mercados muy distintos entre sí no aporta información accionable.
-            </div>
-            <div className="flex justify-center">
-              <div className="rounded-2xl bg-surface border-2 border-brand p-1 shadow-md">
-                <FilterPanel regions={filterOptions.regions} markets={filterOptions.markets} facilities={filterOptions.facilities} showTimeControls={false} showFacility={false} />
-              </div>
-            </div>
+
+        <div className="rounded-2xl bg-brand-soft/50 border border-brand/25 px-5 py-3.5 flex items-center justify-between gap-4 flex-wrap">
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-ink">Elegí una región y un market para ver el detalle</div>
+            <div className="text-xs text-ink-muted">Mezclar mercados muy distintos entre sí no aporta información accionable.</div>
+          </div>
+          <div className="rounded-xl bg-surface border border-brand/40 p-1 shadow-sm shrink-0">
+            <FilterPanel regions={filterOptions.regions} markets={filterOptions.markets} facilities={filterOptions.facilities} showTimeControls={false} showFacility={false} />
           </div>
         </div>
 
-        <div className="max-w-5xl mx-auto mt-10">
+        <div className="mt-6">
           <GroupSection title="Mientras elegís: así viene la red en general">
             <p className="text-xs text-ink-faint -mt-1">
               No reemplaza el detalle por market — es contexto de red completa para ayudarte a decidir dónde mirar primero.
             </p>
-            <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-5">
+
+            <div className="grid grid-cols-1 lg:grid-cols-[1.6fr_1fr] gap-5">
               <SectionCard
                 title="Markets que más se movieron este mes"
                 subtitle="Variación de tasa de confirmación vs. mes anterior — hacé clic para ver el detalle"
               >
                 {topMovers.length > 0 ? (
-                  <div className="space-y-0.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
                     {topMovers.map((m) => {
                       const market = marketMeta.get(m.marketId)!;
+                      const region = regionMeta.get(market.regionId);
                       const href = buildTrendsQuery(sp, { regionId: market.regionId, marketId: m.marketId });
                       return (
                         <Link
@@ -147,7 +182,9 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
                           className="flex items-center justify-between gap-3 rounded-xl px-2 py-2.5 -mx-2 hover:bg-surface-sunken transition-colors"
                         >
                           <div className="min-w-0">
-                            <div className="text-sm font-medium text-ink truncate">{market.name}</div>
+                            <div className="text-sm font-medium text-ink truncate">
+                              {market.name} {region && <span className="text-ink-faint font-normal">· {region.name}</span>}
+                            </div>
                             <div className="text-xs text-ink-faint">
                               {formatPct(m.confirmationRate)} de confirmación · {m.totalGames.toLocaleString("en-US")} partidos
                             </div>
@@ -162,27 +199,21 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
                 )}
               </SectionCard>
 
-              <div className="space-y-5">
-                <div className="flex justify-center">
-                  <QuarterClimate points={networkClimate} />
-                </div>
-                <SectionCard title="Mejor día para confirmar" subtitle="Tasa de confirmación por día — toda la red, todo el histórico">
-                  <div className="space-y-2">
-                    {networkDayPattern.map((d) => (
-                      <div key={d.key}>
-                        <div className="flex justify-between text-xs mb-1">
-                          <span className="text-ink">{d.label}</span>
-                          <span className="text-ink-faint">{formatPct(d.confirmationRate)}</span>
-                        </div>
-                        <div className="h-1.5 rounded-full overflow-hidden flex bg-surface-sunken">
-                          <div className="h-1.5 bg-brand" style={{ width: `${d.confirmationRate * 100}%` }} />
-                          <div className="h-1.5 bg-danger" style={{ width: `${d.cancellationRate * 100}%` }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </SectionCard>
+              <div className="flex justify-center">
+                <QuarterClimate points={networkClimate} />
               </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+              <SectionCard title="Mejor día para confirmar" subtitle="Toda la red, todo el histórico">
+                <RateBarList rows={networkDayPattern} />
+              </SectionCard>
+              <SectionCard title="Mejor horario para confirmar" subtitle={`Toda la red · mínimo ${MIN_SAMPLE_FOR_RATE_BAR} partidos por horario`}>
+                <RateBarList rows={hourRows} />
+              </SectionCard>
+              <SectionCard title="Formatos más consistentes" subtitle={`Toda la red · mínimo ${MIN_SAMPLE_FOR_RATE_BAR} partidos por formato`}>
+                <RateBarList rows={formatRows} />
+              </SectionCard>
             </div>
           </GroupSection>
         </div>
