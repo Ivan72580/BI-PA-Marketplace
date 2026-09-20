@@ -58,17 +58,17 @@ export default function MustScheduleCalendar({
   return (
     <div className="overflow-x-auto pb-2">
       <div
-        className="grid gap-[3px]"
-        style={{ gridTemplateColumns: `38px repeat(${days.length}, 56px)`, minWidth: `${38 + days.length * 56}px` }}
+        className="grid gap-1"
+        style={{ gridTemplateColumns: `44px repeat(${days.length}, 72px)`, minWidth: `${44 + days.length * 72}px` }}
       >
         <div />
         {days.map((d) => (
-          <div key={d} className="text-[10px] font-medium text-ink-muted text-center pb-1 truncate">{d.slice(0, 3)}</div>
+          <div key={d} className="text-xs font-semibold text-ink-muted text-center pb-1.5 truncate">{d.slice(0, 3)}</div>
         ))}
 
         {hours.map((h) => (
           <Fragment key={h}>
-            <div className="text-[9px] text-ink-faint flex items-start justify-end pr-1 pt-0.5">{h.replace("h", "")}</div>
+            <div className="text-[10px] text-ink-faint flex items-start justify-end pr-1.5 pt-1">{h.replace("h", "")}</div>
             {DAY_KEYS.map((dayKey) => {
               const gridKey = `${dayKey}|${h}`;
               const allSlotCells = (grid.get(gridKey) ?? []).sort((a, b) => b.confirmationRate - a.confirmationRate);
@@ -77,7 +77,7 @@ export default function MustScheduleCalendar({
               const hiddenCount = allSlotCells.length - visibleCells.length;
 
               return (
-                <div key={gridKey} className="relative min-h-[34px] rounded border border-border bg-surface-sunken/40 p-[2px] flex flex-col gap-[2px]">
+                <div key={gridKey} className="relative min-h-[42px] rounded-md border border-border bg-surface-sunken/40 p-[3px] flex flex-col gap-[3px]">
                   {visibleCells.map((c) => {
                     const cellKey = `${c.day}|${c.hour}|${c.formatLabel}`;
                     const isSelected = selectedKey === cellKey;
@@ -87,7 +87,7 @@ export default function MustScheduleCalendar({
                           type="button"
                           onClick={() => setSelectedKey(isSelected ? null : cellKey)}
                           title={`${c.formatLabel} — ${(c.confirmationRate * 100).toFixed(0)}% de confirmación`}
-                          className={`w-full text-left rounded px-1 py-0.5 text-[9px] leading-tight truncate transition-[filter] hover:brightness-90 bg-brand text-white ${
+                          className={`w-full text-left rounded px-1.5 py-1 text-[10px] leading-tight truncate transition-[filter] hover:brightness-90 bg-brand text-white ${
                             isSelected ? "ring-2 ring-offset-1 ring-ink/40" : ""
                           }`}
                         >
@@ -96,7 +96,7 @@ export default function MustScheduleCalendar({
                         </button>
 
                         {isSelected && (
-                          <div className="absolute z-30 top-full left-0 mt-1 w-60 rounded-2xl border border-white/20 p-3 shadow-xl backdrop-blur-md text-white bg-brand/95">
+                          <div className="absolute z-30 top-full left-0 mt-1 w-64 rounded-2xl border border-white/20 p-3 shadow-xl backdrop-blur-md text-white bg-brand/95">
                             <div className="flex items-center justify-between gap-2 mb-1">
                               <div className="text-xs font-semibold">{c.dayLabel} {c.hour} · {c.formatLabel}</div>
                               <button type="button" onClick={() => setSelectedKey(null)} className="text-white/70 hover:text-white text-xs shrink-0">✕</button>
@@ -112,7 +112,7 @@ export default function MustScheduleCalendar({
                     <button
                       type="button"
                       onClick={() => setExpandedGridKey(gridKey)}
-                      className="text-[8px] text-ink-faint hover:text-ink-muted text-center leading-none py-[1px]"
+                      className="text-[9px] text-ink-faint hover:text-ink-muted text-center leading-none py-[2px]"
                     >
                       +{hiddenCount} más
                     </button>
@@ -121,7 +121,7 @@ export default function MustScheduleCalendar({
                     <button
                       type="button"
                       onClick={() => setExpandedGridKey(null)}
-                      className="text-[8px] text-ink-faint hover:text-ink-muted text-center leading-none py-[1px]"
+                      className="text-[9px] text-ink-faint hover:text-ink-muted text-center leading-none py-[2px]"
                     >
                       ver menos
                     </button>

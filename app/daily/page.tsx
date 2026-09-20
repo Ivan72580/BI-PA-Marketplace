@@ -275,15 +275,15 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
   // convivan al lado del calendario sin extender la página hacia abajo.
   const dayOfWeekTabContent = (
     <div>
-      <p className="text-xs text-ink-faint mb-3">Todo el historial de esta facility, todos los horarios — lo más destacable de cada día.</p>
+      <p className="text-[13px] text-ink-faint mb-4">Todo el historial de esta facility, todos los horarios — lo más destacable de cada día.</p>
       {dayOfWeekSummaries.length > 0 ? (
-        <div className="space-y-3.5">
+        <div className="space-y-4">
           {dayOfWeekSummaries.map((d) => (
-            <div key={d.key} className="pb-3.5 border-b border-surface-sunken last:border-0 last:pb-0">
-              <div className="text-sm font-semibold text-ink mb-1">{d.dayLabel}</div>
-              <ul className="space-y-1">
+            <div key={d.key} className="pb-4 border-b border-surface-sunken last:border-0 last:pb-0">
+              <div className="text-base font-semibold text-ink mb-1.5">{d.dayLabel}</div>
+              <ul className="space-y-1.5">
                 {d.lines.map((line, i) => (
-                  <li key={i} className="flex gap-1.5 text-xs text-ink-muted">
+                  <li key={i} className="flex gap-2 text-[13px] text-ink-muted leading-snug">
                     <span className="text-brand shrink-0">·</span>
                     <span>{line}</span>
                   </li>
@@ -300,16 +300,16 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
 
   const topSlotsTabContent = (
     <div>
-      <p className="text-xs text-ink-faint mb-3.5">≥90% en los últimos 3 meses · promedio de sus partidos confirmados.</p>
+      <p className="text-[13px] text-ink-faint mb-4">≥90% en los últimos 3 meses · promedio de sus partidos confirmados.</p>
       {mustSchedule.topSlots.length > 0 ? (
-        <ul className="space-y-3.5 text-sm max-h-[420px] overflow-y-auto pr-1">
+        <ul className="space-y-4 max-h-[480px] overflow-y-auto pr-1">
           {mustSchedule.topSlots.map((s, i) => (
-            <li key={i} className="border-b border-surface-sunken last:border-0 pb-3.5 last:pb-0">
+            <li key={i} className="border-b border-surface-sunken last:border-0 pb-4 last:pb-0">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-ink font-medium">{s.dayLabel} {s.hour} · {s.formatLabel}</span>
-                <span className="text-brand font-semibold shrink-0">{formatPct(s.confirmationRate)}</span>
+                <span className="text-[15px] text-ink font-semibold">{s.dayLabel} {s.hour} · {s.formatLabel}</span>
+                <span className="text-base text-brand font-bold shrink-0">{formatPct(s.confirmationRate)}</span>
               </div>
-              <div className="text-xs text-ink-faint mt-1">
+              <div className="text-[13px] text-ink-faint mt-1 leading-snug">
                 {s.avgOccupancyRate != null ? `${formatPct(s.avgOccupancyRate)} ocupación` : "ocupación —"}
                 {s.avgGamePrice != null && ` · ${formatUSD2(s.avgGamePrice)}${s.avgRevenuePerPlayer != null ? ` (${formatUSD2(s.avgRevenuePerPlayer)}/jugador)` : ""}`}
                 {s.avgRating != null && ` · rating ${s.avgRating.toFixed(1)}`}
@@ -326,16 +326,16 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
 
   const strugglingTabContent = (
     <div>
-      <p className="text-xs text-ink-faint mb-3.5">Bajando o estancados por debajo del umbral.</p>
+      <p className="text-[13px] text-ink-faint mb-4">Bajando o estancados por debajo del umbral.</p>
       {mustSchedule.strugglingSlots.length > 0 ? (
-        <ul className="space-y-3.5 text-sm max-h-[420px] overflow-y-auto pr-1">
+        <ul className="space-y-4 max-h-[480px] overflow-y-auto pr-1">
           {mustSchedule.strugglingSlots.map((s, i) => (
-            <li key={i} className="border-b border-surface-sunken last:border-0 pb-3.5 last:pb-0">
+            <li key={i} className="border-b border-surface-sunken last:border-0 pb-4 last:pb-0">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-ink font-medium">{s.dayLabel} {s.hour} · {s.formatLabel}</span>
-                <span className={`shrink-0 font-semibold ${s.reason === "declining" ? "text-warning" : "text-ink-faint"}`}>{formatPct(s.confirmationRate)}</span>
+                <span className="text-[15px] text-ink font-semibold">{s.dayLabel} {s.hour} · {s.formatLabel}</span>
+                <span className={`text-base shrink-0 font-bold ${s.reason === "declining" ? "text-warning" : "text-ink-faint"}`}>{formatPct(s.confirmationRate)}</span>
               </div>
-              <div className="text-xs text-ink-faint mt-1">{s.insight}</div>
+              <div className="text-[13px] text-ink-faint mt-1 leading-snug">{s.insight}</div>
             </li>
           ))}
         </ul>
@@ -457,8 +457,14 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
           Ventana móvil de los últimos 3 meses (a partir del día elegido arriba) · más de 55% de confirmación · se excluyen por completo las cancelaciones por cancha no disponible.
           Metodología propia de esta página — distinta de la consistencia histórica que usa Trends.
         </p>
-        <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-6 items-start">
-          <MustScheduleCalendar days={mustSchedule.days} hours={mustSchedule.hours} cells={mustSchedule.cells} />
+        {/* 50/50: el calendario se centra dentro de su mitad (no pegado al
+            borde izquierdo) y las pestañas ocupan todo el ancho de la suya
+            — reparte el espacio simétricamente respecto del centro de la
+            sección en vez de dejarlo todo amontonado a la izquierda. */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
+          <div className="flex justify-center w-full">
+            <MustScheduleCalendar days={mustSchedule.days} hours={mustSchedule.hours} cells={mustSchedule.cells} />
+          </div>
           {/* El calendario es mucho más alto que las pestañas — las dejamos
               "sticky" para que acompañen el scroll en vez de quedar con un
               hueco vacío debajo apenas se cierra la lista más corta. */}
