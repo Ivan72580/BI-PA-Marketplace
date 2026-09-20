@@ -11,6 +11,9 @@ import {
   type DaySummary,
   type DayBaseline,
   type DayEvolutionPoint,
+  type PatternRow,
+  type TopSlotSummary,
+  type StrugglingSlot,
 } from "../lib/db/queries";
 import { todayISO } from "../lib/period";
 import FilterPanel from "../components/FilterPanel";
@@ -63,31 +66,57 @@ function SectionCard({ title, subtitle, action, children }: { title: string; sub
   );
 }
 
-const MIN_SAMPLE_FOR_RATE_BAR = 3;
+const MIN_SAMPLE_FOR_DAY_SUMMARY = 3;
 
-// Mismo criterio visual que RateBarList en Trends (barra confirmación/cancelación
-// apilada) — copiado localmente en vez de importado porque allá es privado del
-// módulo y esta página ya tiene su propia convención de tipos por sección.
-function RateBarList({ rows }: { rows: { key: string; label: string; confirmationRate: number; cancellationRate: number; totalGames: number }[] }) {
-  if (rows.length === 0) return <div className="text-sm text-ink-faint">Sin datos suficientes.</div>;
-  return (
-    <div className="space-y-2.5">
-      {rows.map((r) => (
-        <div key={r.key}>
-          <div className="flex justify-between text-xs mb-1 gap-2">
-            <span className="text-ink truncate">{r.label}</span>
-            <span className="text-ink-faint shrink-0">
-              {formatPct(r.confirmationRate)} <span className="text-ink-faint/70">· {r.totalGames.toLocaleString("en-US")}</span>
-            </span>
-          </div>
-          <div className="h-1.5 rounded-full overflow-hidden flex bg-surface-sunken">
-            <div className="h-1.5 bg-brand" style={{ width: `${r.confirmationRate * 100}%` }} />
-            <div className="h-1.5 bg-danger" style={{ width: `${r.cancellationRate * 100}%` }} />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+type DayOfWeekSummary = { key: string; dayLabel: string; totalGames: number; lines: string[] };
+
+// No es un gráfico — es un resumen en texto de lo más destacable de cada día
+// de la semana, cruzando el mismo `dayOfWeekPattern` con los slots que ya
+// identificamos en "Confirmación altísima" y "A vigilar" (mismo día), para
+// no repetir en barras algo que ya se ve de otra forma en el resto de la
+// página, sino sintetizarlo.
+function buildDayOfWeekSummaries(pattern: PatternRow[], topSlots: TopSlotSummary[], strugglingSlots: StrugglingSlot[]): DayOfWeekSummary[] {
+  const withData = pattern.filter((r) => r.totalGames >= MIN_SAMPLE_FOR_DAY_SUMMARY);
+  if (withData.length === 0) return [];
+
+  const totalGamesAll = withData.reduce((s, r) => s + r.totalGames, 0);
+  const avgRate = totalGamesAll > 0 ? withData.reduce((s, r) => s + r.confirmationRate * r.totalGames, 0) / totalGamesAll : 0;
+  const best = withData.reduce((a, b) => (b.confirmationRate > a.confirmationRate ? b : a), withData[0]);
+  const worst = withData.reduce((a, b) => (b.confirmationRate < a.confirmationRate ? b : a), withData[0]);
+
+  return withData.map((r) => {
+    const lines: string[] = [];
+    const pct = formatPct(r.confirmationRate);
+
+    if (best.key === worst.key) {
+      lines.push(`${pct} de confirmación · ${r.totalGames.toLocaleString("en-US")} partidos — sin variación relevante entre días.`);
+    } else if (r.key === best.key) {
+      lines.push(`${pct} de confirmación · ${r.totalGames.toLocaleString("en-US")} partidos — el día más fuerte de la semana en esta facility.`);
+    } else if (r.key === worst.key) {
+      lines.push(`${pct} de confirmación · ${r.totalGames.toLocaleString("en-US")} partidos — el día más débil de la semana, vale la pena revisar qué lo explica.`);
+    } else {
+      const rel = r.confirmationRate >= avgRate ? "por encima" : "por debajo";
+      lines.push(`${pct} de confirmación · ${r.totalGames.toLocaleString("en-US")} partidos — ${rel} del promedio semanal (${formatPct(avgRate)}).`);
+    }
+
+    if (r.occupancyRate < 0.6) {
+      lines.push(`Ocupación baja en los partidos confirmados (${formatPct(r.occupancyRate)}) — hay margen para llenarlos más.`);
+    }
+
+    const daySlots = topSlots.filter((s) => s.day === r.key);
+    if (daySlots.length > 0) {
+      const bestSlot = [...daySlots].sort((a, b) => b.confirmationRate - a.confirmationRate)[0];
+      lines.push(`${daySlots.length} horario${daySlots.length > 1 ? "s" : ""} con confirmación altísima, el mejor a las ${bestSlot.hour} (${formatPct(bestSlot.confirmationRate)}).`);
+    }
+
+    const dayStruggling = strugglingSlots.filter((s) => s.day === r.key);
+    if (dayStruggling.length > 0) {
+      const declining = dayStruggling.filter((s) => s.reason === "declining").length;
+      lines.push(`${dayStruggling.length} horario${dayStruggling.length > 1 ? "s" : ""} a vigilar${declining > 0 ? ` (${declining} bajando)` : ""}.`);
+    }
+
+    return { key: r.key, dayLabel: r.label, totalGames: r.totalGames, lines };
+  });
 }
 
 function Stat({ label, value, sublabel, delta, deltaInvert }: { label: string; value: string; sublabel?: string; delta?: number | null; deltaInvert?: boolean }) {
@@ -226,7 +255,7 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
   // Todo el historial disponible de esta facility, sin filtrar por el día
   // elegido arriba — responde "¿qué día de la semana funciona mejor acá en
   // general?", no "¿qué tan bien le fue a este día puntual?".
-  const dayOfWeekRows = dayOfWeekPattern.filter((r) => r.totalGames >= MIN_SAMPLE_FOR_RATE_BAR);
+  const dayOfWeekSummaries = buildDayOfWeekSummaries(dayOfWeekPattern, mustSchedule.topSlots, mustSchedule.strugglingSlots);
 
   const insights = buildDayInsights(summary, baseline, evolution);
 
@@ -246,23 +275,41 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
   // convivan al lado del calendario sin extender la página hacia abajo.
   const dayOfWeekTabContent = (
     <div>
-      <p className="text-xs text-ink-faint mb-3">Todo el historial de esta facility, todos los horarios.</p>
-      <RateBarList rows={dayOfWeekRows} />
+      <p className="text-xs text-ink-faint mb-3">Todo el historial de esta facility, todos los horarios — lo más destacable de cada día.</p>
+      {dayOfWeekSummaries.length > 0 ? (
+        <div className="space-y-3.5">
+          {dayOfWeekSummaries.map((d) => (
+            <div key={d.key} className="pb-3.5 border-b border-surface-sunken last:border-0 last:pb-0">
+              <div className="text-sm font-semibold text-ink mb-1">{d.dayLabel}</div>
+              <ul className="space-y-1">
+                {d.lines.map((line, i) => (
+                  <li key={i} className="flex gap-1.5 text-xs text-ink-muted">
+                    <span className="text-brand shrink-0">·</span>
+                    <span>{line}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-sm text-ink-faint">Sin datos suficientes todavía.</div>
+      )}
     </div>
   );
 
   const topSlotsTabContent = (
     <div>
-      <p className="text-xs text-ink-faint mb-3">≥90% en los últimos 3 meses · promedio de sus partidos confirmados.</p>
+      <p className="text-xs text-ink-faint mb-3.5">≥90% en los últimos 3 meses · promedio de sus partidos confirmados.</p>
       {mustSchedule.topSlots.length > 0 ? (
-        <ul className="space-y-3 text-sm">
+        <ul className="space-y-3.5 text-sm max-h-[420px] overflow-y-auto pr-1">
           {mustSchedule.topSlots.map((s, i) => (
-            <li key={i} className="border-b border-surface-sunken last:border-0 pb-2.5 last:pb-0">
+            <li key={i} className="border-b border-surface-sunken last:border-0 pb-3.5 last:pb-0">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-ink font-medium">{s.dayLabel} {s.hour} · {s.formatLabel}</span>
                 <span className="text-brand font-semibold shrink-0">{formatPct(s.confirmationRate)}</span>
               </div>
-              <div className="text-xs text-ink-faint mt-0.5">
+              <div className="text-xs text-ink-faint mt-1">
                 {s.avgOccupancyRate != null ? `${formatPct(s.avgOccupancyRate)} ocupación` : "ocupación —"}
                 {s.avgGamePrice != null && ` · ${formatUSD2(s.avgGamePrice)}${s.avgRevenuePerPlayer != null ? ` (${formatUSD2(s.avgRevenuePerPlayer)}/jugador)` : ""}`}
                 {s.avgRating != null && ` · rating ${s.avgRating.toFixed(1)}`}
@@ -279,16 +326,16 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
 
   const strugglingTabContent = (
     <div>
-      <p className="text-xs text-ink-faint mb-3">Bajando o estancados por debajo del umbral.</p>
+      <p className="text-xs text-ink-faint mb-3.5">Bajando o estancados por debajo del umbral.</p>
       {mustSchedule.strugglingSlots.length > 0 ? (
-        <ul className="space-y-3 text-sm">
+        <ul className="space-y-3.5 text-sm max-h-[420px] overflow-y-auto pr-1">
           {mustSchedule.strugglingSlots.map((s, i) => (
-            <li key={i} className="border-b border-surface-sunken last:border-0 pb-2.5 last:pb-0">
+            <li key={i} className="border-b border-surface-sunken last:border-0 pb-3.5 last:pb-0">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-ink font-medium">{s.dayLabel} {s.hour} · {s.formatLabel}</span>
                 <span className={`shrink-0 font-semibold ${s.reason === "declining" ? "text-warning" : "text-ink-faint"}`}>{formatPct(s.confirmationRate)}</span>
               </div>
-              <div className="text-xs text-ink-faint mt-0.5">{s.insight}</div>
+              <div className="text-xs text-ink-faint mt-1">{s.insight}</div>
             </li>
           ))}
         </ul>
@@ -410,15 +457,20 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
           Ventana móvil de los últimos 3 meses (a partir del día elegido arriba) · más de 55% de confirmación · se excluyen por completo las cancelaciones por cancha no disponible.
           Metodología propia de esta página — distinta de la consistencia histórica que usa Trends.
         </p>
-        <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-5 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-6 items-start">
           <MustScheduleCalendar days={mustSchedule.days} hours={mustSchedule.hours} cells={mustSchedule.cells} />
-          <Tabs
-            tabs={[
-              { id: "dow", label: "Día de semana", content: dayOfWeekTabContent },
-              { id: "top", label: `Confirmación altísima (${mustSchedule.topSlots.length})`, content: topSlotsTabContent },
-              { id: "watch", label: `A vigilar (${mustSchedule.strugglingSlots.length})`, content: strugglingTabContent },
-            ]}
-          />
+          {/* El calendario es mucho más alto que las pestañas — las dejamos
+              "sticky" para que acompañen el scroll en vez de quedar con un
+              hueco vacío debajo apenas se cierra la lista más corta. */}
+          <div className="lg:sticky lg:top-20">
+            <Tabs
+              tabs={[
+                { id: "dow", label: "Día de semana", content: dayOfWeekTabContent },
+                { id: "top", label: `Confirmación altísima (${mustSchedule.topSlots.length})`, content: topSlotsTabContent },
+                { id: "watch", label: `A vigilar (${mustSchedule.strugglingSlots.length})`, content: strugglingTabContent },
+              ]}
+            />
+          </div>
         </div>
         <Glossary items={[{ term: "Tasa de confirmación", def: "confirmados / (confirmados + cancelados), excluyendo del cálculo las cancelaciones por cancha no disponible." }]} />
       </GroupSection>
