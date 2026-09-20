@@ -352,58 +352,69 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
           Ventana móvil de los últimos 3 meses (a partir del día elegido arriba) · más de 55% de confirmación · se excluyen por completo las cancelaciones por cancha no disponible.
           Metodología propia de esta página — distinta de la consistencia histórica que usa Trends.
         </p>
-        <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-5">
-          <div className="space-y-3">
-            <MustScheduleCalendar days={mustSchedule.days} hours={mustSchedule.hours} cells={mustSchedule.cells} />
-            <Glossary items={[{ term: "Tasa de confirmación", def: "confirmados / (confirmados + cancelados), excluyendo del cálculo las cancelaciones por cancha no disponible." }]} />
-          </div>
+        <MustScheduleCalendar days={mustSchedule.days} hours={mustSchedule.hours} cells={mustSchedule.cells} />
+        <Glossary items={[{ term: "Tasa de confirmación", def: "confirmados / (confirmados + cancelados), excluyendo del cálculo las cancelaciones por cancha no disponible." }]} />
 
-          <div className="space-y-5">
-            <SectionCard title="Performance por día de la semana" subtitle="Todo el historial de esta facility, todos los horarios">
-              <RateBarList rows={dayOfWeekRows} />
-            </SectionCard>
+        {/* Lecturas adicionales sobre la misma ventana de 3 meses — plegadas por
+            default (<details> nativo, sin JS de cliente) para no extender la
+            página; mismo patrón ya usado en GameList/NetworkOverview. */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <details className="rounded-2xl bg-surface shadow-sm p-5">
+            <summary className="cursor-pointer text-sm font-medium text-ink">
+              Performance por día de la semana
+            </summary>
+            <p className="text-xs text-ink-faint mt-1 mb-3">Todo el historial de esta facility, todos los horarios.</p>
+            <RateBarList rows={dayOfWeekRows} />
+          </details>
 
-            <SectionCard title="Slots con confirmación altísima" subtitle="≥90% en los últimos 3 meses · promedio de sus partidos confirmados">
-              {mustSchedule.topSlots.length > 0 ? (
-                <ul className="space-y-3 text-sm">
-                  {mustSchedule.topSlots.map((s, i) => (
-                    <li key={i} className="border-b border-surface-sunken last:border-0 pb-2.5 last:pb-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-ink font-medium">{s.dayLabel} {s.hour} · {s.formatLabel}</span>
-                        <span className="text-brand font-semibold shrink-0">{formatPct(s.confirmationRate)}</span>
-                      </div>
-                      <div className="text-xs text-ink-faint mt-0.5">
-                        {s.avgOccupancyRate != null ? `${formatPct(s.avgOccupancyRate)} ocupación` : "ocupación —"}
-                        {s.avgGamePrice != null && ` · ${formatUSD2(s.avgGamePrice)}${s.avgRevenuePerPlayer != null ? ` (${formatUSD2(s.avgRevenuePerPlayer)}/jugador)` : ""}`}
-                        {s.avgRating != null && ` · rating ${s.avgRating.toFixed(1)}`}
-                        {s.avgLeadTime != null && ` · lead time ${s.avgLeadTime.toFixed(1)}h`}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="text-sm text-ink-faint">Todavía no hay slots con 90%+ de confirmación en esta facility.</div>
-              )}
-            </SectionCard>
+          <details className="rounded-2xl bg-surface shadow-sm p-5">
+            <summary className="cursor-pointer text-sm font-medium text-ink">
+              Slots con confirmación altísima ({mustSchedule.topSlots.length})
+            </summary>
+            <p className="text-xs text-ink-faint mt-1 mb-3">≥90% en los últimos 3 meses · promedio de sus partidos confirmados.</p>
+            {mustSchedule.topSlots.length > 0 ? (
+              <ul className="space-y-3 text-sm">
+                {mustSchedule.topSlots.map((s, i) => (
+                  <li key={i} className="border-b border-surface-sunken last:border-0 pb-2.5 last:pb-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-ink font-medium">{s.dayLabel} {s.hour} · {s.formatLabel}</span>
+                      <span className="text-brand font-semibold shrink-0">{formatPct(s.confirmationRate)}</span>
+                    </div>
+                    <div className="text-xs text-ink-faint mt-0.5">
+                      {s.avgOccupancyRate != null ? `${formatPct(s.avgOccupancyRate)} ocupación` : "ocupación —"}
+                      {s.avgGamePrice != null && ` · ${formatUSD2(s.avgGamePrice)}${s.avgRevenuePerPlayer != null ? ` (${formatUSD2(s.avgRevenuePerPlayer)}/jugador)` : ""}`}
+                      {s.avgRating != null && ` · rating ${s.avgRating.toFixed(1)}`}
+                      {s.avgLeadTime != null && ` · lead time ${s.avgLeadTime.toFixed(1)}h`}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="text-sm text-ink-faint">Todavía no hay slots con 90%+ de confirmación en esta facility.</div>
+            )}
+          </details>
 
-            <SectionCard title="Slots a vigilar" subtitle="Bajando o estancados por debajo del umbral">
-              {mustSchedule.strugglingSlots.length > 0 ? (
-                <ul className="space-y-3 text-sm">
-                  {mustSchedule.strugglingSlots.map((s, i) => (
-                    <li key={i} className="border-b border-surface-sunken last:border-0 pb-2.5 last:pb-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-ink font-medium">{s.dayLabel} {s.hour} · {s.formatLabel}</span>
-                        <span className={`shrink-0 font-semibold ${s.reason === "declining" ? "text-warning" : "text-ink-faint"}`}>{formatPct(s.confirmationRate)}</span>
-                      </div>
-                      <div className="text-xs text-ink-faint mt-0.5">{s.insight}</div>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="text-sm text-ink-faint">No hay slots bajando o estancados para reportar.</div>
-              )}
-            </SectionCard>
-          </div>
+          <details className="rounded-2xl bg-surface shadow-sm p-5">
+            <summary className="cursor-pointer text-sm font-medium text-ink">
+              Slots a vigilar ({mustSchedule.strugglingSlots.length})
+            </summary>
+            <p className="text-xs text-ink-faint mt-1 mb-3">Bajando o estancados por debajo del umbral.</p>
+            {mustSchedule.strugglingSlots.length > 0 ? (
+              <ul className="space-y-3 text-sm">
+                {mustSchedule.strugglingSlots.map((s, i) => (
+                  <li key={i} className="border-b border-surface-sunken last:border-0 pb-2.5 last:pb-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-ink font-medium">{s.dayLabel} {s.hour} · {s.formatLabel}</span>
+                      <span className={`shrink-0 font-semibold ${s.reason === "declining" ? "text-warning" : "text-ink-faint"}`}>{formatPct(s.confirmationRate)}</span>
+                    </div>
+                    <div className="text-xs text-ink-faint mt-0.5">{s.insight}</div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="text-sm text-ink-faint">No hay slots bajando o estancados para reportar.</div>
+            )}
+          </details>
         </div>
       </GroupSection>
     </div>
