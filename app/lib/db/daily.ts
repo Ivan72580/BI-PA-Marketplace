@@ -324,6 +324,44 @@ async function getWeekStripImpl(facilityId: string, dateISO: string): Promise<We
 
 export const getWeekStrip = cached("getWeekStrip", getWeekStripImpl);
 
+// ---------- Pulso reciente: tasa de confirmación día a día, últimos N días calendario ----------
+// A diferencia de getDayEvolution (que sigue el MISMO día de semana, para
+// comparar peras con peras), esto es la serie cruda día por día — mezclando
+// días de semana — pensada para un sparkline tipo app de trading: da una
+// sensación rápida de "cómo viene la facility" en las últimas ~2 semanas,
+// no una comparación estadística. Los días sin partidos se omiten (no se
+// interpolan con 0), así la línea no muestra caídas falsas por días donde
+// simplemente no había nada agendado.
+
+export type RecentDailyPoint = { dateISO: string; confirmationRate: number; totalGames: number };
+
+async function getRecentDailyTrendImpl(facilityId: string, dateISO: string, days = 15): Promise<RecentDailyPoint[]> {
+  const date = parseISODate(dateISO);
+  const windowStart = addDaysUTC(date, -(days - 1));
+  const where = buildWhere({ facilityId, dateFrom: windowStart, dateTo: date });
+
+  const rows = (await prisma.game.findMany({ where, select: { date: true, status: true } })) as { date: Date; status: "CONFIRMED" | "CANCELLED" }[];
+  const byDate = new Map<string, { confirmed: number; cancelled: number }>();
+  for (const g of rows) {
+    const key = isoOf(g.date);
+    const e = byDate.get(key) ?? { confirmed: 0, cancelled: 0 };
+    if (g.status === "CONFIRMED") e.confirmed += 1; else e.cancelled += 1;
+    byDate.set(key, e);
+  }
+
+  const points: RecentDailyPoint[] = [];
+  for (let i = 0; i < days; i++) {
+    const key = isoOf(addDaysUTC(windowStart, i));
+    const e = byDate.get(key);
+    if (!e) continue;
+    const total = e.confirmed + e.cancelled;
+    points.push({ dateISO: key, confirmationRate: total > 0 ? e.confirmed / total : 0, totalGames: total });
+  }
+  return points;
+}
+
+export const getRecentDailyTrend = cached("getRecentDailyTrend", getRecentDailyTrendImpl);
+
 // ---------- Calendario "sí o sí": qué slots hay que tener agendados ----------
 // Metodología propia y separada de getSlotConsistency (Trends): en vez de
 // "en cuántos meses históricos hubo actividad", esto mide la tasa de
@@ -346,9 +384,46 @@ export type MustScheduleSlot = {
   insight: string;
 };
 
+// Slots de confirmación altísima o perfecta (≥90%) — resumen de lo que
+// muestran sus partidos confirmados en promedio (mismos campos que las
+// tarjetas de "Detalle de los partidos del día", pero agregados en vez de
+// partido por partido).
+export type TopSlotSummary = {
+  day: string;
+  dayLabel: string;
+  hour: string;
+  formatLabel: string;
+  confirmationRate: number;
+  totalGames: number;
+  confirmedGames: number;
+  avgOccupancyRate: number | null;
+  avgGamePrice: number | null;
+  avgRevenuePerPlayer: number | null;
+  avgRating: number | null;
+  avgLeadTime: number | null;
+};
+
+// Slots a vigilar: o ya son confiables pero vienen cayendo, o todavía no
+// llegan al umbral del 55% y no muestran señales de mejora (estancados).
+export type StrugglingSlot = {
+  day: string;
+  dayLabel: string;
+  hour: string;
+  formatLabel: string;
+  confirmationRate: number;
+  totalGames: number;
+  confirmedGames: number;
+  reason: "declining" | "stuck_below_threshold";
+  insight: string;
+};
+
 const MUST_SCHEDULE_MIN_RATE = 0.55;
 const MUST_SCHEDULE_MIN_SAMPLE = 3; // mínimo dentro de la ventana de 3 meses para que el % sea representativo
 const TREND_DELTA = 0.1; // 10 puntos entre la primera y segunda mitad de la ventana para hablar de tendencia
+const TOP_SLOT_MIN_RATE = 0.9; // "altísima o perfecta"
+const STRUGGLING_MIN_RATE = 0.35; // piso para no listar slots sin señal real de demanda
+const MAX_TOP_SLOTS = 8;
+const MAX_STRUGGLING_SLOTS = 8;
 
 function buildMustScheduleInsight(rate: number, total: number, trend: "up" | "down" | "flat", earlyRate: number | null, lateRate: number | null): string {
   const pct = (rate * 100).toFixed(0);
@@ -363,6 +438,14 @@ function buildMustScheduleInsight(rate: number, total: number, trend: "up" | "do
   return `${base}. Estable en el período — se espera que se mantenga en las próximas semanas si no cambia el contexto.`;
 }
 
+function buildStrugglingInsight(reason: "declining" | "stuck_below_threshold", rate: number, earlyRate: number | null, lateRate: number | null): string {
+  const pct = (rate * 100).toFixed(0);
+  if (reason === "declining" && earlyRate !== null && lateRate !== null) {
+    return `Viene bajando de ${(earlyRate * 100).toFixed(0)}% a ${(lateRate * 100).toFixed(0)}% en los últimos 3 meses — todavía por encima del umbral, pero si sigue así podría dejar de ser un slot confiable.`;
+  }
+  return `Estancado en ${pct}% en los últimos 3 meses, sin señales claras de mejora — no llega al umbral de confiabilidad (55%).`;
+}
+
 type MustScheduleRow = {
   date: Date;
   dayOfWeek: string;
@@ -370,11 +453,30 @@ type MustScheduleRow = {
   status: "CONFIRMED" | "CANCELLED";
   gameSize: string | null;
   fieldType: string | null;
+  finalPlayers: number;
   maxPlayers: number;
   cancellationCategory: CancellationCategory | null;
+  gamePrice: number | null;
+  revenuePerPlayer: number | null;
+  averageRating: number | null;
+  confirmationLeadTime: number | null;
 };
 
-async function getMustScheduleSlotsImpl(facilityId: string, dateISO: string): Promise<{ days: string[]; hours: string[]; cells: MustScheduleSlot[] }> {
+type SlotAccumulator = {
+  confirmed: number; total: number;
+  confirmedEarly: number; totalEarly: number;
+  confirmedLate: number; totalLate: number;
+  sumFinalConfirmed: number; sumMaxConfirmed: number;
+  priceSum: number; priceCount: number;
+  revPerPlayerSum: number; revPerPlayerCount: number;
+  ratingSum: number; ratingCount: number;
+  leadTimeSum: number; leadTimeCount: number;
+};
+
+async function getMustScheduleSlotsImpl(
+  facilityId: string,
+  dateISO: string
+): Promise<{ days: string[]; hours: string[]; cells: MustScheduleSlot[]; topSlots: TopSlotSummary[]; strugglingSlots: StrugglingSlot[] }> {
   const date = parseISODate(dateISO);
   const windowStart = addMonthsUTC(date, -3);
   const midPoint = new Date((windowStart.getTime() + date.getTime()) / 2);
@@ -383,11 +485,15 @@ async function getMustScheduleSlotsImpl(facilityId: string, dateISO: string): Pr
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const games = (await (prisma.game.findMany as any)({
     where,
-    select: { date: true, dayOfWeek: true, time: true, status: true, gameSize: true, fieldType: true, maxPlayers: true, cancellationCategory: true },
+    select: {
+      date: true, dayOfWeek: true, time: true, status: true, gameSize: true, fieldType: true,
+      finalPlayers: true, maxPlayers: true, cancellationCategory: true, gamePrice: true,
+      revenuePerPlayer: true, averageRating: true, confirmationLeadTime: true,
+    },
   })) as MustScheduleRow[];
 
   const hoursSet = new Set<string>();
-  const map = new Map<string, { confirmed: number; total: number; confirmedEarly: number; totalEarly: number; confirmedLate: number; totalLate: number }>();
+  const map = new Map<string, SlotAccumulator>();
 
   for (const g of games) {
     const hour = g.time?.slice(0, 2);
@@ -399,22 +505,37 @@ async function getMustScheduleSlotsImpl(facilityId: string, dateISO: string): Pr
 
     const formatLabel = combineFormatLabel(g.gameSize, g.fieldType, g.maxPlayers);
     const slotKey = `${day}|${hour}|${formatLabel}`;
-    const e = map.get(slotKey) ?? { confirmed: 0, total: 0, confirmedEarly: 0, totalEarly: 0, confirmedLate: 0, totalLate: 0 };
+    const e: SlotAccumulator = map.get(slotKey) ?? {
+      confirmed: 0, total: 0, confirmedEarly: 0, totalEarly: 0, confirmedLate: 0, totalLate: 0,
+      sumFinalConfirmed: 0, sumMaxConfirmed: 0, priceSum: 0, priceCount: 0,
+      revPerPlayerSum: 0, revPerPlayerCount: 0, ratingSum: 0, ratingCount: 0, leadTimeSum: 0, leadTimeCount: 0,
+    };
     const isConfirmed = g.status === "CONFIRMED";
     e.total += 1;
-    if (isConfirmed) e.confirmed += 1;
+    if (isConfirmed) {
+      e.confirmed += 1;
+      e.sumFinalConfirmed += g.finalPlayers;
+      e.sumMaxConfirmed += g.maxPlayers;
+      if (g.gamePrice != null) { e.priceSum += g.gamePrice; e.priceCount += 1; }
+      if (g.revenuePerPlayer != null) { e.revPerPlayerSum += g.revenuePerPlayer; e.revPerPlayerCount += 1; }
+      if (g.averageRating != null) { e.ratingSum += g.averageRating; e.ratingCount += 1; }
+      if (g.confirmationLeadTime != null) { e.leadTimeSum += g.confirmationLeadTime; e.leadTimeCount += 1; }
+    }
     if (g.date < midPoint) { e.totalEarly += 1; if (isConfirmed) e.confirmedEarly += 1; }
     else { e.totalLate += 1; if (isConfirmed) e.confirmedLate += 1; }
     map.set(slotKey, e);
   }
 
   const cells: MustScheduleSlot[] = [];
+  const topSlots: TopSlotSummary[] = [];
+  const strugglingSlots: StrugglingSlot[] = [];
+
   for (const [slotKey, v] of map.entries()) {
     if (v.total < MUST_SCHEDULE_MIN_SAMPLE) continue;
     const rate = v.confirmed / v.total;
-    if (rate <= MUST_SCHEDULE_MIN_RATE) continue;
-
     const [day, hour, formatLabel] = slotKey.split("|");
+    const dayLabel = DAY_LABEL_ES[day] ?? day;
+    const hourLabel = `${hour}h`;
     const earlyRate = v.totalEarly > 0 ? v.confirmedEarly / v.totalEarly : null;
     const lateRate = v.totalLate > 0 ? v.confirmedLate / v.totalLate : null;
     let trend: "up" | "down" | "flat" = "flat";
@@ -423,25 +544,55 @@ async function getMustScheduleSlotsImpl(facilityId: string, dateISO: string): Pr
       else if (earlyRate - lateRate >= TREND_DELTA) trend = "down";
     }
 
-    cells.push({
-      day,
-      dayLabel: DAY_LABEL_ES[day] ?? day,
-      hour: `${hour}h`,
-      formatLabel,
-      confirmationRate: rate,
-      totalGames: v.total,
-      confirmedGames: v.confirmed,
-      trend,
-      insight: buildMustScheduleInsight(rate, v.total, trend, earlyRate, lateRate),
-    });
+    if (rate > MUST_SCHEDULE_MIN_RATE) {
+      cells.push({
+        day, dayLabel, hour: hourLabel, formatLabel,
+        confirmationRate: rate, totalGames: v.total, confirmedGames: v.confirmed, trend,
+        insight: buildMustScheduleInsight(rate, v.total, trend, earlyRate, lateRate),
+      });
+
+      if (rate >= TOP_SLOT_MIN_RATE) {
+        topSlots.push({
+          day, dayLabel, hour: hourLabel, formatLabel,
+          confirmationRate: rate, totalGames: v.total, confirmedGames: v.confirmed,
+          avgOccupancyRate: v.sumMaxConfirmed > 0 ? v.sumFinalConfirmed / v.sumMaxConfirmed : null,
+          avgGamePrice: v.priceCount > 0 ? v.priceSum / v.priceCount : null,
+          avgRevenuePerPlayer: v.revPerPlayerCount > 0 ? v.revPerPlayerSum / v.revPerPlayerCount : null,
+          avgRating: v.ratingCount > 0 ? v.ratingSum / v.ratingCount : null,
+          avgLeadTime: v.leadTimeCount > 0 ? v.leadTimeSum / v.leadTimeCount : null,
+        });
+      }
+      if (trend === "down") {
+        strugglingSlots.push({
+          day, dayLabel, hour: hourLabel, formatLabel,
+          confirmationRate: rate, totalGames: v.total, confirmedGames: v.confirmed,
+          reason: "declining",
+          insight: buildStrugglingInsight("declining", rate, earlyRate, lateRate),
+        });
+      }
+    } else if (rate >= STRUGGLING_MIN_RATE && trend !== "up") {
+      strugglingSlots.push({
+        day, dayLabel, hour: hourLabel, formatLabel,
+        confirmationRate: rate, totalGames: v.total, confirmedGames: v.confirmed,
+        reason: "stuck_below_threshold",
+        insight: buildStrugglingInsight("stuck_below_threshold", rate, earlyRate, lateRate),
+      });
+    }
   }
   cells.sort((a, b) => b.confirmationRate - a.confirmationRate);
+  topSlots.sort((a, b) => b.confirmationRate - a.confirmationRate);
+  strugglingSlots.sort((a, b) => {
+    if (a.reason !== b.reason) return a.reason === "declining" ? -1 : 1;
+    return b.confirmationRate - a.confirmationRate;
+  });
 
   const hours = sortHoursByOperatingDay(Array.from(hoursSet));
   return {
     days: DAY_ORDER.map((d) => DAY_LABEL_ES[d] ?? d),
     hours: hours.map((h) => `${h}h`),
     cells,
+    topSlots: topSlots.slice(0, MAX_TOP_SLOTS),
+    strugglingSlots: strugglingSlots.slice(0, MAX_STRUGGLING_SLOTS),
   };
 }
 

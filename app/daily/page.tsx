@@ -5,7 +5,9 @@ import {
   getDayBaseline,
   getDayEvolution,
   getWeekStrip,
+  getRecentDailyTrend,
   getMustScheduleSlots,
+  getDayOfWeekPattern,
   type DaySummary,
   type DayBaseline,
   type DayEvolutionPoint,
@@ -17,6 +19,7 @@ import GroupSection from "../components/GroupSection";
 import ChangeBadge from "../components/ChangeBadge";
 import Glossary from "../components/Glossary";
 import DatePicker from "../components/DatePicker";
+import Sparkline from "../components/Sparkline";
 import EvolutionChart from "../components/charts/EvolutionChart";
 import MustScheduleCalendar from "../components/MustScheduleCalendar";
 
@@ -55,6 +58,33 @@ function SectionCard({ title, subtitle, action, children }: { title: string; sub
       {subtitle && <p className="text-xs text-ink-faint mb-4">{subtitle}</p>}
       {!subtitle && action === undefined && <div className="mb-2" />}
       {children}
+    </div>
+  );
+}
+
+const MIN_SAMPLE_FOR_RATE_BAR = 3;
+
+// Mismo criterio visual que RateBarList en Trends (barra confirmación/cancelación
+// apilada) — copiado localmente en vez de importado porque allá es privado del
+// módulo y esta página ya tiene su propia convención de tipos por sección.
+function RateBarList({ rows }: { rows: { key: string; label: string; confirmationRate: number; cancellationRate: number; totalGames: number }[] }) {
+  if (rows.length === 0) return <div className="text-sm text-ink-faint">Sin datos suficientes.</div>;
+  return (
+    <div className="space-y-2.5">
+      {rows.map((r) => (
+        <div key={r.key}>
+          <div className="flex justify-between text-xs mb-1 gap-2">
+            <span className="text-ink truncate">{r.label}</span>
+            <span className="text-ink-faint shrink-0">
+              {formatPct(r.confirmationRate)} <span className="text-ink-faint/70">· {r.totalGames.toLocaleString("en-US")}</span>
+            </span>
+          </div>
+          <div className="h-1.5 rounded-full overflow-hidden flex bg-surface-sunken">
+            <div className="h-1.5 bg-brand" style={{ width: `${r.confirmationRate * 100}%` }} />
+            <div className="h-1.5 bg-danger" style={{ width: `${r.cancellationRate * 100}%` }} />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -108,19 +138,42 @@ function buildDayInsights(summary: DaySummary, baseline: DayBaseline, evolution:
     lines.push(`El motivo de cancelación más frecuente hoy fue "${topCancel.label}" (${topCancel.count} de ${summary.cancelledGames} cancelados).`);
   }
 
-  // Tendencia de las últimas ocurrencias (recomendación "qué esperar")
+  const dayWord = summary.dayLabel.toLowerCase();
   const withData = evolution.filter((p) => p.totalGames > 0);
+
+  // Punto 1: análisis resumido de las últimas semanas (mínimo 6, hasta las
+  // 12 que trae `evolution`) — tendencia general, no solo el día de hoy.
+  if (withData.length >= 6) {
+    const first = withData[0];
+    const lastPoint = withData[withData.length - 1];
+    const rates = withData.map((p) => p.confirmationRate);
+    const maxRate = Math.max(...rates);
+    const minRate = Math.min(...rates);
+    const diff = lastPoint.confirmationRate - first.confirmationRate;
+    const trendWord = diff >= 0.08 ? "una tendencia creciente" : diff <= -0.08 ? "una tendencia decreciente" : "una tendencia relativamente estable";
+    lines.push(
+      `En las últimas ${withData.length} semanas, la confirmación de los ${dayWord}s muestra ${trendWord}: pasó de ${formatPct(first.confirmationRate)} a ${formatPct(lastPoint.confirmationRate)} (mínimo ${formatPct(minRate)}, máximo ${formatPct(maxRate)}).`
+    );
+  } else {
+    lines.push(`Todavía no hay 6 ${dayWord}s de historial como para analizar la tendencia de varias semanas.`);
+  }
+
+  // Punto 2: comportamiento de HOY respecto a esa tendencia reciente (no el
+  // promedio plano de la línea base — acá importa si hoy siguió, aceleró o
+  // rompió la dirección en la que venían las últimas ocurrencias).
   if (withData.length >= 4) {
-    const recent = withData.slice(-3);
-    const older = withData.slice(0, -3);
-    if (older.length > 0) {
-      const recentAvg = recent.reduce((s, p) => s + p.confirmationRate, 0) / recent.length;
-      const olderAvg = older.reduce((s, p) => s + p.confirmationRate, 0) / older.length;
-      const diff = recentAvg - olderAvg;
-      if (diff >= 0.08) {
-        lines.push(`Los últimos ${summary.dayLabel.toLowerCase()}s vienen mejorando su tasa de confirmación — si la tendencia se sostiene, es razonable esperar que las próximas semanas sigan en ese nivel o mejor.`);
-      } else if (diff <= -0.08) {
-        lines.push(`Los últimos ${summary.dayLabel.toLowerCase()}s vienen empeorando su tasa de confirmación — conviene monitorear las próximas semanas antes de asumir que este horario se mantiene estable.`);
+    const today = withData[withData.length - 1];
+    const recentWindow = withData.slice(0, -1).slice(-3);
+    if (recentWindow.length >= 2) {
+      const recentAvg = recentWindow.reduce((s, p) => s + p.confirmationRate, 0) / recentWindow.length;
+      const diffFromTrend = today.confirmationRate - recentAvg;
+      const diffPts = Math.abs(diffFromTrend * 100).toFixed(1);
+      if (Math.abs(diffFromTrend) < 0.05) {
+        lines.push(`El comportamiento de hoy está en línea con la tendencia reciente de los últimos ${recentWindow.length} ${dayWord}s (~${formatPct(recentAvg)}).`);
+      } else if (diffFromTrend > 0) {
+        lines.push(`Hoy estuvo ${diffPts} pts por encima de la tendencia reciente (~${formatPct(recentAvg)} en los últimos ${recentWindow.length} ${dayWord}s) — podría ser una mejora puntual o el comienzo de un cambio de tendencia, vale la pena confirmarlo la semana próxima.`);
+      } else {
+        lines.push(`Hoy estuvo ${diffPts} pts por debajo de la tendencia reciente (~${formatPct(recentAvg)} en los últimos ${recentWindow.length} ${dayWord}s) — vale la pena revisar si es un evento puntual o el inicio de una baja sostenida.`);
       }
     }
   }
@@ -157,13 +210,22 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
 
   const dateISO = isValidDate(sp.date) ? sp.date : todayISO();
 
-  const [summary, baseline, evolution, weekStrip, mustSchedule] = await Promise.all([
+  const [summary, baseline, evolution, weekStrip, recentTrend, mustSchedule, dayOfWeekPattern] = await Promise.all([
     getDaySnapshot(sp.facilityId, dateISO),
     getDayBaseline(sp.facilityId, dateISO),
     getDayEvolution(sp.facilityId, dateISO),
     getWeekStrip(sp.facilityId, dateISO),
+    getRecentDailyTrend(sp.facilityId, dateISO),
     getMustScheduleSlots(sp.facilityId, dateISO),
+    getDayOfWeekPattern({ facilityId: sp.facilityId }),
   ]);
+
+  const sparklinePoints = recentTrend.map((p) => Math.round(p.confirmationRate * 1000) / 10);
+
+  // Todo el historial disponible de esta facility, sin filtrar por el día
+  // elegido arriba — responde "¿qué día de la semana funciona mejor acá en
+  // general?", no "¿qué tan bien le fue a este día puntual?".
+  const dayOfWeekRows = dayOfWeekPattern.filter((r) => r.totalGames >= MIN_SAMPLE_FOR_RATE_BAR);
 
   const insights = buildDayInsights(summary, baseline, evolution);
 
@@ -203,8 +265,12 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
             </Link>
           ))}
         </div>
-        <div className="flex items-center gap-2 ml-auto text-xs">
-          <Link href={buildDailyQuery(sp, { date: undefined })} className="text-ink-faint hover:text-brand">hoy</Link>
+        <div className="flex items-center gap-3 ml-auto">
+          <div className="flex flex-col items-end">
+            <span className="text-[9px] text-ink-faint leading-none mb-1">Últimos 15 días</span>
+            <Sparkline points={sparklinePoints} />
+          </div>
+          <Link href={buildDailyQuery(sp, { date: undefined })} className="text-ink-faint hover:text-brand text-xs shrink-0">hoy</Link>
         </div>
       </div>
 
@@ -286,8 +352,59 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
           Ventana móvil de los últimos 3 meses (a partir del día elegido arriba) · más de 55% de confirmación · se excluyen por completo las cancelaciones por cancha no disponible.
           Metodología propia de esta página — distinta de la consistencia histórica que usa Trends.
         </p>
-        <MustScheduleCalendar days={mustSchedule.days} hours={mustSchedule.hours} cells={mustSchedule.cells} />
-        <Glossary items={[{ term: "Tasa de confirmación", def: "confirmados / (confirmados + cancelados), excluyendo del cálculo las cancelaciones por cancha no disponible." }]} />
+        <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-5">
+          <div className="space-y-3">
+            <MustScheduleCalendar days={mustSchedule.days} hours={mustSchedule.hours} cells={mustSchedule.cells} />
+            <Glossary items={[{ term: "Tasa de confirmación", def: "confirmados / (confirmados + cancelados), excluyendo del cálculo las cancelaciones por cancha no disponible." }]} />
+          </div>
+
+          <div className="space-y-5">
+            <SectionCard title="Performance por día de la semana" subtitle="Todo el historial de esta facility, todos los horarios">
+              <RateBarList rows={dayOfWeekRows} />
+            </SectionCard>
+
+            <SectionCard title="Slots con confirmación altísima" subtitle="≥90% en los últimos 3 meses · promedio de sus partidos confirmados">
+              {mustSchedule.topSlots.length > 0 ? (
+                <ul className="space-y-3 text-sm">
+                  {mustSchedule.topSlots.map((s, i) => (
+                    <li key={i} className="border-b border-surface-sunken last:border-0 pb-2.5 last:pb-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-ink font-medium">{s.dayLabel} {s.hour} · {s.formatLabel}</span>
+                        <span className="text-brand font-semibold shrink-0">{formatPct(s.confirmationRate)}</span>
+                      </div>
+                      <div className="text-xs text-ink-faint mt-0.5">
+                        {s.avgOccupancyRate != null ? `${formatPct(s.avgOccupancyRate)} ocupación` : "ocupación —"}
+                        {s.avgGamePrice != null && ` · ${formatUSD2(s.avgGamePrice)}${s.avgRevenuePerPlayer != null ? ` (${formatUSD2(s.avgRevenuePerPlayer)}/jugador)` : ""}`}
+                        {s.avgRating != null && ` · rating ${s.avgRating.toFixed(1)}`}
+                        {s.avgLeadTime != null && ` · lead time ${s.avgLeadTime.toFixed(1)}h`}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-sm text-ink-faint">Todavía no hay slots con 90%+ de confirmación en esta facility.</div>
+              )}
+            </SectionCard>
+
+            <SectionCard title="Slots a vigilar" subtitle="Bajando o estancados por debajo del umbral">
+              {mustSchedule.strugglingSlots.length > 0 ? (
+                <ul className="space-y-3 text-sm">
+                  {mustSchedule.strugglingSlots.map((s, i) => (
+                    <li key={i} className="border-b border-surface-sunken last:border-0 pb-2.5 last:pb-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-ink font-medium">{s.dayLabel} {s.hour} · {s.formatLabel}</span>
+                        <span className={`shrink-0 font-semibold ${s.reason === "declining" ? "text-warning" : "text-ink-faint"}`}>{formatPct(s.confirmationRate)}</span>
+                      </div>
+                      <div className="text-xs text-ink-faint mt-0.5">{s.insight}</div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-sm text-ink-faint">No hay slots bajando o estancados para reportar.</div>
+              )}
+            </SectionCard>
+          </div>
+        </div>
       </GroupSection>
     </div>
   );
