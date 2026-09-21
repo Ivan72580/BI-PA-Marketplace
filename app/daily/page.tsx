@@ -14,6 +14,8 @@ import {
   type PatternRow,
   type TopSlotSummary,
   type StrugglingSlot,
+  type TopCancelSlotSummary,
+  type StrugglingCancelSlot,
 } from "../lib/db/queries";
 import { todayISO } from "../lib/period";
 import FilterPanel from "../components/FilterPanel";
@@ -24,8 +26,8 @@ import Glossary from "../components/Glossary";
 import DatePicker from "../components/DatePicker";
 import Sparkline from "../components/Sparkline";
 import EvolutionChart from "../components/charts/EvolutionChart";
-import MustScheduleCalendar from "../components/MustScheduleCalendar";
-import Tabs from "../components/Tabs";
+import MustScheduleBoard from "../components/MustScheduleBoard";
+import type { MustScheduleCalendarCell } from "../components/MustScheduleCalendar";
 
 type SP = { regionId?: string; marketId?: string; facilityId?: string; date?: string };
 
@@ -113,6 +115,56 @@ function buildDayOfWeekSummaries(pattern: PatternRow[], topSlots: TopSlotSummary
     if (dayStruggling.length > 0) {
       const declining = dayStruggling.filter((s) => s.reason === "declining").length;
       lines.push(`${dayStruggling.length} horario${dayStruggling.length > 1 ? "s" : ""} a vigilar${declining > 0 ? ` (${declining} bajando)` : ""}.`);
+    }
+
+    return { key: r.key, dayLabel: r.label, totalGames: r.totalGames, lines };
+  });
+}
+
+// Espejo de buildDayOfWeekSummaries para la vista de cancelaciones — misma
+// estructura (mejor/peor día, cruce con los slots de la propia vista
+// invertida), pero "mejor" acá es MENOS cancelación, y en vez del flag de
+// ocupación baja se usa la conversión (jugadores que se anotan y no llegan a
+// jugar) porque es el indicador que más se relaciona con déficit/abandono,
+// el eje que pidió esta vista.
+function buildDayOfWeekCancelSummaries(pattern: PatternRow[], topCancelSlots: TopCancelSlotSummary[], strugglingCancelSlots: StrugglingCancelSlot[]): DayOfWeekSummary[] {
+  const withData = pattern.filter((r) => r.totalGames >= MIN_SAMPLE_FOR_DAY_SUMMARY);
+  if (withData.length === 0) return [];
+
+  const totalGamesAll = withData.reduce((s, r) => s + r.totalGames, 0);
+  const avgRate = totalGamesAll > 0 ? withData.reduce((s, r) => s + r.cancellationRate * r.totalGames, 0) / totalGamesAll : 0;
+  const best = withData.reduce((a, b) => (b.cancellationRate < a.cancellationRate ? b : a), withData[0]);
+  const worst = withData.reduce((a, b) => (b.cancellationRate > a.cancellationRate ? b : a), withData[0]);
+
+  return withData.map((r) => {
+    const lines: string[] = [];
+    const pct = formatPct(r.cancellationRate);
+
+    if (best.key === worst.key) {
+      lines.push(`${pct} de cancelación · ${r.totalGames.toLocaleString("en-US")} partidos — sin variación relevante entre días.`);
+    } else if (r.key === best.key) {
+      lines.push(`${pct} de cancelación · ${r.totalGames.toLocaleString("en-US")} partidos — el día con menos cancelaciones de la semana en esta facility.`);
+    } else if (r.key === worst.key) {
+      lines.push(`${pct} de cancelación · ${r.totalGames.toLocaleString("en-US")} partidos — el día con más cancelaciones de la semana, vale la pena revisar qué lo explica.`);
+    } else {
+      const rel = r.cancellationRate <= avgRate ? "por debajo" : "por encima";
+      lines.push(`${pct} de cancelación · ${r.totalGames.toLocaleString("en-US")} partidos — ${rel} del promedio semanal (${formatPct(avgRate)}).`);
+    }
+
+    if (r.conversionRate < 0.85) {
+      lines.push(`Conversión baja (${formatPct(r.conversionRate)}) — buena parte de los que se anotan no llegan a jugar (abandono o lista de espera sin entrar).`);
+    }
+
+    const daySlots = topCancelSlots.filter((s) => s.day === r.key);
+    if (daySlots.length > 0) {
+      const worstSlot = [...daySlots].sort((a, b) => b.cancellationRate - a.cancellationRate)[0];
+      lines.push(`${daySlots.length} horario${daySlots.length > 1 ? "s" : ""} con cancelación altísima, el más crítico a las ${worstSlot.hour} (${formatPct(worstSlot.cancellationRate)}).`);
+    }
+
+    const dayStruggling = strugglingCancelSlots.filter((s) => s.day === r.key);
+    if (dayStruggling.length > 0) {
+      const worsening = dayStruggling.filter((s) => s.reason === "worsening").length;
+      lines.push(`${dayStruggling.length} horario${dayStruggling.length > 1 ? "s" : ""} a vigilar${worsening > 0 ? ` (${worsening} empeorando)` : ""}.`);
     }
 
     return { key: r.key, dayLabel: r.label, totalGames: r.totalGames, lines };
@@ -256,6 +308,21 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
   // elegido arriba — responde "¿qué día de la semana funciona mejor acá en
   // general?", no "¿qué tan bien le fue a este día puntual?".
   const dayOfWeekSummaries = buildDayOfWeekSummaries(dayOfWeekPattern, mustSchedule.topSlots, mustSchedule.strugglingSlots);
+  const dayOfWeekCancelSummaries = buildDayOfWeekCancelSummaries(dayOfWeekPattern, mustSchedule.topCancelSlots, mustSchedule.strugglingCancelSlots);
+
+  // Mismas celdas de mustSchedule.cells / cancelCells, normalizadas a la
+  // forma genérica que espera MustScheduleCalendar (rate/matchingGames en
+  // vez de confirmationRate/confirmedGames o cancellationRate/cancelledGames).
+  const confirmedCalendarCells: MustScheduleCalendarCell[] = mustSchedule.cells.map((c) => ({
+    day: c.day, dayLabel: c.dayLabel, hour: c.hour, formatLabel: c.formatLabel,
+    rate: c.confirmationRate, totalGames: c.totalGames, matchingGames: c.confirmedGames,
+    trend: c.trend, insight: c.insight,
+  }));
+  const cancelledCalendarCells: MustScheduleCalendarCell[] = mustSchedule.cancelCells.map((c) => ({
+    day: c.day, dayLabel: c.dayLabel, hour: c.hour, formatLabel: c.formatLabel,
+    rate: c.cancellationRate, totalGames: c.totalGames, matchingGames: c.cancelledGames,
+    trend: c.trend, insight: c.insight,
+  }));
 
   const insights = buildDayInsights(summary, baseline, evolution);
 
@@ -341,6 +408,78 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
         </ul>
       ) : (
         <div className="text-sm text-ink-faint">No hay slots bajando o estancados para reportar.</div>
+      )}
+    </div>
+  );
+
+  // ---- Vista invertida (cancelaciones): mismos 3 contenidos, espejados ----
+  const dayOfWeekCancelTabContent = (
+    <div>
+      <p className="text-[13px] text-ink-faint mb-4">Todo el historial de esta facility, todos los horarios — lo más destacable de cada día.</p>
+      {dayOfWeekCancelSummaries.length > 0 ? (
+        <div className="space-y-4">
+          {dayOfWeekCancelSummaries.map((d) => (
+            <div key={d.key} className="pb-4 border-b border-surface-sunken last:border-0 last:pb-0">
+              <div className="text-base font-semibold text-ink mb-1.5">{d.dayLabel}</div>
+              <ul className="space-y-1.5">
+                {d.lines.map((line, i) => (
+                  <li key={i} className="flex gap-2 text-[13px] text-ink-muted leading-snug">
+                    <span className="text-danger shrink-0">·</span>
+                    <span>{line}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-sm text-ink-faint">Sin datos suficientes todavía.</div>
+      )}
+    </div>
+  );
+
+  const topCancelSlotsTabContent = (
+    <div>
+      <p className="text-[13px] text-ink-faint mb-4">≥90% de cancelación en los últimos 3 meses · promedio de sus partidos cancelados.</p>
+      {mustSchedule.topCancelSlots.length > 0 ? (
+        <ul className="space-y-4 max-h-[480px] overflow-y-auto pr-1">
+          {mustSchedule.topCancelSlots.map((s, i) => (
+            <li key={i} className="border-b border-surface-sunken last:border-0 pb-4 last:pb-0">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[15px] text-ink font-semibold">{s.dayLabel} {s.hour} · {s.formatLabel}</span>
+                <span className="text-base text-danger font-bold shrink-0">{formatPct(s.cancellationRate)}</span>
+              </div>
+              <div className="text-[13px] text-ink-faint mt-1 leading-snug">
+                {s.avgOccupancyAtCancel != null ? `${formatPct(s.avgOccupancyAtCancel)} ocupación al cancelar` : "ocupación al cancelar —"}
+                {s.avgGamePrice != null && ` · ${formatUSD2(s.avgGamePrice)}`}
+                {s.avgDeficit != null && ` · faltaron ${s.avgDeficit.toFixed(1)} jugador(es) en promedio`}
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="text-sm text-ink-faint">Todavía no hay slots con 90%+ de cancelación en esta facility.</div>
+      )}
+    </div>
+  );
+
+  const strugglingCancelTabContent = (
+    <div>
+      <p className="text-[13px] text-ink-faint mb-4">Empeorando, o con cancelación elevada y estancada.</p>
+      {mustSchedule.strugglingCancelSlots.length > 0 ? (
+        <ul className="space-y-4 max-h-[480px] overflow-y-auto pr-1">
+          {mustSchedule.strugglingCancelSlots.map((s, i) => (
+            <li key={i} className="border-b border-surface-sunken last:border-0 pb-4 last:pb-0">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[15px] text-ink font-semibold">{s.dayLabel} {s.hour} · {s.formatLabel}</span>
+                <span className={`text-base shrink-0 font-bold ${s.reason === "worsening" ? "text-danger" : "text-warning"}`}>{formatPct(s.cancellationRate)}</span>
+              </div>
+              <div className="text-[13px] text-ink-faint mt-1 leading-snug">{s.insight}</div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="text-sm text-ink-faint">No hay slots empeorando o estancados en cancelación para reportar.</div>
       )}
     </div>
   );
@@ -454,31 +593,37 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
 
       <GroupSection title="Slots que sí o sí conviene tener agendados">
         <p className="text-xs text-ink-faint -mt-1">
-          Ventana móvil de los últimos 3 meses (a partir del día elegido arriba) · más de 55% de confirmación · se excluyen por completo las cancelaciones por cancha no disponible.
+          Ventana móvil de los últimos 3 meses (a partir del día elegido arriba) · más de 55% de confirmación (o de cancelación, según la vista) · se excluyen por completo las cancelaciones por cancha no disponible.
           Metodología propia de esta página — distinta de la consistencia histórica que usa Trends.
         </p>
         {/* 50/50: el calendario se centra dentro de su mitad (no pegado al
             borde izquierdo) y las pestañas ocupan todo el ancho de la suya
             — reparte el espacio simétricamente respecto del centro de la
-            sección en vez de dejarlo todo amontonado a la izquierda. */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
-          <div className="flex justify-center w-full">
-            <MustScheduleCalendar days={mustSchedule.days} hours={mustSchedule.hours} cells={mustSchedule.cells} />
-          </div>
-          {/* El calendario es mucho más alto que las pestañas — las dejamos
-              "sticky" para que acompañen el scroll en vez de quedar con un
-              hueco vacío debajo apenas se cierra la lista más corta. */}
-          <div className="lg:sticky lg:top-20">
-            <Tabs
-              tabs={[
-                { id: "dow", label: "Día de semana", content: dayOfWeekTabContent },
-                { id: "top", label: `Confirmación altísima (${mustSchedule.topSlots.length})`, content: topSlotsTabContent },
-                { id: "watch", label: `A vigilar (${mustSchedule.strugglingSlots.length})`, content: strugglingTabContent },
-              ]}
-            />
-          </div>
-        </div>
-        <Glossary items={[{ term: "Tasa de confirmación", def: "confirmados / (confirmados + cancelados), excluyendo del cálculo las cancelaciones por cancha no disponible." }]} />
+            sección en vez de dejarlo todo amontonado a la izquierda. El
+            toggle Confirmados/Cancelados vive dentro del mismo recuadro
+            (MustScheduleBoard) para no sumar una sección nueva más abajo. */}
+        <MustScheduleBoard
+          days={mustSchedule.days}
+          hours={mustSchedule.hours}
+          confirmedCells={confirmedCalendarCells}
+          cancelledCells={cancelledCalendarCells}
+          confirmedTabs={[
+            { id: "dow", label: "Día de semana", content: dayOfWeekTabContent },
+            { id: "top", label: `Confirmación altísima (${mustSchedule.topSlots.length})`, content: topSlotsTabContent },
+            { id: "watch", label: `A vigilar (${mustSchedule.strugglingSlots.length})`, content: strugglingTabContent },
+          ]}
+          cancelledTabs={[
+            { id: "dow", label: "Día de semana", content: dayOfWeekCancelTabContent },
+            { id: "top", label: `Cancelación altísima (${mustSchedule.topCancelSlots.length})`, content: topCancelSlotsTabContent },
+            { id: "watch", label: `A vigilar (${mustSchedule.strugglingCancelSlots.length})`, content: strugglingCancelTabContent },
+          ]}
+        />
+        <Glossary
+          items={[
+            { term: "Tasa de confirmación", def: "confirmados / (confirmados + cancelados), excluyendo del cálculo las cancelaciones por cancha no disponible." },
+            { term: "Tasa de cancelación", def: "el complemento exacto: cancelados / (confirmados + cancelados), con la misma exclusión. Es la misma ventana de datos mirada al revés, no una métrica nueva." },
+          ]}
+        />
       </GroupSection>
     </div>
   );

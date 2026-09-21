@@ -417,6 +417,56 @@ export type StrugglingSlot = {
   insight: string;
 };
 
+// ---------- Vista invertida (cancelaciones) ----------
+// Misma ventana, mismo query, misma agrupación por slot — es la cara opuesta
+// de exactamente los mismos datos, no una metodología nueva. Los umbrales
+// numéricos son los mismos (55% / 90% / 35%) aplicados a la tasa de
+// cancelación en vez de a la de confirmación, y la tendencia es la inversa
+// exacta de `trend` (si la confirmación mejora, la cancelación por
+// definición baja) — nunca se recalcula por separado, para que ambas vistas
+// jamás puedan quedar inconsistentes entre sí.
+export type MustScheduleCancelSlot = {
+  day: string;
+  dayLabel: string;
+  hour: string;
+  formatLabel: string;
+  cancellationRate: number;
+  totalGames: number; // ya excluye cancha-no-disponible
+  cancelledGames: number;
+  trend: "up" | "down" | "flat"; // de la CANCELACIÓN: "up" = empeora
+  insight: string;
+};
+
+// Los partidos cancelados no tienen rating, revenue ni lead time de
+// confirmación (nunca se jugaron), así que en vez de repetir esos 3 campos
+// vacíos se muestran los que sí describen un partido que no llegó a
+// cerrarse: ocupación alcanzada antes de cancelar, precio (cuando el dato
+// existe) y déficit promedio de jugadores respecto del mínimo.
+export type TopCancelSlotSummary = {
+  day: string;
+  dayLabel: string;
+  hour: string;
+  formatLabel: string;
+  cancellationRate: number;
+  totalGames: number;
+  cancelledGames: number;
+  avgOccupancyAtCancel: number | null;
+  avgGamePrice: number | null;
+  avgDeficit: number | null; // promedio de jugadores que faltaron para el mínimo
+};
+
+export type StrugglingCancelSlot = {
+  day: string;
+  dayLabel: string;
+  hour: string;
+  formatLabel: string;
+  cancellationRate: number;
+  totalGames: number;
+  cancelledGames: number;
+  reason: "worsening" | "stuck_elevated";
+  insight: string;
+};
+
 const MUST_SCHEDULE_MIN_RATE = 0.55;
 const MUST_SCHEDULE_MIN_SAMPLE = 3; // mínimo dentro de la ventana de 3 meses para que el % sea representativo
 const TREND_DELTA = 0.1; // 10 puntos entre la primera y segunda mitad de la ventana para hablar de tendencia
@@ -446,6 +496,44 @@ function buildStrugglingInsight(reason: "declining" | "stuck_below_threshold", r
   return `Estancado en ${pct}% en los últimos 3 meses, sin señales claras de mejora — no llega al umbral de confiabilidad (55%).`;
 }
 
+function buildMustScheduleCancelInsight(rate: number, total: number, trend: "up" | "down" | "flat", earlyRate: number | null, lateRate: number | null): string {
+  const pct = (rate * 100).toFixed(0);
+  const base = `${pct}% de cancelación en los últimos 3 meses (${total} partidos, sin contar cancelaciones por cancha no disponible)`;
+
+  if (trend === "down" && earlyRate !== null && lateRate !== null) {
+    return `${base}. Viene mejorando: de ${(earlyRate * 100).toFixed(0)}% a ${(lateRate * 100).toFixed(0)}% de cancelación entre la primera y la segunda mitad del período.`;
+  }
+  if (trend === "up" && earlyRate !== null && lateRate !== null) {
+    return `${base}. Viene empeorando: de ${(earlyRate * 100).toFixed(0)}% a ${(lateRate * 100).toFixed(0)}% — sigue siendo un horario de riesgo y la tendencia no ayuda.`;
+  }
+  return `${base}. Estable en el período — sin señales de mejora ni de deterioro reciente.`;
+}
+
+// A diferencia de la versión "confirmados", acá sí sumamos siempre un
+// comentario de déficit/abandono cuando hay dato — es la pregunta que más
+// importa frente a un horario que cancela mucho: ¿falta gente para llegar al
+// mínimo, o se anotan pero después se bajan?
+function buildStrugglingCancelInsight(
+  reason: "worsening" | "stuck_elevated",
+  rate: number,
+  earlyRate: number | null,
+  lateRate: number | null,
+  avgDeficit: number | null,
+  avgDropped: number | null
+): string {
+  const pct = (rate * 100).toFixed(0);
+  const base =
+    reason === "worsening" && earlyRate !== null && lateRate !== null
+      ? `Viene empeorando: de ${(earlyRate * 100).toFixed(0)}% a ${(lateRate * 100).toFixed(0)}% de cancelación en los últimos 3 meses.`
+      : `Cancelación elevada y estancada en ${pct}% en los últimos 3 meses, sin señales de mejora.`;
+
+  const extra: string[] = [];
+  if (avgDeficit !== null) extra.push(`en promedio faltaron ${avgDeficit.toFixed(1)} jugador(es) para el mínimo`);
+  if (avgDropped !== null && avgDropped >= 0.5) extra.push(`${avgDropped.toFixed(1)} jugador(es) abandonaron en promedio antes de cancelarse`);
+
+  return extra.length > 0 ? `${base} En los partidos cancelados de este horario, ${extra.join(" y ")}.` : base;
+}
+
 type MustScheduleRow = {
   date: Date;
   dayOfWeek: string;
@@ -460,6 +548,8 @@ type MustScheduleRow = {
   revenuePerPlayer: number | null;
   averageRating: number | null;
   confirmationLeadTime: number | null;
+  playersMissing: number | null;
+  droppedPlayers: number;
 };
 
 type SlotAccumulator = {
@@ -471,12 +561,26 @@ type SlotAccumulator = {
   revPerPlayerSum: number; revPerPlayerCount: number;
   ratingSum: number; ratingCount: number;
   leadTimeSum: number; leadTimeCount: number;
+  // --- lado cancelados: ocupación alcanzada, precio y déficit/abandono ---
+  sumFinalCancelled: number; sumMaxCancelled: number;
+  cancelPriceSum: number; cancelPriceCount: number;
+  deficitSum: number; deficitCount: number;
+  droppedSum: number;
 };
 
 async function getMustScheduleSlotsImpl(
   facilityId: string,
   dateISO: string
-): Promise<{ days: string[]; hours: string[]; cells: MustScheduleSlot[]; topSlots: TopSlotSummary[]; strugglingSlots: StrugglingSlot[] }> {
+): Promise<{
+  days: string[];
+  hours: string[];
+  cells: MustScheduleSlot[];
+  topSlots: TopSlotSummary[];
+  strugglingSlots: StrugglingSlot[];
+  cancelCells: MustScheduleCancelSlot[];
+  topCancelSlots: TopCancelSlotSummary[];
+  strugglingCancelSlots: StrugglingCancelSlot[];
+}> {
   const date = parseISODate(dateISO);
   const windowStart = addMonthsUTC(date, -3);
   const midPoint = new Date((windowStart.getTime() + date.getTime()) / 2);
@@ -489,6 +593,7 @@ async function getMustScheduleSlotsImpl(
       date: true, dayOfWeek: true, time: true, status: true, gameSize: true, fieldType: true,
       finalPlayers: true, maxPlayers: true, cancellationCategory: true, gamePrice: true,
       revenuePerPlayer: true, averageRating: true, confirmationLeadTime: true,
+      playersMissing: true, droppedPlayers: true,
     },
   })) as MustScheduleRow[];
 
@@ -500,7 +605,9 @@ async function getMustScheduleSlotsImpl(
     const day = g.dayOfWeek;
     if (!hour || !day) continue;
     hoursSet.add(hour);
-    // Cancha no disponible: fuera del cálculo por completo (ni numerador ni denominador).
+    // Cancha no disponible: fuera del cálculo por completo (ni numerador ni
+    // denominador), en las dos direcciones — no es una falla de demanda ni
+    // de los jugadores, es un problema operativo ajeno a esta lectura.
     if (g.status === "CANCELLED" && g.cancellationCategory === CancellationCategory.FACILITY_UNAVAILABLE) continue;
 
     const formatLabel = combineFormatLabel(g.gameSize, g.fieldType, g.maxPlayers);
@@ -509,6 +616,8 @@ async function getMustScheduleSlotsImpl(
       confirmed: 0, total: 0, confirmedEarly: 0, totalEarly: 0, confirmedLate: 0, totalLate: 0,
       sumFinalConfirmed: 0, sumMaxConfirmed: 0, priceSum: 0, priceCount: 0,
       revPerPlayerSum: 0, revPerPlayerCount: 0, ratingSum: 0, ratingCount: 0, leadTimeSum: 0, leadTimeCount: 0,
+      sumFinalCancelled: 0, sumMaxCancelled: 0, cancelPriceSum: 0, cancelPriceCount: 0,
+      deficitSum: 0, deficitCount: 0, droppedSum: 0,
     };
     const isConfirmed = g.status === "CONFIRMED";
     e.total += 1;
@@ -520,6 +629,12 @@ async function getMustScheduleSlotsImpl(
       if (g.revenuePerPlayer != null) { e.revPerPlayerSum += g.revenuePerPlayer; e.revPerPlayerCount += 1; }
       if (g.averageRating != null) { e.ratingSum += g.averageRating; e.ratingCount += 1; }
       if (g.confirmationLeadTime != null) { e.leadTimeSum += g.confirmationLeadTime; e.leadTimeCount += 1; }
+    } else {
+      e.sumFinalCancelled += g.finalPlayers;
+      e.sumMaxCancelled += g.maxPlayers;
+      if (g.gamePrice != null) { e.cancelPriceSum += g.gamePrice; e.cancelPriceCount += 1; }
+      if (g.playersMissing != null) { e.deficitSum += g.playersMissing; e.deficitCount += 1; }
+      e.droppedSum += g.droppedPlayers;
     }
     if (g.date < midPoint) { e.totalEarly += 1; if (isConfirmed) e.confirmedEarly += 1; }
     else { e.totalLate += 1; if (isConfirmed) e.confirmedLate += 1; }
@@ -529,6 +644,9 @@ async function getMustScheduleSlotsImpl(
   const cells: MustScheduleSlot[] = [];
   const topSlots: TopSlotSummary[] = [];
   const strugglingSlots: StrugglingSlot[] = [];
+  const cancelCells: MustScheduleCancelSlot[] = [];
+  const topCancelSlots: TopCancelSlotSummary[] = [];
+  const strugglingCancelSlots: StrugglingCancelSlot[] = [];
 
   for (const [slotKey, v] of map.entries()) {
     if (v.total < MUST_SCHEDULE_MIN_SAMPLE) continue;
@@ -578,12 +696,63 @@ async function getMustScheduleSlotsImpl(
         insight: buildStrugglingInsight("stuck_below_threshold", rate, earlyRate, lateRate),
       });
     }
+
+    // ---- Vista invertida: misma fila de datos, métrica complementaria ----
+    // cancellationRate = 1 - rate porque en la ventana ya filtrada solo
+    // quedan CONFIRMED/CANCELLED (cancha-no-disponible se excluyó arriba);
+    // cancelTrend es el espejo exacto de `trend`, nunca un cálculo aparte.
+    const cancelRate = 1 - rate;
+    const cancelEarlyRate = earlyRate !== null ? 1 - earlyRate : null;
+    const cancelLateRate = lateRate !== null ? 1 - lateRate : null;
+    const cancelTrend: "up" | "down" | "flat" = trend === "up" ? "down" : trend === "down" ? "up" : "flat";
+    const cancelledCount = v.total - v.confirmed;
+    const avgDeficit = v.deficitCount > 0 ? v.deficitSum / v.deficitCount : null;
+    const avgDropped = cancelledCount > 0 ? v.droppedSum / cancelledCount : null;
+
+    if (cancelRate > MUST_SCHEDULE_MIN_RATE) {
+      cancelCells.push({
+        day, dayLabel, hour: hourLabel, formatLabel,
+        cancellationRate: cancelRate, totalGames: v.total, cancelledGames: cancelledCount, trend: cancelTrend,
+        insight: buildMustScheduleCancelInsight(cancelRate, v.total, cancelTrend, cancelEarlyRate, cancelLateRate),
+      });
+
+      if (cancelRate >= TOP_SLOT_MIN_RATE) {
+        topCancelSlots.push({
+          day, dayLabel, hour: hourLabel, formatLabel,
+          cancellationRate: cancelRate, totalGames: v.total, cancelledGames: cancelledCount,
+          avgOccupancyAtCancel: v.sumMaxCancelled > 0 ? v.sumFinalCancelled / v.sumMaxCancelled : null,
+          avgGamePrice: v.cancelPriceCount > 0 ? v.cancelPriceSum / v.cancelPriceCount : null,
+          avgDeficit,
+        });
+      }
+      if (cancelTrend === "up") {
+        strugglingCancelSlots.push({
+          day, dayLabel, hour: hourLabel, formatLabel,
+          cancellationRate: cancelRate, totalGames: v.total, cancelledGames: cancelledCount,
+          reason: "worsening",
+          insight: buildStrugglingCancelInsight("worsening", cancelRate, cancelEarlyRate, cancelLateRate, avgDeficit, avgDropped),
+        });
+      }
+    } else if (cancelRate >= STRUGGLING_MIN_RATE && cancelTrend !== "down") {
+      strugglingCancelSlots.push({
+        day, dayLabel, hour: hourLabel, formatLabel,
+        cancellationRate: cancelRate, totalGames: v.total, cancelledGames: cancelledCount,
+        reason: "stuck_elevated",
+        insight: buildStrugglingCancelInsight("stuck_elevated", cancelRate, cancelEarlyRate, cancelLateRate, avgDeficit, avgDropped),
+      });
+    }
   }
   cells.sort((a, b) => b.confirmationRate - a.confirmationRate);
   topSlots.sort((a, b) => b.confirmationRate - a.confirmationRate);
   strugglingSlots.sort((a, b) => {
     if (a.reason !== b.reason) return a.reason === "declining" ? -1 : 1;
     return b.confirmationRate - a.confirmationRate;
+  });
+  cancelCells.sort((a, b) => b.cancellationRate - a.cancellationRate);
+  topCancelSlots.sort((a, b) => b.cancellationRate - a.cancellationRate);
+  strugglingCancelSlots.sort((a, b) => {
+    if (a.reason !== b.reason) return a.reason === "worsening" ? -1 : 1;
+    return b.cancellationRate - a.cancellationRate;
   });
 
   const hours = sortHoursByOperatingDay(Array.from(hoursSet));
@@ -593,6 +762,9 @@ async function getMustScheduleSlotsImpl(
     cells,
     topSlots: topSlots.slice(0, MAX_TOP_SLOTS),
     strugglingSlots: strugglingSlots.slice(0, MAX_STRUGGLING_SLOTS),
+    cancelCells,
+    topCancelSlots: topCancelSlots.slice(0, MAX_TOP_SLOTS),
+    strugglingCancelSlots: strugglingCancelSlots.slice(0, MAX_STRUGGLING_SLOTS),
   };
 }
 
