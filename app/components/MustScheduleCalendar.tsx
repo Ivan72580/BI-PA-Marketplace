@@ -68,7 +68,12 @@ export default function MustScheduleCalendar({
   }
 
   return (
-    <div className="overflow-x-auto pb-2">
+    // overflow-x-auto por sí solo promueve el eje Y a "auto" también (regla
+    // de la spec: si un eje no es "visible" y el otro sí, el "visible" pasa
+    // a "auto") — eso es lo que estaba abriendo un scroll vertical propio y
+    // recortando el popover en vez de dejarlo flotar por encima del resto
+    // del calendario. overflow-y-visible lo neutraliza explícitamente.
+    <div className="overflow-x-auto overflow-y-visible pb-2">
       <div
         className="grid gap-1"
         style={{ gridTemplateColumns: `44px repeat(${days.length}, 72px)`, minWidth: `${44 + days.length * 72}px` }}
