@@ -1,10 +1,10 @@
 import { CancellationCategory } from "@prisma/client";
-import { getTranslations } from "next-intl/server";
 import { prisma } from "./prisma";
 import { cached } from "./cache";
 import { buildWhere, DAY_ORDER, sortHoursByOperatingDay, labelForCancellationCategory } from "./shared";
 import { combineFormatLabel } from "./format";
 import { weekdayAbbr } from "./weekday";
+import { getDailyTranslator, type DailyTranslator } from "./dailyMessages";
 import type { Locale } from "@/i18n/config";
 
 // Página de seguimiento diario: a diferencia de Trends/Market (que agregan
@@ -16,13 +16,19 @@ import type { Locale } from "@/i18n/config";
 //
 // Las funciones que devuelven texto (dayLabel, insight) reciben `locale`
 // como argumento explícito de la función CACHEADA (no lo resuelven ellas
-// mismas vía getLocale()) por una razón concreta: `cached()` usa
-// unstable_cache, cuya clave de caché se deriva de los argumentos de la
-// función. Si el locale no fuera un argumento explícito, dos requests con
-// el mismo facilityId+dateISO pero distinto idioma compartirían la MISMA
-// entrada de caché — el primero en pedirla "gana" el idioma para el otro
-// durante los próximos 5 minutos. Pasándolo como argumento, queda como
-// parte de la clave y cada idioma cachea por separado.
+// mismas vía getLocale()) por dos razones:
+//   1. `cached()` usa unstable_cache, cuya clave de caché se deriva de los
+//      argumentos de la función. Si el locale no fuera un argumento
+//      explícito, dos requests con el mismo facilityId+dateISO pero
+//      distinto idioma compartirían la MISMA entrada de caché — el primero
+//      en pedirla "gana" el idioma para el otro durante los próximos 5
+//      minutos.
+//   2. Next.js prohíbe leer APIs dinámicas (headers()/cookies()) DENTRO de
+//      una función envuelta en unstable_cache. getTranslations()/
+//      getLocale() de "next-intl/server" las tocan internamente incluso
+//      con locale explícito, así que no se pueden llamar acá adentro — de
+//      ahí getDailyTranslator() en ./dailyMessages, que arma el texto leyendo
+//      los JSON de mensajes directo, sin ninguna API de request.
 
 function parseISODate(iso: string): Date {
   return new Date(`${iso}T00:00:00.000Z`);
@@ -491,11 +497,7 @@ const STRUGGLING_MIN_RATE = 0.35; // piso para no listar slots sin señal real d
 const MAX_TOP_SLOTS = 8;
 const MAX_STRUGGLING_SLOTS = 8;
 
-// Tipo mínimo de traductor que necesitan estas 4 funciones — el mismo que
-// devuelve getTranslations({ locale, namespace: "Daily" }).
-type Translator = (key: string, values?: Record<string, string | number>) => string;
-
-function buildMustScheduleInsight(t: Translator, rate: number, total: number, trend: "up" | "down" | "flat", earlyRate: number | null, lateRate: number | null): string {
+function buildMustScheduleInsight(t: DailyTranslator, rate: number, total: number, trend: "up" | "down" | "flat", earlyRate: number | null, lateRate: number | null): string {
   const pct = (rate * 100).toFixed(0);
   const base = t("mustScheduleInsight.base", { pct, total });
 
@@ -508,7 +510,7 @@ function buildMustScheduleInsight(t: Translator, rate: number, total: number, tr
   return t("mustScheduleInsight.flat", { base });
 }
 
-function buildStrugglingInsight(t: Translator, reason: "declining" | "stuck_below_threshold", rate: number, earlyRate: number | null, lateRate: number | null): string {
+function buildStrugglingInsight(t: DailyTranslator, reason: "declining" | "stuck_below_threshold", rate: number, earlyRate: number | null, lateRate: number | null): string {
   const pct = (rate * 100).toFixed(0);
   if (reason === "declining" && earlyRate !== null && lateRate !== null) {
     return t("strugglingInsight.declining", { early: (earlyRate * 100).toFixed(0), late: (lateRate * 100).toFixed(0) });
@@ -516,7 +518,7 @@ function buildStrugglingInsight(t: Translator, reason: "declining" | "stuck_belo
   return t("strugglingInsight.stuck", { pct });
 }
 
-function buildMustScheduleCancelInsight(t: Translator, rate: number, total: number, trend: "up" | "down" | "flat", earlyRate: number | null, lateRate: number | null): string {
+function buildMustScheduleCancelInsight(t: DailyTranslator, rate: number, total: number, trend: "up" | "down" | "flat", earlyRate: number | null, lateRate: number | null): string {
   const pct = (rate * 100).toFixed(0);
   const base = t("mustScheduleCancelInsight.base", { pct, total });
 
@@ -534,7 +536,7 @@ function buildMustScheduleCancelInsight(t: Translator, rate: number, total: numb
 // importa frente a un horario que cancela mucho: ¿falta gente para llegar al
 // mínimo, o se anotan pero después se bajan?
 function buildStrugglingCancelInsight(
-  t: Translator,
+  t: DailyTranslator,
   reason: "worsening" | "stuck_elevated",
   rate: number,
   earlyRate: number | null,
@@ -603,7 +605,7 @@ async function getMustScheduleSlotsImpl(
   topCancelSlots: TopCancelSlotSummary[];
   strugglingCancelSlots: StrugglingCancelSlot[];
 }> {
-  const t = (await getTranslations({ locale, namespace: "Daily" })) as unknown as Translator;
+  const t = getDailyTranslator(locale);
   const date = parseISODate(dateISO);
   const windowStart = addMonthsUTC(date, -3);
   const midPoint = new Date((windowStart.getTime() + date.getTime()) / 2);
