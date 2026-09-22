@@ -1,8 +1,28 @@
 import { GameStatus } from "@prisma/client";
 import { prisma } from "./prisma";
 import { cached } from "./cache";
-import { buildWhere, DAY_ORDER, DAY_LABEL_ES, sortHoursByOperatingDay, type OverviewFilters } from "./shared";
+import { buildWhere, DAY_ORDER, sortHoursByOperatingDay, type OverviewFilters } from "./shared";
 import { combineFormatLabel } from "./format";
+import { weekdayAbbr } from "./weekday";
+import { getTrendsTranslator, type TrendsTranslator } from "./trendsMessages";
+import type { Locale } from "@/i18n/config";
+
+// `locale` se agrega como argumento explícito en cada función cacheada de
+// este archivo cuyo resultado incluye texto dependiente del idioma (labels
+// de día, insights narrativos) — por la misma doble razón documentada en
+// app/lib/db/daily.ts: (1) unstable_cache deriva la clave de caché de los
+// argumentos, así que dos locales distintos necesitan entradas de caché
+// distintas; (2) generar ese texto NO puede hacerse con getTranslations()/
+// getLocale() de "next-intl/server" dentro del scope cacheado (tocan
+// headers() internamente incluso con locale explícito) — por eso se usa el
+// traductor puro de trendsMessages.ts en vez de next-intl ahí adentro.
+// getHourPattern, getFormatPattern y getNetworkFormatLeaderboard NO llevan
+// `locale`: sus labels salen de combineFormatLabel/inferFormat o son solo
+// números (`"${hour}h"`), sin ninguna palabra dependiente del idioma — y
+// getHourPattern además lo consume NetworkOverview.tsx (Overview, todavía
+// sin traducir), así que cambiar su firma habría ampliado el alcance de
+// esta ronda fuera de /trends.
+const LOCALE_TAG: Record<Locale, string> = { es: "es-AR", en: "en-US" };
 
 export type TrendBucket = "week" | "month" | "quarter" | "semester" | "year";
 
@@ -53,10 +73,15 @@ function startOfWeekUTC(d: Date): Date {
   return date;
 }
 
-function bucketKeyAndLabel(date: Date, bucket: TrendBucket): { key: string; label: string } {
+function bucketKeyAndLabel(date: Date, bucket: TrendBucket, locale: Locale): { key: string; label: string } {
   const y = date.getUTCFullYear();
   const m = date.getUTCMonth();
+  const dateLocale = LOCALE_TAG[locale];
 
+  // Los buckets "year"/"semester"/"quarter" no los ejercita ninguna página
+  // hoy (Trends solo pide "week"/"month" vía getMetricSeriesInWindow — ver
+  // bucketForGranularity en trends/page.tsx) — quedan con la letra fija
+  // S/T como placeholder para cuando algún futuro consumidor los use.
   if (bucket === "year") return { key: `${y}`, label: `${y}` };
 
   if (bucket === "semester") {
@@ -70,14 +95,14 @@ function bucketKeyAndLabel(date: Date, bucket: TrendBucket): { key: string; labe
   }
 
   if (bucket === "month") {
-    const label = new Date(Date.UTC(y, m, 1)).toLocaleDateString("es-AR", { month: "short", year: "2-digit", timeZone: "UTC" });
+    const label = new Date(Date.UTC(y, m, 1)).toLocaleDateString(dateLocale, { month: "short", year: "2-digit", timeZone: "UTC" });
     return { key: `${y}-${String(m + 1).padStart(2, "0")}`, label };
   }
 
   // week
   const weekStart = startOfWeekUTC(date);
   const key = weekStart.toISOString().slice(0, 10);
-  const label = weekStart.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", timeZone: "UTC" });
+  const label = weekStart.toLocaleDateString(dateLocale, { day: "2-digit", month: "2-digit", timeZone: "UTC" });
   return { key, label };
 }
 
@@ -96,10 +121,10 @@ function defaultWindowStart(bucket: TrendBucket, end: Date): Date {
 
 type SeriesRow = { date: Date; status: "CONFIRMED" | "CANCELLED"; finalPlayers: number; maxPlayers: number; droppedPlayers: number; waitlistPlayers: number };
 
-function buildSeriesFromGames(games: SeriesRow[], bucket: TrendBucket): MetricSeriesPoint[] {
+function buildSeriesFromGames(games: SeriesRow[], bucket: TrendBucket, locale: Locale): MetricSeriesPoint[] {
   const map = new Map<string, { label: string; confirmed: number; cancelled: number; sumFinal: number; sumMax: number; sumDropped: number; sumWaitlist: number }>();
   for (const g of games) {
-    const { key, label } = bucketKeyAndLabel(g.date, bucket);
+    const { key, label } = bucketKeyAndLabel(g.date, bucket, locale);
     const entry = map.get(key) ?? { label, confirmed: 0, cancelled: 0, sumFinal: 0, sumMax: 0, sumDropped: 0, sumWaitlist: 0 };
     if (g.status === "CONFIRMED") {
       entry.confirmed += 1;
@@ -131,7 +156,7 @@ function buildSeriesFromGames(games: SeriesRow[], bucket: TrendBucket): MetricSe
     });
 }
 
-async function getMetricSeriesImpl(filters: OverviewFilters, bucket: TrendBucket): Promise<MetricSeriesPoint[]> {
+async function getMetricSeriesImpl(filters: OverviewFilters, bucket: TrendBucket, locale: Locale): Promise<MetricSeriesPoint[]> {
   const now = new Date();
   const windowStart = defaultWindowStart(bucket, now);
   const where = buildWhere({ ...filters, dateFrom: windowStart, dateTo: now });
@@ -144,7 +169,7 @@ async function getMetricSeriesImpl(filters: OverviewFilters, bucket: TrendBucket
     select: { date: true, status: true, finalPlayers: true, maxPlayers: true, droppedPlayers: true, waitlistPlayers: true },
   })) as SeriesRow[];
 
-  return buildSeriesFromGames(games, bucket);
+  return buildSeriesFromGames(games, bucket, locale);
 }
 
 // Variante acotada a una ventana exacta (no la ventana "por defecto" hacia
@@ -154,7 +179,8 @@ async function getMetricSeriesInWindowImpl(
   filters: OverviewFilters,
   bucket: TrendBucket,
   windowStart: Date,
-  windowEnd: Date
+  windowEnd: Date,
+  locale: Locale
 ): Promise<MetricSeriesPoint[]> {
   const where = buildWhere({ ...filters, dateFrom: windowStart, dateTo: windowEnd });
   const games = (await prisma.game.findMany({
@@ -162,7 +188,7 @@ async function getMetricSeriesInWindowImpl(
     select: { date: true, status: true, finalPlayers: true, maxPlayers: true, droppedPlayers: true, waitlistPlayers: true },
   })) as SeriesRow[];
 
-  return buildSeriesFromGames(games, bucket);
+  return buildSeriesFromGames(games, bucket, locale);
 }
 
 export const getMetricSeries = cached("getMetricSeries", getMetricSeriesImpl);
@@ -170,7 +196,7 @@ export const getMetricSeriesInWindow = cached("getMetricSeriesInWindow", getMetr
 
 // ---------- Patrón por día de la semana (vía groupBy: dayOfWeek es columna real) ----------
 
-async function getDayOfWeekPatternImpl(filters: OverviewFilters): Promise<PatternRow[]> {
+async function getDayOfWeekPatternImpl(filters: OverviewFilters, locale: Locale): Promise<PatternRow[]> {
   const where = buildWhere(filters);
   const confirmedWhere = { ...where, status: GameStatus.CONFIRMED };
   const cancelledWhere = { ...where, status: GameStatus.CANCELLED };
@@ -197,7 +223,7 @@ async function getDayOfWeekPatternImpl(filters: OverviewFilters): Promise<Patter
     const eng = engagementMap.get(t.dayOfWeek) ?? { dropped: 0, waitlist: 0 };
     return {
       key: t.dayOfWeek,
-      label: DAY_LABEL_ES[t.dayOfWeek] ?? t.dayOfWeek,
+      label: weekdayAbbr(t.dayOfWeek, locale),
       totalGames: total,
       confirmedGames: total - cancelledCount,
       cancelledGames: cancelledCount,
@@ -213,6 +239,7 @@ async function getDayOfWeekPatternImpl(filters: OverviewFilters): Promise<Patter
 }
 
 export const getDayOfWeekPattern = cached("getDayOfWeekPattern", getDayOfWeekPatternImpl);
+
 
 // ---------- Patrón por horario (fila por fila: la hora sale de un substring) ----------
 
@@ -439,7 +466,8 @@ async function getSlotConsistencyImpl(
   filters: OverviewFilters,
   selectedMonth: string /* "YYYY-MM" */,
   mode: SlotConsistencyMode = "confirmed",
-  windowMonths?: number // si se pasa, acota a los últimos N meses en vez de todo el histórico
+  windowMonths: number | undefined, // si se pasa, acota a los últimos N meses en vez de todo el histórico
+  locale: Locale
 ) {
   const where = windowMonths
     ? buildWhere({ ...filters, dateFrom: (() => { const d = new Date(); d.setUTCMonth(d.getUTCMonth() - windowMonths); return d; })() })
@@ -504,20 +532,20 @@ async function getSlotConsistencyImpl(
     };
     cells.push({
       day,
-      dayLabel: DAY_LABEL_ES[day] ?? day,
+      dayLabel: weekdayAbbr(day, locale),
       hour: `${hour}h`,
       formatLabel,
       ...cellData,
       priorYearCount: priorYearCounts.get(slotKey) ?? 0,
-      insight: generateCellInsight(cellData, priorMonth, mode),
+      insight: generateCellInsight(cellData, priorMonth, mode, locale),
     });
   }
   cells.sort((a, b) => b.consistencyPct - a.consistencyPct);
 
-  const insights = generateSlotInsights(cells, priorMonth, mode);
+  const insights = generateSlotInsights(cells, priorMonth, mode, locale);
 
   return {
-    days: DAY_ORDER.map((d) => DAY_LABEL_ES[d] ?? d),
+    days: DAY_ORDER.map((d) => weekdayAbbr(d, locale)),
     hours: hours.map((h) => `${h}h`),
     cells,
     selectedMonth,
@@ -540,37 +568,48 @@ const MIN_DROP = 2; // partidos de diferencia mínimos para que valga destacarlo
 function generateCellInsight(
   cell: { consistencyPct: number; monthsPresent: number; totalMonthsObserved: number; selectedMonthCount: number; priorMonthCount: number },
   priorMonthLabel: string,
-  mode: SlotConsistencyMode
+  mode: SlotConsistencyMode,
+  locale: Locale
 ): string {
-  const noun = mode === "confirmed" ? "confirmados" : "cancelados";
+  const t: TrendsTranslator = getTrendsTranslator(locale);
+  const noun = t(mode === "confirmed" ? "insights.noun.confirmed" : "insights.noun.cancelled");
   const pct = (cell.consistencyPct * 100).toFixed(0);
 
   if (cell.consistencyPct >= ESTABLISHED_THRESHOLD) {
     if (cell.priorMonthCount - cell.selectedMonthCount >= MIN_DROP) {
-      return `Slot consolidado (${pct}% de consistencia), pero cayó de ${cell.priorMonthCount} a ${cell.selectedMonthCount} ${noun} respecto a ${priorMonthLabel} — vale la pena revisarlo.`;
+      return t("insights.cell.establishedDrop", {
+        pct, noun, priorMonthLabel,
+        priorCount: cell.priorMonthCount, selectedCount: cell.selectedMonthCount,
+      });
     }
-    return `Slot consolidado — ${pct}% de consistencia en ${cell.monthsPresent} de ${cell.totalMonthsObserved} meses observados.`;
+    return t("insights.cell.established", { pct, monthsPresent: cell.monthsPresent, totalMonths: cell.totalMonthsObserved });
   }
   if (cell.selectedMonthCount > 0 && cell.priorMonthCount > 0) {
-    return `2 meses seguidos con partidos ${noun} (todavía ${pct}% de consistencia) — podría estar consolidándose, vale la pena seguirlo.`;
+    return t("insights.cell.streak", { noun, pct });
   }
   if (cell.monthsPresent === 0) {
-    return `Sin partidos ${noun} registrados en este slot todavía.`;
+    return t("insights.cell.none", { noun });
   }
-  return `${pct}% de consistencia (${cell.monthsPresent} de ${cell.totalMonthsObserved} meses) — esporádico por ahora.`;
+  return t("insights.cell.sporadic", { pct, monthsPresent: cell.monthsPresent, totalMonths: cell.totalMonthsObserved });
 }
 
-function generateSlotInsights(cells: SlotConsistencyCell[], priorMonthLabel: string, mode: SlotConsistencyMode): string[] {
+function generateSlotInsights(cells: SlotConsistencyCell[], priorMonthLabel: string, mode: SlotConsistencyMode, locale: Locale): string[] {
+  const t: TrendsTranslator = getTrendsTranslator(locale);
   const insights: string[] = [];
-  const noun = mode === "confirmed" ? "confirmados" : "cancelados";
+  const noun = t(mode === "confirmed" ? "insights.noun.confirmed" : "insights.noun.cancelled");
 
   const declining = [...cells]
     .filter((c) => c.consistencyPct >= ESTABLISHED_THRESHOLD && c.priorMonthCount - c.selectedMonthCount >= MIN_DROP)
     .sort((a, b) => (b.priorMonthCount - b.selectedMonthCount) - (a.priorMonthCount - a.selectedMonthCount))[0];
   if (declining) {
-    const verb = mode === "confirmed" ? "vale la pena revisar qué cambió" : "buena señal, pero vale la pena confirmar que no sea una casualidad del mes";
+    const verb = t(mode === "confirmed" ? "insights.slot.decliningVerbConfirmed" : "insights.slot.decliningVerbCancelled");
     insights.push(
-      `⚠ ${declining.dayLabel} ${declining.hour} (${declining.formatLabel}) venía siendo un slot consistente (${(declining.consistencyPct * 100).toFixed(0)}% de los meses con ${noun}), pero cayó de ${declining.priorMonthCount} a ${declining.selectedMonthCount} partidos ${noun} respecto a ${priorMonthLabel} — ${verb}.`
+      t("insights.slot.declining", {
+        dayLabel: declining.dayLabel, hour: declining.hour, formatLabel: declining.formatLabel,
+        pct: (declining.consistencyPct * 100).toFixed(0), noun,
+        priorCount: declining.priorMonthCount, selectedCount: declining.selectedMonthCount,
+        priorMonthLabel, verb,
+      })
     );
   }
 
@@ -578,16 +617,18 @@ function generateSlotInsights(cells: SlotConsistencyCell[], priorMonthLabel: str
     .filter((c) => c.consistencyPct < ESTABLISHED_THRESHOLD && c.selectedMonthCount > 0 && c.priorMonthCount > 0)
     .sort((a, b) => b.selectedMonthCount + b.priorMonthCount - (a.selectedMonthCount + a.priorMonthCount))[0];
   if (emerging) {
-    const tail = mode === "confirmed"
-      ? "podría estar convirtiéndose en un horario estable, vale la pena seguirlo"
-      : "podría estar convirtiéndose en un horario problemático, vale la pena revisarlo antes de que se consolide";
+    const tail = t(mode === "confirmed" ? "insights.slot.emergingTailConfirmed" : "insights.slot.emergingTailCancelled");
     insights.push(
-      `↗ ${emerging.dayLabel} ${emerging.hour} (${emerging.formatLabel}) tuvo partidos ${noun} dos meses seguidos, pese a no ser todavía un slot consistente históricamente (${(emerging.consistencyPct * 100).toFixed(0)}%) — ${tail}.`
+      t("insights.slot.emerging", {
+        dayLabel: emerging.dayLabel, hour: emerging.hour, formatLabel: emerging.formatLabel,
+        noun, pct: (emerging.consistencyPct * 100).toFixed(0), tail,
+      })
     );
   }
 
   if (insights.length === 0) {
-    insights.push(`Sin cambios destacables en los slots ${mode === "confirmed" ? "confiables" : "problemáticos"} este mes respecto al anterior.`);
+    const word = t(mode === "confirmed" ? "insights.slot.noChangesWordConfirmed" : "insights.slot.noChangesWordCancelled");
+    insights.push(t("insights.slot.noChanges", { word }));
   }
 
   return insights;
@@ -613,7 +654,7 @@ export type SlotRecentRow = {
   cancellationRate: number;
 };
 
-async function getSlotRecentPerformanceImpl(filters: OverviewFilters, weeks = 8): Promise<SlotRecentRow[]> {
+async function getSlotRecentPerformanceImpl(filters: OverviewFilters, weeks: number, locale: Locale): Promise<SlotRecentRow[]> {
   const now = new Date();
   const windowStart = new Date(now);
   windowStart.setUTCDate(windowStart.getUTCDate() - weeks * 7);
@@ -642,7 +683,7 @@ async function getSlotRecentPerformanceImpl(filters: OverviewFilters, weeks = 8)
     const total = v.confirmed + v.cancelled;
     return {
       day,
-      dayLabel: DAY_LABEL_ES[day] ?? day,
+      dayLabel: weekdayAbbr(day, locale),
       hour: `${hour}h`,
       formatLabel,
       confirmedCount: v.confirmed,
@@ -666,7 +707,14 @@ export const getSlotRecentPerformance = cached("getSlotRecentPerformance", getSl
 // versión normalizada 0-100 (relativa al propio máximo de cada variable)
 // para poder graficarlas juntas y comparar CUÁNDO pican, no cuánto pican.
 
-const MONTH_LABELS_SHORT = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+// getSeasonalPattern (a diferencia de getSeasonalWindowPattern) no lo
+// consume ninguna página hoy — queda igual de locale-aware que el resto
+// del archivo por consistencia, no porque haya un caller actual que lo
+// ejercite.
+const MONTH_LABELS_SHORT: Record<Locale, string[]> = {
+  es: ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"],
+  en: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+};
 
 export type SeasonalMonthPoint = {
   month: number;
@@ -707,7 +755,7 @@ type SeasonalRow = {
   confirmationLeadTime: number | null;
 };
 
-async function getSeasonalPatternImpl(filters: OverviewFilters): Promise<{ points: SeasonalMonthPoint[]; normalized: SeasonalNormalizedPoint[] }> {
+async function getSeasonalPatternImpl(filters: OverviewFilters, locale: Locale): Promise<{ points: SeasonalMonthPoint[]; normalized: SeasonalNormalizedPoint[] }> {
   // Todo el histórico disponible (no el filtro de tiempo activo): el patrón
   // estacional necesita varios años para decir algo confiable.
   const where = buildWhere(filters);
@@ -745,7 +793,7 @@ async function getSeasonalPatternImpl(filters: OverviewFilters): Promise<{ point
     const total = b.confirmed + b.cancelled;
     points.push({
       month: m,
-      monthLabel: MONTH_LABELS_SHORT[m - 1],
+      monthLabel: MONTH_LABELS_SHORT[locale][m - 1],
       confirmationRate: total > 0 ? b.confirmed / total : 0,
       cancellationRate: total > 0 ? b.cancelled / total : 0,
       occupancyRate: b.sumMax > 0 ? b.sumFinal / b.sumMax : 0,
@@ -812,24 +860,29 @@ function mondayOf(d: Date): Date {
 // así el eje del gráfico siempre llega hasta el final real del período
 // (ej: hasta diciembre si se eligió "Semestre", aunque solo julio-septiembre
 // tengan datos todavía).
-function enumerateBuckets(windowStart: Date, windowEnd: Date, unit: "month" | "week"): { key: string; label: string }[] {
+function enumerateBuckets(windowStart: Date, windowEnd: Date, unit: "month" | "week", locale: Locale): { key: string; label: string }[] {
   const buckets: { key: string; label: string }[] = [];
   if (unit === "month") {
     const cursor = new Date(Date.UTC(windowStart.getUTCFullYear(), windowStart.getUTCMonth(), 1));
     const end = new Date(Date.UTC(windowEnd.getUTCFullYear(), windowEnd.getUTCMonth(), 1));
     while (cursor <= end) {
       const key = `${cursor.getUTCFullYear()}-${String(cursor.getUTCMonth() + 1).padStart(2, "0")}`;
-      const label = cursor.toLocaleDateString("es-AR", { month: "short", timeZone: "UTC" });
+      const label = cursor.toLocaleDateString(LOCALE_TAG[locale], { month: "short", timeZone: "UTC" });
       buckets.push({ key, label });
       cursor.setUTCMonth(cursor.getUTCMonth() + 1);
     }
   } else {
+    // "Sem N"/"Wk N" es texto narrativo generado dentro de una función
+    // cacheada (getSeasonalWindowPattern) — por eso pasa por el traductor
+    // puro de trendsMessages.ts, igual que generateCellInsight/
+    // generateSlotInsights, en vez de resolverse acá con un literal fijo.
+    const t = getTrendsTranslator(locale);
     const cursor = mondayOf(windowStart);
     const end = windowEnd;
     let weekNum = 1;
     while (cursor <= end) {
       const key = cursor.toISOString().slice(0, 10);
-      const label = `Sem ${weekNum}`;
+      const label = t("seasonalWeekLabel", { n: weekNum });
       buckets.push({ key, label });
       cursor.setUTCDate(cursor.getUTCDate() + 7);
       weekNum += 1;
@@ -842,7 +895,8 @@ async function getSeasonalWindowPatternImpl(
   filters: OverviewFilters,
   windowStart: Date,
   windowEnd: Date,
-  bucketUnit: "month" | "week"
+  bucketUnit: "month" | "week",
+  locale: Locale
 ): Promise<RecentMonthPoint[]> {
   const now = new Date();
   const dataEnd = windowEnd < now ? windowEnd : now;
@@ -882,7 +936,7 @@ async function getSeasonalWindowPatternImpl(
     buckets.set(key, b);
   }
 
-  const allBuckets = enumerateBuckets(windowStart, windowEnd, bucketUnit);
+  const allBuckets = enumerateBuckets(windowStart, windowEnd, bucketUnit, locale);
 
   return allBuckets.map(({ key, label }) => {
     const b = buckets.get(key);
@@ -916,7 +970,7 @@ export const getSeasonalWindowPattern = cached("getSeasonalWindowPattern", getSe
 
 export type QuarterClimatePoint = { quarter: number; label: string; confirmationRate: number; totalGames: number };
 
-async function getQuarterClimateImpl(filters: OverviewFilters): Promise<QuarterClimatePoint[]> {
+async function getQuarterClimateImpl(filters: OverviewFilters, locale: Locale): Promise<QuarterClimatePoint[]> {
   const where = buildWhere(filters);
   const games = (await prisma.game.findMany({ where, select: { date: true, status: true } })) as { date: Date; status: "CONFIRMED" | "CANCELLED" }[];
 
@@ -930,9 +984,12 @@ async function getQuarterClimateImpl(filters: OverviewFilters): Promise<QuarterC
     if (g.status === "CONFIRMED") b.confirmed += 1;
   }
 
+  // "T" (Trimestre) / "Q" (Quarter) — solo la letra abreviatura cambia por
+  // locale, no hace falta el traductor completo para esto.
+  const quarterLetter = locale === "en" ? "Q" : "T";
   return [1, 2, 3, 4].map((q) => {
     const b = buckets.get(q)!;
-    return { quarter: q, label: `T${q}`, confirmationRate: b.total > 0 ? b.confirmed / b.total : 0, totalGames: b.total };
+    return { quarter: q, label: `${quarterLetter}${q}`, confirmationRate: b.total > 0 ? b.confirmed / b.total : 0, totalGames: b.total };
   });
 }
 

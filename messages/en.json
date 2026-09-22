@@ -185,5 +185,180 @@
       "showMore": "+{n} more",
       "showLess": "show less"
     }
+  },
+  "Trends": {
+    "title": "Trends",
+    "landingSubtitle": "Trends, schedule consistency and seasonal patterns — built to answer \"what to expect\" for every market and facility, not just \"what happened\".",
+    "mainSubtitle": "Trends, schedule consistency and seasonal patterns — \"what to expect\", not just \"what happened\".",
+    "changeRegion": "change region",
+    "tabs": {
+      "panorama": "Overview",
+      "byFacility": "By facility"
+    },
+    "rateBarEmpty": "Not enough data.",
+    "metric": {
+      "confirmation": "Confirmation rate",
+      "cancellation": "Cancellation rate",
+      "occupancy": "Occupancy",
+      "conversion": "Conversion"
+    },
+    "stat": {
+      "confirmation": "Confirmation",
+      "cancellation": "Cancellation"
+    },
+    "granularity": {
+      "year": "Year",
+      "semester": "Semester",
+      "quarter": "Quarter",
+      "month": "Month"
+    },
+    "landing": {
+      "pickPrompt": "Pick a region and a market to see the detail",
+      "pickHint": "Mixing very different markets together doesn't give you actionable information.",
+      "networkSectionTitle": "While you pick: how the network is doing overall",
+      "networkSectionHint": "Doesn't replace the per-market detail — it's full-network context to help you decide where to look first.",
+      "topMoversTitle": "Markets that moved the most this month",
+      "topMoversSubtitle": "Change in confirmation rate vs. last month — click to see the detail",
+      "topMoversEmpty": "Not enough data this month.",
+      "confirmationOf": "{pct} confirmation · {n} games",
+      "bestDayTitle": "Best day to confirm",
+      "bestDaySubtitle": "Whole network, all-time",
+      "bestHourTitle": "Best time slot to confirm",
+      "bestHourSubtitle": "Whole network · minimum {n} games per time slot",
+      "bestFormatTitle": "Most consistent formats",
+      "bestFormatSubtitle": "Whole network · minimum {n} games per format"
+    },
+    "quarterInsight": {
+      "noVariation": "{label}: no meaningful variation between quarters.",
+      "strongest": "{label}: the strongest quarter of the year.",
+      "weakest": "{label}: the weakest quarter of the year.",
+      "aboveAvg": "{label}: above the yearly average.",
+      "belowAvg": "{label}: below the yearly average."
+    },
+    "panorama": {
+      "trendTitle": "Market trend",
+      "notEnoughHistory": "Not enough history in this period.",
+      "seasonalTitle": "Market's recent seasonal pattern",
+      "seasonalDesc": {
+        "year": "Month-by-month evolution of {period} — each variable on its own.",
+        "semester": "Months of the current semester ({period}) — the axis runs through the end of the semester even if not all months have data yet.",
+        "quarter": "Months of the current quarter ({period}) — the axis runs through the end of the quarter even if not all months have data yet.",
+        "month": "Weeks of {period}, broken down — not an aggregated monthly view."
+      },
+      "waitlistTitle": "Average waitlist",
+      "leadTimeTitle": "Lead time (median)"
+    },
+    "facility": {
+      "marketOverviewTitle": "{market} overview",
+      "defaultMarketName": "this market",
+      "marketOverviewSubtitle": "{period} — pick a facility below to see its trend in detail",
+      "gamesOfTotal": "{n} of {total} games",
+      "varianceVs": "Change vs. {period}",
+      "pickFacilityTitle": "Pick a facility to see the detailed breakdown",
+      "facilityLabel": "Facility:",
+      "backToMarket": "back to market overview",
+      "consistencyTitle": "Schedule consistency",
+      "referenceMonth": "Reference month:",
+      "confirmedTab": "Confirmed",
+      "cancelledTab": "Cancelled",
+      "confirmedHint": "Green — click any slot to see the insight. Each slot is facility + day + time + court type + size",
+      "cancelledHint": "Red — same logic, looking at which slots consistently cancel. Slots already flagged as \"can't miss\" show dimmed here, so they don't get confused",
+      "fullHistory": "Full history",
+      "recentWindow": "Recent window",
+      "notEnoughMonthlyHistory": "Not enough monthly history yet.",
+      "notEnoughWindowHistory": "Not enough history in this window yet.",
+      "window3": "3 months",
+      "window6": "6 months",
+      "mustHoldTitle": "Slots you should always keep scheduled",
+      "mustHoldSubtitle": "Historical consistency ≥75% — sortable by column",
+      "emergingTitle": "Slots to keep an eye on",
+      "emergingSubtitleConfirmed": "Not established historically yet, but >45% confirmation in the last 8 weeks",
+      "avoidHoldTitle": "Slots to consistently avoid scheduling",
+      "avoidHoldSubtitle": "Historical cancellation consistency ≥75% — sortable by column",
+      "avoidEmergingTitle": "Problem slots to keep an eye on",
+      "avoidEmergingSubtitle": "Not established historically yet, but >45% cancellation in the last 8 weeks",
+      "glossaryTerm": "Consistency",
+      "glossaryDef": "% of the observed months in which that day+time had at least one game with the matching status.",
+      "byDayTitle": "By day of week",
+      "byDaySectionTitle": "The 4 metrics by day",
+      "byHourTitle": "By time slot",
+      "byHourSectionTitle": "The 4 metrics by hour",
+      "byFormatTitle": "By format",
+      "byFormatSectionTitle": "The 4 metrics by game format",
+      "byFormatSectionSubtitle": "Real size + court type when specified — e.g. «Turf Field 6v6»",
+      "detailTitle": "Detail",
+      "detailGamesTitle": "Individual games",
+      "detailGamesSubtitle": "Filterable and sortable by Day, Status and Cancellation reason",
+      "granMonth": "Month",
+      "granDay": "Day",
+      "detailThisMonthLastMonth": "{n} this month · {m} last month",
+      "detailConfirmedOfTotal8w": "{n} confirmed of {total} in 8 weeks",
+      "detailCancelledOfTotal8w": "{n} cancelled of {total} in 8 weeks"
+    },
+    "metricCard": {
+      "compareVs": "Compare vs. {label}",
+      "vsLabel": "vs. {value}"
+    },
+    "calendar": {
+      "showMore": "+{n} more",
+      "showLess": "show less",
+      "popoverDetail": "{monthsPresent} of {totalMonths} months · {selectedMonthCount} this month · {priorYearCount} last year"
+    },
+    "summaryTable": {
+      "day": "Day",
+      "hour": "Time",
+      "format": "Format",
+      "pct": "%",
+      "detail": "Detail",
+      "empty": "Nothing to list here yet."
+    },
+    "quarterClimate": {
+      "title": "Historical seasonality",
+      "tooltip": "{label} — {pct}% historical confirmation ({n} games)",
+      "footer": "Confirmation by quarter — all-time"
+    },
+    "detailTable": {
+      "allDays": "All days",
+      "allStatuses": "All statuses",
+      "confirmed": "Confirmed",
+      "cancelled": "Cancelled",
+      "allReasons": "All reasons",
+      "dateHeader": "Date",
+      "dayHeader": "Day",
+      "hourHeader": "Time",
+      "facilityHeader": "Facility",
+      "fieldHeader": "Court",
+      "statusHeader": "Status",
+      "playersHeader": "Players",
+      "reasonHeader": "Cancellation reason",
+      "empty": "No games match this filter.",
+      "shownOfTotal": "{shown} of {total} shown",
+      "cappedSuffix": " ({total} total, capped to the {shown} most recent)"
+    },
+    "seasonalWeekLabel": "Wk {n}",
+    "insights": {
+      "noun": {
+        "confirmed": "confirmed",
+        "cancelled": "cancelled"
+      },
+      "cell": {
+        "established": "Established slot — {pct}% consistency across {monthsPresent} of {totalMonths} observed months.",
+        "establishedDrop": "Established slot ({pct}% consistency), but dropped from {priorCount} to {selectedCount} {noun} vs. {priorMonthLabel} — worth a look.",
+        "streak": "2 months in a row with {noun} games (still {pct}% consistency) — could be becoming established, worth tracking.",
+        "none": "No {noun} games recorded in this slot yet.",
+        "sporadic": "{pct}% consistency ({monthsPresent} of {totalMonths} months) — sporadic for now."
+      },
+      "slot": {
+        "declining": "⚠ {dayLabel} {hour} ({formatLabel}) used to be a consistent slot ({pct}% of months with {noun} games), but dropped from {priorCount} to {selectedCount} {noun} games vs. {priorMonthLabel} — {verb}.",
+        "decliningVerbConfirmed": "worth checking what changed",
+        "decliningVerbCancelled": "good sign, but worth confirming it's not just a one-month fluke",
+        "emerging": "↗ {dayLabel} {hour} ({formatLabel}) had {noun} games two months in a row, despite not yet being historically consistent ({pct}%) — {tail}.",
+        "emergingTailConfirmed": "could be becoming a stable time slot, worth tracking",
+        "emergingTailCancelled": "could be becoming a problem time slot, worth reviewing before it sets in",
+        "noChanges": "No notable changes in the {word} slots this month vs. last.",
+        "noChangesWordConfirmed": "reliable",
+        "noChangesWordCancelled": "problem"
+      }
+    }
   }
 }

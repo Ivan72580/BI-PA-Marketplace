@@ -1,6 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useTranslations, useLocale } from "next-intl";
+import { weekdayLabel } from "@/app/lib/db/weekday";
+import type { Locale } from "@/i18n/config";
 
 type GameListItem = {
   id: number;
@@ -17,9 +20,9 @@ type GameListItem = {
 
 type SortKey = "date" | "dayOfWeek" | "time" | "status" | "finalPlayers" | "cancellationReason" | "fieldLabel";
 
-const DAY_LABEL: Record<string, string> = {
-  Monday: "Lunes", Tuesday: "Martes", Wednesday: "Miércoles", Thursday: "Jueves", Friday: "Viernes", Saturday: "Sábado", Sunday: "Domingo",
-};
+// Antes tenía su propio diccionario de nombres de día duplicado — ahora usa
+// weekdayLabel() de app/lib/db/weekday.ts (compartido con /daily y con el
+// resto de /trends), que reemplaza este mismo propósito sin duplicación.
 
 // Declarado afuera de DetalleTable a propósito: un componente definido
 // dentro del render se recrea en cada re-render, lo cual React (y el lint
@@ -45,6 +48,8 @@ function SortableTh({
 }
 
 export default function DetalleTable({ items, total }: { items: GameListItem[]; total: number }) {
+  const t = useTranslations("Trends.detailTable");
+  const locale = useLocale() as Locale;
   const [dayFilter, setDayFilter] = useState("Todos");
   const [statusFilter, setStatusFilter] = useState("Todos");
   const [reasonFilter, setReasonFilter] = useState("Todos");
@@ -87,17 +92,17 @@ export default function DetalleTable({ items, total }: { items: GameListItem[]; 
     <div>
       <div className="flex flex-wrap gap-2 mb-3">
         <select className={selectClass} value={dayFilter} onChange={(e) => setDayFilter(e.target.value)}>
-          <option value="Todos">Todos los días</option>
-          {days.map((d) => <option key={d} value={d}>{DAY_LABEL[d] ?? d}</option>)}
+          <option value="Todos">{t("allDays")}</option>
+          {days.map((d) => <option key={d} value={d}>{weekdayLabel(d, locale)}</option>)}
         </select>
         <select className={selectClass} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-          <option value="Todos">Todos los estados</option>
-          <option value="CONFIRMED">Confirmado</option>
-          <option value="CANCELLED">Cancelado</option>
+          <option value="Todos">{t("allStatuses")}</option>
+          <option value="CONFIRMED">{t("confirmed")}</option>
+          <option value="CANCELLED">{t("cancelled")}</option>
         </select>
         {reasons.length > 0 && (
           <select className={selectClass} value={reasonFilter} onChange={(e) => setReasonFilter(e.target.value)}>
-            <option value="Todos">Todos los motivos</option>
+            <option value="Todos">{t("allReasons")}</option>
             {reasons.map((r) => <option key={r} value={r}>{r}</option>)}
           </select>
         )}
@@ -107,39 +112,40 @@ export default function DetalleTable({ items, total }: { items: GameListItem[]; 
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-border text-left text-ink-muted">
-              <SortableTh sortableKey="date" label="Fecha" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
-              <SortableTh sortableKey="dayOfWeek" label="Día" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
-              <SortableTh sortableKey="time" label="Hora" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
-              <th className="py-1.5 px-2 font-normal">Facility</th>
-              <SortableTh sortableKey="fieldLabel" label="Cancha" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
-              <SortableTh sortableKey="status" label="Estado" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
-              <SortableTh sortableKey="finalPlayers" label="Jugadores" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
-              <SortableTh sortableKey="cancellationReason" label="Motivo cancelación" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+              <SortableTh sortableKey="date" label={t("dateHeader")} activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+              <SortableTh sortableKey="dayOfWeek" label={t("dayHeader")} activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+              <SortableTh sortableKey="time" label={t("hourHeader")} activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+              <th className="py-1.5 px-2 font-normal">{t("facilityHeader")}</th>
+              <SortableTh sortableKey="fieldLabel" label={t("fieldHeader")} activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+              <SortableTh sortableKey="status" label={t("statusHeader")} activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+              <SortableTh sortableKey="finalPlayers" label={t("playersHeader")} activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+              <SortableTh sortableKey="cancellationReason" label={t("reasonHeader")} activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
             </tr>
           </thead>
           <tbody>
             {filtered.map((g) => (
               <tr key={g.id} className="border-b border-surface-sunken">
                 <td className="py-1.5 px-2 text-ink">{g.date}</td>
-                <td className="py-1.5 px-2 text-ink">{DAY_LABEL[g.dayOfWeek] ?? g.dayOfWeek}</td>
+                <td className="py-1.5 px-2 text-ink">{weekdayLabel(g.dayOfWeek, locale)}</td>
                 <td className="py-1.5 px-2 text-ink">{g.time}</td>
                 <td className="py-1.5 px-2 text-ink">{g.facilityName}</td>
                 <td className="py-1.5 px-2 text-ink">{g.fieldLabel}</td>
                 <td className="py-1.5 px-2">
-                  <span className={g.status === "CONFIRMED" ? "text-brand" : "text-danger"}>{g.status === "CONFIRMED" ? "Confirmado" : "Cancelado"}</span>
+                  <span className={g.status === "CONFIRMED" ? "text-brand" : "text-danger"}>{g.status === "CONFIRMED" ? t("confirmed") : t("cancelled")}</span>
                 </td>
                 <td className="py-1.5 px-2 text-ink">{g.finalPlayers}/{g.maxPlayers}</td>
                 <td className="py-1.5 px-2 text-ink-muted">{g.cancellationReason ?? "—"}</td>
               </tr>
             ))}
             {filtered.length === 0 && (
-              <tr><td colSpan={8} className="py-4 text-center text-ink-faint">Sin partidos que coincidan con el filtro.</td></tr>
+              <tr><td colSpan={8} className="py-4 text-center text-ink-faint">{t("empty")}</td></tr>
             )}
           </tbody>
         </table>
       </div>
       <div className="text-xs text-ink-faint mt-2">
-        {filtered.length} de {items.length} mostrados{total > items.length ? ` (${total} en total, capado a los ${items.length} más recientes)` : ""}
+        {t("shownOfTotal", { shown: filtered.length, total: items.length })}
+        {total > items.length ? t("cappedSuffix", { total, shown: items.length }) : ""}
       </div>
     </div>
   );

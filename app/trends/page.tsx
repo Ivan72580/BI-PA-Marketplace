@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { getTranslations, getLocale } from "next-intl/server";
+import type { Locale } from "@/i18n/config";
 import {
   getFilterOptions,
   getMetricSeriesInWindow,
@@ -40,7 +42,6 @@ type SP = {
 };
 
 const TREND_GRANULARITIES: Granularity[] = ["year", "semester", "quarter", "month"];
-const GRANULARITY_LABEL: Record<string, string> = { year: "Año", semester: "Semestre", quarter: "Trimestre", month: "Mes" };
 const METRIC_COLORS = { confirmation: "#16755c", cancellation: "#ff4b33", occupancy: "#4ade80", conversion: "#0b3b2e" };
 
 function formatPct(n: number) {
@@ -92,10 +93,12 @@ const MIN_SAMPLE_FOR_RATE_BAR = 10;
 
 function RateBarList({
   rows,
+  emptyLabel,
 }: {
   rows: { key: string; label: string; confirmationRate: number; cancellationRate: number; totalGames: number }[];
+  emptyLabel: string;
 }) {
-  if (rows.length === 0) return <div className="text-sm text-ink-faint">Sin datos suficientes.</div>;
+  if (rows.length === 0) return <div className="text-sm text-ink-faint">{emptyLabel}</div>;
   return (
     <div className="space-y-2.5">
       {rows.map((r) => (
@@ -116,7 +119,12 @@ function RateBarList({
   );
 }
 
-function buildQuarterInsights(points: { quarter: number; label: string; confirmationRate: number; totalGames: number }[]): string[] {
+type Translator = (key: string, values?: Record<string, string | number>) => string;
+
+function buildQuarterInsights(
+  points: { quarter: number; label: string; confirmationRate: number; totalGames: number }[],
+  t: Translator
+): string[] {
   const totalGames = points.reduce((s, p) => s + p.totalGames, 0);
   if (totalGames === 0) return [];
   const avgRate = points.reduce((s, p) => s + p.confirmationRate * p.totalGames, 0) / totalGames;
@@ -124,25 +132,31 @@ function buildQuarterInsights(points: { quarter: number; label: string; confirma
   const worst = points.reduce((a, b) => (b.confirmationRate < a.confirmationRate ? b : a), points[0]);
 
   return points.map((p) => {
-    if (best.quarter === worst.quarter) return `${p.label}: sin variación relevante entre trimestres.`;
-    if (p.quarter === best.quarter) return `${p.label}: el trimestre más fuerte del año.`;
-    if (p.quarter === worst.quarter) return `${p.label}: el trimestre más flojo del año.`;
-    const rel = p.confirmationRate >= avgRate ? "por encima" : "por debajo";
-    return `${p.label}: ${rel} del promedio anual.`;
+    if (best.quarter === worst.quarter) return t("quarterInsight.noVariation", { label: p.label });
+    if (p.quarter === best.quarter) return t("quarterInsight.strongest", { label: p.label });
+    if (p.quarter === worst.quarter) return t("quarterInsight.weakest", { label: p.label });
+    return p.confirmationRate >= avgRate
+      ? t("quarterInsight.aboveAvg", { label: p.label })
+      : t("quarterInsight.belowAvg", { label: p.label });
   });
 }
 
 export default async function TrendsPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
   const filterOptions = await getFilterOptions();
+  const locale = (await getLocale()) as Locale;
+  const t = await getTranslations("Trends");
+  const GRANULARITY_LABEL: Record<string, string> = {
+    year: t("granularity.year"), semester: t("granularity.semester"), quarter: t("granularity.quarter"), month: t("granularity.month"),
+  };
 
   // ---------- Pantalla de selección obligatoria ----------
   if (!sp.regionId || !sp.marketId) {
     const landingMonth = todayISO().slice(0, 7);
     const [marketMovers, networkClimate, networkDayPattern, networkHourPattern, networkFormatLeaderboard] = await Promise.all([
       getMarketConfirmationRanking({}, landingMonth),
-      getQuarterClimate({}),
-      getDayOfWeekPattern({}),
+      getQuarterClimate({}, locale),
+      getDayOfWeekPattern({}, locale),
       getHourPattern({}),
       getNetworkFormatLeaderboard(),
     ]);
@@ -164,33 +178,29 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
       .sort((a, b) => b.confirmationRate - a.confirmationRate)
       .slice(0, 10)
       .map((f) => ({ ...f, label: f.facilityName ? `${f.label} · ${f.facilityName}` : f.label }));
-    const quarterInsights = buildQuarterInsights(networkClimate);
+    const quarterInsights = buildQuarterInsights(networkClimate, t);
 
     return (
       <div>
-        <h1 className="font-display text-3xl font-bold text-ink mb-1">Trends</h1>
-        <div className="text-sm text-ink-faint mb-4 max-w-2xl">
-          Tendencias, consistencia de horarios y patrones estacionales — pensado para responder &quot;¿qué esperar?&quot; en cada market y cada facility, no solo &quot;qué pasó&quot;.
-        </div>
+        <h1 className="font-display text-3xl font-bold text-ink mb-1">{t("title")}</h1>
+        <div className="text-sm text-ink-faint mb-4 max-w-2xl">{t("landingSubtitle")}</div>
 
         <div className="rounded-2xl bg-brand-soft/50 border border-brand/25 px-5 py-3 flex items-center justify-between gap-4 flex-wrap">
           <div className="min-w-0">
-            <div className="text-sm font-semibold text-ink">Elegí una región y un market para ver el detalle</div>
-            <div className="text-xs text-ink-muted">Mezclar mercados muy distintos entre sí no aporta información accionable.</div>
+            <div className="text-sm font-semibold text-ink">{t("landing.pickPrompt")}</div>
+            <div className="text-xs text-ink-muted">{t("landing.pickHint")}</div>
           </div>
           <FilterPanel regions={filterOptions.regions} markets={filterOptions.markets} facilities={filterOptions.facilities} showTimeControls={false} showFacility={false} bare />
         </div>
 
         <div className="mt-6">
-          <GroupSection title="Mientras elegís: así viene la red en general">
-            <p className="text-xs text-ink-faint -mt-1">
-              No reemplaza el detalle por market — es contexto de red completa para ayudarte a decidir dónde mirar primero.
-            </p>
+          <GroupSection title={t("landing.networkSectionTitle")}>
+            <p className="text-xs text-ink-faint -mt-1">{t("landing.networkSectionHint")}</p>
 
             <div className="grid grid-cols-1 lg:grid-cols-[1.6fr_1fr] gap-5">
               <SectionCard
-                title="Markets que más se movieron este mes"
-                subtitle="Variación de tasa de confirmación vs. mes anterior — hacé clic para ver el detalle"
+                title={t("landing.topMoversTitle")}
+                subtitle={t("landing.topMoversSubtitle")}
               >
                 {topMovers.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
@@ -209,7 +219,7 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
                               {market.name} {region && <span className="text-ink-faint font-normal">· {region.name}</span>}
                             </div>
                             <div className="text-xs text-ink-faint">
-                              {formatPct(m.confirmationRate)} de confirmación · {m.totalGames.toLocaleString("en-US")} partidos
+                              {t("landing.confirmationOf", { pct: formatPct(m.confirmationRate), n: m.totalGames.toLocaleString("en-US") })}
                             </div>
                           </div>
                           <ChangeBadge value={m.changePts} />
@@ -218,7 +228,7 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
                     })}
                   </div>
                 ) : (
-                  <div className="text-sm text-ink-faint">Sin datos suficientes este mes.</div>
+                  <div className="text-sm text-ink-faint">{t("landing.topMoversEmpty")}</div>
                 )}
               </SectionCard>
 
@@ -237,14 +247,14 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-              <SectionCard title="Mejor día para confirmar" subtitle="Toda la red, todo el histórico">
-                <RateBarList rows={networkDayPattern} />
+              <SectionCard title={t("landing.bestDayTitle")} subtitle={t("landing.bestDaySubtitle")}>
+                <RateBarList rows={networkDayPattern} emptyLabel={t("rateBarEmpty")} />
               </SectionCard>
-              <SectionCard title="Mejor horario para confirmar" subtitle={`Toda la red · mínimo ${MIN_SAMPLE_FOR_RATE_BAR} partidos por horario`}>
-                <RateBarList rows={hourRows} />
+              <SectionCard title={t("landing.bestHourTitle")} subtitle={t("landing.bestHourSubtitle", { n: MIN_SAMPLE_FOR_RATE_BAR })}>
+                <RateBarList rows={hourRows} emptyLabel={t("rateBarEmpty")} />
               </SectionCard>
-              <SectionCard title="Formatos más consistentes" subtitle={`Toda la red · mínimo ${MIN_SAMPLE_FOR_RATE_BAR} partidos por formato`}>
-                <RateBarList rows={formatRows} />
+              <SectionCard title={t("landing.bestFormatTitle")} subtitle={t("landing.bestFormatSubtitle", { n: MIN_SAMPLE_FOR_RATE_BAR })}>
+                <RateBarList rows={formatRows} emptyLabel={t("rateBarEmpty")} />
               </SectionCard>
             </div>
           </GroupSection>
@@ -277,14 +287,14 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
   const seasonalBucketUnit: "month" | "week" = granularity === "month" ? "week" : "month";
 
   const [series, seasonal, quarterClimate] = await Promise.all([
-    getMetricSeriesInWindow(marketFilters, unit, period.dateFrom!, period.dateTo!),
-    getSeasonalWindowPattern(marketFilters, period.dateFrom!, period.dateTo!, seasonalBucketUnit),
-    getQuarterClimate(climateFilters),
+    getMetricSeriesInWindow(marketFilters, unit, period.dateFrom!, period.dateTo!, locale),
+    getSeasonalWindowPattern(marketFilters, period.dateFrom!, period.dateTo!, seasonalBucketUnit, locale),
+    getQuarterClimate(climateFilters, locale),
   ]);
 
   let priorSummary: { confirmationRate: number; cancellationRate: number; occupancyRate: number; conversionRate: number } | null = null;
   if (comparePeriod.dateFrom && comparePeriod.dateTo) {
-    const priorSeries = await getMetricSeriesInWindow(marketFilters, unit, comparePeriod.dateFrom, comparePeriod.dateTo);
+    const priorSeries = await getMetricSeriesInWindow(marketFilters, unit, comparePeriod.dateFrom, comparePeriod.dateTo, locale);
     if (priorSeries.length > 0) {
       const avg = (f: (p: (typeof priorSeries)[number]) => number) => priorSeries.reduce((s, p) => s + f(p), 0) / priorSeries.length;
       priorSummary = {
@@ -330,30 +340,30 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
     <div className="space-y-5">
       {periodNav}
 
-      <GroupSection title="Tendencia del market">
+      <GroupSection title={t("panorama.trendTitle")}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <MetricTrendCard title="Tasa de confirmación" chartData={seriesChart("confirmationRate", METRIC_COLORS.confirmation)} currentValue={currentSummary.confirmationRate} priorValue={priorSummary?.confirmationRate ?? null} comparePeriodLabel={comparePeriod.label} />
-          <MetricTrendCard title="Tasa de cancelación" chartData={seriesChart("cancellationRate", METRIC_COLORS.cancellation)} currentValue={currentSummary.cancellationRate} priorValue={priorSummary?.cancellationRate ?? null} comparePeriodLabel={comparePeriod.label} />
-          <MetricTrendCard title="Ocupación" chartData={seriesChart("occupancyRate", METRIC_COLORS.occupancy)} currentValue={currentSummary.occupancyRate} priorValue={priorSummary?.occupancyRate ?? null} comparePeriodLabel={comparePeriod.label} />
-          <MetricTrendCard title="Conversión" chartData={seriesChart("conversionRate", METRIC_COLORS.conversion)} currentValue={currentSummary.conversionRate} priorValue={priorSummary?.conversionRate ?? null} comparePeriodLabel={comparePeriod.label} />
+          <MetricTrendCard title={t("metric.confirmation")} chartData={seriesChart("confirmationRate", METRIC_COLORS.confirmation)} currentValue={currentSummary.confirmationRate} priorValue={priorSummary?.confirmationRate ?? null} comparePeriodLabel={comparePeriod.label} />
+          <MetricTrendCard title={t("metric.cancellation")} chartData={seriesChart("cancellationRate", METRIC_COLORS.cancellation)} currentValue={currentSummary.cancellationRate} priorValue={priorSummary?.cancellationRate ?? null} comparePeriodLabel={comparePeriod.label} />
+          <MetricTrendCard title={t("metric.occupancy")} chartData={seriesChart("occupancyRate", METRIC_COLORS.occupancy)} currentValue={currentSummary.occupancyRate} priorValue={priorSummary?.occupancyRate ?? null} comparePeriodLabel={comparePeriod.label} />
+          <MetricTrendCard title={t("metric.conversion")} chartData={seriesChart("conversionRate", METRIC_COLORS.conversion)} currentValue={currentSummary.conversionRate} priorValue={priorSummary?.conversionRate ?? null} comparePeriodLabel={comparePeriod.label} />
         </div>
-        {series.length <= 1 && <div className="text-sm text-ink-faint px-1">No hay suficiente historial en este período.</div>}
+        {series.length <= 1 && <div className="text-sm text-ink-faint px-1">{t("panorama.notEnoughHistory")}</div>}
       </GroupSection>
 
-      <GroupSection title="Patrón estacional reciente del market">
+      <GroupSection title={t("panorama.seasonalTitle")}>
         <p className="text-xs text-ink-faint -mt-1 mb-1 px-1">
-          {granularity === "year" && `Evolución mes a mes de ${period.label} — cada variable por separado.`}
-          {granularity === "semester" && `Meses del semestre en curso (${period.label}) — el eje llega hasta el final del semestre aunque todavía no haya datos de todos los meses.`}
-          {granularity === "quarter" && `Meses del trimestre en curso (${period.label}) — el eje llega hasta el final del trimestre aunque todavía no haya datos de todos los meses.`}
-          {granularity === "month" && `Semanas de ${period.label}, desglosado — no una vista mensual agregada.`}
+          {granularity === "year" && t("panorama.seasonalDesc.year", { period: period.label })}
+          {granularity === "semester" && t("panorama.seasonalDesc.semester", { period: period.label })}
+          {granularity === "quarter" && t("panorama.seasonalDesc.quarter", { period: period.label })}
+          {granularity === "month" && t("panorama.seasonalDesc.month", { period: period.label })}
         </p>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <SectionCard title="Tasa de confirmación"><LineChart data={singleLineChart(seasonal.map((p) => Math.round(p.confirmationRate * 1000) / 10), METRIC_COLORS.confirmation)} /></SectionCard>
-          <SectionCard title="Tasa de cancelación"><LineChart data={singleLineChart(seasonal.map((p) => Math.round(p.cancellationRate * 1000) / 10), METRIC_COLORS.cancellation)} /></SectionCard>
-          <SectionCard title="Ocupación"><LineChart data={singleLineChart(seasonal.map((p) => Math.round(p.occupancyRate * 1000) / 10), METRIC_COLORS.occupancy)} /></SectionCard>
-          <SectionCard title="Conversión"><LineChart data={singleLineChart(seasonal.map((p) => Math.round(p.conversionRate * 1000) / 10), METRIC_COLORS.conversion)} /></SectionCard>
-          <SectionCard title="Waitlist promedio"><LineChart data={singleLineChart(seasonal.map((p) => Math.round(p.avgWaitlist * 10) / 10), "#6b7280")} /></SectionCard>
-          <SectionCard title="Lead time (mediana)"><LineChart data={singleLineChart(seasonal.map((p) => Math.round((p.medianLeadTime ?? 0) * 10) / 10), "#9ca3af")} /></SectionCard>
+          <SectionCard title={t("metric.confirmation")}><LineChart data={singleLineChart(seasonal.map((p) => Math.round(p.confirmationRate * 1000) / 10), METRIC_COLORS.confirmation)} /></SectionCard>
+          <SectionCard title={t("metric.cancellation")}><LineChart data={singleLineChart(seasonal.map((p) => Math.round(p.cancellationRate * 1000) / 10), METRIC_COLORS.cancellation)} /></SectionCard>
+          <SectionCard title={t("metric.occupancy")}><LineChart data={singleLineChart(seasonal.map((p) => Math.round(p.occupancyRate * 1000) / 10), METRIC_COLORS.occupancy)} /></SectionCard>
+          <SectionCard title={t("metric.conversion")}><LineChart data={singleLineChart(seasonal.map((p) => Math.round(p.conversionRate * 1000) / 10), METRIC_COLORS.conversion)} /></SectionCard>
+          <SectionCard title={t("panorama.waitlistTitle")}><LineChart data={singleLineChart(seasonal.map((p) => Math.round(p.avgWaitlist * 10) / 10), "#6b7280")} /></SectionCard>
+          <SectionCard title={t("panorama.leadTimeTitle")}><LineChart data={singleLineChart(seasonal.map((p) => Math.round((p.medianLeadTime ?? 0) * 10) / 10), "#9ca3af")} /></SectionCard>
         </div>
       </GroupSection>
     </div>
@@ -373,16 +383,19 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
       return (
         <div className="space-y-5">
           {periodNav}
-          <SectionCard title={`Panorama de ${filterOptions.markets.find((m) => m.id === sp.marketId)?.name ?? "este market"}`} subtitle={`${period.label} — elegí una facility abajo para ver su tendencia en detalle`}>
+          <SectionCard
+            title={t("facility.marketOverviewTitle", { market: filterOptions.markets.find((m) => m.id === sp.marketId)?.name ?? t("facility.defaultMarketName") })}
+            subtitle={t("facility.marketOverviewSubtitle", { period: period.label })}
+          >
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <Stat label="Confirmación" value={formatPct(marketTotals.confirmationRate)} sublabel={`${marketTotals.confirmedGames.toLocaleString("en-US")} de ${marketTotals.totalGames.toLocaleString("en-US")} partidos`} delta={confirmDelta} />
-              <Stat label="Cancelación" value={formatPct(marketTotals.cancellationRate)} sublabel={`${marketTotals.cancelledGames.toLocaleString("en-US")} de ${marketTotals.totalGames.toLocaleString("en-US")} partidos`} delta={cancelDelta} deltaInvert />
-              <Stat label="Ocupación" value={formatPct(marketTotals.avgFillRate)} delta={occDelta} />
+              <Stat label={t("stat.confirmation")} value={formatPct(marketTotals.confirmationRate)} sublabel={t("facility.gamesOfTotal", { n: marketTotals.confirmedGames.toLocaleString("en-US"), total: marketTotals.totalGames.toLocaleString("en-US") })} delta={confirmDelta} />
+              <Stat label={t("stat.cancellation")} value={formatPct(marketTotals.cancellationRate)} sublabel={t("facility.gamesOfTotal", { n: marketTotals.cancelledGames.toLocaleString("en-US"), total: marketTotals.totalGames.toLocaleString("en-US") })} delta={cancelDelta} deltaInvert />
+              <Stat label={t("metric.occupancy")} value={formatPct(marketTotals.avgFillRate)} delta={occDelta} />
             </div>
-            {marketPriorTotals && <div className="text-[11px] text-ink-faint mt-3 px-1">Variación vs. {comparePeriod.label}</div>}
+            {marketPriorTotals && <div className="text-[11px] text-ink-faint mt-3 px-1">{t("facility.varianceVs", { period: comparePeriod.label })}</div>}
           </SectionCard>
           <div className="rounded-2xl bg-surface-panel p-8 text-center shadow-sm">
-            <div className="text-sm text-ink font-medium mb-3">Elegí una facility para ver el detalle pormenorizado</div>
+            <div className="text-sm text-ink font-medium mb-3">{t("facility.pickFacilityTitle")}</div>
             <div className="flex justify-center">
               <FilterPanel regions={filterOptions.regions} markets={filterOptions.markets} facilities={filterOptions.facilities} showTimeControls={false} />
             </div>
@@ -405,21 +418,21 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
       const avoidWindow = sp.avoidWindow === "3" ? 3 : 6;
 
       const [dayPattern, hourPattern, formatPattern, mustHave, avoid, mustHaveRecent, avoidRecent, recentPerf, gameList, facilitySeries] = await Promise.all([
-        getDayOfWeekPattern(facilityFilters),
+        getDayOfWeekPattern(facilityFilters, locale),
         getHourPattern(facilityFilters),
         getFormatPattern(facilityFilters),
-        getSlotConsistency(slotFilters, slotMonth, "confirmed"),
-        getSlotConsistency(slotFilters, slotMonth, "cancelled"),
-        getSlotConsistency(slotFilters, slotMonth, "confirmed", mustHoldWindow),
-        getSlotConsistency(slotFilters, slotMonth, "cancelled", avoidWindow),
-        getSlotRecentPerformance(slotFilters, 8),
+        getSlotConsistency(slotFilters, slotMonth, "confirmed", undefined, locale),
+        getSlotConsistency(slotFilters, slotMonth, "cancelled", undefined, locale),
+        getSlotConsistency(slotFilters, slotMonth, "confirmed", mustHoldWindow, locale),
+        getSlotConsistency(slotFilters, slotMonth, "cancelled", avoidWindow, locale),
+        getSlotRecentPerformance(slotFilters, 8, locale),
         getGameList(detalleFilters, 100),
-        getMetricSeriesInWindow(facilityFilters, unit, period.dateFrom!, period.dateTo!),
+        getMetricSeriesInWindow(facilityFilters, unit, period.dateFrom!, period.dateTo!, locale),
       ]);
 
       let facilityPriorSummary: { confirmationRate: number; cancellationRate: number; occupancyRate: number; conversionRate: number } | null = null;
       if (comparePeriod.dateFrom && comparePeriod.dateTo) {
-        const priorFacilitySeries = await getMetricSeriesInWindow({ ...marketFilters, facilityId: sp.facilityId }, unit, comparePeriod.dateFrom, comparePeriod.dateTo);
+        const priorFacilitySeries = await getMetricSeriesInWindow({ ...marketFilters, facilityId: sp.facilityId }, unit, comparePeriod.dateFrom, comparePeriod.dateTo, locale);
         if (priorFacilitySeries.length > 0) {
           const avg = (f: (p: (typeof priorFacilitySeries)[number]) => number) => priorFacilitySeries.reduce((s, p) => s + f(p), 0) / priorFacilitySeries.length;
           facilityPriorSummary = {
@@ -449,10 +462,10 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
       const fourSeriesDatasets = (rows: { label: string; confirmationRate: number; cancellationRate: number; occupancyRate: number; conversionRate: number }[]) => ({
         labels: rows.map((r) => r.label),
         datasets: [
-          { label: "Confirmación", data: rows.map((r) => Math.round(r.confirmationRate * 1000) / 10), backgroundColor: METRIC_COLORS.confirmation },
-          { label: "Cancelación", data: rows.map((r) => Math.round(r.cancellationRate * 1000) / 10), backgroundColor: METRIC_COLORS.cancellation },
-          { label: "Ocupación", data: rows.map((r) => Math.round(r.occupancyRate * 1000) / 10), backgroundColor: METRIC_COLORS.occupancy },
-          { label: "Conversión", data: rows.map((r) => Math.round(r.conversionRate * 1000) / 10), backgroundColor: METRIC_COLORS.conversion },
+          { label: t("stat.confirmation"), data: rows.map((r) => Math.round(r.confirmationRate * 1000) / 10), backgroundColor: METRIC_COLORS.confirmation },
+          { label: t("stat.cancellation"), data: rows.map((r) => Math.round(r.cancellationRate * 1000) / 10), backgroundColor: METRIC_COLORS.cancellation },
+          { label: t("metric.occupancy"), data: rows.map((r) => Math.round(r.occupancyRate * 1000) / 10), backgroundColor: METRIC_COLORS.occupancy },
+          { label: t("metric.conversion"), data: rows.map((r) => Math.round(r.conversionRate * 1000) / 10), backgroundColor: METRIC_COLORS.conversion },
         ],
       });
 
@@ -480,42 +493,42 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
 
       const mustHoldRows: SlotSummaryRow[] = mustHoldSlots.map((c) => ({
         key: `${c.day}-${c.hour}-${c.formatLabel}`, day: c.day, dayLabel: c.dayLabel, hour: c.hour, formatLabel: c.formatLabel,
-        pct: c.consistencyPct, detail: `${c.selectedMonthCount} este mes · ${c.priorMonthCount} el mes pasado`,
+        pct: c.consistencyPct, detail: t("facility.detailThisMonthLastMonth", { n: c.selectedMonthCount, m: c.priorMonthCount }),
       }));
       const avoidHoldRows: SlotSummaryRow[] = avoidHoldSlots.map((c) => ({
         key: `${c.day}-${c.hour}-${c.formatLabel}`, day: c.day, dayLabel: c.dayLabel, hour: c.hour, formatLabel: c.formatLabel,
-        pct: c.consistencyPct, detail: `${c.selectedMonthCount} este mes · ${c.priorMonthCount} el mes pasado`,
+        pct: c.consistencyPct, detail: t("facility.detailThisMonthLastMonth", { n: c.selectedMonthCount, m: c.priorMonthCount }),
       }));
       const emergingRows: SlotSummaryRow[] = emergingSlots.map((s) => ({
         key: `${s.day}-${s.hour}-${s.formatLabel}`, day: s.day, dayLabel: s.dayLabel, hour: s.hour, formatLabel: s.formatLabel,
-        pct: s.confirmationRate, detail: `${s.confirmedCount} confirmados de ${s.totalGames} en 8 semanas`,
+        pct: s.confirmationRate, detail: t("facility.detailConfirmedOfTotal8w", { n: s.confirmedCount, total: s.totalGames }),
       }));
       const avoidEmergingRows: SlotSummaryRow[] = avoidEmergingSlots.map((s) => ({
         key: `${s.day}-${s.hour}-${s.formatLabel}`, day: s.day, dayLabel: s.dayLabel, hour: s.hour, formatLabel: s.formatLabel,
-        pct: s.cancellationRate, detail: `${s.cancelledCount} cancelados de ${s.totalGames} en 8 semanas`,
+        pct: s.cancellationRate, detail: t("facility.detailCancelledOfTotal8w", { n: s.cancelledCount, total: s.totalGames }),
       }));
 
       return (
         <div className="space-y-5">
           {periodNav}
           <div className="flex items-center gap-3">
-            <span className="text-xs text-ink-faint">Facility:</span>
+            <span className="text-xs text-ink-faint">{t("facility.facilityLabel")}</span>
             <LinkSelect paramName="facilityId" value={sp.facilityId ?? ""} options={filterOptions.facilities.filter((f) => f.marketId === sp.marketId).map((f) => ({ value: f.id, label: f.name }))} />
-            <Link href={buildTrendsQuery(sp, { facilityId: undefined })} className="text-xs text-ink-faint hover:text-ink">volver al panorama del market</Link>
+            <Link href={buildTrendsQuery(sp, { facilityId: undefined })} className="text-xs text-ink-faint hover:text-ink">{t("facility.backToMarket")}</Link>
           </div>
 
           {facilityDeltas && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Stat label="Confirmación" value={formatPct(facilityCurrentSummary.confirmationRate)} delta={facilityDeltas.confirmationRate} />
-              <Stat label="Cancelación" value={formatPct(facilityCurrentSummary.cancellationRate)} delta={facilityDeltas.cancellationRate} deltaInvert />
-              <Stat label="Ocupación" value={formatPct(facilityCurrentSummary.occupancyRate)} delta={facilityDeltas.occupancyRate} />
-              <Stat label="Conversión" value={formatPct(facilityCurrentSummary.conversionRate)} delta={facilityDeltas.conversionRate} />
+              <Stat label={t("stat.confirmation")} value={formatPct(facilityCurrentSummary.confirmationRate)} delta={facilityDeltas.confirmationRate} />
+              <Stat label={t("stat.cancellation")} value={formatPct(facilityCurrentSummary.cancellationRate)} delta={facilityDeltas.cancellationRate} deltaInvert />
+              <Stat label={t("metric.occupancy")} value={formatPct(facilityCurrentSummary.occupancyRate)} delta={facilityDeltas.occupancyRate} />
+              <Stat label={t("metric.conversion")} value={formatPct(facilityCurrentSummary.conversionRate)} delta={facilityDeltas.conversionRate} />
             </div>
           )}
 
-          <GroupSection title="Consistencia de horarios">
+          <GroupSection title={t("facility.consistencyTitle")}>
             <div className="flex items-center gap-3 -mb-1">
-              <span className="text-xs text-ink-faint">Mes de referencia:</span>
+              <span className="text-xs text-ink-faint">{t("facility.referenceMonth")}</span>
               <MonthPicker paramName="slotMonth" value={slotMonth} />
             </div>
 
@@ -524,28 +537,28 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
                 tabs={[
                   {
                     id: "confirmed",
-                    label: "Confirmados",
+                    label: t("facility.confirmedTab"),
                     content: (
                       <div className="space-y-4">
-                        <p className="text-xs text-ink-faint">Verde — clickeá cualquier slot para ver el insight. Cada slot es facility + día + hora + tipo de cancha + tamaño</p>
+                        <p className="text-xs text-ink-faint">{t("facility.confirmedHint")}</p>
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                           <div>
-                            <div className="text-xs text-ink-faint mb-2">Histórico completo</div>
+                            <div className="text-xs text-ink-faint mb-2">{t("facility.fullHistory")}</div>
                             {mustHave.totalMonthsObserved >= 2 ? (
                               <SlotCalendarView days={mustHave.days} hours={mustHave.hours} cells={mustHave.cells} colorScheme="green" />
                             ) : (
-                              <div className="text-sm text-ink-faint">No hay suficiente historial mensual todavía.</div>
+                              <div className="text-sm text-ink-faint">{t("facility.notEnoughMonthlyHistory")}</div>
                             )}
                           </div>
                           <div>
                             <div className="flex items-center justify-between mb-2">
-                              <span className="text-xs text-ink-faint">Ventana reciente</span>
-                              <LinkSelect paramName="mustHoldWindow" value={String(mustHoldWindow)} options={[{ value: "3", label: "3 meses" }, { value: "6", label: "6 meses" }]} />
+                              <span className="text-xs text-ink-faint">{t("facility.recentWindow")}</span>
+                              <LinkSelect paramName="mustHoldWindow" value={String(mustHoldWindow)} options={[{ value: "3", label: t("facility.window3") }, { value: "6", label: t("facility.window6") }]} />
                             </div>
                             {mustHaveRecent.totalMonthsObserved >= 2 ? (
                               <SlotCalendarView days={mustHave.days} hours={mustHave.hours} cells={mustHaveRecent.cells} colorScheme="green" />
                             ) : (
-                              <div className="text-sm text-ink-faint">No hay suficiente historial en esta ventana todavía.</div>
+                              <div className="text-sm text-ink-faint">{t("facility.notEnoughWindowHistory")}</div>
                             )}
                           </div>
                         </div>
@@ -555,13 +568,13 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
 
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 pt-2">
                           <div>
-                            <div className="text-sm font-medium text-ink mb-0.5">Slots que hay que sostener sí o sí</div>
-                            <div className="text-xs text-ink-faint mb-2">Consistencia histórica ≥75% — ordenable por columna</div>
+                            <div className="text-sm font-medium text-ink mb-0.5">{t("facility.mustHoldTitle")}</div>
+                            <div className="text-xs text-ink-faint mb-2">{t("facility.mustHoldSubtitle")}</div>
                             <SlotSummaryTable rows={mustHoldRows} colorScheme="green" />
                           </div>
                           <div>
-                            <div className="text-sm font-medium text-ink mb-0.5">Slots a evaluar</div>
-                            <div className="text-xs text-ink-faint mb-2">Sin consolidar históricamente, pero &gt;45% de confirmación en las últimas 8 semanas</div>
+                            <div className="text-sm font-medium text-ink mb-0.5">{t("facility.emergingTitle")}</div>
+                            <div className="text-xs text-ink-faint mb-2">{t("facility.emergingSubtitleConfirmed")}</div>
                             <SlotSummaryTable rows={emergingRows} colorScheme="green" />
                           </div>
                         </div>
@@ -570,28 +583,28 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
                   },
                   {
                     id: "cancelled",
-                    label: "Cancelados",
+                    label: t("facility.cancelledTab"),
                     content: (
                       <div className="space-y-4">
-                        <p className="text-xs text-ink-faint">Rojo — misma lógica, mirando qué slots cancelan de forma consistente. Los slots ya destacados como &quot;no pueden faltar&quot; se muestran apagados acá, para no confundir</p>
+                        <p className="text-xs text-ink-faint">{t("facility.cancelledHint")}</p>
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                           <div>
-                            <div className="text-xs text-ink-faint mb-2">Histórico completo</div>
+                            <div className="text-xs text-ink-faint mb-2">{t("facility.fullHistory")}</div>
                             {avoid.totalMonthsObserved >= 2 ? (
                               <SlotCalendarView days={mustHave.days} hours={mustHave.hours} cells={avoid.cells} colorScheme="red" suppressedKeys={establishedHistorical} />
                             ) : (
-                              <div className="text-sm text-ink-faint">No hay suficiente historial mensual todavía.</div>
+                              <div className="text-sm text-ink-faint">{t("facility.notEnoughMonthlyHistory")}</div>
                             )}
                           </div>
                           <div>
                             <div className="flex items-center justify-between mb-2">
-                              <span className="text-xs text-ink-faint">Ventana reciente</span>
-                              <LinkSelect paramName="avoidWindow" value={String(avoidWindow)} options={[{ value: "3", label: "3 meses" }, { value: "6", label: "6 meses" }]} />
+                              <span className="text-xs text-ink-faint">{t("facility.recentWindow")}</span>
+                              <LinkSelect paramName="avoidWindow" value={String(avoidWindow)} options={[{ value: "3", label: t("facility.window3") }, { value: "6", label: t("facility.window6") }]} />
                             </div>
                             {avoidRecent.totalMonthsObserved >= 2 ? (
                               <SlotCalendarView days={mustHave.days} hours={mustHave.hours} cells={avoidRecent.cells} colorScheme="red" suppressedKeys={establishedRecent} />
                             ) : (
-                              <div className="text-sm text-ink-faint">No hay suficiente historial en esta ventana todavía.</div>
+                              <div className="text-sm text-ink-faint">{t("facility.notEnoughWindowHistory")}</div>
                             )}
                           </div>
                         </div>
@@ -601,13 +614,13 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
 
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 pt-2">
                           <div>
-                            <div className="text-sm font-medium text-ink mb-0.5">Slots que hay que evitar consistentemente</div>
-                            <div className="text-xs text-ink-faint mb-2">Consistencia histórica de cancelación ≥75% — ordenable por columna</div>
+                            <div className="text-sm font-medium text-ink mb-0.5">{t("facility.avoidHoldTitle")}</div>
+                            <div className="text-xs text-ink-faint mb-2">{t("facility.avoidHoldSubtitle")}</div>
                             <SlotSummaryTable rows={avoidHoldRows} colorScheme="red" />
                           </div>
                           <div>
-                            <div className="text-sm font-medium text-ink mb-0.5">Slots problemáticos a evaluar</div>
-                            <div className="text-xs text-ink-faint mb-2">Sin consolidar históricamente, pero &gt;45% de cancelación en las últimas 8 semanas</div>
+                            <div className="text-sm font-medium text-ink mb-0.5">{t("facility.avoidEmergingTitle")}</div>
+                            <div className="text-xs text-ink-faint mb-2">{t("facility.avoidEmergingSubtitle")}</div>
                             <SlotSummaryTable rows={avoidEmergingRows} colorScheme="red" />
                           </div>
                         </div>
@@ -618,34 +631,34 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
               />
             </div>
 
-            <Glossary items={[{ term: "Consistencia", def: "% de los meses observados en los que ese día+hora tuvo al menos un partido del status correspondiente." }]} />
+            <Glossary items={[{ term: t("facility.glossaryTerm"), def: t("facility.glossaryDef") }]} />
           </GroupSection>
 
-          <GroupSection title="Por día de la semana">
-            <SectionCard title="Las 4 métricas por día" subtitle={period.label}>
+          <GroupSection title={t("facility.byDayTitle")}>
+            <SectionCard title={t("facility.byDaySectionTitle")} subtitle={period.label}>
               <BarChart data={fourSeriesDatasets(dayPattern)} />
             </SectionCard>
           </GroupSection>
 
-          <GroupSection title="Por horario">
-            <SectionCard title="Las 4 métricas por hora" subtitle={period.label}>
+          <GroupSection title={t("facility.byHourTitle")}>
+            <SectionCard title={t("facility.byHourSectionTitle")} subtitle={period.label}>
               <BarChart data={fourSeriesDatasets(hourPattern)} />
             </SectionCard>
           </GroupSection>
 
-          <GroupSection title="Por formato">
-            <SectionCard title="Las 4 métricas por formato de partido" subtitle="Tamaño real + tipo de cancha cuando está especificado — ej: «Turf Field 6v6»">
+          <GroupSection title={t("facility.byFormatTitle")}>
+            <SectionCard title={t("facility.byFormatSectionTitle")} subtitle={t("facility.byFormatSectionSubtitle")}>
               <BarChart data={fourSeriesDatasets(formatPattern)} />
             </SectionCard>
           </GroupSection>
 
-          <GroupSection title="Detalle">
+          <GroupSection title={t("facility.detailTitle")}>
             <SectionCard
-              title="Partidos individuales"
-              subtitle="Filtrable y ordenable por Día, Estado y Motivo de cancelación"
+              title={t("facility.detailGamesTitle")}
+              subtitle={t("facility.detailGamesSubtitle")}
               action={
                 <div className="flex items-center gap-2">
-                  <LinkSelect paramName="detalleGranularity" value={detalleGranularity} options={[{ value: "month", label: "Mes" }, { value: "day", label: "Día" }]} />
+                  <LinkSelect paramName="detalleGranularity" value={detalleGranularity} options={[{ value: "month", label: t("facility.granMonth") }, { value: "day", label: t("facility.granDay") }]} />
                   {detalleGranularity === "month" ? (
                     <MonthPicker paramName="detallePeriod" value={detalleAnchor.slice(0, 7)} />
                   ) : (
@@ -668,15 +681,13 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
     <div>
       <div className="flex items-start justify-between gap-6 flex-wrap mb-2">
         <div>
-          <h1 className="font-display text-3xl font-bold text-ink mb-1">Trends</h1>
-          <div className="text-sm text-ink-faint mb-2 max-w-xl">
-            Tendencias, consistencia de horarios y patrones estacionales — &quot;¿qué esperar?&quot;, no solo &quot;qué pasó&quot;.
-          </div>
+          <h1 className="font-display text-3xl font-bold text-ink mb-1">{t("title")}</h1>
+          <div className="text-sm text-ink-faint mb-2 max-w-xl">{t("mainSubtitle")}</div>
           <div className="flex items-center gap-1.5 text-sm">
             <span className="text-ink-faint">{filterOptions.regions.find((r) => r.id === sp.regionId)?.name}</span>
             <span className="text-ink-faint">›</span>
             <LinkSelect paramName="marketId" value={sp.marketId ?? ""} options={marketsInRegion.map((m) => ({ value: m.id, label: m.name }))} />
-            <Link href="/trends" className="text-xs text-ink-faint hover:text-ink ml-2">cambiar región</Link>
+            <Link href="/trends" className="text-xs text-ink-faint hover:text-ink ml-2">{t("changeRegion")}</Link>
           </div>
         </div>
         <QuarterClimate points={quarterClimate} />
@@ -685,8 +696,8 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
       <Tabs
         defaultActiveId={sp.facilityId ? "facility" : "panorama"}
         tabs={[
-          { id: "panorama", label: "Panorama", content: panoramaContent },
-          { id: "facility", label: "Por facility", content: porFacilityContent },
+          { id: "panorama", label: t("tabs.panorama"), content: panoramaContent },
+          { id: "facility", label: t("tabs.byFacility"), content: porFacilityContent },
         ]}
       />
     </div>

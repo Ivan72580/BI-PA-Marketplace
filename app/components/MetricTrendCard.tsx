@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import LineChart from "./charts/LineChart";
 import ChangeBadge from "./ChangeBadge";
 
@@ -21,6 +22,7 @@ export default function MetricTrendCard({
   priorValue: number | null;
   comparePeriodLabel: string;
 }) {
+  const t = useTranslations("Trends.metricCard");
   const [showCompare, setShowCompare] = useState(false);
   const delta = priorValue !== null ? currentValue - priorValue : null;
 
@@ -36,7 +38,7 @@ export default function MetricTrendCard({
               showCompare ? "bg-brand text-white" : "bg-surface-sunken text-ink-faint hover:text-ink-muted"
             }`}
           >
-            Comparar vs. {comparePeriodLabel}
+            {t("compareVs", { label: comparePeriodLabel })}
           </button>
         )}
       </div>
@@ -45,7 +47,7 @@ export default function MetricTrendCard({
         <div className="flex items-baseline gap-2 mb-2">
           <span className="text-lg font-semibold text-ink">{formatPct(currentValue)}</span>
           <ChangeBadge value={delta} />
-          <span className="text-xs text-ink-faint">vs. {formatPct(priorValue)}</span>
+          <span className="text-xs text-ink-faint">{t("vsLabel", { value: formatPct(priorValue) })}</span>
         </div>
       )}
 

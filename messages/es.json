@@ -185,5 +185,180 @@
       "showMore": "+{n} más",
       "showLess": "ver menos"
     }
+  },
+  "Trends": {
+    "title": "Tendencias",
+    "landingSubtitle": "Tendencias, consistencia de horarios y patrones estacionales — pensado para responder \"¿qué esperar?\" en cada market y cada facility, no solo \"qué pasó\".",
+    "mainSubtitle": "Tendencias, consistencia de horarios y patrones estacionales — \"¿qué esperar?\", no solo \"qué pasó\".",
+    "changeRegion": "cambiar región",
+    "tabs": {
+      "panorama": "Panorama",
+      "byFacility": "Por facility"
+    },
+    "rateBarEmpty": "Sin datos suficientes.",
+    "metric": {
+      "confirmation": "Tasa de confirmación",
+      "cancellation": "Tasa de cancelación",
+      "occupancy": "Ocupación",
+      "conversion": "Conversión"
+    },
+    "stat": {
+      "confirmation": "Confirmación",
+      "cancellation": "Cancelación"
+    },
+    "granularity": {
+      "year": "Año",
+      "semester": "Semestre",
+      "quarter": "Trimestre",
+      "month": "Mes"
+    },
+    "landing": {
+      "pickPrompt": "Elegí una región y un market para ver el detalle",
+      "pickHint": "Mezclar mercados muy distintos entre sí no aporta información accionable.",
+      "networkSectionTitle": "Mientras elegís: así viene la red en general",
+      "networkSectionHint": "No reemplaza el detalle por market — es contexto de red completa para ayudarte a decidir dónde mirar primero.",
+      "topMoversTitle": "Markets que más se movieron este mes",
+      "topMoversSubtitle": "Variación de tasa de confirmación vs. mes anterior — hacé clic para ver el detalle",
+      "topMoversEmpty": "Sin datos suficientes este mes.",
+      "confirmationOf": "{pct} de confirmación · {n} partidos",
+      "bestDayTitle": "Mejor día para confirmar",
+      "bestDaySubtitle": "Toda la red, todo el histórico",
+      "bestHourTitle": "Mejor horario para confirmar",
+      "bestHourSubtitle": "Toda la red · mínimo {n} partidos por horario",
+      "bestFormatTitle": "Formatos más consistentes",
+      "bestFormatSubtitle": "Toda la red · mínimo {n} partidos por formato"
+    },
+    "quarterInsight": {
+      "noVariation": "{label}: sin variación relevante entre trimestres.",
+      "strongest": "{label}: el trimestre más fuerte del año.",
+      "weakest": "{label}: el trimestre más flojo del año.",
+      "aboveAvg": "{label}: por encima del promedio anual.",
+      "belowAvg": "{label}: por debajo del promedio anual."
+    },
+    "panorama": {
+      "trendTitle": "Tendencia del market",
+      "notEnoughHistory": "No hay suficiente historial en este período.",
+      "seasonalTitle": "Patrón estacional reciente del market",
+      "seasonalDesc": {
+        "year": "Evolución mes a mes de {period} — cada variable por separado.",
+        "semester": "Meses del semestre en curso ({period}) — el eje llega hasta el final del semestre aunque todavía no haya datos de todos los meses.",
+        "quarter": "Meses del trimestre en curso ({period}) — el eje llega hasta el final del trimestre aunque todavía no haya datos de todos los meses.",
+        "month": "Semanas de {period}, desglosado — no una vista mensual agregada."
+      },
+      "waitlistTitle": "Waitlist promedio",
+      "leadTimeTitle": "Lead time (mediana)"
+    },
+    "facility": {
+      "marketOverviewTitle": "Panorama de {market}",
+      "defaultMarketName": "este market",
+      "marketOverviewSubtitle": "{period} — elegí una facility abajo para ver su tendencia en detalle",
+      "gamesOfTotal": "{n} de {total} partidos",
+      "varianceVs": "Variación vs. {period}",
+      "pickFacilityTitle": "Elegí una facility para ver el detalle pormenorizado",
+      "facilityLabel": "Facility:",
+      "backToMarket": "volver al panorama del market",
+      "consistencyTitle": "Consistencia de horarios",
+      "referenceMonth": "Mes de referencia:",
+      "confirmedTab": "Confirmados",
+      "cancelledTab": "Cancelados",
+      "confirmedHint": "Verde — clickeá cualquier slot para ver el insight. Cada slot es facility + día + hora + tipo de cancha + tamaño",
+      "cancelledHint": "Rojo — misma lógica, mirando qué slots cancelan de forma consistente. Los slots ya destacados como \"no pueden faltar\" se muestran apagados acá, para no confundir",
+      "fullHistory": "Histórico completo",
+      "recentWindow": "Ventana reciente",
+      "notEnoughMonthlyHistory": "No hay suficiente historial mensual todavía.",
+      "notEnoughWindowHistory": "No hay suficiente historial en esta ventana todavía.",
+      "window3": "3 meses",
+      "window6": "6 meses",
+      "mustHoldTitle": "Slots que hay que sostener sí o sí",
+      "mustHoldSubtitle": "Consistencia histórica ≥75% — ordenable por columna",
+      "emergingTitle": "Slots a evaluar",
+      "emergingSubtitleConfirmed": "Sin consolidar históricamente, pero >45% de confirmación en las últimas 8 semanas",
+      "avoidHoldTitle": "Slots que hay que evitar consistentemente",
+      "avoidHoldSubtitle": "Consistencia histórica de cancelación ≥75% — ordenable por columna",
+      "avoidEmergingTitle": "Slots problemáticos a evaluar",
+      "avoidEmergingSubtitle": "Sin consolidar históricamente, pero >45% de cancelación en las últimas 8 semanas",
+      "glossaryTerm": "Consistencia",
+      "glossaryDef": "% de los meses observados en los que ese día+hora tuvo al menos un partido del status correspondiente.",
+      "byDayTitle": "Por día de la semana",
+      "byDaySectionTitle": "Las 4 métricas por día",
+      "byHourTitle": "Por horario",
+      "byHourSectionTitle": "Las 4 métricas por hora",
+      "byFormatTitle": "Por formato",
+      "byFormatSectionTitle": "Las 4 métricas por formato de partido",
+      "byFormatSectionSubtitle": "Tamaño real + tipo de cancha cuando está especificado — ej: «Turf Field 6v6»",
+      "detailTitle": "Detalle",
+      "detailGamesTitle": "Partidos individuales",
+      "detailGamesSubtitle": "Filtrable y ordenable por Día, Estado y Motivo de cancelación",
+      "granMonth": "Mes",
+      "granDay": "Día",
+      "detailThisMonthLastMonth": "{n} este mes · {m} el mes pasado",
+      "detailConfirmedOfTotal8w": "{n} confirmados de {total} en 8 semanas",
+      "detailCancelledOfTotal8w": "{n} cancelados de {total} en 8 semanas"
+    },
+    "metricCard": {
+      "compareVs": "Comparar vs. {label}",
+      "vsLabel": "vs. {value}"
+    },
+    "calendar": {
+      "showMore": "+{n} más",
+      "showLess": "ver menos",
+      "popoverDetail": "{monthsPresent} de {totalMonths} meses · {selectedMonthCount} este mes · {priorYearCount} año pasado"
+    },
+    "summaryTable": {
+      "day": "Día",
+      "hour": "Hora",
+      "format": "Formato",
+      "pct": "%",
+      "detail": "Detalle",
+      "empty": "Sin datos para listar acá todavía."
+    },
+    "quarterClimate": {
+      "title": "Estacionalidad histórica",
+      "tooltip": "{label} — {pct}% de confirmación histórica ({n} partidos)",
+      "footer": "Confirmación por trimestre — todo el histórico"
+    },
+    "detailTable": {
+      "allDays": "Todos los días",
+      "allStatuses": "Todos los estados",
+      "confirmed": "Confirmado",
+      "cancelled": "Cancelado",
+      "allReasons": "Todos los motivos",
+      "dateHeader": "Fecha",
+      "dayHeader": "Día",
+      "hourHeader": "Hora",
+      "facilityHeader": "Facility",
+      "fieldHeader": "Cancha",
+      "statusHeader": "Estado",
+      "playersHeader": "Jugadores",
+      "reasonHeader": "Motivo cancelación",
+      "empty": "Sin partidos que coincidan con el filtro.",
+      "shownOfTotal": "{shown} de {total} mostrados",
+      "cappedSuffix": " ({total} en total, capado a los {shown} más recientes)"
+    },
+    "seasonalWeekLabel": "Sem {n}",
+    "insights": {
+      "noun": {
+        "confirmed": "confirmados",
+        "cancelled": "cancelados"
+      },
+      "cell": {
+        "established": "Slot consolidado — {pct}% de consistencia en {monthsPresent} de {totalMonths} meses observados.",
+        "establishedDrop": "Slot consolidado ({pct}% de consistencia), pero cayó de {priorCount} a {selectedCount} {noun} respecto a {priorMonthLabel} — vale la pena revisarlo.",
+        "streak": "2 meses seguidos con partidos {noun} (todavía {pct}% de consistencia) — podría estar consolidándose, vale la pena seguirlo.",
+        "none": "Sin partidos {noun} registrados en este slot todavía.",
+        "sporadic": "{pct}% de consistencia ({monthsPresent} de {totalMonths} meses) — esporádico por ahora."
+      },
+      "slot": {
+        "declining": "⚠ {dayLabel} {hour} ({formatLabel}) venía siendo un slot consistente ({pct}% de los meses con {noun}), pero cayó de {priorCount} a {selectedCount} partidos {noun} respecto a {priorMonthLabel} — {verb}.",
+        "decliningVerbConfirmed": "vale la pena revisar qué cambió",
+        "decliningVerbCancelled": "buena señal, pero vale la pena confirmar que no sea una casualidad del mes",
+        "emerging": "↗ {dayLabel} {hour} ({formatLabel}) tuvo partidos {noun} dos meses seguidos, pese a no ser todavía un slot consistente históricamente ({pct}%) — {tail}.",
+        "emergingTailConfirmed": "podría estar convirtiéndose en un horario estable, vale la pena seguirlo",
+        "emergingTailCancelled": "podría estar convirtiéndose en un horario problemático, vale la pena revisarlo antes de que se consolide",
+        "noChanges": "Sin cambios destacables en los slots {word} este mes respecto al anterior.",
+        "noChangesWordConfirmed": "confiables",
+        "noChangesWordCancelled": "problemáticos"
+      }
+    }
   }
 }

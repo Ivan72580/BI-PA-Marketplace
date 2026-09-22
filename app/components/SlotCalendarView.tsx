@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useState } from "react";
+import { useTranslations } from "next-intl";
 
 type SlotConsistencyCell = {
   day: string;
@@ -46,6 +47,7 @@ export default function SlotCalendarView({
   // se ocultan acá para no mostrar el mismo slot marcado en los dos lados.
   suppressedKeys?: Set<string>;
 }) {
+  const t = useTranslations("Trends.calendar");
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [expandedGridKey, setExpandedGridKey] = useState<string | null>(null);
   const colors = COLOR[colorScheme];
@@ -112,7 +114,7 @@ export default function SlotCalendarView({
                             </div>
                             <div className="text-xs leading-snug mb-1.5">{c.insight}</div>
                             <div className="text-[10px] text-white/80">
-                              {c.monthsPresent} de {c.totalMonthsObserved} meses · {c.selectedMonthCount} este mes · {c.priorYearCount} año pasado
+                              {t("popoverDetail", { monthsPresent: c.monthsPresent, totalMonths: c.totalMonthsObserved, selectedMonthCount: c.selectedMonthCount, priorYearCount: c.priorYearCount })}
                             </div>
                           </div>
                         )}
@@ -125,7 +127,7 @@ export default function SlotCalendarView({
                       onClick={() => setExpandedGridKey(gridKey)}
                       className="text-[8px] text-ink-faint hover:text-ink-muted text-center leading-none py-[1px]"
                     >
-                      +{hiddenCount} más
+                      {t("showMore", { n: hiddenCount })}
                     </button>
                   )}
                   {isExpanded && (
@@ -134,7 +136,7 @@ export default function SlotCalendarView({
                       onClick={() => setExpandedGridKey(null)}
                       className="text-[8px] text-ink-faint hover:text-ink-muted text-center leading-none py-[1px]"
                     >
-                      ver menos
+                      {t("showLess")}
                     </button>
                   )}
                 </div>

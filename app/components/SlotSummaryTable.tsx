@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 
 export type SlotSummaryRow = {
   key: string;
@@ -27,6 +28,7 @@ function SortableTh({ label, sortKey, activeSortKey, sortDir, onSort }: { label:
 }
 
 export default function SlotSummaryTable({ rows, colorScheme = "green" }: { rows: SlotSummaryRow[]; colorScheme?: "green" | "red" }) {
+  const t = useTranslations("Trends.summaryTable");
   const [sortKey, setSortKey] = useState<SortKey>("dayLabel");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
@@ -56,11 +58,11 @@ export default function SlotSummaryTable({ rows, colorScheme = "green" }: { rows
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="border-b border-border">
-            <SortableTh label="Día" sortKey="dayLabel" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
-            <SortableTh label="Hora" sortKey="hour" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
-            <SortableTh label="Formato" sortKey="formatLabel" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
-            <SortableTh label="%" sortKey="pct" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
-            <th className="py-1.5 px-2 font-normal text-left text-ink-muted">Detalle</th>
+            <SortableTh label={t("day")} sortKey="dayLabel" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+            <SortableTh label={t("hour")} sortKey="hour" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+            <SortableTh label={t("format")} sortKey="formatLabel" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+            <SortableTh label={t("pct")} sortKey="pct" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+            <th className="py-1.5 px-2 font-normal text-left text-ink-muted">{t("detail")}</th>
           </tr>
         </thead>
         <tbody>
@@ -74,7 +76,7 @@ export default function SlotSummaryTable({ rows, colorScheme = "green" }: { rows
             </tr>
           ))}
           {sorted.length === 0 && (
-            <tr><td colSpan={5} className="py-4 text-center text-ink-faint">Sin datos para listar acá todavía.</td></tr>
+            <tr><td colSpan={5} className="py-4 text-center text-ink-faint">{t("empty")}</td></tr>
           )}
         </tbody>
       </table>

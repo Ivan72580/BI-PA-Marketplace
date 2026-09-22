@@ -324,7 +324,12 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
     getWeekStrip(sp.facilityId, dateISO, locale as Locale),
     getRecentDailyTrend(sp.facilityId, dateISO),
     getMustScheduleSlots(sp.facilityId, dateISO, locale as Locale),
-    getDayOfWeekPattern({ facilityId: sp.facilityId }),
+    // getDayOfWeekPattern ahora es compartida con /trends y pide `locale`
+    // explícito (ver app/lib/db/trends.ts) — /daily nunca usa su campo
+    // `.label` (solo `.key`/`.totalGames`/`.confirmationRate`/
+    // `.cancellationRate`), así que esto no traduce nada nuevo acá, solo
+    // satisface la firma.
+    getDayOfWeekPattern({ facilityId: sp.facilityId }, locale as Locale),
   ]);
 
   const sparklinePoints = recentTrend.map((p) => Math.round(p.confirmationRate * 1000) / 10);
