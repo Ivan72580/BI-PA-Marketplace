@@ -106,3 +106,15 @@ model Game {
   @@index([facilityId, date])
   @@map("games")
 }
+
+// Preferencia de idioma del usuario logueado. Tabla liviana e independiente
+// del modelo de auth (NextAuth sigue en JWT, sin adapter/DB sessions) —
+// solo se lee/escribe por email cuando hay sesión activa. Si el usuario no
+// está logueado, el idioma se resuelve por cookie (ver i18n/request.ts).
+model UserPreference {
+  email     String   @id
+  locale    String   @default("es")
+  updatedAt DateTime @updatedAt
+
+  @@map("user_preferences")
+}

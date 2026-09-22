@@ -1,0 +1,30 @@
+{
+  "TopNav": {
+    "overview": "Overview",
+    "trends": "Trends",
+    "market": "Market",
+    "daily": "Diario"
+  },
+  "FilterPanel": {
+    "filterLabel": "Filtro",
+    "allRegions": "Todas las regiones",
+    "allMarkets": "Todos los markets",
+    "allFacilities": "Todas las facilities",
+    "granularity": {
+      "month": "Por mes",
+      "year": "Por año",
+      "semester": "Por semestre",
+      "quarter": "Por trimestre",
+      "week": "Por semana",
+      "day": "Por día",
+      "custom": "Rango personalizado",
+      "all": "Todo el histórico"
+    },
+    "dateRangeTo": "a",
+    "clear": "Limpiar"
+  },
+  "UserMenu": {
+    "guest": "Invitado",
+    "signOut": "Salir"
+  }
+}

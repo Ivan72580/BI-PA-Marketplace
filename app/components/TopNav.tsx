@@ -4,6 +4,7 @@ import { type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import FacilitySearch from "./FacilitySearch";
 
 function OverviewIcon() {
@@ -44,11 +45,13 @@ function DailyIcon() {
   );
 }
 
-const links: { href: string; label: string; icon: () => ReactNode }[] = [
-  { href: "/", label: "Overview", icon: OverviewIcon },
-  { href: "/trends", label: "Trends", icon: TrendsIcon },
-  { href: "/market", label: "Market", icon: MarketIcon },
-  { href: "/daily", label: "Diario", icon: DailyIcon },
+// Las labels viven en messages/*.json (namespace TopNav) — labelKey referencia
+// esa clave, se traduce en el render porque useTranslations es un hook.
+const links: { href: string; labelKey: "overview" | "trends" | "market" | "daily"; icon: () => ReactNode }[] = [
+  { href: "/", labelKey: "overview", icon: OverviewIcon },
+  { href: "/trends", labelKey: "trends", icon: TrendsIcon },
+  { href: "/market", labelKey: "market", icon: MarketIcon },
+  { href: "/daily", labelKey: "daily", icon: DailyIcon },
 ];
 
 export default function TopNav({
@@ -61,6 +64,7 @@ export default function TopNav({
   markets: { id: string; name: string; regionId: string }[];
 }) {
   const pathname = usePathname();
+  const t = useTranslations("TopNav");
 
   return (
     <div className="sticky top-0 z-40 bg-[#0b3b2e]/95 backdrop-blur-xl">
@@ -88,7 +92,7 @@ export default function TopNav({
                 )}
                 <span className="relative flex items-center gap-2">
                   <Icon />
-                  {l.label}
+                  {t(l.labelKey)}
                 </span>
               </Link>
             );

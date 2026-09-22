@@ -1,21 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { resolvePeriod, shiftAnchor, todayISO, type Granularity } from "../lib/period";
 
 type Option = { id: string; name: string; regionId?: string; marketId?: string };
 
-const GRANULARITY_OPTIONS: { value: Granularity; label: string }[] = [
-  { value: "month", label: "Por mes" },
-  { value: "year", label: "Por año" },
-  { value: "semester", label: "Por semestre" },
-  { value: "quarter", label: "Por trimestre" },
-  { value: "week", label: "Por semana" },
-  { value: "day", label: "Por día" },
-  { value: "custom", label: "Rango personalizado" },
-  { value: "all", label: "Todo el histórico" },
-];
+// Los labels viven en messages/*.json (namespace FilterPanel.granularity,
+// clave = value) — se traducen en el render vía t(`granularity.${value}`).
+const GRANULARITY_VALUES: Granularity[] = ["month", "year", "semester", "quarter", "week", "day", "custom", "all"];
 
 // input type="week" usa formato ISO 8601 ("2026-W35") — estas dos funciones
 // convierten entre eso y nuestro anchor YYYY-MM-DD (lunes de esa semana).
@@ -67,6 +61,7 @@ export default function FilterPanel({
   // dentro de otra caja.
   bare?: boolean;
 }) {
+  const t = useTranslations("FilterPanel");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -104,14 +99,14 @@ export default function FilterPanel({
 
   return (
     <div className={bare ? "flex flex-wrap items-center gap-2" : "border-b border-border/70 px-1 py-1.5 mb-5 flex flex-wrap items-center gap-1.5"}>
-      {!bare && <span className="text-[10px] text-ink-faint mr-0.5 uppercase tracking-wide">Filtro</span>}
+      {!bare && <span className="text-[10px] text-ink-faint mr-0.5 uppercase tracking-wide">{t("filterLabel")}</span>}
 
       <select
         className={selectClass}
         value={regionId}
         onChange={(e) => update({ regionId: e.target.value, marketId: undefined, facilityId: undefined })}
       >
-        <option value="All">Todas las regiones</option>
+        <option value="All">{t("allRegions")}</option>
         {regions.map((r) => (
           <option key={r.id} value={r.id}>{r.name}</option>
         ))}
@@ -122,7 +117,7 @@ export default function FilterPanel({
         value={marketId}
         onChange={(e) => update({ marketId: e.target.value, facilityId: undefined })}
       >
-        <option value="All">Todos los markets</option>
+        <option value="All">{t("allMarkets")}</option>
         {filteredMarkets.map((m) => (
           <option key={m.id} value={m.id}>{m.name}</option>
         ))}
@@ -134,7 +129,7 @@ export default function FilterPanel({
           value={facilityId}
           onChange={(e) => update({ facilityId: e.target.value })}
         >
-          <option value="All">Todas las facilities</option>
+          <option value="All">{t("allFacilities")}</option>
           {filteredFacilities.map((f) => (
             <option key={f.id} value={f.id}>{f.name}</option>
           ))}
@@ -159,15 +154,15 @@ export default function FilterPanel({
               router.push(`${pathname}?${params.toString()}`, { scroll: false });
             }}
           >
-            {GRANULARITY_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
+            {GRANULARITY_VALUES.map((value) => (
+              <option key={value} value={value}>{t(`granularity.${value}`)}</option>
             ))}
           </select>
 
           {granularity === "custom" && (
             <span className="flex items-center gap-1">
               <input type="date" value={customFrom} onChange={(e) => update({ customFrom: e.target.value })} className={selectClass} />
-              <span className="text-[10px] text-ink-faint">a</span>
+              <span className="text-[10px] text-ink-faint">{t("dateRangeTo")}</span>
               <input type="date" value={customTo} onChange={(e) => update({ customTo: e.target.value })} className={selectClass} />
             </span>
           )}
@@ -200,7 +195,7 @@ export default function FilterPanel({
 
       {hasFilter && clearHref && (
         <Link href={clearHref} className="text-[11px] text-ink-faint hover:text-brand ml-auto shrink-0">
-          Limpiar
+          {t("clear")}
         </Link>
       )}
     </div>
