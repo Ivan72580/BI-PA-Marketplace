@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { useTranslations } from "next-intl";
 import MustScheduleCalendar, { type MustScheduleCalendarCell } from "./MustScheduleCalendar";
 import Tabs from "./Tabs";
 
@@ -23,6 +24,7 @@ export default function MustScheduleBoard({
   confirmedTabs: { id: string; label: string; content: ReactNode }[];
   cancelledTabs: { id: string; label: string; content: ReactNode }[];
 }) {
+  const t = useTranslations("Daily.board");
   const [mode, setMode] = useState<"confirmed" | "cancelled">("confirmed");
   const isCancelled = mode === "cancelled";
 
@@ -35,14 +37,14 @@ export default function MustScheduleBoard({
             onClick={() => setMode("confirmed")}
             className={`px-4 py-1.5 rounded-full transition-colors ${!isCancelled ? "bg-brand text-white shadow-sm" : "text-ink-muted hover:text-ink"}`}
           >
-            Confirmados
+            {t("confirmedTab")}
           </button>
           <button
             type="button"
             onClick={() => setMode("cancelled")}
             className={`px-4 py-1.5 rounded-full transition-colors ${isCancelled ? "bg-danger text-white shadow-sm" : "text-ink-muted hover:text-ink"}`}
           >
-            Cancelados
+            {t("cancelledTab")}
           </button>
         </div>
       </div>
@@ -54,11 +56,7 @@ export default function MustScheduleBoard({
             hours={hours}
             cells={isCancelled ? cancelledCells : confirmedCells}
             tone={isCancelled ? "cancel" : "confirm"}
-            emptyLabel={
-              isCancelled
-                ? "Ningún slot supera el 55% de cancelación en los últimos 3 meses con muestra suficiente — buena señal."
-                : "Todavía no hay slots que superen el 55% de confirmación en los últimos 3 meses con muestra suficiente."
-            }
+            emptyLabel={isCancelled ? t("emptyCancelled") : t("emptyConfirmed")}
           />
         </div>
         {/* Mismos ids en ambos juegos de pestañas ("dow"/"top"/"watch") para

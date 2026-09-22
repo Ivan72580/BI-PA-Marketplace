@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useState } from "react";
+import { useTranslations } from "next-intl";
 
 // Forma genérica, agnóstica de la métrica — la usan tanto la vista de
 // confirmados (rate = tasa de confirmación) como la de cancelados (rate =
@@ -47,13 +48,15 @@ export default function MustScheduleCalendar({
   tone?: "confirm" | "cancel";
   emptyLabel: string;
 }) {
+  const t = useTranslations("Daily.calendar");
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [expandedGridKey, setExpandedGridKey] = useState<string | null>(null);
   const MAX_VISIBLE = 2;
 
   const bgClass = tone === "cancel" ? "bg-danger" : "bg-brand";
   const popoverBgClass = tone === "cancel" ? "bg-danger/95" : "bg-brand/95";
-  const matchingLabel = tone === "cancel" ? "cancelados" : "confirmados";
+  const matchingLabel = tone === "cancel" ? t("cancelledLabel") : t("confirmedLabel");
+  const rateWord = tone === "cancel" ? t("cancellationWord") : t("confirmationWord");
 
   const grid = new Map<string, MustScheduleCalendarCell[]>();
   for (const c of cells) {
@@ -103,7 +106,7 @@ export default function MustScheduleCalendar({
                         <button
                           type="button"
                           onClick={() => setSelectedKey(isSelected ? null : cellKey)}
-                          title={`${c.formatLabel} — ${(c.rate * 100).toFixed(0)}% de ${tone === "cancel" ? "cancelación" : "confirmación"}`}
+                          title={t("titleTemplate", { format: c.formatLabel, pct: (c.rate * 100).toFixed(0), word: rateWord })}
                           className={`w-full text-left rounded px-1.5 py-1 text-[10px] leading-tight truncate transition-[filter] hover:brightness-90 text-white ${bgClass} ${
                             isSelected ? "ring-2 ring-offset-1 ring-ink/40" : ""
                           }`}
@@ -119,7 +122,7 @@ export default function MustScheduleCalendar({
                               <button type="button" onClick={() => setSelectedKey(null)} className="text-white/70 hover:text-white text-xs shrink-0">✕</button>
                             </div>
                             <div className="text-xs leading-snug mb-1.5">{c.insight}</div>
-                            <div className="text-[10px] text-white/80">{c.matchingGames} {matchingLabel} de {c.totalGames}</div>
+                            <div className="text-[10px] text-white/80">{t("matchOf", { matching: c.matchingGames, label: matchingLabel, total: c.totalGames })}</div>
                           </div>
                         )}
                       </div>
@@ -131,7 +134,7 @@ export default function MustScheduleCalendar({
                       onClick={() => setExpandedGridKey(gridKey)}
                       className="text-[9px] text-ink-faint hover:text-ink-muted text-center leading-none py-[2px]"
                     >
-                      +{hiddenCount} más
+                      {t("showMore", { n: hiddenCount })}
                     </button>
                   )}
                   {isExpanded && (
@@ -140,7 +143,7 @@ export default function MustScheduleCalendar({
                       onClick={() => setExpandedGridKey(null)}
                       className="text-[9px] text-ink-faint hover:text-ink-muted text-center leading-none py-[2px]"
                     >
-                      ver menos
+                      {t("showLess")}
                     </button>
                   )}
                 </div>

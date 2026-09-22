@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getLocale, getTranslations } from "next-intl/server";
 import {
   getFilterOptions,
   getDaySnapshot,
@@ -17,7 +18,9 @@ import {
   type TopCancelSlotSummary,
   type StrugglingCancelSlot,
 } from "../lib/db/queries";
+import { weekdaySingular, weekdayPlural } from "../lib/db/weekday";
 import { todayISO } from "../lib/period";
+import type { Locale } from "@/i18n/config";
 import FilterPanel from "../components/FilterPanel";
 import DailyBreadcrumb from "../components/DailyBreadcrumb";
 import GroupSection from "../components/GroupSection";
@@ -30,6 +33,10 @@ import MustScheduleBoard from "../components/MustScheduleBoard";
 import type { MustScheduleCalendarCell } from "../components/MustScheduleCalendar";
 
 type SP = { regionId?: string; marketId?: string; facilityId?: string; date?: string };
+
+// Tipo mínimo del traductor que necesitan las funciones de esta página — el
+// mismo que devuelve getTranslations("Daily").
+type Translator = (key: string, values?: Record<string, string | number>) => string;
 
 function buildDailyQuery(current: SP, overrides: Partial<SP>): string {
   const merged: SP = { ...current, ...overrides };
@@ -77,7 +84,7 @@ type DayOfWeekSummary = { key: string; dayLabel: string; totalGames: number; lin
 // identificamos en "Confirmación altísima" y "A vigilar" (mismo día), para
 // no repetir en barras algo que ya se ve de otra forma en el resto de la
 // página, sino sintetizarlo.
-function buildDayOfWeekSummaries(pattern: PatternRow[], topSlots: TopSlotSummary[], strugglingSlots: StrugglingSlot[]): DayOfWeekSummary[] {
+function buildDayOfWeekSummaries(pattern: PatternRow[], topSlots: TopSlotSummary[], strugglingSlots: StrugglingSlot[], t: Translator): DayOfWeekSummary[] {
   const withData = pattern.filter((r) => r.totalGames >= MIN_SAMPLE_FOR_DAY_SUMMARY);
   if (withData.length === 0) return [];
 
@@ -89,32 +96,35 @@ function buildDayOfWeekSummaries(pattern: PatternRow[], topSlots: TopSlotSummary
   return withData.map((r) => {
     const lines: string[] = [];
     const pct = formatPct(r.confirmationRate);
+    const n = r.totalGames.toLocaleString("en-US");
 
     if (best.key === worst.key) {
-      lines.push(`${pct} de confirmación · ${r.totalGames.toLocaleString("en-US")} partidos — sin variación relevante entre días.`);
+      lines.push(t("dayOfWeekSummary.noVariation", { pct, n }));
     } else if (r.key === best.key) {
-      lines.push(`${pct} de confirmación · ${r.totalGames.toLocaleString("en-US")} partidos — el día más fuerte de la semana en esta facility.`);
+      lines.push(t("dayOfWeekSummary.strongest", { pct, n }));
     } else if (r.key === worst.key) {
-      lines.push(`${pct} de confirmación · ${r.totalGames.toLocaleString("en-US")} partidos — el día más débil de la semana, vale la pena revisar qué lo explica.`);
+      lines.push(t("dayOfWeekSummary.weakest", { pct, n }));
+    } else if (r.confirmationRate >= avgRate) {
+      lines.push(t("dayOfWeekSummary.relativeAbove", { pct, n, avg: formatPct(avgRate) }));
     } else {
-      const rel = r.confirmationRate >= avgRate ? "por encima" : "por debajo";
-      lines.push(`${pct} de confirmación · ${r.totalGames.toLocaleString("en-US")} partidos — ${rel} del promedio semanal (${formatPct(avgRate)}).`);
+      lines.push(t("dayOfWeekSummary.relativeBelow", { pct, n, avg: formatPct(avgRate) }));
     }
 
     if (r.occupancyRate < 0.6) {
-      lines.push(`Ocupación baja en los partidos confirmados (${formatPct(r.occupancyRate)}) — hay margen para llenarlos más.`);
+      lines.push(t("dayOfWeekSummary.lowOccupancy", { pct: formatPct(r.occupancyRate) }));
     }
 
     const daySlots = topSlots.filter((s) => s.day === r.key);
     if (daySlots.length > 0) {
       const bestSlot = [...daySlots].sort((a, b) => b.confirmationRate - a.confirmationRate)[0];
-      lines.push(`${daySlots.length} horario${daySlots.length > 1 ? "s" : ""} con confirmación altísima, el mejor a las ${bestSlot.hour} (${formatPct(bestSlot.confirmationRate)}).`);
+      lines.push(t("dayOfWeekSummary.topSlots", { n: daySlots.length, hour: bestSlot.hour, pct: formatPct(bestSlot.confirmationRate) }));
     }
 
     const dayStruggling = strugglingSlots.filter((s) => s.day === r.key);
     if (dayStruggling.length > 0) {
       const declining = dayStruggling.filter((s) => s.reason === "declining").length;
-      lines.push(`${dayStruggling.length} horario${dayStruggling.length > 1 ? "s" : ""} a vigilar${declining > 0 ? ` (${declining} bajando)` : ""}.`);
+      const decliningSuffix = declining > 0 ? t("dayOfWeekSummary.decliningSuffix", { n: declining }) : "";
+      lines.push(t("dayOfWeekSummary.watchSlots", { n: dayStruggling.length, decliningSuffix }));
     }
 
     return { key: r.key, dayLabel: r.label, totalGames: r.totalGames, lines };
@@ -127,7 +137,7 @@ function buildDayOfWeekSummaries(pattern: PatternRow[], topSlots: TopSlotSummary
 // ocupación baja se usa la conversión (jugadores que se anotan y no llegan a
 // jugar) porque es el indicador que más se relaciona con déficit/abandono,
 // el eje que pidió esta vista.
-function buildDayOfWeekCancelSummaries(pattern: PatternRow[], topCancelSlots: TopCancelSlotSummary[], strugglingCancelSlots: StrugglingCancelSlot[]): DayOfWeekSummary[] {
+function buildDayOfWeekCancelSummaries(pattern: PatternRow[], topCancelSlots: TopCancelSlotSummary[], strugglingCancelSlots: StrugglingCancelSlot[], t: Translator): DayOfWeekSummary[] {
   const withData = pattern.filter((r) => r.totalGames >= MIN_SAMPLE_FOR_DAY_SUMMARY);
   if (withData.length === 0) return [];
 
@@ -139,32 +149,35 @@ function buildDayOfWeekCancelSummaries(pattern: PatternRow[], topCancelSlots: To
   return withData.map((r) => {
     const lines: string[] = [];
     const pct = formatPct(r.cancellationRate);
+    const n = r.totalGames.toLocaleString("en-US");
 
     if (best.key === worst.key) {
-      lines.push(`${pct} de cancelación · ${r.totalGames.toLocaleString("en-US")} partidos — sin variación relevante entre días.`);
+      lines.push(t("dayOfWeekCancelSummary.noVariation", { pct, n }));
     } else if (r.key === best.key) {
-      lines.push(`${pct} de cancelación · ${r.totalGames.toLocaleString("en-US")} partidos — el día con menos cancelaciones de la semana en esta facility.`);
+      lines.push(t("dayOfWeekCancelSummary.best", { pct, n }));
     } else if (r.key === worst.key) {
-      lines.push(`${pct} de cancelación · ${r.totalGames.toLocaleString("en-US")} partidos — el día con más cancelaciones de la semana, vale la pena revisar qué lo explica.`);
+      lines.push(t("dayOfWeekCancelSummary.worst", { pct, n }));
+    } else if (r.cancellationRate <= avgRate) {
+      lines.push(t("dayOfWeekCancelSummary.relativeBelow", { pct, n, avg: formatPct(avgRate) }));
     } else {
-      const rel = r.cancellationRate <= avgRate ? "por debajo" : "por encima";
-      lines.push(`${pct} de cancelación · ${r.totalGames.toLocaleString("en-US")} partidos — ${rel} del promedio semanal (${formatPct(avgRate)}).`);
+      lines.push(t("dayOfWeekCancelSummary.relativeAbove", { pct, n, avg: formatPct(avgRate) }));
     }
 
     if (r.conversionRate < 0.85) {
-      lines.push(`Conversión baja (${formatPct(r.conversionRate)}) — buena parte de los que se anotan no llegan a jugar (abandono o lista de espera sin entrar).`);
+      lines.push(t("dayOfWeekCancelSummary.lowConversion", { pct: formatPct(r.conversionRate) }));
     }
 
     const daySlots = topCancelSlots.filter((s) => s.day === r.key);
     if (daySlots.length > 0) {
       const worstSlot = [...daySlots].sort((a, b) => b.cancellationRate - a.cancellationRate)[0];
-      lines.push(`${daySlots.length} horario${daySlots.length > 1 ? "s" : ""} con cancelación altísima, el más crítico a las ${worstSlot.hour} (${formatPct(worstSlot.cancellationRate)}).`);
+      lines.push(t("dayOfWeekCancelSummary.topSlots", { n: daySlots.length, hour: worstSlot.hour, pct: formatPct(worstSlot.cancellationRate) }));
     }
 
     const dayStruggling = strugglingCancelSlots.filter((s) => s.day === r.key);
     if (dayStruggling.length > 0) {
       const worsening = dayStruggling.filter((s) => s.reason === "worsening").length;
-      lines.push(`${dayStruggling.length} horario${dayStruggling.length > 1 ? "s" : ""} a vigilar${worsening > 0 ? ` (${worsening} empeorando)` : ""}.`);
+      const worseningSuffix = worsening > 0 ? t("dayOfWeekCancelSummary.worseningSuffix", { n: worsening }) : "";
+      lines.push(t("dayOfWeekCancelSummary.watchSlots", { n: dayStruggling.length, worseningSuffix }));
     }
 
     return { key: r.key, dayLabel: r.label, totalGames: r.totalGames, lines };
@@ -187,11 +200,13 @@ function Stat({ label, value, sublabel, delta, deltaInvert }: { label: string; v
 // Insights de "variación diaria" + "recomendaciones" — determinísticos,
 // calculados sobre datos ya obtenidos (mismo criterio que buildQuarterInsights
 // en Trends), no una consulta nueva.
-function buildDayInsights(summary: DaySummary, baseline: DayBaseline, evolution: DayEvolutionPoint[]): string[] {
+function buildDayInsights(summary: DaySummary, baseline: DayBaseline, evolution: DayEvolutionPoint[], t: Translator, locale: Locale): string[] {
   const lines: string[] = [];
+  const weekdaySing = weekdaySingular(summary.dayOfWeek, locale);
+  const weekdayPl = weekdayPlural(summary.dayOfWeek, locale);
 
   if (summary.totalGames === 0) {
-    lines.push(`Sin partidos registrados este ${summary.dayLabel.toLowerCase()} en esta facility.`);
+    lines.push(t("insights.noGames", { weekday: weekdaySing }));
     return lines;
   }
 
@@ -199,28 +214,28 @@ function buildDayInsights(summary: DaySummary, baseline: DayBaseline, evolution:
     const deltaConfirm = summary.confirmationRate - baseline.avgConfirmationRate;
     const deltaPts = Math.abs(deltaConfirm * 100).toFixed(1);
     if (Math.abs(deltaConfirm) < 0.03) {
-      lines.push(`La confirmación de hoy (${formatPct(summary.confirmationRate)}) está en línea con el promedio de los últimos ${baseline.occurrences} ${summary.dayLabel.toLowerCase()}s (${formatPct(baseline.avgConfirmationRate)}).`);
+      lines.push(t("insights.confirmationInLine", { rate: formatPct(summary.confirmationRate), n: baseline.occurrences, weekday: weekdayPl, avg: formatPct(baseline.avgConfirmationRate) }));
     } else if (deltaConfirm > 0) {
-      lines.push(`La confirmación de hoy (${formatPct(summary.confirmationRate)}) está ${deltaPts} pts por encima del promedio de los últimos ${baseline.occurrences} ${summary.dayLabel.toLowerCase()}s (${formatPct(baseline.avgConfirmationRate)}) — buena señal.`);
+      lines.push(t("insights.confirmationAbove", { rate: formatPct(summary.confirmationRate), pts: deltaPts, n: baseline.occurrences, weekday: weekdayPl, avg: formatPct(baseline.avgConfirmationRate) }));
     } else {
-      lines.push(`La confirmación de hoy (${formatPct(summary.confirmationRate)}) está ${deltaPts} pts por debajo del promedio de los últimos ${baseline.occurrences} ${summary.dayLabel.toLowerCase()}s (${formatPct(baseline.avgConfirmationRate)}) — vale la pena revisar qué cambió.`);
+      lines.push(t("insights.confirmationBelow", { rate: formatPct(summary.confirmationRate), pts: deltaPts, n: baseline.occurrences, weekday: weekdayPl, avg: formatPct(baseline.avgConfirmationRate) }));
     }
 
     const deltaGames = summary.totalGames - baseline.avgGamesPerOccurrence;
     if (Math.abs(deltaGames) >= 1) {
-      const dir = deltaGames > 0 ? "más" : "menos";
-      lines.push(`Hubo ${Math.abs(Math.round(deltaGames))} partido(s) ${dir} que el promedio habitual para este día (${baseline.avgGamesPerOccurrence.toFixed(1)} partidos).`);
+      const n = Math.abs(Math.round(deltaGames));
+      const avg = baseline.avgGamesPerOccurrence.toFixed(1);
+      lines.push(deltaGames > 0 ? t("insights.gamesMore", { n, avg }) : t("insights.gamesLess", { n, avg }));
     }
   } else {
-    lines.push(`Todavía no hay suficiente historial de ${summary.dayLabel.toLowerCase()}s previos en esta facility como para comparar con una línea base confiable.`);
+    lines.push(t("insights.noBaseline", { weekday: weekdayPl }));
   }
 
   const topCancel = summary.cancellationBreakdown[0];
   if (topCancel && topCancel.count >= 2) {
-    lines.push(`El motivo de cancelación más frecuente hoy fue "${topCancel.label}" (${topCancel.count} de ${summary.cancelledGames} cancelados).`);
+    lines.push(t("insights.topCancelReason", { reason: topCancel.label, count: topCancel.count, total: summary.cancelledGames }));
   }
 
-  const dayWord = summary.dayLabel.toLowerCase();
   const withData = evolution.filter((p) => p.totalGames > 0);
 
   // Punto 1: análisis resumido de las últimas semanas (mínimo 6, hasta las
@@ -232,12 +247,20 @@ function buildDayInsights(summary: DaySummary, baseline: DayBaseline, evolution:
     const maxRate = Math.max(...rates);
     const minRate = Math.min(...rates);
     const diff = lastPoint.confirmationRate - first.confirmationRate;
-    const trendWord = diff >= 0.08 ? "una tendencia creciente" : diff <= -0.08 ? "una tendencia decreciente" : "una tendencia relativamente estable";
+    const trendKey = diff >= 0.08 ? "insights.trendUp" : diff <= -0.08 ? "insights.trendDown" : "insights.trendStable";
     lines.push(
-      `En las últimas ${withData.length} semanas, la confirmación de los ${dayWord}s muestra ${trendWord}: pasó de ${formatPct(first.confirmationRate)} a ${formatPct(lastPoint.confirmationRate)} (mínimo ${formatPct(minRate)}, máximo ${formatPct(maxRate)}).`
+      t("insights.trendSummary", {
+        n: withData.length,
+        weekday: weekdayPl,
+        trend: t(trendKey),
+        first: formatPct(first.confirmationRate),
+        last: formatPct(lastPoint.confirmationRate),
+        min: formatPct(minRate),
+        max: formatPct(maxRate),
+      })
     );
   } else {
-    lines.push(`Todavía no hay 6 ${dayWord}s de historial como para analizar la tendencia de varias semanas.`);
+    lines.push(t("insights.noWeeklyHistory", { weekday: weekdayPl }));
   }
 
   // Punto 2: comportamiento de HOY respecto a esa tendencia reciente (no el
@@ -251,11 +274,11 @@ function buildDayInsights(summary: DaySummary, baseline: DayBaseline, evolution:
       const diffFromTrend = today.confirmationRate - recentAvg;
       const diffPts = Math.abs(diffFromTrend * 100).toFixed(1);
       if (Math.abs(diffFromTrend) < 0.05) {
-        lines.push(`El comportamiento de hoy está en línea con la tendencia reciente de los últimos ${recentWindow.length} ${dayWord}s (~${formatPct(recentAvg)}).`);
+        lines.push(t("insights.todayInLine", { n: recentWindow.length, weekday: weekdayPl, avg: formatPct(recentAvg) }));
       } else if (diffFromTrend > 0) {
-        lines.push(`Hoy estuvo ${diffPts} pts por encima de la tendencia reciente (~${formatPct(recentAvg)} en los últimos ${recentWindow.length} ${dayWord}s) — podría ser una mejora puntual o el comienzo de un cambio de tendencia, vale la pena confirmarlo la semana próxima.`);
+        lines.push(t("insights.todayAbove", { pts: diffPts, avg: formatPct(recentAvg), n: recentWindow.length, weekday: weekdayPl }));
       } else {
-        lines.push(`Hoy estuvo ${diffPts} pts por debajo de la tendencia reciente (~${formatPct(recentAvg)} en los últimos ${recentWindow.length} ${dayWord}s) — vale la pena revisar si es un evento puntual o el inicio de una baja sostenida.`);
+        lines.push(t("insights.todayBelow", { pts: diffPts, avg: formatPct(recentAvg), n: recentWindow.length, weekday: weekdayPl }));
       }
     }
   }
@@ -265,7 +288,11 @@ function buildDayInsights(summary: DaySummary, baseline: DayBaseline, evolution:
 
 export default async function DailyPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
-  const filterOptions = await getFilterOptions();
+  const [filterOptions, locale, t] = await Promise.all([
+    getFilterOptions(),
+    getLocale(),
+    getTranslations("Daily"),
+  ]);
 
   // ---------- Selección obligatoria: región, market Y facility ----------
   // A diferencia de Trends/Market (que admiten un panorama agregado), esta
@@ -274,15 +301,13 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
   if (!sp.regionId || !sp.marketId || !sp.facilityId) {
     return (
       <div>
-        <h1 className="font-display text-3xl font-bold text-ink mb-1">Seguimiento diario</h1>
-        <div className="text-sm text-ink-faint mb-4 max-w-2xl">
-          Detalle operativo día por día de una facility puntual: qué pasó, cómo se compara con días anteriores similares, y qué horarios conviene tener agendados sí o sí.
-        </div>
+        <h1 className="font-display text-3xl font-bold text-ink mb-1">{t("title")}</h1>
+        <div className="text-sm text-ink-faint mb-4 max-w-2xl">{t("subtitle")}</div>
 
         <div className="rounded-2xl bg-brand-soft/50 border border-brand/25 px-5 py-3 flex items-center justify-between gap-4 flex-wrap">
           <div className="min-w-0">
-            <div className="text-sm font-semibold text-ink">Elegí región, market y facility para ver el detalle diario</div>
-            <div className="text-xs text-ink-muted">Esta vista es por facility puntual — no tiene un panorama de red o de market agregado.</div>
+            <div className="text-sm font-semibold text-ink">{t("selectPromptTitle")}</div>
+            <div className="text-xs text-ink-muted">{t("selectPromptSubtitle")}</div>
           </div>
           <FilterPanel regions={filterOptions.regions} markets={filterOptions.markets} facilities={filterOptions.facilities} showTimeControls={false} bare />
         </div>
@@ -293,12 +318,12 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
   const dateISO = isValidDate(sp.date) ? sp.date : todayISO();
 
   const [summary, baseline, evolution, weekStrip, recentTrend, mustSchedule, dayOfWeekPattern] = await Promise.all([
-    getDaySnapshot(sp.facilityId, dateISO),
+    getDaySnapshot(sp.facilityId, dateISO, locale as Locale),
     getDayBaseline(sp.facilityId, dateISO),
-    getDayEvolution(sp.facilityId, dateISO),
-    getWeekStrip(sp.facilityId, dateISO),
+    getDayEvolution(sp.facilityId, dateISO, locale as Locale),
+    getWeekStrip(sp.facilityId, dateISO, locale as Locale),
     getRecentDailyTrend(sp.facilityId, dateISO),
-    getMustScheduleSlots(sp.facilityId, dateISO),
+    getMustScheduleSlots(sp.facilityId, dateISO, locale as Locale),
     getDayOfWeekPattern({ facilityId: sp.facilityId }),
   ]);
 
@@ -307,8 +332,8 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
   // Todo el historial disponible de esta facility, sin filtrar por el día
   // elegido arriba — responde "¿qué día de la semana funciona mejor acá en
   // general?", no "¿qué tan bien le fue a este día puntual?".
-  const dayOfWeekSummaries = buildDayOfWeekSummaries(dayOfWeekPattern, mustSchedule.topSlots, mustSchedule.strugglingSlots);
-  const dayOfWeekCancelSummaries = buildDayOfWeekCancelSummaries(dayOfWeekPattern, mustSchedule.topCancelSlots, mustSchedule.strugglingCancelSlots);
+  const dayOfWeekSummaries = buildDayOfWeekSummaries(dayOfWeekPattern, mustSchedule.topSlots, mustSchedule.strugglingSlots, t);
+  const dayOfWeekCancelSummaries = buildDayOfWeekCancelSummaries(dayOfWeekPattern, mustSchedule.topCancelSlots, mustSchedule.strugglingCancelSlots, t);
 
   // Mismas celdas de mustSchedule.cells / cancelCells, normalizadas a la
   // forma genérica que espera MustScheduleCalendar (rate/matchingGames en
@@ -324,13 +349,13 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
     trend: c.trend, insight: c.insight,
   }));
 
-  const insights = buildDayInsights(summary, baseline, evolution);
+  const insights = buildDayInsights(summary, baseline, evolution, t, locale as Locale);
 
   const evolutionChartData = {
     labels: evolution.map((p) => p.label),
     datasets: [
       {
-        label: "Confirmación",
+        label: t("evolution.legendLabel"),
         data: evolution.map((p) => Math.round(p.confirmationRate * 1000) / 10),
         borderColor: "#16755c",
       },
@@ -342,7 +367,7 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
   // convivan al lado del calendario sin extender la página hacia abajo.
   const dayOfWeekTabContent = (
     <div>
-      <p className="text-[13px] text-ink-faint mb-4">Todo el historial de esta facility, todos los horarios — lo más destacable de cada día.</p>
+      <p className="text-[13px] text-ink-faint mb-4">{t("mustSchedule.dayOfWeekIntro")}</p>
       {dayOfWeekSummaries.length > 0 ? (
         <div className="space-y-4">
           {dayOfWeekSummaries.map((d) => (
@@ -360,14 +385,14 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
           ))}
         </div>
       ) : (
-        <div className="text-sm text-ink-faint">Sin datos suficientes todavía.</div>
+        <div className="text-sm text-ink-faint">{t("mustSchedule.dayOfWeekEmpty")}</div>
       )}
     </div>
   );
 
   const topSlotsTabContent = (
     <div>
-      <p className="text-[13px] text-ink-faint mb-4">≥90% en los últimos 3 meses · promedio de sus partidos confirmados.</p>
+      <p className="text-[13px] text-ink-faint mb-4">{t("mustSchedule.topSlotsIntro")}</p>
       {mustSchedule.topSlots.length > 0 ? (
         <ul className="space-y-4 max-h-[480px] overflow-y-auto pr-1">
           {mustSchedule.topSlots.map((s, i) => (
@@ -377,23 +402,24 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
                 <span className="text-base text-brand font-bold shrink-0">{formatPct(s.confirmationRate)}</span>
               </div>
               <div className="text-[13px] text-ink-faint mt-1 leading-snug">
-                {s.avgOccupancyRate != null ? `${formatPct(s.avgOccupancyRate)} ocupación` : "ocupación —"}
-                {s.avgGamePrice != null && ` · ${formatUSD2(s.avgGamePrice)}${s.avgRevenuePerPlayer != null ? ` (${formatUSD2(s.avgRevenuePerPlayer)}/jugador)` : ""}`}
-                {s.avgRating != null && ` · rating ${s.avgRating.toFixed(1)}`}
-                {s.avgLeadTime != null && ` · lead time ${s.avgLeadTime.toFixed(1)}h`}
+                {s.avgOccupancyRate != null ? t("mustSchedule.occupancy", { pct: formatPct(s.avgOccupancyRate) }) : t("mustSchedule.occupancyEmpty")}
+                {s.avgGamePrice != null && t("mustSchedule.priceSuffix", { price: formatUSD2(s.avgGamePrice) })}
+                {s.avgGamePrice != null && s.avgRevenuePerPlayer != null && t("mustSchedule.pricePerPlayerSuffix", { price: formatUSD2(s.avgRevenuePerPlayer) })}
+                {s.avgRating != null && t("mustSchedule.ratingSuffix", { rating: s.avgRating.toFixed(1) })}
+                {s.avgLeadTime != null && t("mustSchedule.leadTimeSuffix", { hours: s.avgLeadTime.toFixed(1) })}
               </div>
             </li>
           ))}
         </ul>
       ) : (
-        <div className="text-sm text-ink-faint">Todavía no hay slots con 90%+ de confirmación en esta facility.</div>
+        <div className="text-sm text-ink-faint">{t("mustSchedule.topSlotsEmpty")}</div>
       )}
     </div>
   );
 
   const strugglingTabContent = (
     <div>
-      <p className="text-[13px] text-ink-faint mb-4">Bajando o estancados por debajo del umbral.</p>
+      <p className="text-[13px] text-ink-faint mb-4">{t("mustSchedule.strugglingIntro")}</p>
       {mustSchedule.strugglingSlots.length > 0 ? (
         <ul className="space-y-4 max-h-[480px] overflow-y-auto pr-1">
           {mustSchedule.strugglingSlots.map((s, i) => (
@@ -407,7 +433,7 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
           ))}
         </ul>
       ) : (
-        <div className="text-sm text-ink-faint">No hay slots bajando o estancados para reportar.</div>
+        <div className="text-sm text-ink-faint">{t("mustSchedule.strugglingEmpty")}</div>
       )}
     </div>
   );
@@ -415,7 +441,7 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
   // ---- Vista invertida (cancelaciones): mismos 3 contenidos, espejados ----
   const dayOfWeekCancelTabContent = (
     <div>
-      <p className="text-[13px] text-ink-faint mb-4">Todo el historial de esta facility, todos los horarios — lo más destacable de cada día.</p>
+      <p className="text-[13px] text-ink-faint mb-4">{t("mustSchedule.dayOfWeekIntro")}</p>
       {dayOfWeekCancelSummaries.length > 0 ? (
         <div className="space-y-4">
           {dayOfWeekCancelSummaries.map((d) => (
@@ -433,14 +459,14 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
           ))}
         </div>
       ) : (
-        <div className="text-sm text-ink-faint">Sin datos suficientes todavía.</div>
+        <div className="text-sm text-ink-faint">{t("mustSchedule.dayOfWeekEmpty")}</div>
       )}
     </div>
   );
 
   const topCancelSlotsTabContent = (
     <div>
-      <p className="text-[13px] text-ink-faint mb-4">≥90% de cancelación en los últimos 3 meses · promedio de sus partidos cancelados.</p>
+      <p className="text-[13px] text-ink-faint mb-4">{t("mustSchedule.topCancelIntro")}</p>
       {mustSchedule.topCancelSlots.length > 0 ? (
         <ul className="space-y-4 max-h-[480px] overflow-y-auto pr-1">
           {mustSchedule.topCancelSlots.map((s, i) => (
@@ -450,22 +476,22 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
                 <span className="text-base text-danger font-bold shrink-0">{formatPct(s.cancellationRate)}</span>
               </div>
               <div className="text-[13px] text-ink-faint mt-1 leading-snug">
-                {s.avgOccupancyAtCancel != null ? `${formatPct(s.avgOccupancyAtCancel)} ocupación al cancelar` : "ocupación al cancelar —"}
-                {s.avgGamePrice != null && ` · ${formatUSD2(s.avgGamePrice)}`}
-                {s.avgDeficit != null && ` · faltaron ${s.avgDeficit.toFixed(1)} jugador(es) en promedio`}
+                {s.avgOccupancyAtCancel != null ? t("mustSchedule.occupancyAtCancel", { pct: formatPct(s.avgOccupancyAtCancel) }) : t("mustSchedule.occupancyAtCancelEmpty")}
+                {s.avgGamePrice != null && t("mustSchedule.priceSuffix", { price: formatUSD2(s.avgGamePrice) })}
+                {s.avgDeficit != null && t("mustSchedule.deficitSuffix", { n: Math.round(s.avgDeficit * 10) / 10 })}
               </div>
             </li>
           ))}
         </ul>
       ) : (
-        <div className="text-sm text-ink-faint">Todavía no hay slots con 90%+ de cancelación en esta facility.</div>
+        <div className="text-sm text-ink-faint">{t("mustSchedule.topCancelEmpty")}</div>
       )}
     </div>
   );
 
   const strugglingCancelTabContent = (
     <div>
-      <p className="text-[13px] text-ink-faint mb-4">Empeorando, o con cancelación elevada y estancada.</p>
+      <p className="text-[13px] text-ink-faint mb-4">{t("mustSchedule.strugglingCancelIntro")}</p>
       {mustSchedule.strugglingCancelSlots.length > 0 ? (
         <ul className="space-y-4 max-h-[480px] overflow-y-auto pr-1">
           {mustSchedule.strugglingCancelSlots.map((s, i) => (
@@ -479,7 +505,7 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
           ))}
         </ul>
       ) : (
-        <div className="text-sm text-ink-faint">No hay slots empeorando o estancados en cancelación para reportar.</div>
+        <div className="text-sm text-ink-faint">{t("mustSchedule.strugglingCancelEmpty")}</div>
       )}
     </div>
   );
@@ -488,12 +514,12 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
     <div className="space-y-5">
       <div>
         <DailyBreadcrumb regions={filterOptions.regions} markets={filterOptions.markets} facilities={filterOptions.facilities} sp={sp} />
-        <h1 className="font-display text-3xl font-bold text-ink mb-1">Seguimiento diario</h1>
+        <h1 className="font-display text-3xl font-bold text-ink mb-1">{t("title")}</h1>
         <div className="text-sm text-ink-faint">{summary.dayLabel} {dateISO} — {summary.facilityName}</div>
       </div>
 
       <div className="rounded-2xl bg-surface shadow-sm p-4 flex flex-wrap items-center gap-3">
-        <span className="text-xs text-ink-faint shrink-0">Día:</span>
+        <span className="text-xs text-ink-faint shrink-0">{t("dayPickerLabel")}</span>
         <DatePicker value={dateISO} paramName="date" />
         <div className="flex items-center gap-1 flex-wrap">
           {weekStrip.map((d) => (
@@ -511,41 +537,41 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
         </div>
         <div className="flex items-center gap-3 ml-auto">
           <div className="flex flex-col items-end">
-            <span className="text-[9px] text-ink-faint leading-none mb-1">Últimos 15 días</span>
+            <span className="text-[9px] text-ink-faint leading-none mb-1">{t("sparklineLabel")}</span>
             <Sparkline points={sparklinePoints} />
           </div>
-          <Link href={buildDailyQuery(sp, { date: undefined })} className="text-ink-faint hover:text-brand text-xs shrink-0">hoy</Link>
+          <Link href={buildDailyQuery(sp, { date: undefined })} className="text-ink-faint hover:text-brand text-xs shrink-0">{t("todayLink")}</Link>
         </div>
       </div>
 
       {summary.totalGames === 0 ? (
         <div className="rounded-2xl bg-surface shadow-sm p-6 text-sm text-ink-faint">
-          Sin partidos registrados este día en {summary.facilityName}. Elegí otro día en la franja de arriba.
+          {t("noGamesToday", { facility: summary.facilityName })}
         </div>
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            <Stat label="Partidos" value={String(summary.totalGames)} sublabel={`${summary.confirmedGames} confirmados · ${summary.cancelledGames} cancelados`} />
-            <Stat label="Confirmación" value={formatPct(summary.confirmationRate)} delta={baseline.occurrences >= 3 ? summary.confirmationRate - baseline.avgConfirmationRate : undefined} />
-            <Stat label="Ocupación" value={formatPct(summary.occupancyRate)} delta={baseline.occurrences >= 3 ? summary.occupancyRate - baseline.avgOccupancyRate : undefined} />
-            <Stat label="Revenue del día" value={formatUSD(summary.totalRevenue)} sublabel={summary.avgRating != null ? `Rating promedio: ${summary.avgRating.toFixed(1)}` : undefined} />
+            <Stat label={t("stats.games")} value={String(summary.totalGames)} sublabel={t("stats.gamesSublabel", { confirmed: summary.confirmedGames, cancelled: summary.cancelledGames })} />
+            <Stat label={t("stats.confirmation")} value={formatPct(summary.confirmationRate)} delta={baseline.occurrences >= 3 ? summary.confirmationRate - baseline.avgConfirmationRate : undefined} />
+            <Stat label={t("stats.occupancy")} value={formatPct(summary.occupancyRate)} delta={baseline.occurrences >= 3 ? summary.occupancyRate - baseline.avgOccupancyRate : undefined} />
+            <Stat label={t("stats.revenue")} value={formatUSD(summary.totalRevenue)} sublabel={summary.avgRating != null ? t("stats.avgRating", { rating: summary.avgRating.toFixed(1) }) : undefined} />
             <Stat
-              label="Precio x jugador"
+              label={t("stats.pricePerPlayer")}
               value={summary.avgRevenuePerPlayer != null ? formatUSD2(summary.avgRevenuePerPlayer) : "—"}
-              sublabel={summary.avgGamePrice != null ? `Ticket promedio: ${formatUSD2(summary.avgGamePrice)}` : undefined}
+              sublabel={summary.avgGamePrice != null ? t("stats.avgTicket", { price: formatUSD2(summary.avgGamePrice) }) : undefined}
             />
           </div>
 
-          <GroupSection title="Variación e insights del día">
+          <GroupSection title={t("variationSection")}>
             <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-5">
-              <SectionCard title={`Evolución de la confirmación — últimos ${evolution.length} ${summary.dayLabel.toLowerCase()}s`} subtitle="Misma facility, mismo día de semana">
+              <SectionCard title={t("evolution.title", { n: evolution.length, weekday: weekdayPlural(summary.dayOfWeek, locale as Locale) })} subtitle={t("evolution.subtitle")}>
                 {evolution.length > 1 ? (
                   <EvolutionChart data={evolutionChartData} />
                 ) : (
-                  <div className="text-sm text-ink-faint">No hay suficiente historial de {summary.dayLabel.toLowerCase()}s todavía para graficar una evolución.</div>
+                  <div className="text-sm text-ink-faint">{t("evolution.empty", { weekday: weekdayPlural(summary.dayOfWeek, locale as Locale) })}</div>
                 )}
               </SectionCard>
-              <SectionCard title="Qué muestra hoy" subtitle="Variación vs. línea base + recomendación">
+              <SectionCard title={t("todayInsights.title")} subtitle={t("todayInsights.subtitle")}>
                 <ul className="space-y-2 text-sm text-ink">
                   {insights.map((line, i) => (
                     <li key={i} className="flex gap-2">
@@ -558,30 +584,40 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
             </div>
           </GroupSection>
 
-          <GroupSection title="Detalle de los partidos del día">
+          <GroupSection title={t("gamesDetailSection")}>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {summary.games.map((g) => (
                 <div key={g.id} className={`rounded-xl border p-3 ${g.status === "CONFIRMED" ? "border-brand/25 bg-brand-soft/30" : "border-danger/25 bg-danger-soft/30"}`}>
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <span className="text-sm font-semibold text-ink">{g.time}</span>
                     <span className={`text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full ${g.status === "CONFIRMED" ? "bg-brand text-white" : "bg-danger text-white"}`}>
-                      {g.status === "CONFIRMED" ? "Confirmado" : "Cancelado"}
+                      {g.status === "CONFIRMED" ? t("game.confirmed") : t("game.cancelled")}
                     </span>
                   </div>
                   <div className="text-xs text-ink-muted mb-1.5">{g.formatLabel} · {g.organizer}</div>
                   <div className="text-xs text-ink-faint space-y-0.5">
-                    <div>{g.finalPlayers}/{g.maxPlayers} jugadores (mín. {g.minPlayers}){g.waitlistPlayers > 0 ? ` · ${g.waitlistPlayers} en espera` : ""}{g.droppedPlayers > 0 ? ` · ${g.droppedPlayers} abandonaron` : ""}</div>
+                    <div>
+                      {t("game.players", { final: g.finalPlayers, max: g.maxPlayers, min: g.minPlayers })}
+                      {g.waitlistPlayers > 0 ? t("game.waitlist", { n: g.waitlistPlayers }) : ""}
+                      {g.droppedPlayers > 0 ? t("game.dropped", { n: g.droppedPlayers }) : ""}
+                    </div>
                     {g.status === "CANCELLED" && g.playersMissing != null && g.playersMissing > 0 && (
-                      <div>Faltaron {g.playersMissing} jugador(es) para el mínimo</div>
+                      <div>{t("game.missing", { n: g.playersMissing })}</div>
                     )}
-                    {g.cancellationReason && <div>Motivo: {g.cancellationReason}</div>}
-                    {g.confirmationLeadTime != null && <div>Lead time: {g.confirmationLeadTime.toFixed(1)}h</div>}
+                    {g.cancellationReason && <div>{t("game.reason", { reason: g.cancellationReason })}</div>}
+                    {g.confirmationLeadTime != null && <div>{t("game.leadTime", { hours: g.confirmationLeadTime.toFixed(1) })}</div>}
                     {g.gamePrice != null && (
-                      <div>Precio: {formatUSD2(g.gamePrice)}{g.revenuePerPlayer != null ? ` · ${formatUSD2(g.revenuePerPlayer)}/jugador` : ""}</div>
+                      <div>
+                        {t("game.price", { price: formatUSD2(g.gamePrice) })}
+                        {g.revenuePerPlayer != null ? t("game.pricePerPlayer", { price: formatUSD2(g.revenuePerPlayer) }) : ""}
+                      </div>
                     )}
-                    {g.eventRevenue != null && <div>Revenue: {formatUSD(g.eventRevenue)}</div>}
+                    {g.eventRevenue != null && <div>{t("game.revenue", { amount: formatUSD(g.eventRevenue) })}</div>}
                     {g.averageRating != null && (
-                      <div>Rating: {g.averageRating.toFixed(1)}{g.ratingCount != null && g.ratingCount > 0 ? ` (${g.ratingCount})` : ""}</div>
+                      <div>
+                        {t("game.rating", { rating: g.averageRating.toFixed(1) })}
+                        {g.ratingCount != null && g.ratingCount > 0 ? ` ${t("game.ratingCount", { count: g.ratingCount })}` : ""}
+                      </div>
                     )}
                   </div>
                 </div>
@@ -591,11 +627,8 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
         </>
       )}
 
-      <GroupSection title="Slots que sí o sí conviene tener agendados">
-        <p className="text-xs text-ink-faint -mt-1">
-          Ventana móvil de los últimos 3 meses (a partir del día elegido arriba) · más de 55% de confirmación (o de cancelación, según la vista) · se excluyen por completo las cancelaciones por cancha no disponible.
-          Metodología propia de esta página — distinta de la consistencia histórica que usa Trends.
-        </p>
+      <GroupSection title={t("mustSchedule.section")}>
+        <p className="text-xs text-ink-faint -mt-1">{t("mustSchedule.description")}</p>
         {/* 50/50: el calendario se centra dentro de su mitad (no pegado al
             borde izquierdo) y las pestañas ocupan todo el ancho de la suya
             — reparte el espacio simétricamente respecto del centro de la
@@ -608,20 +641,20 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
           confirmedCells={confirmedCalendarCells}
           cancelledCells={cancelledCalendarCells}
           confirmedTabs={[
-            { id: "dow", label: "Día de semana", content: dayOfWeekTabContent },
-            { id: "top", label: `Confirmación altísima (${mustSchedule.topSlots.length})`, content: topSlotsTabContent },
-            { id: "watch", label: `A vigilar (${mustSchedule.strugglingSlots.length})`, content: strugglingTabContent },
+            { id: "dow", label: t("mustSchedule.tabDayOfWeek"), content: dayOfWeekTabContent },
+            { id: "top", label: t("mustSchedule.tabTopConfirm", { n: mustSchedule.topSlots.length }), content: topSlotsTabContent },
+            { id: "watch", label: t("mustSchedule.tabWatch", { n: mustSchedule.strugglingSlots.length }), content: strugglingTabContent },
           ]}
           cancelledTabs={[
-            { id: "dow", label: "Día de semana", content: dayOfWeekCancelTabContent },
-            { id: "top", label: `Cancelación altísima (${mustSchedule.topCancelSlots.length})`, content: topCancelSlotsTabContent },
-            { id: "watch", label: `A vigilar (${mustSchedule.strugglingCancelSlots.length})`, content: strugglingCancelTabContent },
+            { id: "dow", label: t("mustSchedule.tabDayOfWeek"), content: dayOfWeekCancelTabContent },
+            { id: "top", label: t("mustSchedule.tabTopCancel", { n: mustSchedule.topCancelSlots.length }), content: topCancelSlotsTabContent },
+            { id: "watch", label: t("mustSchedule.tabWatch", { n: mustSchedule.strugglingCancelSlots.length }), content: strugglingCancelTabContent },
           ]}
         />
         <Glossary
           items={[
-            { term: "Tasa de confirmación", def: "confirmados / (confirmados + cancelados), excluyendo del cálculo las cancelaciones por cancha no disponible." },
-            { term: "Tasa de cancelación", def: "el complemento exacto: cancelados / (confirmados + cancelados), con la misma exclusión. Es la misma ventana de datos mirada al revés, no una métrica nueva." },
+            { term: t("glossary.confirmationRateTerm"), def: t("glossary.confirmationRateDef") },
+            { term: t("glossary.cancellationRateTerm"), def: t("glossary.cancellationRateDef") },
           ]}
         />
       </GroupSection>

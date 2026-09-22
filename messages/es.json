@@ -26,5 +26,164 @@
   "UserMenu": {
     "guest": "Invitado",
     "signOut": "Salir"
+  },
+  "Daily": {
+    "title": "Seguimiento diario",
+    "subtitle": "Detalle operativo día por día de una facility puntual: qué pasó, cómo se compara con días anteriores similares, y qué horarios conviene tener agendados sí o sí.",
+    "selectPromptTitle": "Elegí región, market y facility para ver el detalle diario",
+    "selectPromptSubtitle": "Esta vista es por facility puntual — no tiene un panorama de red o de market agregado.",
+    "dayPickerLabel": "Día:",
+    "sparklineLabel": "Últimos 15 días",
+    "todayLink": "hoy",
+    "noGamesToday": "Sin partidos registrados este día en {facility}. Elegí otro día en la franja de arriba.",
+    "stats": {
+      "games": "Partidos",
+      "gamesSublabel": "{confirmed} confirmados · {cancelled} cancelados",
+      "confirmation": "Confirmación",
+      "occupancy": "Ocupación",
+      "revenue": "Revenue del día",
+      "avgRating": "Rating promedio: {rating}",
+      "pricePerPlayer": "Precio x jugador",
+      "avgTicket": "Ticket promedio: {price}"
+    },
+    "variationSection": "Variación e insights del día",
+    "evolution": {
+      "title": "Evolución de la confirmación — últimos {n} {weekday}",
+      "subtitle": "Misma facility, mismo día de semana",
+      "empty": "No hay suficiente historial de {weekday} todavía para graficar una evolución.",
+      "legendLabel": "Confirmación"
+    },
+    "todayInsights": {
+      "title": "Qué muestra hoy",
+      "subtitle": "Variación vs. línea base + recomendación"
+    },
+    "gamesDetailSection": "Detalle de los partidos del día",
+    "game": {
+      "confirmed": "Confirmado",
+      "cancelled": "Cancelado",
+      "players": "{final}/{max} jugadores (mín. {min})",
+      "waitlist": " · {n} en espera",
+      "dropped": "{n, plural, one{ · # abandonó} other{ · # abandonaron}}",
+      "missing": "{n, plural, one{Faltó # jugador para el mínimo} other{Faltaron # jugadores para el mínimo}}",
+      "reason": "Motivo: {reason}",
+      "leadTime": "Lead time: {hours}h",
+      "price": "Precio: {price}",
+      "pricePerPlayer": " · {price}/jugador",
+      "revenue": "Revenue: {amount}",
+      "rating": "Rating: {rating}",
+      "ratingCount": "({count})"
+    },
+    "mustSchedule": {
+      "section": "Slots que sí o sí conviene tener agendados",
+      "description": "Ventana móvil de los últimos 3 meses (a partir del día elegido arriba) · más de 55% de confirmación (o de cancelación, según la vista) · se excluyen por completo las cancelaciones por cancha no disponible. Metodología propia de esta página — distinta de la consistencia histórica que usa Trends.",
+      "tabDayOfWeek": "Día de semana",
+      "tabTopConfirm": "Confirmación altísima ({n})",
+      "tabTopCancel": "Cancelación altísima ({n})",
+      "tabWatch": "A vigilar ({n})",
+      "dayOfWeekIntro": "Todo el historial de esta facility, todos los horarios — lo más destacable de cada día.",
+      "dayOfWeekEmpty": "Sin datos suficientes todavía.",
+      "topSlotsIntro": "≥90% en los últimos 3 meses · promedio de sus partidos confirmados.",
+      "topSlotsEmpty": "Todavía no hay slots con 90%+ de confirmación en esta facility.",
+      "occupancy": "{pct} ocupación",
+      "occupancyEmpty": "ocupación —",
+      "priceSuffix": " · {price}",
+      "pricePerPlayerSuffix": " ({price}/jugador)",
+      "ratingSuffix": " · rating {rating}",
+      "leadTimeSuffix": " · lead time {hours}h",
+      "strugglingIntro": "Bajando o estancados por debajo del umbral.",
+      "strugglingEmpty": "No hay slots bajando o estancados para reportar.",
+      "topCancelIntro": "≥90% de cancelación en los últimos 3 meses · promedio de sus partidos cancelados.",
+      "topCancelEmpty": "Todavía no hay slots con 90%+ de cancelación en esta facility.",
+      "occupancyAtCancel": "{pct} ocupación al cancelar",
+      "occupancyAtCancelEmpty": "ocupación al cancelar —",
+      "deficitSuffix": "{n, plural, one{ · faltó # jugador en promedio} other{ · faltaron # jugadores en promedio}}",
+      "strugglingCancelIntro": "Empeorando, o con cancelación elevada y estancada.",
+      "strugglingCancelEmpty": "No hay slots empeorando o estancados en cancelación para reportar."
+    },
+    "glossary": {
+      "confirmationRateTerm": "Tasa de confirmación",
+      "confirmationRateDef": "confirmados / (confirmados + cancelados), excluyendo del cálculo las cancelaciones por cancha no disponible.",
+      "cancellationRateTerm": "Tasa de cancelación",
+      "cancellationRateDef": "el complemento exacto: cancelados / (confirmados + cancelados), con la misma exclusión. Es la misma ventana de datos mirada al revés, no una métrica nueva."
+    },
+    "insights": {
+      "noGames": "Sin partidos registrados este {weekday} en esta facility.",
+      "confirmationInLine": "La confirmación de hoy ({rate}) está en línea con el promedio de los últimos {n} {weekday} ({avg}).",
+      "confirmationAbove": "La confirmación de hoy ({rate}) está {pts} pts por encima del promedio de los últimos {n} {weekday} ({avg}) — buena señal.",
+      "confirmationBelow": "La confirmación de hoy ({rate}) está {pts} pts por debajo del promedio de los últimos {n} {weekday} ({avg}) — vale la pena revisar qué cambió.",
+      "gamesMore": "{n, plural, one{Hubo # partido más} other{Hubo # partidos más}} que el promedio habitual para este día ({avg} partidos).",
+      "gamesLess": "{n, plural, one{Hubo # partido menos} other{Hubo # partidos menos}} que el promedio habitual para este día ({avg} partidos).",
+      "noBaseline": "Todavía no hay suficiente historial de {weekday} previos en esta facility como para comparar con una línea base confiable.",
+      "topCancelReason": "El motivo de cancelación más frecuente hoy fue \"{reason}\" ({count} de {total} cancelados).",
+      "trendSummary": "En las últimas {n} semanas, la confirmación de los {weekday} muestra {trend}: pasó de {first} a {last} (mínimo {min}, máximo {max}).",
+      "trendUp": "una tendencia creciente",
+      "trendDown": "una tendencia decreciente",
+      "trendStable": "una tendencia relativamente estable",
+      "noWeeklyHistory": "Todavía no hay 6 {weekday} de historial como para analizar la tendencia de varias semanas.",
+      "todayInLine": "El comportamiento de hoy está en línea con la tendencia reciente de los últimos {n} {weekday} (~{avg}).",
+      "todayAbove": "Hoy estuvo {pts} pts por encima de la tendencia reciente (~{avg} en los últimos {n} {weekday}) — podría ser una mejora puntual o el comienzo de un cambio de tendencia, vale la pena confirmarlo la semana próxima.",
+      "todayBelow": "Hoy estuvo {pts} pts por debajo de la tendencia reciente (~{avg} en los últimos {n} {weekday}) — vale la pena revisar si es un evento puntual o el inicio de una baja sostenida."
+    },
+    "dayOfWeekSummary": {
+      "noVariation": "{pct} de confirmación · {n} partidos — sin variación relevante entre días.",
+      "strongest": "{pct} de confirmación · {n} partidos — el día más fuerte de la semana en esta facility.",
+      "weakest": "{pct} de confirmación · {n} partidos — el día más débil de la semana, vale la pena revisar qué lo explica.",
+      "relativeAbove": "{pct} de confirmación · {n} partidos — por encima del promedio semanal ({avg}).",
+      "relativeBelow": "{pct} de confirmación · {n} partidos — por debajo del promedio semanal ({avg}).",
+      "lowOccupancy": "Ocupación baja en los partidos confirmados ({pct}) — hay margen para llenarlos más.",
+      "topSlots": "{n, plural, one{# horario} other{# horarios}} con confirmación altísima, el mejor a las {hour} ({pct}).",
+      "watchSlots": "{n, plural, one{# horario} other{# horarios}} a vigilar{decliningSuffix}.",
+      "decliningSuffix": " ({n} bajando)"
+    },
+    "dayOfWeekCancelSummary": {
+      "noVariation": "{pct} de cancelación · {n} partidos — sin variación relevante entre días.",
+      "best": "{pct} de cancelación · {n} partidos — el día con menos cancelaciones de la semana en esta facility.",
+      "worst": "{pct} de cancelación · {n} partidos — el día con más cancelaciones de la semana, vale la pena revisar qué lo explica.",
+      "relativeAbove": "{pct} de cancelación · {n} partidos — por encima del promedio semanal ({avg}).",
+      "relativeBelow": "{pct} de cancelación · {n} partidos — por debajo del promedio semanal ({avg}).",
+      "lowConversion": "Conversión baja ({pct}) — buena parte de los que se anotan no llegan a jugar (abandono o lista de espera sin entrar).",
+      "topSlots": "{n, plural, one{# horario} other{# horarios}} con cancelación altísima, el más crítico a las {hour} ({pct}).",
+      "watchSlots": "{n, plural, one{# horario} other{# horarios}} a vigilar{worseningSuffix}.",
+      "worseningSuffix": " ({n} empeorando)"
+    },
+    "mustScheduleInsight": {
+      "base": "{pct}% de confirmación en los últimos 3 meses ({total} partidos, sin contar cancelaciones por cancha no disponible)",
+      "up": "{base}. Viene mejorando: de {early}% a {late}% entre la primera y la segunda mitad del período — buena candidata a reforzar en las próximas semanas.",
+      "down": "{base}. Viene bajando: de {early}% a {late}% — todavía cumple el umbral, pero vale la pena confirmar que se sostenga antes de asumirla como fija.",
+      "flat": "{base}. Estable en el período — se espera que se mantenga en las próximas semanas si no cambia el contexto."
+    },
+    "strugglingInsight": {
+      "declining": "Viene bajando de {early}% a {late}% en los últimos 3 meses — todavía por encima del umbral, pero si sigue así podría dejar de ser un slot confiable.",
+      "stuck": "Estancado en {pct}% en los últimos 3 meses, sin señales claras de mejora — no llega al umbral de confiabilidad (55%)."
+    },
+    "mustScheduleCancelInsight": {
+      "base": "{pct}% de cancelación en los últimos 3 meses ({total} partidos, sin contar cancelaciones por cancha no disponible)",
+      "down": "{base}. Viene mejorando: de {early}% a {late}% de cancelación entre la primera y la segunda mitad del período.",
+      "up": "{base}. Viene empeorando: de {early}% a {late}% — sigue siendo un horario de riesgo y la tendencia no ayuda.",
+      "flat": "{base}. Estable en el período — sin señales de mejora ni de deterioro reciente."
+    },
+    "strugglingCancelInsight": {
+      "worsening": "Viene empeorando: de {early}% a {late}% de cancelación en los últimos 3 meses.",
+      "stuck": "Cancelación elevada y estancada en {pct}% en los últimos 3 meses, sin señales de mejora.",
+      "extraSuffix": " En los partidos cancelados de este horario, {extra}.",
+      "deficitExtra": "{n, plural, one{en promedio faltó # jugador para el mínimo} other{en promedio faltaron # jugadores para el mínimo}}",
+      "droppedExtra": "{n, plural, one{# jugador abandonó} other{# jugadores abandonaron}} en promedio antes de cancelarse"
+    },
+    "board": {
+      "confirmedTab": "Confirmados",
+      "cancelledTab": "Cancelados",
+      "emptyConfirmed": "Todavía no hay slots que superen el 55% de confirmación en los últimos 3 meses con muestra suficiente.",
+      "emptyCancelled": "Ningún slot supera el 55% de cancelación en los últimos 3 meses con muestra suficiente — buena señal."
+    },
+    "calendar": {
+      "confirmedLabel": "confirmados",
+      "cancelledLabel": "cancelados",
+      "confirmationWord": "confirmación",
+      "cancellationWord": "cancelación",
+      "titleTemplate": "{format} — {pct}% de {word}",
+      "matchOf": "{matching} {label} de {total}",
+      "showMore": "+{n} más",
+      "showLess": "ver menos"
+    }
   }
 }

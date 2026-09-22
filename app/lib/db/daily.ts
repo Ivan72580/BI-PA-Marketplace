@@ -1,8 +1,11 @@
 import { CancellationCategory } from "@prisma/client";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "./prisma";
 import { cached } from "./cache";
-import { buildWhere, DAY_ORDER, DAY_LABEL_ES, sortHoursByOperatingDay, labelForCancellationCategory } from "./shared";
+import { buildWhere, DAY_ORDER, sortHoursByOperatingDay, labelForCancellationCategory } from "./shared";
 import { combineFormatLabel } from "./format";
+import { weekdayAbbr } from "./weekday";
+import type { Locale } from "@/i18n/config";
 
 // Página de seguimiento diario: a diferencia de Trends/Market (que agregan
 // por período), acá todo está anclado a un día calendario puntual + una
@@ -10,6 +13,16 @@ import { combineFormatLabel } from "./format";
 // página: foto del día, línea base histórica del mismo día de semana,
 // evolución reciente, la franja semanal de navegación, y el calendario de
 // slots "sí o sí" (metodología propia, distinta de getSlotConsistency).
+//
+// Las funciones que devuelven texto (dayLabel, insight) reciben `locale`
+// como argumento explícito de la función CACHEADA (no lo resuelven ellas
+// mismas vía getLocale()) por una razón concreta: `cached()` usa
+// unstable_cache, cuya clave de caché se deriva de los argumentos de la
+// función. Si el locale no fuera un argumento explícito, dos requests con
+// el mismo facilityId+dateISO pero distinto idioma compartirían la MISMA
+// entrada de caché — el primero en pedirla "gana" el idioma para el otro
+// durante los próximos 5 minutos. Pasándolo como argumento, queda como
+// parte de la clave y cada idioma cachea por separado.
 
 function parseISODate(iso: string): Date {
   return new Date(`${iso}T00:00:00.000Z`);
@@ -100,7 +113,7 @@ type DayRow = {
   averageRating: number | null;
 };
 
-async function getDaySnapshotImpl(facilityId: string, dateISO: string): Promise<DaySummary> {
+async function getDaySnapshotImpl(facilityId: string, dateISO: string, locale: Locale): Promise<DaySummary> {
   const date = parseISODate(dateISO);
   const dow = dayOfWeekName(date);
   const where = buildWhere({ facilityId, dateFrom: date, dateTo: date });
@@ -170,7 +183,7 @@ async function getDaySnapshotImpl(facilityId: string, dateISO: string): Promise<
   return {
     dateISO,
     dayOfWeek: dow,
-    dayLabel: DAY_LABEL_ES[dow] ?? dow,
+    dayLabel: weekdayAbbr(dow, locale),
     facilityName: facility?.name ?? "",
     totalGames: total,
     confirmedGames: confirmed,
@@ -194,7 +207,8 @@ export const getDaySnapshot = cached("getDaySnapshot", getDaySnapshotImpl);
 // "¿Este martes viene mejor o peor que los martes anteriores en esta
 // facility?" — el punto de comparación no es el día calendario anterior
 // (eso mezclaría días de semana distintos) sino las ocurrencias previas del
-// MISMO día de semana.
+// MISMO día de semana. Sin texto en el resultado (solo números) — no
+// necesita locale.
 
 export type DayBaseline = {
   occurrences: number;
@@ -249,7 +263,7 @@ export const getDayBaseline = cached("getDayBaseline", getDayBaselineImpl);
 
 export type DayEvolutionPoint = { dateISO: string; label: string; confirmationRate: number; totalGames: number };
 
-async function getDayEvolutionImpl(facilityId: string, dateISO: string, occurrences = 12): Promise<DayEvolutionPoint[]> {
+async function getDayEvolutionImpl(facilityId: string, dateISO: string, locale: Locale, occurrences = 12): Promise<DayEvolutionPoint[]> {
   const date = parseISODate(dateISO);
   const dow = dayOfWeekName(date);
   const where = { ...buildWhere({ facilityId, dateTo: date }), dayOfWeek: dow };
@@ -267,6 +281,7 @@ async function getDayEvolutionImpl(facilityId: string, dateISO: string, occurren
     byDate.set(key, e);
   }
 
+  const dateLocale = locale === "en" ? "en-US" : "es-AR";
   const dates = Array.from(byDate.keys()).sort((a, b) => b.localeCompare(a)).slice(0, occurrences).reverse();
   return dates.map((key) => {
     const e = byDate.get(key)!;
@@ -274,7 +289,7 @@ async function getDayEvolutionImpl(facilityId: string, dateISO: string, occurren
     const d = parseISODate(key);
     return {
       dateISO: key,
-      label: d.toLocaleDateString("es-AR", { day: "2-digit", month: "short", timeZone: "UTC" }),
+      label: d.toLocaleDateString(dateLocale, { day: "2-digit", month: "short", timeZone: "UTC" }),
       confirmationRate: total > 0 ? e.confirmed / total : 0,
       totalGames: total,
     };
@@ -290,7 +305,7 @@ export const getDayEvolution = cached("getDayEvolution", getDayEvolutionImpl);
 
 export type WeekStripDay = { dateISO: string; dayLabel: string; totalGames: number; confirmationRate: number; hasData: boolean };
 
-async function getWeekStripImpl(facilityId: string, dateISO: string): Promise<WeekStripDay[]> {
+async function getWeekStripImpl(facilityId: string, dateISO: string, locale: Locale): Promise<WeekStripDay[]> {
   const date = parseISODate(dateISO);
   const monday = mondayOfUTC(date);
   const sunday = addDaysUTC(monday, 6);
@@ -313,7 +328,7 @@ async function getWeekStripImpl(facilityId: string, dateISO: string): Promise<We
     const total = e ? e.confirmed + e.cancelled : 0;
     days.push({
       dateISO: key,
-      dayLabel: DAY_LABEL_ES[dayOfWeekName(d)] ?? "",
+      dayLabel: weekdayAbbr(dayOfWeekName(d), locale),
       totalGames: total,
       confirmationRate: total > 0 ? e!.confirmed / total : 0,
       hasData: total > 0,
@@ -331,7 +346,8 @@ export const getWeekStrip = cached("getWeekStrip", getWeekStripImpl);
 // sensación rápida de "cómo viene la facility" en las últimas ~2 semanas,
 // no una comparación estadística. Los días sin partidos se omiten (no se
 // interpolan con 0), así la línea no muestra caídas falsas por días donde
-// simplemente no había nada agendado.
+// simplemente no había nada agendado. Sin texto en el resultado — no
+// necesita locale.
 
 export type RecentDailyPoint = { dateISO: string; confirmationRate: number; totalGames: number };
 
@@ -475,38 +491,42 @@ const STRUGGLING_MIN_RATE = 0.35; // piso para no listar slots sin señal real d
 const MAX_TOP_SLOTS = 8;
 const MAX_STRUGGLING_SLOTS = 8;
 
-function buildMustScheduleInsight(rate: number, total: number, trend: "up" | "down" | "flat", earlyRate: number | null, lateRate: number | null): string {
+// Tipo mínimo de traductor que necesitan estas 4 funciones — el mismo que
+// devuelve getTranslations({ locale, namespace: "Daily" }).
+type Translator = (key: string, values?: Record<string, string | number>) => string;
+
+function buildMustScheduleInsight(t: Translator, rate: number, total: number, trend: "up" | "down" | "flat", earlyRate: number | null, lateRate: number | null): string {
   const pct = (rate * 100).toFixed(0);
-  const base = `${pct}% de confirmación en los últimos 3 meses (${total} partidos, sin contar cancelaciones por cancha no disponible)`;
+  const base = t("mustScheduleInsight.base", { pct, total });
 
   if (trend === "up" && earlyRate !== null && lateRate !== null) {
-    return `${base}. Viene mejorando: de ${(earlyRate * 100).toFixed(0)}% a ${(lateRate * 100).toFixed(0)}% entre la primera y la segunda mitad del período — buena candidata a reforzar en las próximas semanas.`;
+    return t("mustScheduleInsight.up", { base, early: (earlyRate * 100).toFixed(0), late: (lateRate * 100).toFixed(0) });
   }
   if (trend === "down" && earlyRate !== null && lateRate !== null) {
-    return `${base}. Viene bajando: de ${(earlyRate * 100).toFixed(0)}% a ${(lateRate * 100).toFixed(0)}% — todavía cumple el umbral, pero vale la pena confirmar que se sostenga antes de asumirla como fija.`;
+    return t("mustScheduleInsight.down", { base, early: (earlyRate * 100).toFixed(0), late: (lateRate * 100).toFixed(0) });
   }
-  return `${base}. Estable en el período — se espera que se mantenga en las próximas semanas si no cambia el contexto.`;
+  return t("mustScheduleInsight.flat", { base });
 }
 
-function buildStrugglingInsight(reason: "declining" | "stuck_below_threshold", rate: number, earlyRate: number | null, lateRate: number | null): string {
+function buildStrugglingInsight(t: Translator, reason: "declining" | "stuck_below_threshold", rate: number, earlyRate: number | null, lateRate: number | null): string {
   const pct = (rate * 100).toFixed(0);
   if (reason === "declining" && earlyRate !== null && lateRate !== null) {
-    return `Viene bajando de ${(earlyRate * 100).toFixed(0)}% a ${(lateRate * 100).toFixed(0)}% en los últimos 3 meses — todavía por encima del umbral, pero si sigue así podría dejar de ser un slot confiable.`;
+    return t("strugglingInsight.declining", { early: (earlyRate * 100).toFixed(0), late: (lateRate * 100).toFixed(0) });
   }
-  return `Estancado en ${pct}% en los últimos 3 meses, sin señales claras de mejora — no llega al umbral de confiabilidad (55%).`;
+  return t("strugglingInsight.stuck", { pct });
 }
 
-function buildMustScheduleCancelInsight(rate: number, total: number, trend: "up" | "down" | "flat", earlyRate: number | null, lateRate: number | null): string {
+function buildMustScheduleCancelInsight(t: Translator, rate: number, total: number, trend: "up" | "down" | "flat", earlyRate: number | null, lateRate: number | null): string {
   const pct = (rate * 100).toFixed(0);
-  const base = `${pct}% de cancelación en los últimos 3 meses (${total} partidos, sin contar cancelaciones por cancha no disponible)`;
+  const base = t("mustScheduleCancelInsight.base", { pct, total });
 
   if (trend === "down" && earlyRate !== null && lateRate !== null) {
-    return `${base}. Viene mejorando: de ${(earlyRate * 100).toFixed(0)}% a ${(lateRate * 100).toFixed(0)}% de cancelación entre la primera y la segunda mitad del período.`;
+    return t("mustScheduleCancelInsight.down", { base, early: (earlyRate * 100).toFixed(0), late: (lateRate * 100).toFixed(0) });
   }
   if (trend === "up" && earlyRate !== null && lateRate !== null) {
-    return `${base}. Viene empeorando: de ${(earlyRate * 100).toFixed(0)}% a ${(lateRate * 100).toFixed(0)}% — sigue siendo un horario de riesgo y la tendencia no ayuda.`;
+    return t("mustScheduleCancelInsight.up", { base, early: (earlyRate * 100).toFixed(0), late: (lateRate * 100).toFixed(0) });
   }
-  return `${base}. Estable en el período — sin señales de mejora ni de deterioro reciente.`;
+  return t("mustScheduleCancelInsight.flat", { base });
 }
 
 // A diferencia de la versión "confirmados", acá sí sumamos siempre un
@@ -514,6 +534,7 @@ function buildMustScheduleCancelInsight(rate: number, total: number, trend: "up"
 // importa frente a un horario que cancela mucho: ¿falta gente para llegar al
 // mínimo, o se anotan pero después se bajan?
 function buildStrugglingCancelInsight(
+  t: Translator,
   reason: "worsening" | "stuck_elevated",
   rate: number,
   earlyRate: number | null,
@@ -524,14 +545,14 @@ function buildStrugglingCancelInsight(
   const pct = (rate * 100).toFixed(0);
   const base =
     reason === "worsening" && earlyRate !== null && lateRate !== null
-      ? `Viene empeorando: de ${(earlyRate * 100).toFixed(0)}% a ${(lateRate * 100).toFixed(0)}% de cancelación en los últimos 3 meses.`
-      : `Cancelación elevada y estancada en ${pct}% en los últimos 3 meses, sin señales de mejora.`;
+      ? t("strugglingCancelInsight.worsening", { early: (earlyRate * 100).toFixed(0), late: (lateRate * 100).toFixed(0) })
+      : t("strugglingCancelInsight.stuck", { pct });
 
   const extra: string[] = [];
-  if (avgDeficit !== null) extra.push(`en promedio faltaron ${avgDeficit.toFixed(1)} jugador(es) para el mínimo`);
-  if (avgDropped !== null && avgDropped >= 0.5) extra.push(`${avgDropped.toFixed(1)} jugador(es) abandonaron en promedio antes de cancelarse`);
+  if (avgDeficit !== null) extra.push(t("strugglingCancelInsight.deficitExtra", { n: Math.round(avgDeficit * 10) / 10 }));
+  if (avgDropped !== null && avgDropped >= 0.5) extra.push(t("strugglingCancelInsight.droppedExtra", { n: Math.round(avgDropped * 10) / 10 }));
 
-  return extra.length > 0 ? `${base} En los partidos cancelados de este horario, ${extra.join(" y ")}.` : base;
+  return extra.length > 0 ? `${base}${t("strugglingCancelInsight.extraSuffix", { extra: extra.join(" y ") })}` : base;
 }
 
 type MustScheduleRow = {
@@ -570,7 +591,8 @@ type SlotAccumulator = {
 
 async function getMustScheduleSlotsImpl(
   facilityId: string,
-  dateISO: string
+  dateISO: string,
+  locale: Locale
 ): Promise<{
   days: string[];
   hours: string[];
@@ -581,6 +603,7 @@ async function getMustScheduleSlotsImpl(
   topCancelSlots: TopCancelSlotSummary[];
   strugglingCancelSlots: StrugglingCancelSlot[];
 }> {
+  const t = (await getTranslations({ locale, namespace: "Daily" })) as unknown as Translator;
   const date = parseISODate(dateISO);
   const windowStart = addMonthsUTC(date, -3);
   const midPoint = new Date((windowStart.getTime() + date.getTime()) / 2);
@@ -652,7 +675,7 @@ async function getMustScheduleSlotsImpl(
     if (v.total < MUST_SCHEDULE_MIN_SAMPLE) continue;
     const rate = v.confirmed / v.total;
     const [day, hour, formatLabel] = slotKey.split("|");
-    const dayLabel = DAY_LABEL_ES[day] ?? day;
+    const dayLabel = weekdayAbbr(day, locale);
     const hourLabel = `${hour}h`;
     const earlyRate = v.totalEarly > 0 ? v.confirmedEarly / v.totalEarly : null;
     const lateRate = v.totalLate > 0 ? v.confirmedLate / v.totalLate : null;
@@ -666,7 +689,7 @@ async function getMustScheduleSlotsImpl(
       cells.push({
         day, dayLabel, hour: hourLabel, formatLabel,
         confirmationRate: rate, totalGames: v.total, confirmedGames: v.confirmed, trend,
-        insight: buildMustScheduleInsight(rate, v.total, trend, earlyRate, lateRate),
+        insight: buildMustScheduleInsight(t, rate, v.total, trend, earlyRate, lateRate),
       });
 
       if (rate >= TOP_SLOT_MIN_RATE) {
@@ -685,7 +708,7 @@ async function getMustScheduleSlotsImpl(
           day, dayLabel, hour: hourLabel, formatLabel,
           confirmationRate: rate, totalGames: v.total, confirmedGames: v.confirmed,
           reason: "declining",
-          insight: buildStrugglingInsight("declining", rate, earlyRate, lateRate),
+          insight: buildStrugglingInsight(t, "declining", rate, earlyRate, lateRate),
         });
       }
     } else if (rate >= STRUGGLING_MIN_RATE && trend !== "up") {
@@ -693,7 +716,7 @@ async function getMustScheduleSlotsImpl(
         day, dayLabel, hour: hourLabel, formatLabel,
         confirmationRate: rate, totalGames: v.total, confirmedGames: v.confirmed,
         reason: "stuck_below_threshold",
-        insight: buildStrugglingInsight("stuck_below_threshold", rate, earlyRate, lateRate),
+        insight: buildStrugglingInsight(t, "stuck_below_threshold", rate, earlyRate, lateRate),
       });
     }
 
@@ -713,7 +736,7 @@ async function getMustScheduleSlotsImpl(
       cancelCells.push({
         day, dayLabel, hour: hourLabel, formatLabel,
         cancellationRate: cancelRate, totalGames: v.total, cancelledGames: cancelledCount, trend: cancelTrend,
-        insight: buildMustScheduleCancelInsight(cancelRate, v.total, cancelTrend, cancelEarlyRate, cancelLateRate),
+        insight: buildMustScheduleCancelInsight(t, cancelRate, v.total, cancelTrend, cancelEarlyRate, cancelLateRate),
       });
 
       if (cancelRate >= TOP_SLOT_MIN_RATE) {
@@ -730,7 +753,7 @@ async function getMustScheduleSlotsImpl(
           day, dayLabel, hour: hourLabel, formatLabel,
           cancellationRate: cancelRate, totalGames: v.total, cancelledGames: cancelledCount,
           reason: "worsening",
-          insight: buildStrugglingCancelInsight("worsening", cancelRate, cancelEarlyRate, cancelLateRate, avgDeficit, avgDropped),
+          insight: buildStrugglingCancelInsight(t, "worsening", cancelRate, cancelEarlyRate, cancelLateRate, avgDeficit, avgDropped),
         });
       }
     } else if (cancelRate >= STRUGGLING_MIN_RATE && cancelTrend !== "down") {
@@ -738,7 +761,7 @@ async function getMustScheduleSlotsImpl(
         day, dayLabel, hour: hourLabel, formatLabel,
         cancellationRate: cancelRate, totalGames: v.total, cancelledGames: cancelledCount,
         reason: "stuck_elevated",
-        insight: buildStrugglingCancelInsight("stuck_elevated", cancelRate, cancelEarlyRate, cancelLateRate, avgDeficit, avgDropped),
+        insight: buildStrugglingCancelInsight(t, "stuck_elevated", cancelRate, cancelEarlyRate, cancelLateRate, avgDeficit, avgDropped),
       });
     }
   }
@@ -757,7 +780,7 @@ async function getMustScheduleSlotsImpl(
 
   const hours = sortHoursByOperatingDay(Array.from(hoursSet));
   return {
-    days: DAY_ORDER.map((d) => DAY_LABEL_ES[d] ?? d),
+    days: DAY_ORDER.map((d) => weekdayAbbr(d, locale)),
     hours: hours.map((h) => `${h}h`),
     cells,
     topSlots: topSlots.slice(0, MAX_TOP_SLOTS),

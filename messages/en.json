@@ -26,5 +26,164 @@
   "UserMenu": {
     "guest": "Guest",
     "signOut": "Sign out"
+  },
+  "Daily": {
+    "title": "Daily tracking",
+    "subtitle": "Day-by-day operational detail for a single facility: what happened, how it compares to similar previous days, and which time slots are worth scheduling no matter what.",
+    "selectPromptTitle": "Choose a region, market and facility to see the daily detail",
+    "selectPromptSubtitle": "This view is per facility — it has no aggregated network or market overview.",
+    "dayPickerLabel": "Day:",
+    "sparklineLabel": "Last 15 days",
+    "todayLink": "today",
+    "noGamesToday": "No games recorded this day at {facility}. Pick another day from the strip above.",
+    "stats": {
+      "games": "Games",
+      "gamesSublabel": "{confirmed} confirmed · {cancelled} cancelled",
+      "confirmation": "Confirmation",
+      "occupancy": "Occupancy",
+      "revenue": "Day's revenue",
+      "avgRating": "Average rating: {rating}",
+      "pricePerPlayer": "Price per player",
+      "avgTicket": "Average ticket: {price}"
+    },
+    "variationSection": "Day variation & insights",
+    "evolution": {
+      "title": "Confirmation trend — last {n} {weekday}",
+      "subtitle": "Same facility, same day of week",
+      "empty": "Not enough {weekday} history yet to chart a trend.",
+      "legendLabel": "Confirmation"
+    },
+    "todayInsights": {
+      "title": "What today shows",
+      "subtitle": "Variation vs. baseline + recommendation"
+    },
+    "gamesDetailSection": "Detail of the day's games",
+    "game": {
+      "confirmed": "Confirmed",
+      "cancelled": "Cancelled",
+      "players": "{final}/{max} players (min. {min})",
+      "waitlist": " · {n} waitlisted",
+      "dropped": " · {n} dropped out",
+      "missing": "{n, plural, one{Short # player for the minimum} other{Short # players for the minimum}}",
+      "reason": "Reason: {reason}",
+      "leadTime": "Lead time: {hours}h",
+      "price": "Price: {price}",
+      "pricePerPlayer": " · {price}/player",
+      "revenue": "Revenue: {amount}",
+      "rating": "Rating: {rating}",
+      "ratingCount": "({count})"
+    },
+    "mustSchedule": {
+      "section": "Slots worth scheduling no matter what",
+      "description": "Rolling 3-month window (from the day chosen above) · above 55% confirmation (or cancellation, depending on the view) · cancellations for facility unavailability are fully excluded. Methodology specific to this page — different from the historical consistency used by Trends.",
+      "tabDayOfWeek": "Day of week",
+      "tabTopConfirm": "Very high confirmation ({n})",
+      "tabTopCancel": "Very high cancellation ({n})",
+      "tabWatch": "To watch ({n})",
+      "dayOfWeekIntro": "This facility's full history, every time slot — the standout from each day.",
+      "dayOfWeekEmpty": "Not enough data yet.",
+      "topSlotsIntro": "≥90% over the last 3 months · average of its confirmed games.",
+      "topSlotsEmpty": "No slots with 90%+ confirmation at this facility yet.",
+      "occupancy": "{pct} occupancy",
+      "occupancyEmpty": "occupancy —",
+      "priceSuffix": " · {price}",
+      "pricePerPlayerSuffix": " ({price}/player)",
+      "ratingSuffix": " · rating {rating}",
+      "leadTimeSuffix": " · lead time {hours}h",
+      "strugglingIntro": "Declining or stuck below the threshold.",
+      "strugglingEmpty": "No declining or stuck slots to report.",
+      "topCancelIntro": "≥90% cancellation over the last 3 months · average of its cancelled games.",
+      "topCancelEmpty": "No slots with 90%+ cancellation at this facility yet.",
+      "occupancyAtCancel": "{pct} occupancy at cancellation",
+      "occupancyAtCancelEmpty": "occupancy at cancellation —",
+      "deficitSuffix": "{n, plural, one{ · short # player on average} other{ · short # players on average}}",
+      "strugglingCancelIntro": "Worsening, or elevated and stuck.",
+      "strugglingCancelEmpty": "No worsening or stuck cancellation slots to report."
+    },
+    "glossary": {
+      "confirmationRateTerm": "Confirmation rate",
+      "confirmationRateDef": "confirmed / (confirmed + cancelled), excluding cancellations for facility unavailability from the calculation.",
+      "cancellationRateTerm": "Cancellation rate",
+      "cancellationRateDef": "the exact complement: cancelled / (confirmed + cancelled), with the same exclusion. It's the same data window seen the other way around, not a new metric."
+    },
+    "insights": {
+      "noGames": "No games recorded this {weekday} at this facility.",
+      "confirmationInLine": "Today's confirmation ({rate}) is in line with the average of the last {n} {weekday} ({avg}).",
+      "confirmationAbove": "Today's confirmation ({rate}) is {pts} pts above the average of the last {n} {weekday} ({avg}) — good sign.",
+      "confirmationBelow": "Today's confirmation ({rate}) is {pts} pts below the average of the last {n} {weekday} ({avg}) — worth checking what changed.",
+      "gamesMore": "{n, plural, one{There was # more game} other{There were # more games}} than the usual average for this day ({avg} games).",
+      "gamesLess": "{n, plural, one{There was # fewer game} other{There were # fewer games}} than the usual average for this day ({avg} games).",
+      "noBaseline": "Not enough history of previous {weekday} at this facility yet to compare against a reliable baseline.",
+      "topCancelReason": "The most frequent cancellation reason today was \"{reason}\" ({count} of {total} cancelled).",
+      "trendSummary": "Over the last {n} weeks, {weekday} confirmation shows {trend}: it went from {first} to {last} (min {min}, max {max}).",
+      "trendUp": "an upward trend",
+      "trendDown": "a downward trend",
+      "trendStable": "a relatively stable trend",
+      "noWeeklyHistory": "Not enough history of 6 {weekday} yet to analyze the multi-week trend.",
+      "todayInLine": "Today's behavior is in line with the recent trend of the last {n} {weekday} (~{avg}).",
+      "todayAbove": "Today was {pts} pts above the recent trend (~{avg} over the last {n} {weekday}) — could be a one-off improvement or the start of a trend change, worth confirming next week.",
+      "todayBelow": "Today was {pts} pts below the recent trend (~{avg} over the last {n} {weekday}) — worth checking whether it's a one-off or the start of a sustained decline."
+    },
+    "dayOfWeekSummary": {
+      "noVariation": "{pct} confirmation · {n} games — no meaningful variation between days.",
+      "strongest": "{pct} confirmation · {n} games — the strongest day of the week at this facility.",
+      "weakest": "{pct} confirmation · {n} games — the weakest day of the week, worth checking what explains it.",
+      "relativeAbove": "{pct} confirmation · {n} games — above the weekly average ({avg}).",
+      "relativeBelow": "{pct} confirmation · {n} games — below the weekly average ({avg}).",
+      "lowOccupancy": "Low occupancy in confirmed games ({pct}) — room to fill them more.",
+      "topSlots": "{n, plural, one{# time slot} other{# time slots}} with very high confirmation, the best at {hour} ({pct}).",
+      "watchSlots": "{n, plural, one{# time slot} other{# time slots}} to watch{decliningSuffix}.",
+      "decliningSuffix": " ({n} declining)"
+    },
+    "dayOfWeekCancelSummary": {
+      "noVariation": "{pct} cancellation · {n} games — no meaningful variation between days.",
+      "best": "{pct} cancellation · {n} games — the day with the fewest cancellations of the week at this facility.",
+      "worst": "{pct} cancellation · {n} games — the day with the most cancellations of the week, worth checking what explains it.",
+      "relativeAbove": "{pct} cancellation · {n} games — above the weekly average ({avg}).",
+      "relativeBelow": "{pct} cancellation · {n} games — below the weekly average ({avg}).",
+      "lowConversion": "Low conversion ({pct}) — a good share of those who sign up never make it to the game (drop-outs or waitlist that never got in).",
+      "topSlots": "{n, plural, one{# time slot} other{# time slots}} with very high cancellation, the most critical at {hour} ({pct}).",
+      "watchSlots": "{n, plural, one{# time slot} other{# time slots}} to watch{worseningSuffix}.",
+      "worseningSuffix": " ({n} worsening)"
+    },
+    "mustScheduleInsight": {
+      "base": "{pct}% confirmation over the last 3 months ({total} games, not counting cancellations for facility unavailability)",
+      "up": "{base}. Improving: from {early}% to {late}% between the first and second half of the period — a good candidate to reinforce in the coming weeks.",
+      "down": "{base}. Declining: from {early}% to {late}% — still clears the threshold, but worth confirming it holds before treating it as fixed.",
+      "flat": "{base}. Stable over the period — expected to hold over the coming weeks if the context doesn't change."
+    },
+    "strugglingInsight": {
+      "declining": "Declining from {early}% to {late}% over the last 3 months — still above the threshold, but if it keeps going it could stop being a reliable slot.",
+      "stuck": "Stuck at {pct}% over the last 3 months, with no clear signs of improvement — doesn't reach the reliability threshold (55%)."
+    },
+    "mustScheduleCancelInsight": {
+      "base": "{pct}% cancellation over the last 3 months ({total} games, not counting cancellations for facility unavailability)",
+      "down": "{base}. Improving: from {early}% to {late}% cancellation between the first and second half of the period.",
+      "up": "{base}. Worsening: from {early}% to {late}% — still a risky time slot and the trend isn't helping.",
+      "flat": "{base}. Stable over the period — no signs of recent improvement or deterioration."
+    },
+    "strugglingCancelInsight": {
+      "worsening": "Worsening: from {early}% to {late}% cancellation over the last 3 months.",
+      "stuck": "Elevated and stuck cancellation at {pct}% over the last 3 months, with no signs of improvement.",
+      "extraSuffix": " In this time slot's cancelled games, {extra}.",
+      "deficitExtra": "{n, plural, one{on average # player was short of the minimum} other{on average # players were short of the minimum}}",
+      "droppedExtra": "{n, plural, one{# player dropped out} other{# players dropped out}} on average before cancelling"
+    },
+    "board": {
+      "confirmedTab": "Confirmed",
+      "cancelledTab": "Cancelled",
+      "emptyConfirmed": "No slots yet clear 55% confirmation over the last 3 months with enough sample size.",
+      "emptyCancelled": "No slot exceeds 55% cancellation over the last 3 months with enough sample size — good sign."
+    },
+    "calendar": {
+      "confirmedLabel": "confirmed",
+      "cancelledLabel": "cancelled",
+      "confirmationWord": "confirmation",
+      "cancellationWord": "cancellation",
+      "titleTemplate": "{format} — {pct}% {word}",
+      "matchOf": "{matching} {label} of {total}",
+      "showMore": "+{n} more",
+      "showLess": "show less"
+    }
   }
 }
