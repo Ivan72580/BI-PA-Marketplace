@@ -10,14 +10,23 @@ type Market = { id: string; name: string; regionId: string };
 // "nav", angosto, sobre fondo oscuro, siempre a /trends) y /daily lo reusa
 // como buscador principal para entrar directo a una facility (variant
 // "panel", más ancho, sobre fondo claro, con destino configurable vía
-// buildHref) — mismo componente, mismo comportamiento de teclado/filtro,
-// sin duplicar la lógica de búsqueda en dos archivos.
+// basePath/extraParams) — mismo componente, mismo comportamiento de
+// teclado/filtro, sin duplicar la lógica de búsqueda en dos archivos.
+//
+// Nota: el destino y el texto de "sin resultados" NO se reciben como
+// funciones — este es un Client Component y quien lo usa (app/daily/page.tsx,
+// un Server Component) no puede pasarle callbacks: React tira "Functions
+// cannot be passed directly to Client Components" al serializar los props.
+// Por eso ambos se resuelven acá con datos planos: basePath + extraParams
+// arman la URL, y emptyMessageTemplate es un string ya traducido en el
+// servidor que trae el literal "{query}" para reemplazar en el cliente.
 export default function FacilitySearch({
   facilities,
   markets,
-  buildHref,
+  basePath = "/trends",
+  extraParams,
   placeholder,
-  emptyMessage,
+  emptyMessageTemplate,
   variant = "nav",
   autoFocus = false,
 }: {
@@ -25,9 +34,15 @@ export default function FacilitySearch({
   markets: Market[];
   // Si no se pasa, mantiene el comportamiento histórico (ir a /trends) —
   // así el uso en TopNav no cambia.
-  buildHref?: (facility: Facility, market: Market) => string;
+  basePath?: string;
+  // Params adicionales a preservar en la URL de destino (ej. la fecha
+  // elegida en /daily), además de regionId/marketId/facilityId que siempre
+  // se agregan.
+  extraParams?: Record<string, string | undefined>;
   placeholder?: string;
-  emptyMessage?: (query: string) => string;
+  // String con el literal "{query}" a reemplazar por el texto buscado
+  // (no una función — ver nota arriba).
+  emptyMessageTemplate?: string;
   variant?: "nav" | "panel";
   autoFocus?: boolean;
 }) {
@@ -68,8 +83,14 @@ export default function FacilitySearch({
     if (!market) return;
     setQuery("");
     setOpen(false);
-    const href = buildHref ? buildHref(f, market) : `/trends?regionId=${market.regionId}&marketId=${market.id}&facilityId=${f.id}`;
-    router.push(href);
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(extraParams ?? {})) {
+      if (v) params.set(k, v);
+    }
+    params.set("regionId", market.regionId);
+    params.set("marketId", market.id);
+    params.set("facilityId", f.id);
+    router.push(`${basePath}?${params.toString()}`);
   }
 
   function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
@@ -148,7 +169,7 @@ export default function FacilitySearch({
       )}
       {open && query.trim() && results.length === 0 && (
         <div className="absolute z-50 top-full left-0 right-0 mt-1.5 rounded-xl bg-surface shadow-xl py-3 px-3 text-xs text-ink-faint">
-          {emptyMessage ? emptyMessage(query) : `Sin resultados para "${query}"`}
+          {emptyMessageTemplate ? emptyMessageTemplate.replace("{query}", query) : `Sin resultados para "${query}"`}
         </div>
       )}
     </div>

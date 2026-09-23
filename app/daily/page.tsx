@@ -316,8 +316,14 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
               variant="panel"
               autoFocus
               placeholder={t("facilitySearch.placeholder")}
-              emptyMessage={(query) => t("facilitySearch.empty", { query })}
-              buildHref={(f, m) => buildDailyQuery(sp, { regionId: m.regionId, marketId: m.id, facilityId: f.id })}
+              // FacilitySearch es un Client Component: no puede recibir un
+              // callback armado acá (Server Component) — por eso se le pasa
+              // el mensaje ya traducido con el literal "{query}" (lo
+              // reemplaza él mismo al mostrar el resultado) en vez de una
+              // función. Ver el comentario en FacilitySearch.tsx.
+              emptyMessageTemplate={t("facilitySearch.empty", { query: "{query}" })}
+              basePath="/daily"
+              extraParams={{ date: sp.date }}
             />
           </div>
         </div>
