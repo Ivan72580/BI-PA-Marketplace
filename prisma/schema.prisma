@@ -107,14 +107,36 @@ model Game {
   @@map("games")
 }
 
-// Preferencia de idioma del usuario logueado. Tabla liviana e independiente
-// del modelo de auth (NextAuth sigue en JWT, sin adapter/DB sessions) —
-// solo se lee/escribe por email cuando hay sesión activa. Si el usuario no
-// está logueado, el idioma se resuelve por cookie (ver i18n/request.ts).
-model UserPreference {
-  email     String   @id
-  locale    String   @default("es")
-  updatedAt DateTime @updatedAt
+// Rol de cuenta. Simple a propósito: hoy solo distingue quién puede
+// administrar usuarios (ADMIN) del resto (MEMBER). Es el punto de extensión
+// para permisos más finos (por región/market, etc.) cuando haya un caso de
+// uso real que lo pida — no se construye antes de tiempo.
+enum Role {
+  ADMIN
+  MEMBER
+}
 
-  @@map("user_preferences")
+// Cuenta de la app. NextAuth sigue en JWT puro (sin adapter/DB sessions) —
+// esta tabla no reemplaza esa sesión, es el registro de negocio asociado
+// a cada email. Se crea/actualiza sola en el callback signIn (ver
+// app/lib/auth.ts): no hay alta manual, el primer login de un email
+// autorizado (dominio de Google Workspace) ya crea la fila. El rol inicial
+// sale de ADMIN_EMAILS (variable de entorno, solo importa en el primer
+// login de cada cuenta); a partir de ahí, los cambios de rol se hacen desde
+// /admin/users, no editando esa variable.
+model User {
+  id          String    @id @default(cuid())
+  email       String    @unique
+  name        String?
+  image       String?
+  role        Role      @default(MEMBER)
+  // Reemplaza a la vieja UserPreference: mismo dato (idioma elegido), ahora
+  // en la misma fila que el resto de la cuenta en vez de una tabla aparte
+  // keyed por el mismo email.
+  locale      String    @default("es")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  lastLoginAt DateTime?
+
+  @@map("users")
 }

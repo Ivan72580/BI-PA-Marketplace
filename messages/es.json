@@ -29,7 +29,32 @@
   },
   "UserMenu": {
     "guest": "Invitado",
-    "signOut": "Salir"
+    "signOut": "Salir",
+    "adminLink": "Administración"
+  },
+  "Admin": {
+    "usersTitle": "Usuarios",
+    "usersSubtitle": "Gestión de roles del equipo. Los usuarios se crean automáticamente al iniciar sesión por primera vez.",
+    "table": {
+      "user": "Usuario",
+      "email": "Email",
+      "role": "Rol",
+      "lastLogin": "Último acceso",
+      "never": "Nunca"
+    },
+    "role": {
+      "ADMIN": "Admin",
+      "MEMBER": "Miembro"
+    },
+    "save": "Guardar",
+    "saving": "Guardando...",
+    "saved": "Guardado",
+    "you": "(vos)",
+    "errors": {
+      "lastAdmin": "No se puede quitar el rol de Admin: es el único Admin que queda.",
+      "unauthorized": "No tenés permisos para hacer este cambio.",
+      "generic": "No se pudo guardar el cambio. Probá de nuevo."
+    }
   },
   "Daily": {
     "title": "Seguimiento diario",

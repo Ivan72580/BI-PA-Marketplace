@@ -5,13 +5,13 @@ import { prisma } from "@/app/lib/db/prisma";
 import { defaultLocale, isLocale, LOCALE_COOKIE, type Locale } from "./config";
 
 // Resolución de idioma, en orden de prioridad:
-//   1. Preferencia guardada en UserPreference, si hay sesión activa.
+//   1. Preferencia guardada en User.locale, si hay sesión activa.
 //   2. Cookie "locale" (usuario no logueado, o logueado pero sin preferencia
 //      guardada todavía).
 //   3. Español por defecto.
-// El lookup a UserPreference está en try/catch a propósito: si todavía no
-// se aplicó la migración de Prisma (tabla inexistente) o la DB no responde,
-// no debe romper el render de toda la app — simplemente se sigue con la
+// El lookup a User está en try/catch a propósito: si todavía no se aplicó
+// la migración de Prisma (tabla inexistente) o la DB no responde, no debe
+// romper el render de toda la app — simplemente se sigue con la
 // cookie/default.
 async function resolveLocale(): Promise<Locale> {
   const session = await auth();
@@ -19,8 +19,8 @@ async function resolveLocale(): Promise<Locale> {
 
   if (email) {
     try {
-      const pref = await prisma.userPreference.findUnique({ where: { email } });
-      if (pref && isLocale(pref.locale)) return pref.locale;
+      const user = await prisma.user.findUnique({ where: { email } });
+      if (user && isLocale(user.locale)) return user.locale;
     } catch {
       // Ver comentario arriba — se ignora y se sigue con la cookie.
     }

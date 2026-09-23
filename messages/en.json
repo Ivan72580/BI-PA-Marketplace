@@ -29,7 +29,32 @@
   },
   "UserMenu": {
     "guest": "Guest",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "adminLink": "Admin"
+  },
+  "Admin": {
+    "usersTitle": "Users",
+    "usersSubtitle": "Manage team roles. Users are created automatically the first time they sign in.",
+    "table": {
+      "user": "User",
+      "email": "Email",
+      "role": "Role",
+      "lastLogin": "Last login",
+      "never": "Never"
+    },
+    "role": {
+      "ADMIN": "Admin",
+      "MEMBER": "Member"
+    },
+    "save": "Save",
+    "saving": "Saving...",
+    "saved": "Saved",
+    "you": "(you)",
+    "errors": {
+      "lastAdmin": "Can't remove the Admin role: this is the only remaining Admin.",
+      "unauthorized": "You don't have permission to make this change.",
+      "generic": "Couldn't save the change. Please try again."
+    }
   },
   "Daily": {
     "title": "Daily tracking",

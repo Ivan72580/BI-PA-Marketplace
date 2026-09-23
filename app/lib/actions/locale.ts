@@ -7,7 +7,7 @@ import { prisma } from "../db/prisma";
 import { isLocale, LOCALE_COOKIE, type Locale } from "@/i18n/config";
 
 // Guarda el idioma elegido: siempre en la cookie (para que funcione sin
-// login), y además en UserPreference si hay sesión activa, para que la
+// login), y además en User.locale si hay sesión activa, para que la
 // preferencia viaje con la cuenta entre dispositivos. El upsert está en
 // try/catch: si todavía no se aplicó la migración de Prisma (tabla
 // inexistente) el cambio de idioma no debe fallar — ya quedó guardado en
@@ -25,10 +25,12 @@ export async function setLocale(locale: Locale) {
   const email = session?.user?.email;
   if (email) {
     try {
-      await prisma.userPreference.upsert({
+      // update-only: si el signIn callback todavía no llegó a crear la fila
+      // (carrera rarísima, o usuario preexistente antes de esta migración)
+      // no queremos crear un User a medias sin nombre/rol acá.
+      await prisma.user.update({
         where: { email },
-        update: { locale },
-        create: { email, locale },
+        data: { locale },
       });
     } catch {
       // Ver comentario arriba.
