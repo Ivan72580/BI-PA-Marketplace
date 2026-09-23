@@ -426,7 +426,7 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
         getSlotConsistency(slotFilters, slotMonth, "confirmed", mustHoldWindow, locale),
         getSlotConsistency(slotFilters, slotMonth, "cancelled", avoidWindow, locale),
         getSlotRecentPerformance(slotFilters, 8, locale),
-        getGameList(detalleFilters, 100),
+        getGameList(detalleFilters, 100, locale),
         getMetricSeriesInWindow(facilityFilters, unit, period.dateFrom!, period.dateTo!, locale),
       ]);
 

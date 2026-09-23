@@ -171,7 +171,7 @@ async function getDaySnapshotImpl(facilityId: string, dateISO: string, locale: L
       waitlistPlayers: g.waitlistPlayers,
       droppedPlayers: g.droppedPlayers,
       playersMissing: g.playersMissing,
-      cancellationReason: g.cancellationCategory ? labelForCancellationCategory(g.cancellationCategory) : null,
+      cancellationReason: g.cancellationCategory ? labelForCancellationCategory(g.cancellationCategory, locale) : null,
       confirmationLeadTime: g.confirmationLeadTime,
       gamePrice: g.gamePrice,
       eventRevenue: g.eventRevenue,
@@ -183,7 +183,7 @@ async function getDaySnapshotImpl(facilityId: string, dateISO: string, locale: L
 
   const total = confirmed + cancelled;
   const cancellationBreakdown = Array.from(cancelCounts.entries())
-    .map(([category, count]) => ({ category, label: labelForCancellationCategory(category), count }))
+    .map(([category, count]) => ({ category, label: labelForCancellationCategory(category, locale), count }))
     .sort((a, b) => b.count - a.count);
 
   return {

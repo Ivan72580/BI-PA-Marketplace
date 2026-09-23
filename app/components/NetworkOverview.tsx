@@ -116,7 +116,7 @@ export default async function NetworkOverview({
       const [current, extended, dayHourHeatmap, demandLeaders, facilityTable, facilitySummary] = await Promise.all([
         getOverviewData(scopeFilters, locale),
         getExtendedMetrics(scopeFilters),
-        getDayHourHeatmap(scopeFilters),
+        getDayHourHeatmap(scopeFilters, locale),
         getDemandLeaders(scopeFilters),
         getFacilityTable(scopeFilters, facilitySort, facilitySortDir),
         getMarketFacilitySummary(scopeFilters),

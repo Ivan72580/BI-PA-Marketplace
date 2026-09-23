@@ -2,6 +2,7 @@ import { prisma } from "./prisma";
 import { cached } from "./cache";
 import { combineFormatLabel } from "./format";
 import { buildWhere, labelForCancellationCategory, type OverviewFilters } from "./shared";
+import type { Locale } from "@/i18n/config";
 
 export type GameListItem = {
   id: number;
@@ -30,7 +31,10 @@ type GameListRow = {
   facility: { name: string };
 };
 
-async function getGameListImpl(filters: OverviewFilters, limit = 100) {
+// `locale` con default "es" — mismo criterio que overview.ts/heatmap.ts: el
+// único caller de este momento (trends/page.tsx, para DetalleTable) ya
+// resuelve el locale real vía getLocale() y lo pasa.
+async function getGameListImpl(filters: OverviewFilters, limit = 100, locale: Locale = "es") {
   const where = buildWhere(filters);
 
   const [games, total] = await Promise.all([
@@ -65,7 +69,7 @@ async function getGameListImpl(filters: OverviewFilters, limit = 100) {
     status: g.status,
     finalPlayers: g.finalPlayers,
     maxPlayers: g.maxPlayers,
-    cancellationReason: g.cancellationCategory ? labelForCancellationCategory(g.cancellationCategory) : null,
+    cancellationReason: g.cancellationCategory ? labelForCancellationCategory(g.cancellationCategory, locale) : null,
     fieldLabel: combineFormatLabel(g.gameSize, g.fieldType, g.maxPlayers),
   }));
 

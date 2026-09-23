@@ -1,7 +1,9 @@
 import { CancellationCategory } from "@prisma/client";
 import { prisma } from "./prisma";
 import { cached } from "./cache";
-import { buildWhere, labelForCancellationCategory, sortHoursByOperatingDay, DAY_ORDER, DAY_LABEL_ES, type OverviewFilters } from "./shared";
+import { buildWhere, labelForCancellationCategory, sortHoursByOperatingDay, DAY_ORDER, type OverviewFilters } from "./shared";
+import { weekdayAbbr } from "./weekday";
+import type { Locale } from "@/i18n/config";
 
 export type HeatmapReason = { label: string; count: number };
 
@@ -15,7 +17,11 @@ export type HeatmapCell = {
   reasonBreakdown: HeatmapReason[];
 };
 
-async function getDayHourHeatmapImpl(filters: OverviewFilters) {
+// `locale` con default "es" — mismo criterio que overview.ts: el único
+// caller de este momento (NetworkOverview.tsx) ya resuelve el locale real
+// vía getLocale() y lo pasa; el default deja a cualquier otro caller futuro
+// que no lo pase con el comportamiento de siempre.
+async function getDayHourHeatmapImpl(filters: OverviewFilters, locale: Locale = "es") {
   const where = buildWhere(filters);
   const games = await prisma.game.findMany({
     where,
@@ -50,11 +56,11 @@ async function getDayHourHeatmapImpl(filters: OverviewFilters) {
       const entry = map.get(`${day}|${hour}`) ?? { count: 0, cancelled: 0, reasons: new Map<string, number>() };
       maxCount = Math.max(maxCount, entry.count);
       const reasonBreakdown = Array.from(entry.reasons.entries())
-        .map(([category, count]) => ({ label: labelForCancellationCategory(category), count }))
+        .map(([category, count]) => ({ label: labelForCancellationCategory(category, locale), count }))
         .sort((a, b) => b.count - a.count);
       cells.push({
         day,
-        dayLabel: DAY_LABEL_ES[day] ?? day,
+        dayLabel: weekdayAbbr(day, locale),
         hour: `${hour}h`,
         count: entry.count,
         cancelledCount: entry.cancelled,
@@ -65,7 +71,7 @@ async function getDayHourHeatmapImpl(filters: OverviewFilters) {
   }
 
   return {
-    days: DAY_ORDER.map((d) => DAY_LABEL_ES[d] ?? d),
+    days: DAY_ORDER.map((d) => weekdayAbbr(d, locale)),
     hours: hours.map((h) => `${h}h`),
     cells,
     maxCount,
