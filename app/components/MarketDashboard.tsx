@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import {
   getMarketFacilitySummary,
   getParetoGroups,
@@ -6,6 +7,7 @@ import {
   type OverviewFilters,
   type ReputationTier,
 } from "../lib/db/queries";
+import { MIN_GAMES_FOR_RANKING } from "../lib/db/shared";
 import PieChart from "./charts/PieChart";
 import Glossary from "./Glossary";
 import ChangeBadge from "./ChangeBadge";
@@ -36,9 +38,6 @@ function SectionCard({ title, subtitle, children }: { title: string; subtitle?: 
   );
 }
 
-const TIER_LABEL: Record<ReputationTier, string> = {
-  platinum: "Platinum", bueno: "Bueno", intermedio: "Intermedio", a_revisar: "A revisar", sin_datos: "Sin datos suficientes",
-};
 const TIER_CLASS: Record<ReputationTier, string> = {
   platinum: "bg-[#0b3b2e] text-white",
   bueno: "bg-brand-soft text-brand",
@@ -70,6 +69,10 @@ export default async function MarketDashboard({
   month: string;
   buildQuery: (overrides: Record<string, string | undefined>) => string;
 }) {
+  const t = await getTranslations("Market");
+  const TIER_LABEL: Record<ReputationTier, string> = {
+    platinum: t("tier.platinum"), bueno: t("tier.bueno"), intermedio: t("tier.intermedio"), a_revisar: t("tier.aRevisar"), sin_datos: t("tier.sinDatos"),
+  };
   const baseFilters: Omit<OverviewFilters, "dateFrom" | "dateTo"> = { regionId: sp.regionId, marketId: sp.marketId, facilityId: sp.facilityId };
   const { dateFrom, dateTo } = monthRange(month);
   const monthFilters: OverviewFilters = { ...baseFilters, dateFrom, dateTo };
@@ -90,7 +93,7 @@ export default async function MarketDashboard({
   }
 
   const paretoChart = {
-    labels: [...pareto.top80.facilities.map((f) => f.name), "Otros"],
+    labels: [...pareto.top80.facilities.map((f) => f.name), t("othersChartLabel")],
     datasets: [{ data: [...pareto.top80.facilities.map((f) => f.count), pareto.others.count], backgroundColor: PIE_COLORS }],
   };
 
@@ -105,14 +108,14 @@ export default async function MarketDashboard({
     <div className="space-y-5">
       <TabFilters regions={filterOptions.regions} markets={filterOptions.markets} />
       {!sp.regionId ? (
-        <SectionCard title="Concentración de confirmados por región" subtitle={`${month} — pantallazo general. Clickeá una torta para ver el detalle de esa región`}>
+        <SectionCard title={t("concentration.byRegionTitle")} subtitle={t("concentration.byRegionSubtitle", { month })}>
           <RegionConcentrationPies filters={monthFilters} buildHref={(regionId) => buildQuery({ regionId })} />
         </SectionCard>
       ) : (
         <>
           <SectionCard
-            title="Concentración de confirmados (Pareto 80/20)"
-            subtitle={`${month} — facilities individuales hasta cubrir el 80% de los partidos confirmados; el resto agrupado en «Otros»`}
+            title={t("concentration.paretoTitle")}
+            subtitle={t("concentration.paretoSubtitle", { month })}
           >
             <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
               <PieChart data={paretoChart} showLegend={false} />
@@ -127,7 +130,7 @@ export default async function MarketDashboard({
                   </div>
                 ))}
                 <div className="flex items-center justify-between text-sm pt-1 border-t border-surface-sunken">
-                  <span className="text-ink-faint">Otros ({pareto.others.facilityIds.length} facilities)</span>
+                  <span className="text-ink-faint">{t("concentration.othersLabel", { n: pareto.others.facilityIds.length })}</span>
                   <span className="text-ink-muted">{pareto.others.count.toLocaleString("en-US")}</span>
                 </div>
               </div>
@@ -136,15 +139,15 @@ export default async function MarketDashboard({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Link href={buildQuery({ view: "ranking", group: "top80", month })} className="block rounded-xl bg-surface shadow-sm hover:shadow-lg transition-shadow p-4">
-              <div className="text-sm font-medium text-brand">Ver detalle del grupo 80%</div>
-              <div className="text-xs text-ink-faint mt-1">{pareto.top80.facilityIds.length} facilities · {formatPct(pareto.top80.pct)} de los confirmados</div>
+              <div className="text-sm font-medium text-brand">{t("concentration.viewTop80")}</div>
+              <div className="text-xs text-ink-faint mt-1">{t("concentration.facilitiesShare", { n: pareto.top80.facilityIds.length, pct: formatPct(pareto.top80.pct) })}</div>
             </Link>
             <Link href={buildQuery({ view: "ranking", group: "others", month })} className="block rounded-xl bg-surface shadow-sm hover:shadow-lg transition-shadow p-4">
-              <div className="text-sm font-medium text-ink-muted">Ver detalle del grupo «Otros» (20%)</div>
-              <div className="text-xs text-ink-faint mt-1">{pareto.others.facilityIds.length} facilities · {formatPct(pareto.others.pct)} de los confirmados</div>
+              <div className="text-sm font-medium text-ink-muted">{t("concentration.viewOthers")}</div>
+              <div className="text-xs text-ink-faint mt-1">{t("concentration.facilitiesShare", { n: pareto.others.facilityIds.length, pct: formatPct(pareto.others.pct) })}</div>
             </Link>
           </div>
-          <Glossary items={[{ term: "vs. anterior", def: "variación contra el mismo mes del año pasado." }]} />
+          <Glossary items={[{ term: t("glossary.vsAnteriorYear.term"), def: t("glossary.vsAnteriorYear.def") }]} />
         </>
       )}
     </div>
@@ -158,7 +161,7 @@ export default async function MarketDashboard({
       <TabFilters regions={filterOptions.regions} markets={filterOptions.markets} />
 
       {!sp.marketId && (
-        <SectionCard title="Markets por partidos confirmados" subtitle={`${month} — clickeá un market para ver la participación de sus facilities`}>
+        <SectionCard title={t("share.byMarketTitle")} subtitle={t("share.byMarketSubtitle", { month })}>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {marketRanking.map((m) => (
               <Link key={m.marketId} href={buildQuery({ marketId: m.marketId })} className="block rounded-2xl bg-surface shadow-sm hover:shadow-lg transition-shadow p-4">
@@ -167,7 +170,7 @@ export default async function MarketDashboard({
                   <div className="font-display text-xl font-semibold text-ink">{m.confirmedGames.toLocaleString("en-US")}</div>
                   <ChangeBadge value={m.changePct} />
                 </div>
-                <div className="text-xs text-ink-faint mt-0.5">partidos confirmados</div>
+                <div className="text-xs text-ink-faint mt-0.5">{t("share.confirmedGamesLabel")}</div>
               </Link>
             ))}
           </div>
@@ -175,7 +178,7 @@ export default async function MarketDashboard({
       )}
 
       {sp.marketId && (
-        <SectionCard title="Participación por facility" subtitle={`${month} — % de los partidos confirmados de este market que representa cada facility. Clickeá una facility para ver su consistencia de horarios en Trends`}>
+        <SectionCard title={t("share.byFacilityTitle")} subtitle={t("share.byFacilitySubtitle", { month })}>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {marketShareTarget.map((f) => {
               const priorShare = facilityShareCompare?.get(f.facilityId) ?? null;
@@ -188,15 +191,15 @@ export default async function MarketDashboard({
                     <div className="font-display text-xl font-semibold text-ink">{formatPct(f.marketSharePct)}</div>
                     <ChangeBadge value={shareChange} />
                   </div>
-                  <div className="text-xs text-ink-faint mt-0.5">{f.confirmedGames.toLocaleString("en-US")} confirmados</div>
+                  <div className="text-xs text-ink-faint mt-0.5">{t("share.confirmedCount", { n: f.confirmedGames.toLocaleString("en-US") })}</div>
                 </Link>
               );
             })}
-            {marketShareTarget.length === 0 && <div className="text-sm text-ink-faint">Sin partidos confirmados en este market para el mes elegido.</div>}
+            {marketShareTarget.length === 0 && <div className="text-sm text-ink-faint">{t("share.empty")}</div>}
           </div>
         </SectionCard>
       )}
-      <Glossary items={[{ term: "vs. anterior", def: "variación contra el mes calendario inmediatamente anterior (no año anterior)." }]} />
+      <Glossary items={[{ term: t("glossary.vsAnteriorMonth.term"), def: t("glossary.vsAnteriorMonth.def") }]} />
     </div>
   );
 
@@ -204,16 +207,16 @@ export default async function MarketDashboard({
   const reputacionContent = (
     <div className="space-y-5">
       <TabFilters regions={filterOptions.regions} markets={filterOptions.markets} />
-      <SectionCard title="Reputación y ranking" subtitle={`${month} — score compuesto de confirmación + ocupación + conversión. Ranking por región/market: solo cantidad de partidos confirmados`}>
+      <SectionCard title={t("reputation.title")} subtitle={t("reputation.subtitle", { month })}>
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr className="border-b border-border text-left text-ink-muted">
-                <th className="py-1.5 px-2 font-normal">Facility</th>
-                <th className="py-1.5 px-2 font-normal">Nivel</th>
-                <th className="py-1.5 px-2 font-normal">Confirmados</th>
-                <th className="py-1.5 px-2 font-normal">Rank en región</th>
-                <th className="py-1.5 px-2 font-normal">Rank en market</th>
+                <th className="py-1.5 px-2 font-normal">{t("reputation.headers.facility")}</th>
+                <th className="py-1.5 px-2 font-normal">{t("reputation.headers.level")}</th>
+                <th className="py-1.5 px-2 font-normal">{t("reputation.headers.confirmed")}</th>
+                <th className="py-1.5 px-2 font-normal">{t("reputation.headers.rankRegion")}</th>
+                <th className="py-1.5 px-2 font-normal">{t("reputation.headers.rankMarket")}</th>
               </tr>
             </thead>
             <tbody>
@@ -226,8 +229,8 @@ export default async function MarketDashboard({
                   </td>
                   <td className="py-1.5 px-2"><span className={`text-[10px] px-1.5 py-0.5 rounded ${TIER_CLASS[f.reputationTier]}`}>{TIER_LABEL[f.reputationTier]}</span></td>
                   <td className="py-1.5 px-2 text-ink">{f.confirmedGames}</td>
-                  <td className="py-1.5 px-2 text-ink-muted">{f.regionRank ? `#${f.regionRank} de ${f.regionTotal}` : "—"}</td>
-                  <td className="py-1.5 px-2 text-ink-muted">{f.marketRank ? `#${f.marketRank} de ${f.marketTotal}` : "—"}</td>
+                  <td className="py-1.5 px-2 text-ink-muted">{f.regionRank ? t("reputation.rankOf", { rank: f.regionRank, total: f.regionTotal }) : "—"}</td>
+                  <td className="py-1.5 px-2 text-ink-muted">{f.marketRank ? t("reputation.rankOf", { rank: f.marketRank, total: f.marketTotal }) : "—"}</td>
                 </tr>
               ))}
             </tbody>
@@ -235,9 +238,9 @@ export default async function MarketDashboard({
         </div>
         <Glossary
           items={[
-            { term: "Platinum", def: "más de 1.5 desvíos estándar sobre el promedio de la red — solo aparece si existe ese grupo." },
-            { term: "Bueno / Intermedio / A revisar", def: "posición relativa contra el promedio de la red." },
-            { term: "Sin datos suficientes", def: "menos de 10 partidos en el mes — no alcanza para un score confiable." },
+            { term: t("reputation.glossary.platinum.term"), def: t("reputation.glossary.platinum.def") },
+            { term: t("reputation.glossary.tierRange.term"), def: t("reputation.glossary.tierRange.def") },
+            { term: t("reputation.glossary.noData.term"), def: t("reputation.glossary.noData.def", { min: MIN_GAMES_FOR_RANKING }) },
           ]}
         />
       </SectionCard>
@@ -248,14 +251,14 @@ export default async function MarketDashboard({
   const precioContent = (
     <div className="space-y-5">
       <TabFilters regions={filterOptions.regions} markets={filterOptions.markets} />
-      <SectionCard title="Ticket promedio, jugadores por partido y revenue estimado" subtitle={`${month} — revenue = ticket promedio × jugadores promedio por partido × partidos confirmados del mes. Columnas ordenables: click = mayor a menor, de nuevo = menor a mayor, de nuevo = vuelve al orden por defecto`}>
+      <SectionCard title={t("price.title")} subtitle={t("price.subtitle", { month })}>
         <PriceTable rows={priceRows} />
         <Glossary
           items={[
-            { term: "Ticket promedio", def: "precio promedio cobrado por jugador, sin redondear." },
-            { term: "Jugadores/partido", def: "jugadores confirmados totales del mes / cantidad de partidos confirmados — no se diluye por días sin partido." },
-            { term: "Partidos/mes", def: "partidos confirmados en el mes seleccionado. Este es el orden por defecto." },
-            { term: "Revenue estimado", def: "ticket promedio × jugadores/partido × partidos del mes — cálculo simple, no contempla costos de la facility (no disponibles en esta base)." },
+            { term: t("price.glossary.avgTicket.term"), def: t("price.glossary.avgTicket.def") },
+            { term: t("price.glossary.playersPerGame.term"), def: t("price.glossary.playersPerGame.def") },
+            { term: t("price.glossary.gamesPerMonth.term"), def: t("price.glossary.gamesPerMonth.def") },
+            { term: t("price.glossary.revenue.term"), def: t("price.glossary.revenue.def") },
           ]}
         />
       </SectionCard>
@@ -267,14 +270,20 @@ export default async function MarketDashboard({
     <div className="space-y-5">
       <TabFilters regions={filterOptions.regions} markets={filterOptions.markets} />
       <div className="rounded-xl bg-surface-panel border border-border px-5 py-3 text-sm text-ink">
-        <span className="font-semibold">{totalNearMiss.toLocaleString("en-US")}</span> de {totalCancelled.toLocaleString("en-US")} partidos cancelados en {month} ({totalCancelled > 0 ? formatPct(totalNearMiss / totalCancelled) : "0%"}) habían llegado a la mitad o más del mínimo de jugadores necesario.
+        {t.rich("engagement.nearMissSummary", {
+          totalNearMiss: totalNearMiss.toLocaleString("en-US"),
+          totalCancelled: totalCancelled.toLocaleString("en-US"),
+          month,
+          pct: totalCancelled > 0 ? formatPct(totalNearMiss / totalCancelled) : "0%",
+          bold: (chunks) => <span className="font-semibold">{chunks}</span>,
+        })}
       </div>
-      <SectionCard title="Engagement y abandono por facility">
+      <SectionCard title={t("engagement.title")}>
         <EngagementTable rows={engagementRows} />
         <div className="mt-4 pt-3 border-t border-surface-sunken space-y-1.5">
-          <div className="text-[11px] text-ink-faint"><span className="font-medium text-ink-muted">Conversión:</span> jugadores finales / (finales + abandonos) — proxy a nivel partido, no seguimiento de jugador individual.</div>
-          <div className="text-[11px] text-ink-faint"><span className="font-medium text-ink-muted">Abandono:</span> de los jugadores que se anotaron, qué % se bajó antes del partido.</div>
-          <div className="text-[11px] text-ink-faint"><span className="font-medium text-ink-muted">Cancelados &quot;casi llegan&quot;:</span> partidos cancelados que habían llegado al 50% o más del mínimo de jugadores necesario — señal de que podría convenir consolidar horarios en vez de ofrecer tantos en paralelo.</div>
+          <div className="text-[11px] text-ink-faint"><span className="font-medium text-ink-muted">{t("engagement.conversionLabel")}</span> {t("engagement.conversionDef")}</div>
+          <div className="text-[11px] text-ink-faint"><span className="font-medium text-ink-muted">{t("engagement.abandonmentLabel")}</span> {t("engagement.abandonmentDef")}</div>
+          <div className="text-[11px] text-ink-faint"><span className="font-medium text-ink-muted">{t("engagement.nearMissLabel")}</span> {t("engagement.nearMissDef")}</div>
         </div>
       </SectionCard>
     </div>
@@ -283,11 +292,11 @@ export default async function MarketDashboard({
   return (
     <Tabs
       tabs={[
-        { id: "concentracion", label: "Concentración", content: concentracionContent },
-        { id: "share", label: "Market share", content: marketShareContent },
-        { id: "reputacion", label: "Reputación", content: reputacionContent },
-        { id: "precio", label: "Precio", content: precioContent },
-        { id: "engagement", label: "Engagement", content: engagementContent },
+        { id: "concentracion", label: t("tabs.concentration"), content: concentracionContent },
+        { id: "share", label: t("tabs.share"), content: marketShareContent },
+        { id: "reputacion", label: t("tabs.reputation"), content: reputacionContent },
+        { id: "precio", label: t("tabs.price"), content: precioContent },
+        { id: "engagement", label: t("tabs.engagement"), content: engagementContent },
       ]}
     />
   );

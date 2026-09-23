@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { getParetoGroups, getMonthlyFacilityRanking, type OverviewFilters } from "../lib/db/queries";
 import MonthPicker from "./MonthPicker";
 import Glossary from "./Glossary";
@@ -18,6 +19,7 @@ export default async function MarketRanking({
   month: string;
   buildQuery: (overrides: Record<string, string | undefined>) => string;
 }) {
+  const t = await getTranslations("Market.ranking");
   const pareto = await getParetoGroups(filters);
   const target = group === "top80" ? pareto.top80 : pareto.others;
   const rows = await getMonthlyFacilityRanking(target.facilityIds, month);
@@ -25,32 +27,32 @@ export default async function MarketRanking({
   return (
     <div>
       <Link href={buildQuery({ view: undefined, group: undefined, month: undefined })} className="text-sm text-brand mb-4 inline-block">
-        ‹ Volver a Market
+        {t("backToMarket")}
       </Link>
 
       <div className="flex items-center justify-between mb-1 flex-wrap gap-3">
         <h1 className="font-display text-2xl font-semibold text-ink">
-          {group === "top80" ? "Grupo 80% — facilities que concentran el negocio" : "Grupo «Otros» (20%)"}
+          {group === "top80" ? t("groupTitleTop80") : t("groupTitleOthers")}
         </h1>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-ink-faint">Mes:</span>
+          <span className="text-xs text-ink-faint">{t("monthLabel")}</span>
           <MonthPicker paramName="month" value={month} />
         </div>
       </div>
-      <div className="text-sm text-ink-faint mb-5">{target.facilityIds.length} facilities en este grupo</div>
+      <div className="text-sm text-ink-faint mb-5">{t("facilitiesInGroup", { n: target.facilityIds.length })}</div>
 
       <div className="rounded-2xl bg-surface shadow-sm hover:shadow-lg transition-shadow p-5">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr className="border-b border-border text-left text-ink-muted">
-                <th className="py-1.5 px-2 font-normal">Facility</th>
-                <th className="py-1.5 px-2 font-normal">Confirmados</th>
-                <th className="py-1.5 px-2 font-normal">Cancelados</th>
-                <th className="py-1.5 px-2 font-normal">Conversión</th>
-                <th className="py-1.5 px-2 font-normal">Lead time</th>
-                <th className="py-1.5 px-2 font-normal">Waitlist prom.</th>
-                <th className="py-1.5 px-2 font-normal">Ocupación</th>
+                <th className="py-1.5 px-2 font-normal">{t("headers.facility")}</th>
+                <th className="py-1.5 px-2 font-normal">{t("headers.confirmed")}</th>
+                <th className="py-1.5 px-2 font-normal">{t("headers.cancelled")}</th>
+                <th className="py-1.5 px-2 font-normal">{t("headers.conversion")}</th>
+                <th className="py-1.5 px-2 font-normal">{t("headers.leadTime")}</th>
+                <th className="py-1.5 px-2 font-normal">{t("headers.avgWaitlist")}</th>
+                <th className="py-1.5 px-2 font-normal">{t("headers.occupancy")}</th>
               </tr>
             </thead>
             <tbody>
@@ -71,7 +73,7 @@ export default async function MarketRanking({
               ))}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="py-4 text-center text-ink-faint">Sin partidos en este grupo para el mes elegido.</td>
+                  <td colSpan={7} className="py-4 text-center text-ink-faint">{t("empty")}</td>
                 </tr>
               )}
             </tbody>
@@ -79,9 +81,9 @@ export default async function MarketRanking({
         </div>
         <Glossary
           items={[
-            { term: "Conversión", def: "jugadores finales / (finales + abandonos) — proxy a nivel partido, ver detalle completo en Trends." },
-            { term: "Lead time", def: "mediana del tiempo entre confirmación y partido, en unidades del dataset original." },
-            { term: "Waitlist prom.", def: "promedio de jugadores en lista de espera por partido, en el mes." },
+            { term: t("glossary.conversion.term"), def: t("glossary.conversion.def") },
+            { term: t("glossary.leadTime.term"), def: t("glossary.leadTime.def") },
+            { term: t("glossary.avgWaitlist.term"), def: t("glossary.avgWaitlist.def") },
           ]}
         />
       </div>

@@ -360,5 +360,169 @@
         "noChangesWordCancelled": "problemáticos"
       }
     }
+  },
+  "ChangeBadge": {
+    "noPriorData": "sin dato del período anterior"
+  },
+  "Market": {
+    "title": "Market",
+    "subtitle": "Concentración, participación, reputación, precio y engagement por facility",
+    "allRegions": "Todas las regiones",
+    "allMarkets": "Todos los markets",
+    "othersChartLabel": "Otros",
+    "tabs": {
+      "concentration": "Concentración",
+      "share": "Market share",
+      "reputation": "Reputación",
+      "price": "Precio",
+      "engagement": "Engagement"
+    },
+    "tier": {
+      "platinum": "Platinum",
+      "bueno": "Bueno",
+      "intermedio": "Intermedio",
+      "aRevisar": "A revisar",
+      "sinDatos": "Sin datos suficientes"
+    },
+    "glossary": {
+      "vsAnteriorYear": {
+        "term": "vs. anterior",
+        "def": "variación contra el mismo mes del año pasado."
+      },
+      "vsAnteriorMonth": {
+        "term": "vs. anterior",
+        "def": "variación contra el mes calendario inmediatamente anterior (no año anterior)."
+      }
+    },
+    "concentration": {
+      "byRegionTitle": "Concentración de confirmados por región",
+      "byRegionSubtitle": "{month} — pantallazo general. Clickeá una torta para ver el detalle de esa región",
+      "paretoTitle": "Concentración de confirmados (Pareto 80/20)",
+      "paretoSubtitle": "{month} — facilities individuales hasta cubrir el 80% de los partidos confirmados; el resto agrupado en «Otros»",
+      "othersLabel": "Otros ({n} facilities)",
+      "viewTop80": "Ver detalle del grupo 80%",
+      "facilitiesShare": "{n} facilities · {pct} de los confirmados",
+      "viewOthers": "Ver detalle del grupo «Otros» (20%)"
+    },
+    "share": {
+      "byMarketTitle": "Markets por partidos confirmados",
+      "byMarketSubtitle": "{month} — clickeá un market para ver la participación de sus facilities",
+      "confirmedGamesLabel": "partidos confirmados",
+      "byFacilityTitle": "Participación por facility",
+      "byFacilitySubtitle": "{month} — % de los partidos confirmados de este market que representa cada facility. Clickeá una facility para ver su consistencia de horarios en Trends",
+      "confirmedCount": "{n} confirmados",
+      "empty": "Sin partidos confirmados en este market para el mes elegido."
+    },
+    "reputation": {
+      "title": "Reputación y ranking",
+      "subtitle": "{month} — score compuesto de confirmación + ocupación + conversión. Ranking por región/market: solo cantidad de partidos confirmados",
+      "headers": {
+        "facility": "Facility",
+        "level": "Nivel",
+        "confirmed": "Confirmados",
+        "rankRegion": "Rank en región",
+        "rankMarket": "Rank en market"
+      },
+      "rankOf": "#{rank} de {total}",
+      "glossary": {
+        "platinum": {
+          "term": "Platinum",
+          "def": "más de 1.5 desvíos estándar sobre el promedio de la red — solo aparece si existe ese grupo."
+        },
+        "tierRange": {
+          "term": "Bueno / Intermedio / A revisar",
+          "def": "posición relativa contra el promedio de la red."
+        },
+        "noData": {
+          "term": "Sin datos suficientes",
+          "def": "menos de {min} partidos en el mes — no alcanza para un score confiable."
+        }
+      }
+    },
+    "price": {
+      "title": "Ticket promedio, jugadores por partido y revenue estimado",
+      "subtitle": "{month} — revenue = ticket promedio × jugadores promedio por partido × partidos confirmados del mes. Columnas ordenables: click = mayor a menor, de nuevo = menor a mayor, de nuevo = vuelve al orden por defecto",
+      "glossary": {
+        "avgTicket": {
+          "term": "Ticket promedio",
+          "def": "precio promedio cobrado por jugador, sin redondear."
+        },
+        "playersPerGame": {
+          "term": "Jugadores/partido",
+          "def": "jugadores confirmados totales del mes / cantidad de partidos confirmados — no se diluye por días sin partido."
+        },
+        "gamesPerMonth": {
+          "term": "Partidos/mes",
+          "def": "partidos confirmados en el mes seleccionado. Este es el orden por defecto."
+        },
+        "revenue": {
+          "term": "Revenue estimado",
+          "def": "ticket promedio × jugadores/partido × partidos del mes — cálculo simple, no contempla costos de la facility (no disponibles en esta base)."
+        }
+      },
+      "headers": {
+        "facility": "Facility",
+        "avgTicket": "Ticket promedio",
+        "playersPerGame": "Jugadores/partido",
+        "gamesPerMonth": "Partidos/mes",
+        "revenue": "Revenue estimado"
+      },
+      "empty": "Sin datos de precio en este filtro."
+    },
+    "engagement": {
+      "title": "Engagement y abandono por facility",
+      "nearMissSummary": "<bold>{totalNearMiss}</bold> de {totalCancelled} partidos cancelados en {month} ({pct}) habían llegado a la mitad o más del mínimo de jugadores necesario.",
+      "conversionLabel": "Conversión:",
+      "conversionDef": "jugadores finales / (finales + abandonos) — proxy a nivel partido, no seguimiento de jugador individual.",
+      "abandonmentLabel": "Abandono:",
+      "abandonmentDef": "de los jugadores que se anotaron, qué % se bajó antes del partido.",
+      "nearMissLabel": "Cancelados \"casi llegan\":",
+      "nearMissDef": "partidos cancelados que habían llegado al 50% o más del mínimo de jugadores necesario — señal de que podría convenir consolidar horarios en vez de ofrecer tantos en paralelo."
+    },
+    "engagementTable": {
+      "headers": {
+        "facility": "Facility",
+        "conversion": "Conversión",
+        "abandonment": "Abandono",
+        "nearMiss": "Cancelados \"casi llegan\""
+      },
+      "empty": "Sin datos en este filtro."
+    },
+    "ranking": {
+      "backToMarket": "‹ Volver a Market",
+      "groupTitleTop80": "Grupo 80% — facilities que concentran el negocio",
+      "groupTitleOthers": "Grupo «Otros» (20%)",
+      "monthLabel": "Mes:",
+      "facilitiesInGroup": "{n} facilities en este grupo",
+      "headers": {
+        "facility": "Facility",
+        "confirmed": "Confirmados",
+        "cancelled": "Cancelados",
+        "conversion": "Conversión",
+        "leadTime": "Lead time",
+        "avgWaitlist": "Waitlist prom.",
+        "occupancy": "Ocupación"
+      },
+      "empty": "Sin partidos en este grupo para el mes elegido.",
+      "glossary": {
+        "conversion": {
+          "term": "Conversión",
+          "def": "jugadores finales / (finales + abandonos) — proxy a nivel partido, ver detalle completo en Trends."
+        },
+        "leadTime": {
+          "term": "Lead time",
+          "def": "mediana del tiempo entre confirmación y partido, en unidades del dataset original."
+        },
+        "avgWaitlist": {
+          "term": "Waitlist prom.",
+          "def": "promedio de jugadores en lista de espera por partido, en el mes."
+        }
+      }
+    },
+    "regionPies": {
+      "title": "Concentración de confirmados — {region}",
+      "subtitle": "Pareto 80/20 — clickeá para ver el detalle completo",
+      "summary": "{total} confirmados en total · {n} facilities concentran el {pct}"
+    }
   }
 }

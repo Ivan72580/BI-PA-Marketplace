@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { getParetoGroups, getFilterOptions, type OverviewFilters } from "../lib/db/queries";
 import PieChart from "./charts/PieChart";
 
@@ -18,6 +19,7 @@ export default async function RegionConcentrationPies({
   filters: Omit<OverviewFilters, "regionId">;
   buildHref: (regionId: string) => string;
 }) {
+  const t = await getTranslations("Market");
   const filterOptions = await getFilterOptions();
   const results = await Promise.all(
     filterOptions.regions.map(async (r) => ({
@@ -34,12 +36,12 @@ export default async function RegionConcentrationPies({
     <div className={`grid grid-cols-1 ${regionPies.length > 1 ? "lg:grid-cols-2" : ""} gap-5`}>
       {regionPies.map((r) => (
         <div key={r.regionId} className="rounded-2xl bg-surface shadow-sm hover:shadow-lg transition-shadow p-5">
-          <h3 className="text-sm font-medium text-ink mb-0.5">Concentración de confirmados — {r.regionName}</h3>
-          <p className="text-xs text-ink-faint mb-4">Pareto 80/20 — clickeá para ver el detalle completo</p>
+          <h3 className="text-sm font-medium text-ink mb-0.5">{t("regionPies.title", { region: r.regionName })}</h3>
+          <p className="text-xs text-ink-faint mb-4">{t("regionPies.subtitle")}</p>
           <Link href={buildHref(r.regionId)} className="block">
             <PieChart
               data={{
-                labels: [...r.pareto.top80.facilities.map((f) => f.name), "Otros"],
+                labels: [...r.pareto.top80.facilities.map((f) => f.name), t("othersChartLabel")],
                 datasets: [{
                   data: [...r.pareto.top80.facilities.map((f) => f.count), r.pareto.others.count],
                   backgroundColor: PIE_COLORS,
@@ -49,7 +51,7 @@ export default async function RegionConcentrationPies({
             />
           </Link>
           <div className="text-xs text-ink-faint mt-2 text-center">
-            {r.pareto.total.toLocaleString("en-US")} confirmados en total · {r.pareto.top80.facilityIds.length} facilities concentran el {formatPct(r.pareto.top80.pct)}
+            {t("regionPies.summary", { total: r.pareto.total.toLocaleString("en-US"), n: r.pareto.top80.facilityIds.length, pct: formatPct(r.pareto.top80.pct) })}
           </div>
         </div>
       ))}

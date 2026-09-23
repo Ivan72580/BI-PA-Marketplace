@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 type Option = { id: string; name: string; regionId?: string };
 
@@ -13,6 +14,7 @@ export default function TabFilters({
   markets: Option[];
   showMonth?: boolean;
 }) {
+  const t = useTranslations("Market");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -38,14 +40,14 @@ export default function TabFilters({
   return (
     <div className="flex flex-wrap items-center gap-2 mb-4">
       <select className={selectClass} value={regionId} onChange={(e) => update({ regionId: e.target.value, marketId: undefined })}>
-        <option value="All">Todas las regiones</option>
+        <option value="All">{t("allRegions")}</option>
         {regions.map((r) => (
           <option key={r.id} value={r.id}>{r.name}</option>
         ))}
       </select>
 
       <select className={selectClass} value={marketId} onChange={(e) => update({ marketId: e.target.value })}>
-        <option value="All">Todos los markets</option>
+        <option value="All">{t("allMarkets")}</option>
         {filteredMarkets.map((m) => (
           <option key={m.id} value={m.id}>{m.name}</option>
         ))}

@@ -360,5 +360,169 @@
         "noChangesWordCancelled": "problem"
       }
     }
+  },
+  "ChangeBadge": {
+    "noPriorData": "no data for the prior period"
+  },
+  "Market": {
+    "title": "Market",
+    "subtitle": "Concentration, share, reputation, price and engagement by facility",
+    "allRegions": "All regions",
+    "allMarkets": "All markets",
+    "othersChartLabel": "Other",
+    "tabs": {
+      "concentration": "Concentration",
+      "share": "Market share",
+      "reputation": "Reputation",
+      "price": "Price",
+      "engagement": "Engagement"
+    },
+    "tier": {
+      "platinum": "Platinum",
+      "bueno": "Good",
+      "intermedio": "Average",
+      "aRevisar": "Needs review",
+      "sinDatos": "Not enough data"
+    },
+    "glossary": {
+      "vsAnteriorYear": {
+        "term": "vs. prior",
+        "def": "change vs. the same month last year."
+      },
+      "vsAnteriorMonth": {
+        "term": "vs. prior",
+        "def": "change vs. the immediately preceding calendar month (not last year)."
+      }
+    },
+    "concentration": {
+      "byRegionTitle": "Confirmed-game concentration by region",
+      "byRegionSubtitle": "{month} — overview. Click a pie to see that region's detail",
+      "paretoTitle": "Confirmed-game concentration (80/20 Pareto)",
+      "paretoSubtitle": "{month} — individual facilities up to 80% of confirmed games; the rest grouped under \"Other\"",
+      "othersLabel": "Other ({n} facilities)",
+      "viewTop80": "View the 80% group's detail",
+      "facilitiesShare": "{n} facilities · {pct} of confirmed games",
+      "viewOthers": "View the \"Other\" group's detail (20%)"
+    },
+    "share": {
+      "byMarketTitle": "Markets by confirmed games",
+      "byMarketSubtitle": "{month} — click a market to see its facilities' share",
+      "confirmedGamesLabel": "confirmed games",
+      "byFacilityTitle": "Share by facility",
+      "byFacilitySubtitle": "{month} — % of this market's confirmed games that each facility represents. Click a facility to see its schedule consistency in Trends",
+      "confirmedCount": "{n} confirmed",
+      "empty": "No confirmed games in this market for the selected month."
+    },
+    "reputation": {
+      "title": "Reputation and ranking",
+      "subtitle": "{month} — composite score of confirmation + occupancy + conversion. Ranking by region/market: confirmed-game count only",
+      "headers": {
+        "facility": "Facility",
+        "level": "Level",
+        "confirmed": "Confirmed",
+        "rankRegion": "Region rank",
+        "rankMarket": "Market rank"
+      },
+      "rankOf": "#{rank} of {total}",
+      "glossary": {
+        "platinum": {
+          "term": "Platinum",
+          "def": "more than 1.5 standard deviations above the network average — only shown if that group exists."
+        },
+        "tierRange": {
+          "term": "Good / Average / Needs review",
+          "def": "relative standing against the network average."
+        },
+        "noData": {
+          "term": "Not enough data",
+          "def": "fewer than {min} games in the month — not enough for a reliable score."
+        }
+      }
+    },
+    "price": {
+      "title": "Average ticket, players per game, and estimated revenue",
+      "subtitle": "{month} — revenue = average ticket × average players per game × confirmed games this month. Sortable columns: click = highest to lowest, again = lowest to highest, again = back to the default order",
+      "glossary": {
+        "avgTicket": {
+          "term": "Average ticket",
+          "def": "average price charged per player, unrounded."
+        },
+        "playersPerGame": {
+          "term": "Players/game",
+          "def": "total confirmed players this month / number of confirmed games — not diluted by days with no games."
+        },
+        "gamesPerMonth": {
+          "term": "Games/month",
+          "def": "confirmed games in the selected month. This is the default order."
+        },
+        "revenue": {
+          "term": "Estimated revenue",
+          "def": "average ticket × players/game × games this month — a simple calculation that doesn't account for facility costs (not available in this dataset)."
+        }
+      },
+      "headers": {
+        "facility": "Facility",
+        "avgTicket": "Average ticket",
+        "playersPerGame": "Players/game",
+        "gamesPerMonth": "Games/month",
+        "revenue": "Estimated revenue"
+      },
+      "empty": "No price data for this filter."
+    },
+    "engagement": {
+      "title": "Engagement and dropout by facility",
+      "nearMissSummary": "<bold>{totalNearMiss}</bold> of {totalCancelled} cancelled games in {month} ({pct}) had reached half or more of the minimum players needed.",
+      "conversionLabel": "Conversion:",
+      "conversionDef": "final players / (final + dropped) — a game-level proxy, not individual player tracking.",
+      "abandonmentLabel": "Dropout:",
+      "abandonmentDef": "of the players who signed up, what % dropped before the game.",
+      "nearMissLabel": "Cancelled \"near misses\":",
+      "nearMissDef": "cancelled games that had reached 50% or more of the minimum players needed — a signal that it might be worth consolidating time slots instead of offering so many in parallel."
+    },
+    "engagementTable": {
+      "headers": {
+        "facility": "Facility",
+        "conversion": "Conversion",
+        "abandonment": "Dropout",
+        "nearMiss": "Cancelled \"near misses\""
+      },
+      "empty": "No data for this filter."
+    },
+    "ranking": {
+      "backToMarket": "‹ Back to Market",
+      "groupTitleTop80": "80% group — facilities that concentrate the business",
+      "groupTitleOthers": "\"Other\" group (20%)",
+      "monthLabel": "Month:",
+      "facilitiesInGroup": "{n} facilities in this group",
+      "headers": {
+        "facility": "Facility",
+        "confirmed": "Confirmed",
+        "cancelled": "Cancelled",
+        "conversion": "Conversion",
+        "leadTime": "Lead time",
+        "avgWaitlist": "Avg. waitlist",
+        "occupancy": "Occupancy"
+      },
+      "empty": "No games in this group for the selected month.",
+      "glossary": {
+        "conversion": {
+          "term": "Conversion",
+          "def": "final players / (final + dropped) — a game-level proxy, see the full detail in Trends."
+        },
+        "leadTime": {
+          "term": "Lead time",
+          "def": "median time between confirmation and game, in the original dataset's units."
+        },
+        "avgWaitlist": {
+          "term": "Avg. waitlist",
+          "def": "average waitlisted players per game, this month."
+        }
+      }
+    },
+    "regionPies": {
+      "title": "Confirmed-game concentration — {region}",
+      "subtitle": "80/20 Pareto — click to see the full detail",
+      "summary": "{total} confirmed total · {n} facilities make up {pct}"
+    }
   }
 }

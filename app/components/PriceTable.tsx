@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 type PriceRow = {
   facilityId: string;
@@ -37,6 +38,7 @@ function SortableTh({ label, sortableKey, activeKey, sortDir, onSort }: { label:
 }
 
 export default function PriceTable({ rows }: { rows: PriceRow[] }) {
+  const t = useTranslations("Market.price");
   // sortKey null = orden por default (partidos/mes, descendente)
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -72,11 +74,11 @@ export default function PriceTable({ rows }: { rows: PriceRow[] }) {
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="border-b border-border text-left text-ink-muted">
-            <SortableTh label="Facility" sortableKey="name" activeKey={sortKey} sortDir={sortDir} onSort={handleClick} />
-            <SortableTh label="Ticket promedio" sortableKey="avgPrice" activeKey={sortKey} sortDir={sortDir} onSort={handleClick} />
-            <SortableTh label="Jugadores/partido" sortableKey="avgPlayersPerGame" activeKey={sortKey} sortDir={sortDir} onSort={handleClick} />
-            <SortableTh label="Partidos/mes" sortableKey="avgGamesPerMonth" activeKey={sortKey} sortDir={sortDir} onSort={handleClick} />
-            <SortableTh label="Revenue estimado" sortableKey="revenueEstimate" activeKey={sortKey} sortDir={sortDir} onSort={handleClick} />
+            <SortableTh label={t("headers.facility")} sortableKey="name" activeKey={sortKey} sortDir={sortDir} onSort={handleClick} />
+            <SortableTh label={t("headers.avgTicket")} sortableKey="avgPrice" activeKey={sortKey} sortDir={sortDir} onSort={handleClick} />
+            <SortableTh label={t("headers.playersPerGame")} sortableKey="avgPlayersPerGame" activeKey={sortKey} sortDir={sortDir} onSort={handleClick} />
+            <SortableTh label={t("headers.gamesPerMonth")} sortableKey="avgGamesPerMonth" activeKey={sortKey} sortDir={sortDir} onSort={handleClick} />
+            <SortableTh label={t("headers.revenue")} sortableKey="revenueEstimate" activeKey={sortKey} sortDir={sortDir} onSort={handleClick} />
           </tr>
         </thead>
         <tbody>
@@ -94,7 +96,7 @@ export default function PriceTable({ rows }: { rows: PriceRow[] }) {
             </tr>
           ))}
           {sorted.length === 0 && (
-            <tr><td colSpan={5} className="py-4 text-center text-ink-faint">Sin datos de precio en este filtro.</td></tr>
+            <tr><td colSpan={5} className="py-4 text-center text-ink-faint">{t("empty")}</td></tr>
           )}
         </tbody>
       </table>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { resolveFilterNames, getFilterOptions, type OverviewFilters } from "../lib/db/queries";
 import MarketDashboard from "../components/MarketDashboard";
 import MarketRanking from "../components/MarketRanking";
@@ -29,6 +30,7 @@ function todayYearMonth() {
 
 export default async function MarketPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
+  const t = await getTranslations("Market");
   const filters: OverviewFilters = { regionId: sp.regionId, marketId: sp.marketId, facilityId: sp.facilityId };
 
   const [names, filterOptions] = await Promise.all([resolveFilterNames(sp), getFilterOptions()]);
@@ -42,7 +44,7 @@ export default async function MarketPage({ searchParams }: { searchParams: Promi
         <>
           <div className="flex flex-wrap gap-1.5 text-sm mb-2">
             <Link href={buildQuery(sp, { regionId: undefined, marketId: undefined, facilityId: undefined })} className={sp.regionId ? "text-brand" : "text-ink font-medium"}>
-              Todas las regiones
+              {t("allRegions")}
             </Link>
             {names.regionName && (
               <>
@@ -68,8 +70,8 @@ export default async function MarketPage({ searchParams }: { searchParams: Promi
             )}
           </div>
 
-          <h1 className="font-display text-3xl font-bold text-ink mb-1">Market</h1>
-          <div className="text-sm text-ink-faint mb-5">Concentración, participación, reputación, precio y engagement por facility</div>
+          <h1 className="font-display text-3xl font-bold text-ink mb-1">{t("title")}</h1>
+          <div className="text-sm text-ink-faint mb-5">{t("subtitle")}</div>
         </>
       )}
 
