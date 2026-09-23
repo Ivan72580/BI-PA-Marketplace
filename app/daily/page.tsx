@@ -22,6 +22,7 @@ import { weekdaySingular, weekdayPlural } from "../lib/db/weekday";
 import { todayISO } from "../lib/period";
 import type { Locale } from "@/i18n/config";
 import FacilitySearch from "../components/FacilitySearch";
+import DailyRiskFacilities from "../components/DailyRiskFacilities";
 import DailyBreadcrumb from "../components/DailyBreadcrumb";
 import GroupSection from "../components/GroupSection";
 import ChangeBadge from "../components/ChangeBadge";
@@ -326,6 +327,10 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
               extraParams={{ date: sp.date }}
             />
           </div>
+        </div>
+
+        <div className="mt-5 max-w-xl">
+          <DailyRiskFacilities facilities={filterOptions.facilities} markets={filterOptions.markets} />
         </div>
       </div>
     );

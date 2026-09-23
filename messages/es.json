@@ -188,6 +188,25 @@
     "facilitySearch": {
       "placeholder": "Buscar facility...",
       "empty": "Sin resultados para \"{query}\""
+    },
+    "riskFacilities": {
+      "title": "Facilities para revisar primero",
+      "subtitle": "Últimos 14 días vs. los 14 anteriores — con datos hasta ayer, no en tiempo real.",
+      "cancelledCount": "{n} cancelados",
+      "glossary": {
+        "window": {
+          "term": "Ventana de comparación",
+          "def": "últimos 14 días corridos vs. los 14 días inmediatamente anteriores (no el mismo día de semana, como en el detalle de una facility puntual), con datos hasta ayer."
+        },
+        "delta": {
+          "term": "Variación de confirmación",
+          "def": "diferencia entre la tasa de confirmación de los últimos 14 días y la de los 14 anteriores. Negativa = empeoró."
+        },
+        "severity": {
+          "term": "Alto / Medio",
+          "def": "alto: cayó 15 puntos o más de confirmación, o canceló 10 o más partidos recientes. Medio: entró en esta lista por alguna señal de deterioro, pero sin llegar a esos umbrales."
+        }
+      }
     }
   },
   "Trends": {

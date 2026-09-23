@@ -188,6 +188,25 @@
     "facilitySearch": {
       "placeholder": "Search facility...",
       "empty": "No results for \"{query}\""
+    },
+    "riskFacilities": {
+      "title": "Facilities to check first",
+      "subtitle": "Last 14 days vs. the previous 14 — data through yesterday, not real-time.",
+      "cancelledCount": "{n} cancelled",
+      "glossary": {
+        "window": {
+          "term": "Comparison window",
+          "def": "last 14 running days vs. the 14 days right before that (not the same weekday, as in a single facility's detail view), with data through yesterday."
+        },
+        "delta": {
+          "term": "Confirmation change",
+          "def": "difference between the confirmation rate of the last 14 days and the previous 14. Negative = got worse."
+        },
+        "severity": {
+          "term": "High / Medium",
+          "def": "high: confirmation dropped 15+ points, or 10+ recent cancelled games. Medium: made this list on some sign of decline, without reaching those thresholds."
+        }
+      }
     }
   },
   "Trends": {

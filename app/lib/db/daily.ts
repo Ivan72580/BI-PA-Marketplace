@@ -1,7 +1,7 @@
-import { CancellationCategory } from "@prisma/client";
+import { CancellationCategory, GameStatus } from "@prisma/client";
 import { prisma } from "./prisma";
 import { cached } from "./cache";
-import { buildWhere, DAY_ORDER, sortHoursByOperatingDay, labelForCancellationCategory } from "./shared";
+import { buildWhere, DAY_ORDER, sortHoursByOperatingDay, labelForCancellationCategory, MIN_GAMES_FOR_CONTRIBUTION } from "./shared";
 import { combineFormatLabel } from "./format";
 import { weekdayAbbr } from "./weekday";
 import { getDailyTranslator, type DailyTranslator } from "./dailyMessages";
@@ -794,3 +794,140 @@ async function getMustScheduleSlotsImpl(
 }
 
 export const getMustScheduleSlots = cached("getMustScheduleSlots", getMustScheduleSlotsImpl);
+
+// ---------- Radar de riesgo: qué facilities mirar primero en /daily ----------
+// A diferencia de todo lo demás en este archivo (una facility puntual), esto
+// SÍ recorre la red completa — es el punto de entrada para decidir a cuál
+// facility entrar, no el detalle en sí. Compara, para cada facility, sus
+// últimos 14 días contra los 14 días inmediatamente anteriores (no contra el
+// mismo día de semana como getDayBaseline: acá interesa "¿viene peor en
+// general últimamente?", no un día puntual) y combina dos señales en un
+// ranking, sin mezclarlas en un único número inventado:
+//   - Caída de tasa de confirmación (más comparable entre facilities chicas
+//     y grandes, porque es un %).
+//   - Volumen de partidos cancelados (una facility grande que cancela 20
+//     partidos importa aunque su % no sea el peor de la red).
+// Se combinan por RANKING (posición en cada lista, sumadas) y no por una
+// fórmula con pesos arbitrarios — así el criterio se puede explicar en una
+// frase (Glossary) sin inventar una unidad de medida nueva.
+//
+// Ancla en "ayer" (dateISO - 1), no en dateISO tal cual: el dataset todavía
+// no tiene partidos del día en curso (ver comentario de noGamesToday en
+// daily/page.tsx), así que anclar en dateISO directo dejaría la ventana
+// "reciente" con un día final vacío.
+
+const RISK_RECENT_WINDOW_DAYS = 14;
+const RISK_BASELINE_WINDOW_DAYS = 14;
+const RISK_MIN_SAMPLE = MIN_GAMES_FOR_CONTRIBUTION; // mínimo de partidos en CADA ventana para no rankear con ruido
+const RISK_CANCEL_VOLUME_FLOOR = 3; // piso para calificar solo por volumen aunque la tasa no haya empeorado
+const RISK_HIGH_SEVERITY_DELTA = -0.15; // -15 puntos de confirmación vs. la ventana anterior
+const RISK_HIGH_SEVERITY_VOLUME = 10; // cancelados en la ventana reciente
+
+export type DailyRiskFacility = {
+  facilityId: string;
+  facilityName: string;
+  recentTotalGames: number;
+  recentCancelledGames: number;
+  recentConfirmationRate: number;
+  baselineConfirmationRate: number;
+  // recentConfirmationRate - baselineConfirmationRate: negativo = empeoró.
+  confirmationRateDelta: number;
+  severity: "high" | "medium";
+};
+
+type RiskGroupCount = { facilityId: string; _count: { _all: number } };
+
+async function getDailyRiskFacilitiesImpl(dateISO: string, limit = 8): Promise<DailyRiskFacility[]> {
+  const referenceDate = addDaysUTC(parseISODate(dateISO), -1);
+  const recentTo = referenceDate;
+  const recentFrom = addDaysUTC(recentTo, -(RISK_RECENT_WINDOW_DAYS - 1));
+  const baselineTo = addDaysUTC(recentFrom, -1);
+  const baselineFrom = addDaysUTC(baselineTo, -(RISK_BASELINE_WINDOW_DAYS - 1));
+
+  const recentWhere = buildWhere({ dateFrom: recentFrom, dateTo: recentTo });
+  const baselineWhere = buildWhere({ dateFrom: baselineFrom, dateTo: baselineTo });
+
+  const [recentTotals, recentConfirmed, baselineTotals, baselineConfirmed, facilityRows] = await Promise.all([
+    prisma.game.groupBy({ by: ["facilityId"], where: recentWhere, _count: { _all: true } }) as Promise<RiskGroupCount[]>,
+    prisma.game.groupBy({ by: ["facilityId"], where: { ...recentWhere, status: GameStatus.CONFIRMED }, _count: { _all: true } }) as Promise<RiskGroupCount[]>,
+    prisma.game.groupBy({ by: ["facilityId"], where: baselineWhere, _count: { _all: true } }) as Promise<RiskGroupCount[]>,
+    prisma.game.groupBy({ by: ["facilityId"], where: { ...baselineWhere, status: GameStatus.CONFIRMED }, _count: { _all: true } }) as Promise<RiskGroupCount[]>,
+    prisma.facility.findMany({ select: { id: true, name: true } }),
+  ]);
+
+  const nameById = new Map(facilityRows.map((f) => [f.id, f.name]));
+  const recentTotalMap = new Map(recentTotals.map((g) => [g.facilityId, Number(g._count._all)]));
+  const recentConfirmedMap = new Map(recentConfirmed.map((g) => [g.facilityId, Number(g._count._all)]));
+  const baselineTotalMap = new Map(baselineTotals.map((g) => [g.facilityId, Number(g._count._all)]));
+  const baselineConfirmedMap = new Map(baselineConfirmed.map((g) => [g.facilityId, Number(g._count._all)]));
+
+  type Candidate = {
+    facilityId: string;
+    facilityName: string;
+    recentTotal: number;
+    recentConfirmed: number;
+    recentCancelled: number;
+    recentConfirmationRate: number;
+    baselineConfirmationRate: number;
+    confirmationRateDelta: number;
+  };
+
+  const candidates: Candidate[] = [];
+  for (const [facilityId, recentTotal] of recentTotalMap.entries()) {
+    const baselineTotal = baselineTotalMap.get(facilityId) ?? 0;
+    if (recentTotal < RISK_MIN_SAMPLE || baselineTotal < RISK_MIN_SAMPLE) continue;
+
+    const rConfirmed = recentConfirmedMap.get(facilityId) ?? 0;
+    const bConfirmed = baselineConfirmedMap.get(facilityId) ?? 0;
+    const recentConfirmationRate = rConfirmed / recentTotal;
+    const baselineConfirmationRate = bConfirmed / baselineTotal;
+    const recentCancelled = recentTotal - rConfirmed;
+    const confirmationRateDelta = recentConfirmationRate - baselineConfirmationRate;
+
+    // Solo entran facilities con una señal real de deterioro — ni siquiera
+    // aparecen las que vienen igual o mejor, para no diluir la lista con
+    // "ruido" que no amerita mirar hoy.
+    if (confirmationRateDelta >= 0 && recentCancelled < RISK_CANCEL_VOLUME_FLOOR) continue;
+
+    candidates.push({
+      facilityId,
+      facilityName: nameById.get(facilityId) ?? "",
+      recentTotal,
+      recentConfirmed: rConfirmed,
+      recentCancelled,
+      recentConfirmationRate,
+      baselineConfirmationRate,
+      confirmationRateDelta,
+    });
+  }
+
+  if (candidates.length === 0) return [];
+
+  // Ranking por posición (no por una fórmula con pesos): cada facility tiene
+  // una posición en "cuánto cayó" y una posición en "cuánto canceló"; se
+  // suman las dos posiciones y ordena ascendente (menor suma = más crítica).
+  const byRateDrop = [...candidates].sort((a, b) => a.confirmationRateDelta - b.confirmationRateDelta);
+  const byVolume = [...candidates].sort((a, b) => b.recentCancelled - a.recentCancelled);
+  const rateDropRank = new Map(byRateDrop.map((c, i) => [c.facilityId, i + 1]));
+  const volumeRank = new Map(byVolume.map((c, i) => [c.facilityId, i + 1]));
+
+  return candidates
+    .map((c) => ({
+      c,
+      compositeRank: (rateDropRank.get(c.facilityId) ?? candidates.length) + (volumeRank.get(c.facilityId) ?? candidates.length),
+    }))
+    .sort((a, b) => a.compositeRank - b.compositeRank)
+    .slice(0, limit)
+    .map(({ c }): DailyRiskFacility => ({
+      facilityId: c.facilityId,
+      facilityName: c.facilityName,
+      recentTotalGames: c.recentTotal,
+      recentCancelledGames: c.recentCancelled,
+      recentConfirmationRate: c.recentConfirmationRate,
+      baselineConfirmationRate: c.baselineConfirmationRate,
+      confirmationRateDelta: c.confirmationRateDelta,
+      severity: c.confirmationRateDelta <= RISK_HIGH_SEVERITY_DELTA || c.recentCancelled >= RISK_HIGH_SEVERITY_VOLUME ? "high" : "medium",
+    }));
+}
+
+export const getDailyRiskFacilities = cached("getDailyRiskFacilities", getDailyRiskFacilitiesImpl);
