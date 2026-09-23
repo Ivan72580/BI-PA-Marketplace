@@ -93,7 +93,7 @@ export default async function FacilityDetailView({
   const [data, extended, evolutionSeries, networkBaseline, formatBreakdown] = await Promise.all([
     getOverviewData(filters, locale),
     getExtendedMetrics(filters),
-    getFacilitySeries(facilityId, evolutionWindow.unit, evolutionWindow.windowStart, evolutionWindow.windowEnd),
+    getFacilitySeries(facilityId, evolutionWindow.unit, evolutionWindow.windowStart, evolutionWindow.windowEnd, locale),
     getOverviewData({ dateFrom: period.dateFrom, dateTo: period.dateTo }, locale), // sin filtros: promedio de toda la red
     getFormatBreakdown(filters),
   ]);
@@ -118,7 +118,7 @@ export default async function FacilityDetailView({
   const now = new Date();
   const currentMonthKey = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
   const veryEarlyDate = new Date(Date.UTC(2000, 0, 1));
-  const fullHistory = await getFacilitySeries(facilityId, "month", veryEarlyDate, now);
+  const fullHistory = await getFacilitySeries(facilityId, "month", veryEarlyDate, now, locale);
   const historicalMonths = fullHistory.filter((m) => m.bucket !== currentMonthKey);
   const historicalAvgConfirmationRate =
     historicalMonths.length > 0

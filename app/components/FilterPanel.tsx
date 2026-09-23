@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { resolvePeriod, shiftAnchor, todayISO, type Granularity } from "../lib/period";
+import type { Locale } from "@/i18n/config";
 
 type Option = { id: string; name: string; regionId?: string; marketId?: string };
 
@@ -62,6 +63,7 @@ export default function FilterPanel({
   bare?: boolean;
 }) {
   const t = useTranslations("FilterPanel");
+  const locale = useLocale() as Locale;
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -74,7 +76,7 @@ export default function FilterPanel({
   const customFrom = searchParams.get("customFrom") ?? "";
   const customTo = searchParams.get("customTo") ?? "";
 
-  const period = granularity !== "custom" && granularity !== "all" ? resolvePeriod(granularity, anchor) : null;
+  const period = granularity !== "custom" && granularity !== "all" ? resolvePeriod(granularity, anchor, undefined, undefined, locale) : null;
   const prevAnchor = period ? shiftAnchor(granularity, anchor, -1) : anchor;
   const nextAnchor = period ? shiftAnchor(granularity, anchor, 1) : anchor;
 

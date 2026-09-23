@@ -2,6 +2,7 @@ import { Prisma, GameStatus } from "@prisma/client";
 import { prisma } from "./prisma";
 import { cached } from "./cache";
 import { buildWhere, type OverviewFilters } from "./shared";
+import type { Locale } from "@/i18n/config";
 
 // ---------- Contexto de una facility puntual ----------
 
@@ -52,11 +53,14 @@ function startOfWeekUTC(d: Date): Date {
 // Serie de una facility puntual, agrupada por semana o por mes según se pida,
 // acotada a una ventana de fechas — usada por el gráfico de "evolución", que
 // adapta la unidad y la ventana según la granularidad activa en la página.
+// `locale` con default "es" — el único caller (FacilityDetailView.tsx, dentro
+// de Overview) ya resuelve el locale real vía getLocale() y lo pasa.
 async function getFacilitySeriesImpl(
   facilityId: string,
   unit: "week" | "month",
   windowStart: Date,
-  windowEnd: Date
+  windowEnd: Date,
+  locale: Locale = "es"
 ): Promise<FacilitySeriesPoint[]> {
   const games = await prisma.game.findMany({
     where: { facilityId, date: { gte: windowStart, lte: windowEnd } },
@@ -71,11 +75,11 @@ async function getFacilitySeriesImpl(
       const y = g.date.getUTCFullYear();
       const m = g.date.getUTCMonth();
       key = `${y}-${String(m + 1).padStart(2, "0")}`;
-      label = new Date(Date.UTC(y, m, 1)).toLocaleDateString("es-AR", { month: "short", year: "2-digit", timeZone: "UTC" });
+      label = new Date(Date.UTC(y, m, 1)).toLocaleDateString(locale === "en" ? "en-US" : "es-AR", { month: "short", year: "2-digit", timeZone: "UTC" });
     } else {
       const weekStart = startOfWeekUTC(g.date);
       key = weekStart.toISOString().slice(0, 10);
-      label = weekStart.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", timeZone: "UTC" });
+      label = weekStart.toLocaleDateString(locale === "en" ? "en-US" : "es-AR", { day: "2-digit", month: "2-digit", timeZone: "UTC" });
     }
     const entry = map.get(key) ?? { confirmed: 0, cancelled: 0, label };
     if (g.status === "CONFIRMED") entry.confirmed += 1;

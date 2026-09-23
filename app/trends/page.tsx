@@ -265,10 +265,10 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
 
   const granularity: Granularity = TREND_GRANULARITIES.includes(sp.granularity as Granularity) ? (sp.granularity as Granularity) : "quarter";
   const anchor = sp.period || todayISO();
-  const period: ResolvedPeriod = resolvePeriod(granularity, anchor);
+  const period: ResolvedPeriod = resolvePeriod(granularity, anchor, undefined, undefined, locale);
 
   const compareAnchor = shiftAnchor(granularity, anchor, -1);
-  const comparePeriod: ResolvedPeriod = resolvePeriod(granularity, compareAnchor);
+  const comparePeriod: ResolvedPeriod = resolvePeriod(granularity, compareAnchor, undefined, undefined, locale);
 
   const prevAnchor = shiftAnchor(granularity, anchor, -1);
   const nextAnchor = shiftAnchor(granularity, anchor, 1);

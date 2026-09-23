@@ -3,7 +3,11 @@
     "overview": "Overview",
     "trends": "Trends",
     "market": "Market",
-    "daily": "Daily"
+    "daily": "Daily",
+    "facilitySearch": {
+      "placeholder": "Search facility...",
+      "empty": "No results for \"{query}\""
+    }
   },
   "FilterPanel": {
     "filterLabel": "Filter",
@@ -836,6 +840,8 @@
       "seeMoreTrendsTitle": "See trend and filterable detail in Trends →",
       "seeMoreTrendsDesc": "Full evolution, slot consistency, and the filterable game list.",
       "evolutionLatestSuffix": " confirmation in {label}"
-    }
+    },
+    "customRangeLabel": "Custom range",
+    "samePeriodLabel": "{from}–{to} {month} (same stretch)"
   }
 }

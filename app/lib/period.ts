@@ -1,3 +1,5 @@
+import type { Locale } from "@/i18n/config";
+
 export type Granularity = "all" | "year" | "semester" | "quarter" | "month" | "week" | "day" | "custom";
 
 export type ResolvedPeriod = {
@@ -9,10 +11,36 @@ export type ResolvedPeriod = {
   priorLabel: string | null;
 };
 
-const MONTH_NAMES_ES = [
-  "enero", "febrero", "marzo", "abril", "mayo", "junio",
-  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
-];
+const MONTH_NAMES: Record<Locale, string[]> = {
+  es: ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"],
+  en: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+};
+
+// Textos de esta función usados en Overview, Trends y FilterPanel (los tres
+// consumidores de resolvePeriod/shiftAnchor). No van a messages/*.json porque
+// este archivo no pertenece a ninguna página puntual — mismo criterio que
+// app/lib/db/weekday.ts, que ya sigue este patrón para nombres de día.
+function allTimeLabel(locale: Locale): string {
+  return locale === "en" ? "All-time" : "Todo el histórico";
+}
+function equivalentPriorRangeLabel(locale: Locale, from: string, to: string): string {
+  return locale === "en" ? `equivalent prior period (${from} – ${to})` : `período anterior equivalente (${from} – ${to})`;
+}
+function semesterLabel(locale: Locale, half: 1 | 2, y: number): string {
+  return locale === "en" ? `${half === 1 ? "1st" : "2nd"} half ${y}` : `${half === 1 ? "1er" : "2do"} semestre ${y}`;
+}
+function quarterLabel(locale: Locale, q: number, y: number): string {
+  return `${locale === "en" ? "Q" : "T"}${q} ${y}`;
+}
+function weekOfLabel(locale: Locale, dateStr: string): string {
+  return locale === "en" ? `Week of ${dateStr}` : `Semana del ${dateStr}`;
+}
+function equivalentWeekLabel(locale: Locale, year: number): string {
+  return locale === "en" ? `Equivalent week, ${year}` : `Semana equivalente, ${year}`;
+}
+function sameDayLabel(locale: Locale, year: number): string {
+  return locale === "en" ? `same day, ${year}` : `mismo día, ${year}`;
+}
 
 function pad(n: number) {
   return String(n).padStart(2, "0");
@@ -49,17 +77,18 @@ export function resolvePeriod(
   granularity: Granularity,
   anchorISO?: string,
   customFrom?: string,
-  customTo?: string
+  customTo?: string,
+  locale: Locale = "es"
 ): ResolvedPeriod {
   const anchor = anchorISO ? new Date(`${anchorISO}T00:00:00Z`) : new Date();
 
   if (granularity === "all") {
-    return { label: "Todo el histórico", priorLabel: null };
+    return { label: allTimeLabel(locale), priorLabel: null };
   }
 
   if (granularity === "custom") {
     if (!customFrom || !customTo) {
-      return { label: "Todo el histórico", priorLabel: null };
+      return { label: allTimeLabel(locale), priorLabel: null };
     }
     const dateFrom = new Date(`${customFrom}T00:00:00Z`);
     const dateTo = endOfDay(new Date(`${customTo}T00:00:00Z`));
@@ -72,7 +101,7 @@ export function resolvePeriod(
       label: `${formatDate(dateFrom)} – ${formatDate(dateTo)}`,
       priorDateFrom,
       priorDateTo: endOfDay(priorDateTo),
-      priorLabel: `período anterior equivalente (${formatDate(priorDateFrom)} – ${formatDate(priorDateTo)})`,
+      priorLabel: equivalentPriorRangeLabel(locale, formatDate(priorDateFrom), formatDate(priorDateTo)),
     };
   }
 
@@ -95,14 +124,13 @@ export function resolvePeriod(
     const h = anchor.getUTCMonth() < 6 ? 0 : 1;
     const dateFrom = new Date(Date.UTC(y, h * 6, 1));
     const dateTo = endOfDay(new Date(Date.UTC(y, h * 6 + 6, 0)));
-    const label = `${h === 0 ? "1er" : "2do"} semestre ${y}`;
     return {
       dateFrom,
       dateTo,
-      label,
+      label: semesterLabel(locale, h === 0 ? 1 : 2, y),
       priorDateFrom: shiftYears(dateFrom, -1),
       priorDateTo: shiftYears(dateTo, -1),
-      priorLabel: `${h === 0 ? "1er" : "2do"} semestre ${y - 1}`,
+      priorLabel: semesterLabel(locale, h === 0 ? 1 : 2, y - 1),
     };
   }
 
@@ -114,10 +142,10 @@ export function resolvePeriod(
     return {
       dateFrom,
       dateTo,
-      label: `T${q + 1} ${y}`,
+      label: quarterLabel(locale, q + 1, y),
       priorDateFrom: shiftYears(dateFrom, -1),
       priorDateTo: shiftYears(dateTo, -1),
-      priorLabel: `T${q + 1} ${y - 1}`,
+      priorLabel: quarterLabel(locale, q + 1, y - 1),
     };
   }
 
@@ -126,13 +154,14 @@ export function resolvePeriod(
     const m = anchor.getUTCMonth();
     const dateFrom = new Date(Date.UTC(y, m, 1));
     const dateTo = endOfDay(new Date(Date.UTC(y, m + 1, 0)));
+    const monthNames = MONTH_NAMES[locale] ?? MONTH_NAMES.es;
     return {
       dateFrom,
       dateTo,
-      label: `${MONTH_NAMES_ES[m]} ${y}`,
+      label: `${monthNames[m]} ${y}`,
       priorDateFrom: shiftYears(dateFrom, -1),
       priorDateTo: shiftYears(dateTo, -1),
-      priorLabel: `${MONTH_NAMES_ES[m]} ${y - 1}`,
+      priorLabel: `${monthNames[m]} ${y - 1}`,
     };
   }
 
@@ -142,10 +171,10 @@ export function resolvePeriod(
     return {
       dateFrom,
       dateTo,
-      label: `Semana del ${formatDate(dateFrom)}`,
+      label: weekOfLabel(locale, formatDate(dateFrom)),
       priorDateFrom: shiftYears(dateFrom, -1),
       priorDateTo: shiftYears(dateTo, -1),
-      priorLabel: `Semana equivalente, ${dateFrom.getUTCFullYear() - 1}`,
+      priorLabel: equivalentWeekLabel(locale, dateFrom.getUTCFullYear() - 1),
     };
   }
 
@@ -158,7 +187,7 @@ export function resolvePeriod(
     label: formatDate(dateFrom),
     priorDateFrom: shiftYears(dateFrom, -1),
     priorDateTo: shiftYears(dateTo, -1),
-    priorLabel: `mismo día, ${dateFrom.getUTCFullYear() - 1}`,
+    priorLabel: sameDayLabel(locale, dateFrom.getUTCFullYear() - 1),
   };
 }
 

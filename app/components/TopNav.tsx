@@ -101,7 +101,12 @@ export default function TopNav({
 
         <div className="flex items-center gap-3 py-2 shrink-0">
           <div className="w-56 hidden sm:block">
-            <FacilitySearch facilities={facilities} markets={markets} />
+            <FacilitySearch
+              facilities={facilities}
+              markets={markets}
+              placeholder={t("facilitySearch.placeholder")}
+              emptyMessageTemplate={t("facilitySearch.empty", { query: "{query}" })}
+            />
           </div>
           {userMenu}
         </div>

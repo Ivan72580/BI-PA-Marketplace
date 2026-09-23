@@ -3,7 +3,11 @@
     "overview": "Overview",
     "trends": "Trends",
     "market": "Market",
-    "daily": "Diario"
+    "daily": "Diario",
+    "facilitySearch": {
+      "placeholder": "Buscar facility...",
+      "empty": "Sin resultados para \"{query}\""
+    }
   },
   "FilterPanel": {
     "filterLabel": "Filtro",
@@ -836,6 +840,8 @@
       "seeMoreTrendsTitle": "Ver tendencia y detalle filtrable en Trends →",
       "seeMoreTrendsDesc": "Evolución completa, consistencia de slots, y la lista de partidos filtrable.",
       "evolutionLatestSuffix": " de confirmación en {label}"
-    }
+    },
+    "customRangeLabel": "Rango personalizado",
+    "samePeriodLabel": "{from}–{to} {month} (mismo tramo)"
   }
 }
