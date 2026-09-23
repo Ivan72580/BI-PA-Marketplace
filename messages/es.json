@@ -30,7 +30,7 @@
   "Daily": {
     "title": "Seguimiento diario",
     "subtitle": "Detalle operativo día por día de una facility puntual: qué pasó, cómo se compara con días anteriores similares, y qué horarios conviene tener agendados sí o sí.",
-    "selectPromptTitle": "Elegí región, market y facility para ver el detalle diario",
+    "selectPromptTitle": "Buscá la facility que querés ver",
     "selectPromptSubtitle": "Esta vista es por facility puntual — no tiene un panorama de red o de market agregado.",
     "dayPickerLabel": "Día:",
     "sparklineLabel": "Últimos 15 días",
@@ -184,6 +184,10 @@
       "matchOf": "{matching} {label} de {total}",
       "showMore": "+{n} más",
       "showLess": "ver menos"
+    },
+    "facilitySearch": {
+      "placeholder": "Buscar facility...",
+      "empty": "Sin resultados para \"{query}\""
     }
   },
   "Trends": {

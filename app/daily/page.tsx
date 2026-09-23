@@ -21,7 +21,7 @@ import {
 import { weekdaySingular, weekdayPlural } from "../lib/db/weekday";
 import { todayISO } from "../lib/period";
 import type { Locale } from "@/i18n/config";
-import FilterPanel from "../components/FilterPanel";
+import FacilitySearch from "../components/FacilitySearch";
 import DailyBreadcrumb from "../components/DailyBreadcrumb";
 import GroupSection from "../components/GroupSection";
 import ChangeBadge from "../components/ChangeBadge";
@@ -309,7 +309,17 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
             <div className="text-sm font-semibold text-ink">{t("selectPromptTitle")}</div>
             <div className="text-xs text-ink-muted">{t("selectPromptSubtitle")}</div>
           </div>
-          <FilterPanel regions={filterOptions.regions} markets={filterOptions.markets} facilities={filterOptions.facilities} showTimeControls={false} bare />
+          <div className="w-full sm:w-80 shrink-0">
+            <FacilitySearch
+              facilities={filterOptions.facilities}
+              markets={filterOptions.markets}
+              variant="panel"
+              autoFocus
+              placeholder={t("facilitySearch.placeholder")}
+              emptyMessage={(query) => t("facilitySearch.empty", { query })}
+              buildHref={(f, m) => buildDailyQuery(sp, { regionId: m.regionId, marketId: m.id, facilityId: f.id })}
+            />
+          </div>
         </div>
       </div>
     );

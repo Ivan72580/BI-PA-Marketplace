@@ -30,7 +30,7 @@
   "Daily": {
     "title": "Daily tracking",
     "subtitle": "Day-by-day operational detail for a single facility: what happened, how it compares to similar previous days, and which time slots are worth scheduling no matter what.",
-    "selectPromptTitle": "Choose a region, market and facility to see the daily detail",
+    "selectPromptTitle": "Search for the facility you want to see",
     "selectPromptSubtitle": "This view is per facility — it has no aggregated network or market overview.",
     "dayPickerLabel": "Day:",
     "sparklineLabel": "Last 15 days",
@@ -184,6 +184,10 @@
       "matchOf": "{matching} {label} of {total}",
       "showMore": "+{n} more",
       "showLess": "show less"
+    },
+    "facilitySearch": {
+      "placeholder": "Search facility...",
+      "empty": "No results for \"{query}\""
     }
   },
   "Trends": {
