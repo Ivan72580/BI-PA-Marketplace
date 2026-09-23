@@ -4,6 +4,7 @@ import {
   getMarketFacilitySummary,
   getParetoGroups,
   getMarketRanking,
+  TIER_CLASS,
   type OverviewFilters,
   type ReputationTier,
 } from "../lib/db/queries";
@@ -38,14 +39,6 @@ function SectionCard({ title, subtitle, children }: { title: string; subtitle?: 
   );
 }
 
-const TIER_CLASS: Record<ReputationTier, string> = {
-  platinum: "bg-[#0b3b2e] text-white",
-  bueno: "bg-brand-soft text-brand",
-  intermedio: "bg-warning-soft text-warning",
-  a_revisar: "bg-danger-soft text-danger",
-  sin_datos: "bg-surface-sunken text-ink-faint",
-};
-
 function shiftMonth(month: string, delta: number): string {
   const [y, m] = month.split("-").map(Number);
   const d = new Date(Date.UTC(y, m - 1 + delta, 1));
@@ -63,11 +56,16 @@ export default async function MarketDashboard({
   filterOptions,
   month,
   buildQuery,
+  activeTab,
 }: {
   sp: { regionId?: string; marketId?: string; facilityId?: string };
   filterOptions: { regions: { id: string; name: string }[]; markets: { id: string; name: string; regionId: string }[] };
   month: string;
   buildQuery: (overrides: Record<string, string | undefined>) => string;
+  // Permite entrar directo a un tab (ej. desde un link "ver detalle" en
+  // Overview hacia Market?...&tab=precio) en vez de siempre aterrizar en
+  // "Concentración". Ver Tabs.tsx (defaultActiveId).
+  activeTab?: string;
 }) {
   const t = await getTranslations("Market");
   const TIER_LABEL: Record<ReputationTier, string> = {
@@ -291,6 +289,7 @@ export default async function MarketDashboard({
 
   return (
     <Tabs
+      defaultActiveId={activeTab}
       tabs={[
         { id: "concentracion", label: t("tabs.concentration"), content: concentracionContent },
         { id: "share", label: t("tabs.share"), content: marketShareContent },

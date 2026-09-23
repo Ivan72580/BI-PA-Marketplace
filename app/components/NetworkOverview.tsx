@@ -3,13 +3,13 @@ import {
   getOverviewData,
   getContributionRanking,
   generateContributionInsights,
-  getHourPattern,
   getDayHourHeatmap,
   getExtendedMetrics,
   getDemandLeaders,
   getFacilityTable,
   getMarketFacilitySummary,
   getTopCancellationFacilityForReason,
+  TIER_CLASS,
   type FacilitySortKey,
   type OverviewFilters,
   type OverviewData,
@@ -71,13 +71,6 @@ function Stat({ label, value, sublabel }: { label: string; value: string; sublab
 const TIER_LABEL: Record<ReputationTier, string> = {
   platinum: "Platinum", bueno: "Bueno", intermedio: "Intermedio", a_revisar: "A revisar", sin_datos: "—",
 };
-const TIER_CLASS: Record<ReputationTier, string> = {
-  platinum: "bg-[#0b3b2e] text-white",
-  bueno: "bg-brand-soft text-brand",
-  intermedio: "bg-warning-soft text-warning",
-  a_revisar: "bg-danger-soft text-danger",
-  sin_datos: "bg-surface-sunken text-ink-faint",
-};
 
 type RegionScope = { regionId: string; regionName: string };
 type SortDir = "asc" | "desc";
@@ -111,10 +104,9 @@ export default async function NetworkOverview({
     scopes.map(async (scope) => {
       const scopeFilters: OverviewFilters = { ...filters, regionId: scope.regionId };
 
-      const [current, extended, hourPattern, dayHourHeatmap, demandLeaders, facilityTable, top10] = await Promise.all([
+      const [current, extended, dayHourHeatmap, demandLeaders, facilityTable, facilitySummary] = await Promise.all([
         getOverviewData(scopeFilters),
         getExtendedMetrics(scopeFilters),
-        getHourPattern(scopeFilters),
         getDayHourHeatmap(scopeFilters),
         getDemandLeaders(scopeFilters),
         getFacilityTable(scopeFilters, facilitySort, facilitySortDir),
@@ -126,7 +118,7 @@ export default async function NetworkOverview({
           ? await getOverviewData({ ...scopeFilters, dateFrom: comparePeriod.dateFrom, dateTo: comparePeriod.dateTo })
           : null;
 
-      const priorTop10 =
+      const priorFacilitySummary =
         compare && comparePeriod?.dateFrom && comparePeriod?.dateTo
           ? await getMarketFacilitySummary({ ...scopeFilters, dateFrom: comparePeriod.dateFrom, dateTo: comparePeriod.dateTo })
           : null;
@@ -153,8 +145,30 @@ export default async function NetworkOverview({
         }
       }
 
-      const top10Sorted = [...top10].sort((a, b) => b.confirmedGames - a.confirmedGames).slice(0, 10);
-      const priorTop10Order = priorTop10 ? [...priorTop10].sort((a, b) => b.confirmedGames - a.confirmedGames).map((f) => f.facilityId) : null;
+      // Se muestran sólo las Top 5 en el resumen (el ranking completo, con
+      // más filas y filtros de mes, vive en Market — ver link "Ver ranking
+      // completo" más abajo). El resto de la lista completa (facilitySummary)
+      // se sigue usando para el teaser de precio/engagement de este market.
+      const top5Sorted = [...facilitySummary].sort((a, b) => b.confirmedGames - a.confirmedGames).slice(0, 5);
+      const priorTop5Order = priorFacilitySummary ? [...priorFacilitySummary].sort((a, b) => b.confirmedGames - a.confirmedGames).map((f) => f.facilityId) : null;
+
+      // Teaser de "Precio" y "Engagement" de Market — contenido que hoy no
+      // tiene ningún resumen en Overview (ver auditoría). Sólo tiene sentido
+      // una vez que se filtró hasta un market puntual; a nivel red/región
+      // mezclaría facilities de negocios muy distintos en un solo promedio.
+      const marketTeaser = sp.marketId && facilitySummary.length > 0
+        ? (() => {
+            const priced = facilitySummary.filter((f) => f.avgPrice !== null);
+            const avgPrice = priced.length > 0 ? priced.reduce((s, f) => s + (f.avgPrice ?? 0), 0) / priced.length : null;
+            const totalGames = facilitySummary.reduce((s, f) => s + f.totalGames, 0);
+            const weightedConversion = totalGames > 0
+              ? facilitySummary.reduce((s, f) => s + f.conversionRate * f.totalGames, 0) / totalGames
+              : null;
+            const totalNearMiss = facilitySummary.reduce((s, f) => s + f.nearMissCancelledCount, 0);
+            const totalCancelled = facilitySummary.reduce((s, f) => s + f.cancelledGames, 0);
+            return { avgPrice, weightedConversion, totalNearMiss, totalCancelled };
+          })()
+        : null;
 
       return {
         scope,
@@ -163,11 +177,11 @@ export default async function NetworkOverview({
         contribution,
         insights,
         extended,
-        hourPattern,
         dayHourHeatmap,
         demandLeaders,
         facilityTable,
-        top10: withRankChange(top10Sorted, priorTop10Order),
+        top5: withRankChange(top5Sorted, priorTop5Order),
+        marketTeaser,
         topReasonFacility,
       };
     })
@@ -227,11 +241,11 @@ export default async function NetworkOverview({
 
       <GroupSection title="Composición">
         <div className={`grid grid-cols-1 ${isMultiScope ? "lg:grid-cols-2" : ""} gap-5`}>
-          {scopeData.map(({ scope, top10 }) => (
-            <div key={scope.regionId}>
+          {scopeData.map(({ scope, top5, marketTeaser }) => (
+            <div key={scope.regionId} className="space-y-3">
               <SectionCard
-                title={isMultiScope ? `Top 10 facilities — ${scope.regionName}` : "Top 10 facilities"}
-                subtitle="Por partidos confirmados — mismo resumen que la página Market"
+                title={isMultiScope ? `Top 5 facilities — ${scope.regionName}` : "Top 5 facilities"}
+                subtitle="Por partidos confirmados — vista rápida, el ranking completo vive en Market"
               >
                 <div className="overflow-x-auto">
                   <table className="w-full border-collapse text-sm">
@@ -244,7 +258,7 @@ export default async function NetworkOverview({
                       </tr>
                     </thead>
                     <tbody>
-                      {top10.map((f, i) => (
+                      {top5.map((f, i) => (
                         <tr key={f.facilityId} className="border-b border-surface-sunken">
                           <td className="py-1.5 px-2">
                             <span className="flex items-center gap-1.5">
@@ -270,17 +284,37 @@ export default async function NetworkOverview({
                           </td>
                         </tr>
                       ))}
-                      {top10.length === 0 && (
+                      {top5.length === 0 && (
                         <tr><td colSpan={4} className="py-3 text-center text-ink-faint">Sin datos en este filtro.</td></tr>
                       )}
                     </tbody>
                   </table>
                 </div>
+                <Link href={`/market?regionId=${scope.regionId}${sp.marketId ? `&marketId=${sp.marketId}` : ""}&tab=reputacion`} className="text-xs text-brand inline-block mt-3">
+                  Ver ranking completo en Market →
+                </Link>
               </SectionCard>
+
+              {marketTeaser && (
+                <SectionCard title="Precio y engagement de este market" subtitle="Vista rápida — el desglose por facility vive en Market">
+                  <div className="flex items-end gap-6 flex-wrap mb-2">
+                    <Stat label="Ticket promedio" value={marketTeaser.avgPrice !== null ? formatUSD(marketTeaser.avgPrice) : "—"} sublabel="por jugador" />
+                    <Stat label="Conversión" value={marketTeaser.weightedConversion !== null ? formatPct(marketTeaser.weightedConversion) : "—"} sublabel="lista de espera → jugador final" />
+                    <Stat
+                      label="Cancelaciones near-miss"
+                      value={marketTeaser.totalNearMiss.toLocaleString("en-US")}
+                      sublabel={marketTeaser.totalCancelled > 0 ? `${formatPct(marketTeaser.totalNearMiss / marketTeaser.totalCancelled)} de las canceladas` : undefined}
+                    />
+                  </div>
+                  <div className="flex gap-4 text-xs pt-2 border-t border-surface-sunken">
+                    <Link href={`/market?regionId=${scope.regionId}&marketId=${sp.marketId}&tab=precio`} className="text-brand hover:underline">Ver precio completo →</Link>
+                    <Link href={`/market?regionId=${scope.regionId}&marketId=${sp.marketId}&tab=engagement`} className="text-brand hover:underline">Ver engagement completo →</Link>
+                  </div>
+                </SectionCard>
+              )}
             </div>
           ))}
         </div>
-        <Link href="/market" className="text-xs text-brand inline-block px-1">Ver el detalle completo en Market →</Link>
       </GroupSection>
 
       <GroupSection title="Motivos de cancelación">
@@ -591,54 +625,39 @@ export default async function NetworkOverview({
   );
 
   // ---------- Tab: Por horario ----------
-  const MIN_HOUR_SAMPLE = 10;
+  // La lista de barras "horarios por tasa de confirmación" que vivía acá se
+  // sacó: es el mismo dato que ya se ve en el heatmap de abajo (mismo
+  // getDayHourHeatmap), sólo que menos legible como lista larga de horas. El
+  // heatmap queda como única vista rápida de día×hora, con links hacia las
+  // dos páginas que sí profundizan el patrón horario a nivel de slot
+  // individual (Daily y Trends) en vez de duplicar ese análisis acá.
   const horarioContent = (
     <div className="space-y-5">
       <GroupSection title="Horario">
         <div className={`grid grid-cols-1 ${isMultiScope ? "lg:grid-cols-2" : ""} gap-5`}>
-          {scopeData.map(({ scope, hourPattern, dayHourHeatmap }) => {
-            const hourRateRows = [...hourPattern].filter((h) => h.totalGames >= MIN_HOUR_SAMPLE).sort((a, b) => b.confirmationRate - a.confirmationRate);
-            const totalConsidered = hourRateRows.reduce((s, h) => s + h.totalGames, 0);
-
-            return (
-              <div key={scope.regionId} className="space-y-4">
-                {isMultiScope && <div className="text-xs font-medium text-ink-muted px-1">{scope.regionName}</div>}
-                <SectionCard
-                  title="Horarios por tasa de confirmación"
-                  subtitle={`${totalConsidered.toLocaleString("en-US")} partidos considerados (mínimo 10 por horario) — verde = confirmación, rojo = cancelación, en la misma barra`}
-                >
-                  {hourRateRows.length > 0 ? (
-                    <div className="space-y-2.5">
-                      {hourRateRows.map((h) => (
-                        <div key={h.key}>
-                          <div className="flex justify-between text-sm mb-1">
-                            <span className="text-ink">{h.label}</span>
-                            <span className="text-ink font-medium">
-                              {formatPct(h.confirmationRate)} / {formatPct(h.cancellationRate)}
-                              <span className="text-ink-faint font-normal"> · {h.totalGames} partidos</span>
-                            </span>
-                          </div>
-                          <div className="h-2 rounded-full overflow-hidden flex bg-surface-sunken">
-                            <div className="h-2 bg-brand" style={{ width: `${h.confirmationRate * 100}%` }} />
-                            <div className="h-2 bg-danger" style={{ width: `${h.cancellationRate * 100}%` }} />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+          {scopeData.map(({ scope, dayHourHeatmap }) => (
+            <div key={scope.regionId} className="space-y-2">
+              {isMultiScope && <div className="text-xs font-medium text-ink-muted px-1">{scope.regionName}</div>}
+              <SectionCard
+                title="Partidos por hora, por día de la semana"
+                subtitle="Volumen — sin discriminar por día, el dato pierde confiabilidad. Esto sí es válido a nivel red (no mezcla tasas de facilities distintas, solo cuenta cuándo pasan los partidos)"
+              >
+                <Heatmap days={dayHourHeatmap.days} hours={dayHourHeatmap.hours} cells={dayHourHeatmap.cells} maxCount={dayHourHeatmap.maxCount} metric="count" />
+                <div className="flex gap-4 text-xs pt-3 mt-1 border-t border-surface-sunken">
+                  {sp.marketId ? (
+                    <Link href={`/trends?regionId=${scope.regionId}&marketId=${sp.marketId}`} className="text-brand hover:underline">
+                      Ver tendencias y consistencia de slots en Trends →
+                    </Link>
                   ) : (
-                    <div className="text-sm text-ink-faint">Sin datos suficientes.</div>
+                    <Link href={`/trends?regionId=${scope.regionId}`} className="text-brand hover:underline">
+                      Ver tendencias de esta región en Trends →
+                    </Link>
                   )}
-                </SectionCard>
-
-                <SectionCard
-                  title="Partidos por hora, por día de la semana"
-                  subtitle="Volumen — sin discriminar por día, el dato pierde confiabilidad. Esto sí es válido a nivel red (no mezcla tasas de facilities distintas, solo cuenta cuándo pasan los partidos)"
-                >
-                  <Heatmap days={dayHourHeatmap.days} hours={dayHourHeatmap.hours} cells={dayHourHeatmap.cells} maxCount={dayHourHeatmap.maxCount} metric="count" />
-                </SectionCard>
-              </div>
-            );
-          })}
+                  <Link href="/daily" className="text-brand hover:underline">Ver slots críticos de hoy en Daily →</Link>
+                </div>
+              </SectionCard>
+            </div>
+          ))}
         </div>
       </GroupSection>
 

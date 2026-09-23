@@ -5,7 +5,6 @@ export type SP = {
   granularity?: string;
   period?: string;
   compare?: string;
-  heatmapMetric?: string;
   facilitySort?: string;
   facilitySortDir?: string;
   customFrom?: string;

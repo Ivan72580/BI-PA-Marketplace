@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { resolveFilterNames, getFilterOptions, getMonthProjection, type FacilitySortKey } from "./lib/db/queries";
 import { resolvePeriod, shiftAnchor, todayISO, type Granularity, type ResolvedPeriod } from "./lib/period";
 import { buildQuery, type SP } from "./lib/searchParams";
@@ -76,8 +75,6 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
     dateTo: period.dateTo,
   };
 
-  const heatmapMetric: "count" | "rate" | "confirmed" =
-    sp.heatmapMetric === "count" ? "count" : sp.heatmapMetric === "confirmed" ? "confirmed" : "rate";
   const validSorts: FacilitySortKey[] = ["games", "cancellationRate", "rating", "price"];
   const facilitySort: FacilitySortKey = validSorts.includes(sp.facilitySort as FacilitySortKey)
     ? (sp.facilitySort as FacilitySortKey)
@@ -131,9 +128,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
           comparePeriod={comparePeriod}
           granularity={granularity}
           compare={compare}
-          heatmapMetric={heatmapMetric}
           monthProjection={monthProjection}
-          buildHref={(overrides) => buildQuery(sp, overrides)}
         />
       ) : (
         <NetworkOverview

@@ -11,6 +11,7 @@ type SP = {
   view?: string;
   group?: string;
   month?: string;
+  tab?: string; // deep-link a un tab puntual (ej. desde "ver detalle" en Overview)
 };
 
 function buildQuery(current: SP, overrides: Partial<SP>) {
@@ -83,7 +84,7 @@ export default async function MarketPage({ searchParams }: { searchParams: Promi
           buildQuery={(overrides) => buildQuery(sp, overrides)}
         />
       ) : (
-        <MarketDashboard sp={sp} filterOptions={filterOptions} month={month} buildQuery={(overrides) => buildQuery(sp, overrides)} />
+        <MarketDashboard sp={sp} filterOptions={filterOptions} month={month} buildQuery={(overrides) => buildQuery(sp, overrides)} activeTab={sp.tab} />
       )}
     </div>
   );

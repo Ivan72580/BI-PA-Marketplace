@@ -9,6 +9,19 @@ import { buildWhere, MIN_GAMES_FOR_RANKING, MAX_NAMED_SEGMENTS, type OverviewFil
 
 export type ReputationTier = "platinum" | "bueno" | "intermedio" | "a_revisar" | "sin_datos";
 
+// Clases de color del badge de tier — puramente visual, no depende del
+// idioma, así que vive acá (junto al tipo que describe) y se comparte entre
+// Overview y Market en vez de duplicarse en cada componente. La etiqueta de
+// texto (t("tier.platinum"), etc.) sigue siendo responsabilidad de cada
+// página, ya que Overview todavía no pasó por su ronda de traducción.
+export const TIER_CLASS: Record<ReputationTier, string> = {
+  platinum: "bg-[#0b3b2e] text-white",
+  bueno: "bg-brand-soft text-brand",
+  intermedio: "bg-warning-soft text-warning",
+  a_revisar: "bg-danger-soft text-danger",
+  sin_datos: "bg-surface-sunken text-ink-faint",
+};
+
 export type MarketFacilityRow = {
   facilityId: string;
   name: string;

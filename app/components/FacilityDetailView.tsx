@@ -1,8 +1,6 @@
 import Link from "next/link";
 import {
   getOverviewData,
-  getDayHourHeatmap,
-  getGameList,
   getExtendedMetrics,
   getFacilitySeries,
   getFacilityContext,
@@ -12,9 +10,7 @@ import {
 } from "../lib/db/queries";
 import { resolveEvolutionWindow, type ResolvedPeriod, type Granularity } from "../lib/period";
 import BarChart from "./charts/BarChart";
-import EvolutionChart from "./charts/EvolutionChart";
-import Heatmap from "./Heatmap";
-import GameList from "./GameList";
+import Sparkline from "./Sparkline";
 import KpiCard from "./KpiCard";
 import GroupSection from "./GroupSection";
 import Glossary from "./Glossary";
@@ -65,9 +61,7 @@ export default async function FacilityDetailView({
   granularity,
   compare,
   comparePeriod,
-  heatmapMetric,
   monthProjection,
-  buildHref,
 }: {
   facilityId: string;
   filters: OverviewFilters;
@@ -75,7 +69,6 @@ export default async function FacilityDetailView({
   granularity: Granularity;
   compare: boolean;
   comparePeriod: ResolvedPeriod | null;
-  heatmapMetric: "count" | "rate" | "confirmed";
   monthProjection: {
     monthLabel: string;
     totalSoFar: number;
@@ -84,15 +77,12 @@ export default async function FacilityDetailView({
     confirmationRateSoFar: number | null;
     cancellationRateSoFar: number | null;
   };
-  buildHref: (overrides: Record<string, string | undefined>) => string;
 }) {
   const context = await getFacilityContext(facilityId);
   const evolutionWindow = resolveEvolutionWindow(granularity, period.dateTo);
 
-  const [data, heatmap, gameList, extended, evolutionSeries, networkBaseline, formatBreakdown] = await Promise.all([
+  const [data, extended, evolutionSeries, networkBaseline, formatBreakdown] = await Promise.all([
     getOverviewData(filters),
-    getDayHourHeatmap(filters),
-    getGameList(filters, 100),
     getExtendedMetrics(filters),
     getFacilitySeries(facilityId, evolutionWindow.unit, evolutionWindow.windowStart, evolutionWindow.windowEnd),
     getOverviewData({ dateFrom: period.dateFrom, dateTo: period.dateTo }), // sin filtros: promedio de toda la red
@@ -131,13 +121,6 @@ export default async function FacilityDetailView({
     datasets: [{ label: "Cancelaciones", data: data.cancellationBreakdown.map((c) => c.count), backgroundColor: "#ff4b33" }],
   };
 
-  const evolutionChartData = {
-    labels: evolutionSeries.map((m) => m.label),
-    datasets: [
-      { label: "Tasa de confirmación", data: evolutionSeries.map((m) => Math.round(m.confirmationRate * 1000) / 10), borderColor: "#16755c", backgroundColor: "rgba(22,117,92,0.1)", tension: 0.3 },
-      { label: "Tasa de cancelación", data: evolutionSeries.map((m) => Math.round(m.cancellationRate * 1000) / 10), borderColor: "#ff4b33", backgroundColor: "rgba(255,75,51,0.1)", tension: 0.3 },
-    ],
-  };
   const evolutionUnitLabel = evolutionWindow.unit === "week" ? "semanal" : "mensual";
   const evolutionWindowLabel =
     granularity === "week" || granularity === "day"
@@ -217,11 +200,25 @@ export default async function FacilityDetailView({
       </GroupSection>
 
       <GroupSection title="Evolución en el tiempo">
-        <SectionCard title={`Evolución ${evolutionUnitLabel}`} subtitle={`Confirmación y cancelación, ${evolutionWindowLabel} — se adapta según el filtro de tiempo activo`}>
+        <SectionCard title={`Evolución ${evolutionUnitLabel}`} subtitle={`Tasa de confirmación, ${evolutionWindowLabel} — se adapta según el filtro de tiempo activo`}>
           {evolutionSeries.length > 1 ? (
-            <EvolutionChart data={evolutionChartData} />
+            <div className="flex items-center gap-5 flex-wrap">
+              <Sparkline points={evolutionSeries.map((m) => Math.round(m.confirmationRate * 1000) / 10)} />
+              <div className="text-sm text-ink">
+                <span className="font-semibold text-brand">{formatPct(evolutionSeries[evolutionSeries.length - 1].confirmationRate)}</span>
+                <span className="text-ink-faint"> de confirmación en {evolutionSeries[evolutionSeries.length - 1].label}</span>
+              </div>
+            </div>
           ) : (
             <div className="text-sm text-ink-faint">No hay suficiente historial todavía para graficar una evolución.</div>
+          )}
+          {context && (
+            <Link
+              href={`/trends?regionId=${context.regionId}&marketId=${context.marketId}&facilityId=${facilityId}`}
+              className="text-xs text-brand hover:underline inline-block mt-4"
+            >
+              Ver evolución completa y consistencia de slots en Trends →
+            </Link>
           )}
         </SectionCard>
       </GroupSection>
@@ -229,20 +226,6 @@ export default async function FacilityDetailView({
       <GroupSection title="Cancelaciones">
         <SectionCard title="Motivos de cancelación">
           <BarChart data={cancellationChart} />
-        </SectionCard>
-
-        <SectionCard
-          title="Demanda y cancelación por día y horario"
-          subtitle="Pasá el mouse por una celda de cancelación para ver el desglose de motivos"
-          action={
-            <div className="flex gap-1.5 text-xs">
-              <Link href={buildHref({ heatmapMetric: undefined })} className={`px-2.5 py-1 rounded-md ${heatmapMetric === "rate" ? "bg-brand text-white" : "bg-surface-sunken text-ink-muted"}`}>Cancelación</Link>
-              <Link href={buildHref({ heatmapMetric: "confirmed" })} className={`px-2.5 py-1 rounded-md ${heatmapMetric === "confirmed" ? "bg-brand text-white" : "bg-surface-sunken text-ink-muted"}`}>Confirmados</Link>
-              <Link href={buildHref({ heatmapMetric: "count" })} className={`px-2.5 py-1 rounded-md ${heatmapMetric === "count" ? "bg-brand text-white" : "bg-surface-sunken text-ink-muted"}`}>Volumen total</Link>
-            </div>
-          }
-        >
-          <Heatmap days={heatmap.days} hours={heatmap.hours} cells={heatmap.cells} maxCount={heatmap.maxCount} metric={heatmapMetric} />
         </SectionCard>
       </GroupSection>
 
@@ -287,44 +270,48 @@ export default async function FacilityDetailView({
         </SectionCard>
       </GroupSection>
 
-      <GroupSection title="Satisfacción y precio">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <SectionCard title="Satisfacción">
-            {extended.avgRating !== null ? (
-              <>
-                <div className="flex items-end gap-6">
-                  <Stat label="Rating promedio" value={extended.avgRating.toFixed(2)} sublabel="de 5" />
-                  <Stat label="Reviews" value={extended.totalRatingCount.toLocaleString("en-US")} />
-                  <Stat label="Cobertura" value={formatPct(extended.ratingsCoveragePct)} />
-                </div>
-                <Glossary
-                  items={[
-                    { term: "Rating promedio", def: "promedio ponderado por cantidad de reviews de cada partido." },
-                    { term: "Cobertura", def: "% de los partidos de este filtro que tiene al menos un rating cargado." },
-                  ]}
-                />
-              </>
-            ) : (
-              <div className="text-sm text-ink-faint">Sin datos de rating en este filtro.</div>
-            )}
-          </SectionCard>
-          <SectionCard title="Precio y revenue">
-            <div className="flex items-end gap-6">
-              <Stat label="Precio promedio" value={extended.avgPrice !== null ? formatUSD(extended.avgPrice) : "—"} sublabel="por jugador" />
-              <Stat label="Revenue total" value={formatUSD(data.totalRevenue)} />
-            </div>
-            <Glossary
-              items={[
-                { term: "Precio promedio", def: "precio cobrado por jugador, promediado sobre los partidos con ese dato cargado." },
-                { term: "Revenue total", def: "dato secundario — la base mezcla distintos esquemas de precio, confiabilidad limitada." },
-              ]}
-            />
-          </SectionCard>
-        </div>
+      <GroupSection title="Precio y reputación">
+        {/* Versión condensada — el desglose completo (ticket, jugadores/partido,
+            partidos/mes, tabla de reputación con rank real) vive en Market;
+            acá sólo el vistazo rápido para no duplicar esa página. */}
+        <SectionCard title="Vistazo rápido">
+          <div className="flex items-end gap-6 flex-wrap mb-3">
+            <Stat label="Rating" value={extended.avgRating !== null ? extended.avgRating.toFixed(2) : "—"} sublabel="de 5" />
+            <Stat label="Precio promedio" value={extended.avgPrice !== null ? formatUSD(extended.avgPrice) : "—"} sublabel="por jugador" />
+            <Stat label="Revenue total" value={formatUSD(data.totalRevenue)} sublabel="dato secundario" />
+          </div>
+          {context && (
+            <Link
+              href={`/market?regionId=${context.regionId}&marketId=${context.marketId}&facilityId=${facilityId}&tab=reputacion`}
+              className="text-xs text-brand hover:underline"
+            >
+              Ver precio y reputación completos en Market →
+            </Link>
+          )}
+        </SectionCard>
       </GroupSection>
 
-      <GroupSection title="Detalle">
-        <GameList items={gameList.items} total={gameList.total} showFacility={false} />
+      <GroupSection title="Ver más">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {context && (
+            <Link
+              href={`/daily?regionId=${context.regionId}&marketId=${context.marketId}&facilityId=${facilityId}`}
+              className="block rounded-2xl bg-surface shadow-sm hover:shadow-lg transition-shadow p-4"
+            >
+              <div className="text-sm font-medium text-brand">Ver el día a día en Daily →</div>
+              <div className="text-xs text-ink-faint mt-1">Partidos de un día puntual, con el detalle completo de cada uno.</div>
+            </Link>
+          )}
+          {context && (
+            <Link
+              href={`/trends?regionId=${context.regionId}&marketId=${context.marketId}&facilityId=${facilityId}`}
+              className="block rounded-2xl bg-surface shadow-sm hover:shadow-lg transition-shadow p-4"
+            >
+              <div className="text-sm font-medium text-brand">Ver tendencia y detalle filtrable en Trends →</div>
+              <div className="text-xs text-ink-faint mt-1">Evolución completa, consistencia de slots, y la lista de partidos filtrable.</div>
+            </Link>
+          )}
+        </div>
       </GroupSection>
     </div>
   );
