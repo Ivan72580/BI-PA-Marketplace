@@ -547,5 +547,295 @@
       "subtitle": "80/20 Pareto — click to see the full detail",
       "summary": "{total} confirmed total · {n} facilities make up {pct}"
     }
+  },
+  "Overview": {
+    "pageTitle": "Overview",
+    "comparePeriodFallback": "the prior period",
+    "comparePeriodAvailable": "Prior period available for comparison: {period}",
+    "projection": {
+      "title": "{month} projection: ~{n} confirmed games",
+      "detail": "Projected revenue: ~{revenue} · based on {confirmed} confirmed in {elapsed} of {total} days",
+      "notYetAvailable": "{month} projection available from day {day}"
+    },
+    "tabs": {
+      "summary": "Summary",
+      "byFacility": "By facility",
+      "bySchedule": "By schedule"
+    },
+    "sections": {
+      "performance": "Performance",
+      "regionConcentration": "Concentration by region",
+      "composition": "Composition",
+      "cancellationReasons": "Cancellation reasons",
+      "satisfactionPriceOrganizer": "Satisfaction, price & organizer",
+      "rankings": "Rankings",
+      "rankingsRegion": "Rankings — {region}",
+      "schedule": "Schedule",
+      "operation": "Operation",
+      "evolution": "Evolution over time",
+      "cancellations": "Cancellations",
+      "demandOperation": "Demand & operation",
+      "priceReputation": "Price & reputation",
+      "seeMore": "See more"
+    },
+    "autoInsights": {
+      "title": "Automatic insights"
+    },
+    "varianceVs": "Variation vs. {period}",
+    "kpi": {
+      "scheduled": "Games scheduled",
+      "scheduledSub": "confirmed + cancelled, in the period",
+      "confirmed": "Games confirmed",
+      "cancelled": "Games cancelled",
+      "confirmationRate": "Confirmation rate",
+      "cancellationRate": "Cancellation rate",
+      "occupancy": "Occupancy (confirmed)",
+      "occupancySub": "final players / max capacity"
+    },
+    "insights": {
+      "noGames": "No games recorded for the selected period/filter.",
+      "lowConfirmation": "⚠ Only {pct}% of scheduled games get confirmed — demand isn't reaching the minimum player count in more than half of them.",
+      "topReason": "⚠ \"{reason}\" explains {pct}% of cancellations ({count} games) — it's the main issue to tackle.",
+      "outlier": "⚠ {facility} cancels {rate}% of its games ({games} in the period), {gap} points above the network average ({networkRate}%).",
+      "highFillRate": "✓ Confirmed games fill up to {pct}% of their average capacity — worth evaluating expanding capacity or adding similar time slots.",
+      "noAlerts": "No relevant alerts detected for the selected period.",
+      "confirmedUp": "✓ Confirmed games rose {pct}% vs. {period} ({prior} → {current}).",
+      "confirmedDown": "⚠ Confirmed games fell {pct}% vs. {period} ({prior} → {current}).",
+      "worsened": "⚠ {facility} explains much of the change: went from {priorRate}% to {curRate}% cancellation vs. {period} (+{excess} more cancellations than expected).",
+      "improved": "✓ {facility} improved notably: went from {priorRate}% to {curRate}% cancellation vs. {period} ({excess} fewer cancellations than expected)."
+    },
+    "tier": {
+      "platinum": "Platinum",
+      "bueno": "Good",
+      "intermedio": "Average",
+      "aRevisar": "Needs review",
+      "sinDatos": "—"
+    },
+    "composition": {
+      "top5Title": "Top 5 facilities",
+      "top5TitleRegion": "Top 5 facilities — {region}",
+      "subtitle": "By confirmed games — quick view, the full ranking lives in Market",
+      "headers": {
+        "facility": "Facility",
+        "confirmed": "Confirmed",
+        "cancellation": "Cancellation",
+        "level": "Level"
+      },
+      "newBadge": "new",
+      "empty": "No data for this filter.",
+      "viewFullRanking": "See full ranking in Market →"
+    },
+    "marketTeaser": {
+      "title": "Price & engagement for this market",
+      "subtitle": "Quick view — the per-facility breakdown lives in Market",
+      "avgTicket": "Average ticket",
+      "avgTicketSub": "per player",
+      "conversion": "Conversion",
+      "conversionSub": "waitlist → final player",
+      "nearMiss": "Near-miss cancellations",
+      "nearMissSub": "{pct} of cancelled games",
+      "viewPrice": "See full price detail →",
+      "viewEngagement": "See full engagement detail →"
+    },
+    "cancellation": {
+      "title": "Cancellation reasons",
+      "subtitleSingle": "{cancelled} games cancelled · {rate} rate",
+      "compareTitle": "Comparison by region",
+      "compareSubtitle": "Top reason and total volume for each region",
+      "headers": {
+        "region": "Region",
+        "cancelled": "Cancelled",
+        "rate": "Rate",
+        "topReason": "Top reason"
+      },
+      "rankingTitleRegion": "Reason ranking — {region}",
+      "empty": "No cancellations for this filter.",
+      "topContributorsTitle": "Facilities that contributed most to cancellations",
+      "gamesCancelledCount": "{n} cancelled",
+      "topContributorWarning": "⚠ <link>{facility}</link> contributes the most to \"{reason}\" in {region} ({count} of {total}) — worth reviewing."
+    },
+    "satisfaction": {
+      "title": "Satisfaction",
+      "rating": "Rating",
+      "ratingSub": "out of 5",
+      "reviews": "Reviews",
+      "coverage": "Coverage",
+      "noData": "No rating data."
+    },
+    "priceRevenue": {
+      "title": "Price & revenue",
+      "avgPrice": "Average price",
+      "avgPriceSub": "per player",
+      "totalRevenue": "Total revenue",
+      "totalRevenueSub": "secondary metric"
+    },
+    "organizer": {
+      "title": "By organizer",
+      "summary": "{organizer}: {confirmed} confirmed, {cancelled} cancelled · {rate} cancellation"
+    },
+    "satisfactionGlossary": {
+      "rating": {
+        "term": "Rating",
+        "def": "average weighted by the number of reviews per game."
+      },
+      "coverage": {
+        "term": "Coverage",
+        "def": "% of games that have at least one rating logged."
+      },
+      "avgPrice": {
+        "term": "Average price",
+        "def": "price charged per player, averaged over games with that data logged."
+      },
+      "totalRevenue": {
+        "term": "Total revenue",
+        "def": "secondary metric — the dataset mixes different pricing schemes, limited reliability."
+      }
+    },
+    "rankings": {
+      "contribConfirmTitle": "Contribution to change — Confirmation",
+      "contribConfirmSubtitle": "Extra confirmations (longer bar = larger deviation) vs. what was expected if that facility had kept its own rate from {period}",
+      "contribCancelTitle": "Contribution to change — Cancellation",
+      "contribCancelSubtitle": "Extra cancellations (longer bar = larger deviation) vs. what was expected if that facility had kept its own rate from {period}",
+      "vsExpected": "vs. expected",
+      "contribGlossary": {
+        "whatShows": {
+          "term": "What it shows",
+          "def": "each facility compared against its own behavior in the prior period — not against other facilities' average."
+        },
+        "barLength": {
+          "term": "Bar length",
+          "def": "proportional to the size of the deviation — the longer it is, the further that facility drifted from what was expected based on its own recent history."
+        }
+      },
+      "paretoConfirmedTitle": "Confirmed business concentration (Pareto)",
+      "paretoConfirmedSubtitle": "These {n} facilities account for {pct} of confirmed games",
+      "confirmedSuffix": "{n} confirmed",
+      "paretoCancelledTitle": "Cancellation concentration (Pareto)",
+      "paretoCancelledSubtitle": "These {n} facilities account for {pct} of cancellations",
+      "cancelledSuffix": "{n} cancelled",
+      "cumulativePctGlossary": {
+        "term": "% cumulative",
+        "def": "percentage of total confirmed (or cancelled) games represented by that facility plus every one above it in the list — shows how many facilities it takes to explain 80% of the business."
+      },
+      "worstRateTitle": "Worst cancellation rate",
+      "worstRateSubtitle": "Minimum 7 games in the period (1 per day over a week), so the rate is representative",
+      "allFacilities": "All facilities",
+      "allFacilitiesRegion": "All facilities — {region}",
+      "clickToExpand": "({n} — click to expand)",
+      "cumulativeSuffix": "{pct} cumul.",
+      "gamesSuffix": "{n} games"
+    },
+    "facilityTable": {
+      "headers": {
+        "facility": "Facility",
+        "games": "Games",
+        "confirmed": "Confirmed",
+        "cancelled": "Cancelled",
+        "cancellation": "Cancellation",
+        "rating": "Rating",
+        "price": "Price"
+      },
+      "glossary": {
+        "confirmedCancelled": {
+          "term": "Confirmed / Cancelled",
+          "def": "actual count of each, not derived from the rate."
+        },
+        "rating": {
+          "term": "Rating",
+          "def": "average weighted by number of reviews, out of 5."
+        },
+        "price": {
+          "term": "Price",
+          "def": "average price charged per player."
+        },
+        "sortableColumns": {
+          "term": "Columns with ▲▼",
+          "def": "clickable to sort — clicking again reverses the order."
+        }
+      }
+    },
+    "schedule": {
+      "heatmapTitle": "Games per hour, by day of week",
+      "heatmapSubtitle": "Volume — without splitting by day, the data loses reliability. This IS valid at network level (it doesn't mix different facilities' rates, it just counts when games happen)",
+      "viewTrendsMarket": "See trends and slot consistency in Trends →",
+      "viewTrendsRegion": "See this region's trends in Trends →",
+      "viewDailyToday": "See today's critical slots in Daily →"
+    },
+    "operation": {
+      "leadTimeTitle": "Confirmation time",
+      "leadTimeLabel": "Typical lead time",
+      "leadTimeWarning": "⚠ The typical time between confirmation and the game is high — might be worth reviewing the confirmation process.",
+      "demandTitle": "Demand dynamics",
+      "waitlist": "On waitlist",
+      "dropped": "Dropped out",
+      "deficit": "Average shortfall",
+      "deficitSub": "across {n} with shortfalls",
+      "topWaitlist": "Top 3 — most waitlisted",
+      "topDropped": "Top 3 — most dropouts",
+      "noData": "No data.",
+      "glossary": {
+        "leadTime": {
+          "term": "Typical lead time",
+          "def": "median (not average) time between confirmation and the game — the data has extreme outliers."
+        },
+        "waitlistDropped": {
+          "term": "On waitlist / Dropped out",
+          "def": "players who were left waiting for a spot, or who signed up and then dropped before the game."
+        },
+        "deficit": {
+          "term": "Average shortfall",
+          "def": "players missing on average, counting only games with a shortfall."
+        }
+      }
+    },
+    "facility": {
+      "statusTitle": "Current status — {month}",
+      "statusNoGames": "There are no games recorded yet this month for this facility.",
+      "statusBase": "This month is running a <bold>confirmation rate of {rate}</bold> ({confirmed} of {total} scheduled games), with <bold2>{cancelRate} cancellation</bold2> ({cancelled} games)",
+      "aboveHistorical": "above its historical confirmation average ({pct})",
+      "belowHistorical": "below its historical confirmation average ({pct})",
+      "inLineHistorical": "in line with its historical average ({pct})",
+      "deviationInLine": "in line with the network average ({rate})",
+      "deviationAbove": "{points} points above the network average ({rate})",
+      "deviationBelow": "{points} points below the network average ({rate})",
+      "positionLabel": "It's <rank>#{rankNum} of {totalNum}</rank> facilities in <market>{marketName}</market> by cancellation rate",
+      "amongWorst": "— among the worst in its market",
+      "amongBest": "— among the best in its market",
+      "evolutionTitleWeekly": "Weekly evolution",
+      "evolutionTitleMonthly": "Monthly evolution",
+      "evolutionSubtitle": "Confirmation rate, {window} — adapts to the active time filter",
+      "window6Weeks": "last 6 weeks",
+      "window1Year": "last year",
+      "window6Months": "last 6 months",
+      "evolutionEmpty": "Not enough history yet to chart an evolution.",
+      "viewEvolutionTrends": "See full evolution and slot consistency in Trends →",
+      "cancellationsChartLabel": "Cancellations",
+      "deficitSub": "across {n} games with shortfalls",
+      "glossary": {
+        "waitlist": {
+          "term": "On waitlist",
+          "def": "players who were left waiting for a spot in games under this filter."
+        },
+        "dropped": {
+          "term": "Dropped out",
+          "def": "players who signed up and then dropped before the game."
+        },
+        "deficit": {
+          "term": "Average shortfall",
+          "def": "how many players were missing on average, counting only games with a shortfall."
+        }
+      },
+      "formatTitle": "Game format",
+      "formatSubtitle": "Actual size (dataset Game Size) combined with the court type when specified — e.g. «Indoor 7v7»",
+      "formatRow": "{count} games · {pct}",
+      "formatEmpty": "Not enough data for this filter.",
+      "quickLookTitle": "Quick look",
+      "viewPriceReputationMarket": "See full price & reputation in Market →",
+      "seeMoreDailyTitle": "See day-by-day detail in Daily →",
+      "seeMoreDailyDesc": "Games for one specific day, with full detail on each.",
+      "seeMoreTrendsTitle": "See trend and filterable detail in Trends →",
+      "seeMoreTrendsDesc": "Full evolution, slot consistency, and the filterable game list.",
+      "evolutionLatestSuffix": " confirmation in {label}"
+    }
   }
 }

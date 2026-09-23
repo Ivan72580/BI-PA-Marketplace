@@ -2,8 +2,16 @@ import { Prisma, CancellationCategory, GameStatus } from "@prisma/client";
 import { prisma } from "./prisma";
 import { cached } from "./cache";
 import { buildWhere, labelForCancellationCategory, sortHoursByOperatingDay, MIN_GAMES_FOR_RANKING, type OverviewFilters } from "./shared";
+import { getOverviewTranslator, type OverviewTranslator } from "./overviewMessages";
+import type { Locale } from "@/i18n/config";
 
-async function getOverviewDataImpl(filters: OverviewFilters) {
+// `locale` se agrega como argumento explícito porque este texto se genera
+// DENTRO de una función cacheada con unstable_cache — ver el comentario en
+// overviewMessages.ts (mismo patrón que dailyMessages.ts/trendsMessages.ts
+// para Daily/Trends). Default "es" para que los call sites que no lo pasan
+// (ej. trends/page.tsx, que solo usa las tasas numéricas, nunca .insights ni
+// .cancellationBreakdown) mantengan el comportamiento EXACTO de antes.
+async function getOverviewDataImpl(filters: OverviewFilters, locale: Locale = "es") {
   const where = buildWhere(filters);
   const confirmedWhere: Prisma.GameWhereInput = { ...where, status: GameStatus.CONFIRMED };
   const cancelledWhere: Prisma.GameWhereInput = { ...where, status: GameStatus.CANCELLED };
@@ -60,7 +68,7 @@ async function getOverviewDataImpl(filters: OverviewFilters) {
       const count = Number(g._count._all);
       return {
         category,
-        label: labelForCancellationCategory(category),
+        label: labelForCancellationCategory(category, locale),
         count,
         pct: cancelledCount > 0 ? count / cancelledCount : 0,
       };
@@ -188,7 +196,7 @@ async function getOverviewDataImpl(filters: OverviewFilters) {
     cancellationBreakdown,
     totalGames: total,
     worstCancellationRate,
-  });
+  }, getOverviewTranslator(locale));
 
   return {
     totalGames: total,
@@ -246,23 +254,21 @@ function generateOverviewInsights(m: {
   cancellationBreakdown: { category: string; label: string; count: number; pct: number }[];
   totalGames: number;
   worstCancellationRate: { label: string; rate: number; totalGames: number }[];
-}): string[] {
+}, t: OverviewTranslator): string[] {
   const insights: string[] = [];
 
   if (m.totalGames === 0) {
-    return ["No hay partidos registrados para el período/filtro seleccionado."];
+    return [t("insights.noGames")];
   }
 
   if (m.confirmationRate < 0.5) {
-    insights.push(
-      `⚠ Solo se confirma el ${(m.confirmationRate * 100).toFixed(1)}% de los partidos programados — la demanda no está alcanzando el mínimo de jugadores en más de la mitad de los casos.`
-    );
+    insights.push(t("insights.lowConfirmation", { pct: (m.confirmationRate * 100).toFixed(1) }));
   }
 
   const topReason = m.cancellationBreakdown[0];
   if (topReason && topReason.pct > 0.35) {
     insights.push(
-      `⚠ "${topReason.label}" explica el ${(topReason.pct * 100).toFixed(0)}% de las cancelaciones (${topReason.count} partidos) — es el principal punto a atacar.`
+      t("insights.topReason", { reason: topReason.label, pct: (topReason.pct * 100).toFixed(0), count: topReason.count })
     );
   }
 
@@ -274,19 +280,23 @@ function generateOverviewInsights(m: {
     const gapPoints = (worst.rate - m.cancellationRate) * 100;
     if (gapPoints >= OUTLIER_GAP_POINTS) {
       insights.push(
-        `⚠ ${worst.label} cancela el ${(worst.rate * 100).toFixed(0)}% de sus partidos (${worst.totalGames} en el período), ${gapPoints.toFixed(0)} puntos por encima del promedio de la red (${(m.cancellationRate * 100).toFixed(0)}%).`
+        t("insights.outlier", {
+          facility: worst.label,
+          rate: (worst.rate * 100).toFixed(0),
+          games: worst.totalGames,
+          gap: gapPoints.toFixed(0),
+          networkRate: (m.cancellationRate * 100).toFixed(0),
+        })
       );
     }
   }
 
   if (m.avgFillRate > 0.95) {
-    insights.push(
-      `✓ Los partidos confirmados se llenan al ${(m.avgFillRate * 100).toFixed(1)}% de su capacidad promedio — hay señal para evaluar ampliar cupo o sumar horarios similares.`
-    );
+    insights.push(t("insights.highFillRate", { pct: (m.avgFillRate * 100).toFixed(1) }));
   }
 
   if (insights.length === 0) {
-    insights.push("No se detectaron alertas relevantes en el período seleccionado.");
+    insights.push(t("insights.noAlerts"));
   }
 
   return insights;

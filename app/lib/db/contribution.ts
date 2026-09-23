@@ -100,21 +100,45 @@ async function getContributionRankingImpl(
 
 export const getContributionRanking = cached("getContributionRanking", getContributionRankingImpl);
 
-export function generateContributionInsights(rows: ContributionRow[], comparePeriodLabel: string): string[] {
+// `t` se recibe como parámetro en vez de resolverse acá adentro:
+// generateContributionInsights NO está envuelta en cached()/unstable_cache
+// (a diferencia de generateOverviewInsights en overview.ts) — se llama
+// directo desde el Server Component (NetworkOverview.tsx), después de que
+// getContributionRanking (la parte cacheada, que solo devuelve números y
+// nombres de la base) ya resolvió. Por eso alcanza con pasarle el
+// traductor normal de next-intl (getTranslations("Overview")), sin
+// necesidad del traductor puro basado en los JSON estáticos.
+export function generateContributionInsights(
+  rows: ContributionRow[],
+  comparePeriodLabel: string,
+  t: (key: string, values?: Record<string, string | number>) => string
+): string[] {
   const MIN_MAGNITUDE = 3; // menos de 3 partidos de diferencia no vale la pena destacarlo
   const insights: string[] = [];
 
   const worsened = [...rows].filter((r) => r.excessCancellations >= MIN_MAGNITUDE).sort((a, b) => b.excessCancellations - a.excessCancellations)[0];
   if (worsened) {
     insights.push(
-      `⚠ ${worsened.label} explica buena parte del cambio: pasó de ${(worsened.priorCancelRate * 100).toFixed(0)}% a ${(worsened.curCancelRate * 100).toFixed(0)}% de cancelación respecto a ${comparePeriodLabel} (+${worsened.excessCancellations.toFixed(1)} cancelaciones más de lo esperado).`
+      t("insights.worsened", {
+        facility: worsened.label,
+        priorRate: (worsened.priorCancelRate * 100).toFixed(0),
+        curRate: (worsened.curCancelRate * 100).toFixed(0),
+        period: comparePeriodLabel,
+        excess: worsened.excessCancellations.toFixed(1),
+      })
     );
   }
 
   const improved = [...rows].filter((r) => r.excessCancellations <= -MIN_MAGNITUDE).sort((a, b) => a.excessCancellations - b.excessCancellations)[0];
   if (improved) {
     insights.push(
-      `✓ ${improved.label} mejoró notablemente: pasó de ${(improved.priorCancelRate * 100).toFixed(0)}% a ${(improved.curCancelRate * 100).toFixed(0)}% de cancelación respecto a ${comparePeriodLabel} (${improved.excessCancellations.toFixed(1)} cancelaciones menos de lo esperado).`
+      t("insights.improved", {
+        facility: improved.label,
+        priorRate: (improved.priorCancelRate * 100).toFixed(0),
+        curRate: (improved.curCancelRate * 100).toFixed(0),
+        period: comparePeriodLabel,
+        excess: improved.excessCancellations.toFixed(1),
+      })
     );
   }
 

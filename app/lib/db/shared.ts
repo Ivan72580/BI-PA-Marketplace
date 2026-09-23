@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import type { Locale } from "@/i18n/config";
 
 export type OverviewFilters = {
   regionId?: string; // East / West
@@ -37,8 +38,25 @@ const CATEGORY_LABEL: Record<string, string> = {
   OTHER: "Otro",
 };
 
-export function labelForCancellationCategory(cat: string) {
-  return CATEGORY_LABEL[cat] ?? cat;
+// Traducción English de las categorías de arriba — agregada al traer Overview
+// a next-intl. Nota: Daily/Trends/Market ya estaban traducidas antes de esto
+// y llaman a labelForCancellationCategory() sin pasar `locale`, así que el
+// default "es" les deja el comportamiento EXACTAMENTE igual (siguen mostrando
+// el motivo en español incluso en la UI en inglés) — un gap de i18n
+// preexistente en esas páginas, fuera de alcance de este cambio puntual.
+// Solo los call sites nuevos de Overview pasan el locale real.
+const CATEGORY_LABEL_EN: Record<string, string> = {
+  NOT_ENOUGH_PLAYERS: "Not enough players",
+  FACILITY_UNAVAILABLE: "Facility unavailable",
+  WEATHER: "Weather",
+  MAINTENANCE: "Maintenance",
+  HOLIDAY: "Holiday",
+  OTHER: "Other",
+};
+
+export function labelForCancellationCategory(cat: string, locale: Locale = "es") {
+  const map = locale === "en" ? CATEGORY_LABEL_EN : CATEGORY_LABEL;
+  return map[cat] ?? cat;
 }
 
 export const DAY_ORDER = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];

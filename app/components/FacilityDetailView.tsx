@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations, getLocale } from "next-intl/server";
 import {
   getOverviewData,
   getExtendedMetrics,
@@ -8,12 +9,15 @@ import {
   getFormatBreakdown,
   type OverviewFilters,
 } from "../lib/db/queries";
+import type { Locale } from "@/i18n/config";
 import { resolveEvolutionWindow, type ResolvedPeriod, type Granularity } from "../lib/period";
 import BarChart from "./charts/BarChart";
 import Sparkline from "./Sparkline";
 import KpiCard from "./KpiCard";
 import GroupSection from "./GroupSection";
 import Glossary from "./Glossary";
+
+type OverviewTranslator = (key: string, values?: Record<string, string | number>) => string;
 
 function formatUSD(n: number) {
   return n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
@@ -46,12 +50,14 @@ function Stat({ label, value, sublabel }: { label: string; value: string; sublab
   );
 }
 
-function deviationLabel(facilityRate: number, networkRate: number, goodIsHigh: boolean): string {
+function deviationLabel(facilityRate: number, networkRate: number, goodIsHigh: boolean, t: OverviewTranslator): string {
   const diffPoints = (facilityRate - networkRate) * 100;
-  if (Math.abs(diffPoints) < 0.5) return `en línea con el promedio de la red (${(networkRate * 100).toFixed(1)}%)`;
+  const networkPct = (networkRate * 100).toFixed(1);
+  if (Math.abs(diffPoints) < 0.5) return t("facility.deviationInLine", { rate: `${networkPct}%` });
   const better = goodIsHigh ? diffPoints > 0 : diffPoints < 0;
-  const dir = diffPoints > 0 ? "por encima" : "por debajo";
-  return `${Math.abs(diffPoints).toFixed(1)} puntos ${dir} del promedio de la red (${(networkRate * 100).toFixed(1)}%)${better ? " ✓" : ""}`;
+  const key = diffPoints > 0 ? "facility.deviationAbove" : "facility.deviationBelow";
+  const base = t(key, { points: Math.abs(diffPoints).toFixed(1), rate: `${networkPct}%` });
+  return better ? `${base} ✓` : base;
 }
 
 export default async function FacilityDetailView({
@@ -78,20 +84,23 @@ export default async function FacilityDetailView({
     cancellationRateSoFar: number | null;
   };
 }) {
+  const t = await getTranslations("Overview");
+  const locale = (await getLocale()) as Locale;
+
   const context = await getFacilityContext(facilityId);
   const evolutionWindow = resolveEvolutionWindow(granularity, period.dateTo);
 
   const [data, extended, evolutionSeries, networkBaseline, formatBreakdown] = await Promise.all([
-    getOverviewData(filters),
+    getOverviewData(filters, locale),
     getExtendedMetrics(filters),
     getFacilitySeries(facilityId, evolutionWindow.unit, evolutionWindow.windowStart, evolutionWindow.windowEnd),
-    getOverviewData({ dateFrom: period.dateFrom, dateTo: period.dateTo }), // sin filtros: promedio de toda la red
+    getOverviewData({ dateFrom: period.dateFrom, dateTo: period.dateTo }, locale), // sin filtros: promedio de toda la red
     getFormatBreakdown(filters),
   ]);
 
   const compareData =
     compare && comparePeriod?.dateFrom && comparePeriod?.dateTo
-      ? await getOverviewData({ ...filters, dateFrom: comparePeriod.dateFrom, dateTo: comparePeriod.dateTo })
+      ? await getOverviewData({ ...filters, dateFrom: comparePeriod.dateFrom, dateTo: comparePeriod.dateTo }, locale)
       : null;
 
   const MIN_GAMES_FOR_POSITION = 10;
@@ -118,47 +127,56 @@ export default async function FacilityDetailView({
 
   const cancellationChart = {
     labels: data.cancellationBreakdown.map((c) => c.label),
-    datasets: [{ label: "Cancelaciones", data: data.cancellationBreakdown.map((c) => c.count), backgroundColor: "#ff4b33" }],
+    datasets: [{ label: t("facility.cancellationsChartLabel"), data: data.cancellationBreakdown.map((c) => c.count), backgroundColor: "#ff4b33" }],
   };
 
-  const evolutionUnitLabel = evolutionWindow.unit === "week" ? "semanal" : "mensual";
+  const evolutionUnitLabel = evolutionWindow.unit === "week" ? t("facility.evolutionTitleWeekly") : t("facility.evolutionTitleMonthly");
   const evolutionWindowLabel =
     granularity === "week" || granularity === "day"
-      ? "últimas 6 semanas"
+      ? t("facility.window6Weeks")
       : granularity === "all" || granularity === "year"
-      ? "último año"
-      : "últimos 6 meses";
+      ? t("facility.window1Year")
+      : t("facility.window6Months");
+
+  let historicalTrendClause: string | null = null;
+  if (
+    monthProjection.confirmationRateSoFar !== null &&
+    historicalAvgConfirmationRate !== null &&
+    Math.abs(monthProjection.confirmationRateSoFar - historicalAvgConfirmationRate) * 100 >= 3
+  ) {
+    historicalTrendClause =
+      monthProjection.confirmationRateSoFar > historicalAvgConfirmationRate
+        ? t("facility.aboveHistorical", { pct: formatPct(historicalAvgConfirmationRate) })
+        : t("facility.belowHistorical", { pct: formatPct(historicalAvgConfirmationRate) });
+  } else if (monthProjection.confirmationRateSoFar !== null && historicalAvgConfirmationRate !== null) {
+    historicalTrendClause = t("facility.inLineHistorical", { pct: formatPct(historicalAvgConfirmationRate) });
+  }
 
   return (
     <div className="space-y-5">
       {/* Estado actual del mes en curso: introduce y contextualiza el resto de la página */}
       <div className="rounded-2xl bg-surface shadow-sm hover:shadow-lg transition-shadow p-5">
-        <h3 className="text-sm font-medium text-ink mb-2">Estado actual — {monthProjection.monthLabel}</h3>
+        <h3 className="text-sm font-medium text-ink mb-2">{t("facility.statusTitle", { month: monthProjection.monthLabel })}</h3>
         {monthProjection.totalSoFar > 0 && monthProjection.confirmationRateSoFar !== null && monthProjection.cancellationRateSoFar !== null ? (
           <p className="text-sm text-ink leading-relaxed">
-            Este mes lleva una <span className="font-semibold text-brand">tasa de confirmación del {formatPct(monthProjection.confirmationRateSoFar)}</span>
-            {" "}({monthProjection.confirmedSoFar} de {monthProjection.totalSoFar} partidos programados), con{" "}
-            <span className="font-semibold text-ink">{formatPct(monthProjection.cancellationRateSoFar)} de cancelación</span>
-            {" "}({monthProjection.cancelledSoFar} partidos)
-            {historicalAvgConfirmationRate !== null && (
-              <>
-                {", "}
-                {Math.abs(monthProjection.confirmationRateSoFar - historicalAvgConfirmationRate) * 100 >= 3
-                  ? monthProjection.confirmationRateSoFar > historicalAvgConfirmationRate
-                    ? `por encima de su promedio histórico de confirmación (${formatPct(historicalAvgConfirmationRate)})`
-                    : `por debajo de su promedio histórico de confirmación (${formatPct(historicalAvgConfirmationRate)})`
-                  : `en línea con su promedio histórico (${formatPct(historicalAvgConfirmationRate)})`}
-                .
-              </>
-            )}
+            {t.rich("facility.statusBase", {
+              rate: formatPct(monthProjection.confirmationRateSoFar),
+              confirmed: monthProjection.confirmedSoFar,
+              total: monthProjection.totalSoFar,
+              cancelRate: formatPct(monthProjection.cancellationRateSoFar),
+              cancelled: monthProjection.cancelledSoFar,
+              bold: (chunks) => <span className="font-semibold text-brand">{chunks}</span>,
+              bold2: (chunks) => <span className="font-semibold text-ink">{chunks}</span>,
+            })}
+            {historicalTrendClause && <>{", "}{historicalTrendClause}.</>}
           </p>
         ) : (
-          <p className="text-sm text-ink-faint">Todavía no hay partidos registrados este mes para esta facility.</p>
+          <p className="text-sm text-ink-faint">{t("facility.statusNoGames")}</p>
         )}
       </div>
 
-      <GroupSection title="Rendimiento">
-        <SectionCard title="Insights automáticos">
+      <GroupSection title={t("sections.performance")}>
+        <SectionCard title={t("autoInsights.title")}>
           <div className="space-y-2">
             {data.insights.map((insight, i) => (
               <div key={i} className="text-sm text-ink font-medium">{insight}</div>
@@ -168,138 +186,144 @@ export default async function FacilityDetailView({
 
         {/* KPIs con desviación respecto al promedio de la red */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <KpiCard label="Partidos agendados" value={data.totalGames.toLocaleString("en-US")} sublabel="confirmados + cancelados, en el período" />
-          <KpiCard label="Partidos confirmados" value={data.confirmedGames.toLocaleString("en-US")} tone="brand" />
-          <KpiCard label="Partidos cancelados" value={data.cancelledGames.toLocaleString("en-US")} tone="danger" />
+          <KpiCard label={t("kpi.scheduled")} value={data.totalGames.toLocaleString("en-US")} sublabel={t("kpi.scheduledSub")} />
+          <KpiCard label={t("kpi.confirmed")} value={data.confirmedGames.toLocaleString("en-US")} tone="brand" />
+          <KpiCard label={t("kpi.cancelled")} value={data.cancelledGames.toLocaleString("en-US")} tone="danger" />
           <KpiCard
-            label="Tasa de confirmación"
+            label={t("kpi.confirmationRate")}
             value={formatPct(data.confirmationRate)}
-            sublabel={deviationLabel(data.confirmationRate, networkBaseline.confirmationRate, true)}
+            sublabel={deviationLabel(data.confirmationRate, networkBaseline.confirmationRate, true, t)}
             delta={confirmationDelta}
             tone="brand"
           />
           <KpiCard
-            label="Tasa de cancelación"
+            label={t("kpi.cancellationRate")}
             value={formatPct(data.cancellationRate)}
-            sublabel={deviationLabel(data.cancellationRate, networkBaseline.cancellationRate, false)}
+            sublabel={deviationLabel(data.cancellationRate, networkBaseline.cancellationRate, false, t)}
             delta={cancellationDelta}
             deltaInvert
             tone="danger"
           />
-          <KpiCard label="Ocupación (confirmados)" value={formatPct(data.avgFillRate)} sublabel="jugadores finales / cupo máximo" />
+          <KpiCard label={t("kpi.occupancy")} value={formatPct(data.avgFillRate)} sublabel={t("kpi.occupancySub")} />
         </div>
 
         {/* Posición relativa dentro de su propio market */}
         {context && positionIndex >= 0 && (
           <div className="rounded-xl bg-surface-panel px-5 py-3 text-sm text-ink shadow-sm">
-            Es la <span className="font-semibold">#{positionIndex + 1} de {marketPeers.length}</span> facilities de <span className="font-medium">{context.marketName}</span> por tasa de cancelación
-            {positionIndex < 3 && marketPeers.length > 5 && <span className="text-danger"> — entre las peores de su market</span>}
-            {positionIndex >= marketPeers.length - 3 && marketPeers.length > 5 && <span className="text-brand"> — entre las mejores de su market</span>}
+            {t.rich("facility.positionLabel", {
+              rankNum: positionIndex + 1,
+              totalNum: marketPeers.length,
+              marketName: context.marketName,
+              rank: (chunks) => <span className="font-semibold">{chunks}</span>,
+              market: (chunks) => <span className="font-medium">{chunks}</span>,
+            })}
+            {positionIndex < 3 && marketPeers.length > 5 && <span className="text-danger"> {t("facility.amongWorst")}</span>}
+            {positionIndex >= marketPeers.length - 3 && marketPeers.length > 5 && <span className="text-brand"> {t("facility.amongBest")}</span>}
           </div>
         )}
       </GroupSection>
 
-      <GroupSection title="Evolución en el tiempo">
-        <SectionCard title={`Evolución ${evolutionUnitLabel}`} subtitle={`Tasa de confirmación, ${evolutionWindowLabel} — se adapta según el filtro de tiempo activo`}>
+      <GroupSection title={t("sections.evolution")}>
+        <SectionCard title={evolutionUnitLabel} subtitle={t("facility.evolutionSubtitle", { window: evolutionWindowLabel })}>
           {evolutionSeries.length > 1 ? (
             <div className="flex items-center gap-5 flex-wrap">
               <Sparkline points={evolutionSeries.map((m) => Math.round(m.confirmationRate * 1000) / 10)} />
               <div className="text-sm text-ink">
                 <span className="font-semibold text-brand">{formatPct(evolutionSeries[evolutionSeries.length - 1].confirmationRate)}</span>
-                <span className="text-ink-faint"> de confirmación en {evolutionSeries[evolutionSeries.length - 1].label}</span>
+                <span className="text-ink-faint">{t("facility.evolutionLatestSuffix", { label: evolutionSeries[evolutionSeries.length - 1].label })}</span>
               </div>
             </div>
           ) : (
-            <div className="text-sm text-ink-faint">No hay suficiente historial todavía para graficar una evolución.</div>
+            <div className="text-sm text-ink-faint">{t("facility.evolutionEmpty")}</div>
           )}
           {context && (
             <Link
               href={`/trends?regionId=${context.regionId}&marketId=${context.marketId}&facilityId=${facilityId}`}
               className="text-xs text-brand hover:underline inline-block mt-4"
             >
-              Ver evolución completa y consistencia de slots en Trends →
+              {t("facility.viewEvolutionTrends")}
             </Link>
           )}
         </SectionCard>
       </GroupSection>
 
-      <GroupSection title="Cancelaciones">
-        <SectionCard title="Motivos de cancelación">
+      <GroupSection title={t("sections.cancellations")}>
+        <SectionCard title={t("cancellation.title")}>
           <BarChart data={cancellationChart} />
         </SectionCard>
       </GroupSection>
 
-      <GroupSection title="Demanda y operación">
+      <GroupSection title={t("sections.demandOperation")}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <SectionCard title="Tiempo de confirmación">
-            <Stat label="Lead time típico" value={extended.medianLeadTime !== null ? extended.medianLeadTime.toFixed(1) : "—"} />
-            <Glossary items={[{ term: "Lead time típico", def: "mediana (no promedio) del tiempo entre la confirmación y el partido — el dato tiene valores atípicos extremos que distorsionan un promedio simple, en unidades del dataset original." }]} />
+          <SectionCard title={t("operation.leadTimeTitle")}>
+            <Stat label={t("operation.leadTimeLabel")} value={extended.medianLeadTime !== null ? extended.medianLeadTime.toFixed(1) : "—"} />
+            <Glossary items={[{ term: t("operation.glossary.leadTime.term"), def: t("operation.glossary.leadTime.def") }]} />
           </SectionCard>
-          <SectionCard title="Dinámica de demanda">
+          <SectionCard title={t("operation.demandTitle")}>
             <div className="flex items-end gap-6 flex-wrap">
-              <Stat label="En lista de espera" value={extended.totalWaitlist.toLocaleString("en-US")} />
-              <Stat label="Abandonaron" value={extended.totalDropped.toLocaleString("en-US")} />
-              <Stat label="Déficit promedio" value={extended.avgPlayersMissing.toFixed(1)} sublabel={`en ${extended.missingGamesCount} partidos con faltantes`} />
+              <Stat label={t("facility.glossary.waitlist.term")} value={extended.totalWaitlist.toLocaleString("en-US")} />
+              <Stat label={t("facility.glossary.dropped.term")} value={extended.totalDropped.toLocaleString("en-US")} />
+              <Stat label={t("operation.deficit")} value={extended.avgPlayersMissing.toFixed(1)} sublabel={t("facility.deficitSub", { n: extended.missingGamesCount })} />
             </div>
             <Glossary
               items={[
-                { term: "En lista de espera", def: "jugadores que quedaron esperando cupo en partidos de este filtro." },
-                { term: "Abandonaron", def: "jugadores que se anotaron y luego se bajaron antes del partido." },
-                { term: "Déficit promedio", def: "cuántos jugadores faltaban en promedio, solo contando partidos donde faltó gente." },
+                { term: t("facility.glossary.waitlist.term"), def: t("facility.glossary.waitlist.def") },
+                { term: t("facility.glossary.dropped.term"), def: t("facility.glossary.dropped.def") },
+                { term: t("facility.glossary.deficit.term"), def: t("facility.glossary.deficit.def") },
               ]}
             />
           </SectionCard>
         </div>
 
         <SectionCard
-          title="Formato de partidos"
-          subtitle="Tamaño real (Game Size del dataset) combinado con el tipo de cancha cuando está especificado — ej: «Indoor 7v7»"
+          title={t("facility.formatTitle")}
+          subtitle={t("facility.formatSubtitle")}
         >
           {formatBreakdown.length > 0 ? (
             <div className="space-y-2">
               {formatBreakdown.map((f) => (
                 <div key={f.label} className="flex items-center justify-between text-sm">
                   <span className="text-ink">{f.label}</span>
-                  <span className="text-ink-muted">{f.count} partidos · {formatPct(f.pct)}</span>
+                  <span className="text-ink-muted">{t("facility.formatRow", { count: f.count, pct: formatPct(f.pct) })}</span>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-sm text-ink-faint">Sin datos suficientes en este filtro.</div>
+            <div className="text-sm text-ink-faint">{t("facility.formatEmpty")}</div>
           )}
         </SectionCard>
       </GroupSection>
 
-      <GroupSection title="Precio y reputación">
+      <GroupSection title={t("sections.priceReputation")}>
         {/* Versión condensada — el desglose completo (ticket, jugadores/partido,
             partidos/mes, tabla de reputación con rank real) vive en Market;
             acá sólo el vistazo rápido para no duplicar esa página. */}
-        <SectionCard title="Vistazo rápido">
+        <SectionCard title={t("facility.quickLookTitle")}>
           <div className="flex items-end gap-6 flex-wrap mb-3">
-            <Stat label="Rating" value={extended.avgRating !== null ? extended.avgRating.toFixed(2) : "—"} sublabel="de 5" />
-            <Stat label="Precio promedio" value={extended.avgPrice !== null ? formatUSD(extended.avgPrice) : "—"} sublabel="por jugador" />
-            <Stat label="Revenue total" value={formatUSD(data.totalRevenue)} sublabel="dato secundario" />
+            <Stat label={t("satisfaction.rating")} value={extended.avgRating !== null ? extended.avgRating.toFixed(2) : "—"} sublabel={t("satisfaction.ratingSub")} />
+            <Stat label={t("priceRevenue.avgPrice")} value={extended.avgPrice !== null ? formatUSD(extended.avgPrice) : "—"} sublabel={t("priceRevenue.avgPriceSub")} />
+            <Stat label={t("priceRevenue.totalRevenue")} value={formatUSD(data.totalRevenue)} sublabel={t("priceRevenue.totalRevenueSub")} />
           </div>
           {context && (
             <Link
               href={`/market?regionId=${context.regionId}&marketId=${context.marketId}&facilityId=${facilityId}&tab=reputacion`}
               className="text-xs text-brand hover:underline"
             >
-              Ver precio y reputación completos en Market →
+              {t("facility.viewPriceReputationMarket")}
             </Link>
           )}
         </SectionCard>
       </GroupSection>
 
-      <GroupSection title="Ver más">
+      <GroupSection title={t("sections.seeMore")}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {context && (
             <Link
               href={`/daily?regionId=${context.regionId}&marketId=${context.marketId}&facilityId=${facilityId}`}
               className="block rounded-2xl bg-surface shadow-sm hover:shadow-lg transition-shadow p-4"
             >
-              <div className="text-sm font-medium text-brand">Ver el día a día en Daily →</div>
-              <div className="text-xs text-ink-faint mt-1">Partidos de un día puntual, con el detalle completo de cada uno.</div>
+              <div className="text-sm font-medium text-brand">{t("facility.seeMoreDailyTitle")}</div>
+              <div className="text-xs text-ink-faint mt-1">{t("facility.seeMoreDailyDesc")}</div>
             </Link>
           )}
           {context && (
@@ -307,8 +331,8 @@ export default async function FacilityDetailView({
               href={`/trends?regionId=${context.regionId}&marketId=${context.marketId}&facilityId=${facilityId}`}
               className="block rounded-2xl bg-surface shadow-sm hover:shadow-lg transition-shadow p-4"
             >
-              <div className="text-sm font-medium text-brand">Ver tendencia y detalle filtrable en Trends →</div>
-              <div className="text-xs text-ink-faint mt-1">Evolución completa, consistencia de slots, y la lista de partidos filtrable.</div>
+              <div className="text-sm font-medium text-brand">{t("facility.seeMoreTrendsTitle")}</div>
+              <div className="text-xs text-ink-faint mt-1">{t("facility.seeMoreTrendsDesc")}</div>
             </Link>
           )}
         </div>

@@ -547,5 +547,295 @@
       "subtitle": "Pareto 80/20 — clickeá para ver el detalle completo",
       "summary": "{total} confirmados en total · {n} facilities concentran el {pct}"
     }
+  },
+  "Overview": {
+    "pageTitle": "Overview",
+    "comparePeriodFallback": "el período anterior",
+    "comparePeriodAvailable": "Período anterior disponible para comparar: {period}",
+    "projection": {
+      "title": "Proyección de {month}: ~{n} partidos confirmados",
+      "detail": "Revenue proyectado: ~{revenue} · en base a {confirmed} confirmados en {elapsed} de {total} días",
+      "notYetAvailable": "Proyección de {month} disponible desde el día {day}"
+    },
+    "tabs": {
+      "summary": "Resumen",
+      "byFacility": "Por facility",
+      "bySchedule": "Por horario"
+    },
+    "sections": {
+      "performance": "Rendimiento",
+      "regionConcentration": "Concentración por región",
+      "composition": "Composición",
+      "cancellationReasons": "Motivos de cancelación",
+      "satisfactionPriceOrganizer": "Satisfacción, precio y organizador",
+      "rankings": "Rankings",
+      "rankingsRegion": "Rankings — {region}",
+      "schedule": "Horario",
+      "operation": "Operación",
+      "evolution": "Evolución en el tiempo",
+      "cancellations": "Cancelaciones",
+      "demandOperation": "Demanda y operación",
+      "priceReputation": "Precio y reputación",
+      "seeMore": "Ver más"
+    },
+    "autoInsights": {
+      "title": "Insights automáticos"
+    },
+    "varianceVs": "Variación vs. {period}",
+    "kpi": {
+      "scheduled": "Partidos agendados",
+      "scheduledSub": "confirmados + cancelados, en el período",
+      "confirmed": "Partidos confirmados",
+      "cancelled": "Partidos cancelados",
+      "confirmationRate": "Tasa de confirmación",
+      "cancellationRate": "Tasa de cancelación",
+      "occupancy": "Ocupación (confirmados)",
+      "occupancySub": "jugadores finales / cupo máximo"
+    },
+    "insights": {
+      "noGames": "No hay partidos registrados para el período/filtro seleccionado.",
+      "lowConfirmation": "⚠ Solo se confirma el {pct}% de los partidos programados — la demanda no está alcanzando el mínimo de jugadores en más de la mitad de los casos.",
+      "topReason": "⚠ \"{reason}\" explica el {pct}% de las cancelaciones ({count} partidos) — es el principal punto a atacar.",
+      "outlier": "⚠ {facility} cancela el {rate}% de sus partidos ({games} en el período), {gap} puntos por encima del promedio de la red ({networkRate}%).",
+      "highFillRate": "✓ Los partidos confirmados se llenan al {pct}% de su capacidad promedio — hay señal para evaluar ampliar cupo o sumar horarios similares.",
+      "noAlerts": "No se detectaron alertas relevantes en el período seleccionado.",
+      "confirmedUp": "✓ Los partidos confirmados subieron {pct}% respecto a {period} ({prior} → {current}).",
+      "confirmedDown": "⚠ Los partidos confirmados bajaron {pct}% respecto a {period} ({prior} → {current}).",
+      "worsened": "⚠ {facility} explica buena parte del cambio: pasó de {priorRate}% a {curRate}% de cancelación respecto a {period} (+{excess} cancelaciones más de lo esperado).",
+      "improved": "✓ {facility} mejoró notablemente: pasó de {priorRate}% a {curRate}% de cancelación respecto a {period} ({excess} cancelaciones menos de lo esperado)."
+    },
+    "tier": {
+      "platinum": "Platinum",
+      "bueno": "Bueno",
+      "intermedio": "Intermedio",
+      "aRevisar": "A revisar",
+      "sinDatos": "—"
+    },
+    "composition": {
+      "top5Title": "Top 5 facilities",
+      "top5TitleRegion": "Top 5 facilities — {region}",
+      "subtitle": "Por partidos confirmados — vista rápida, el ranking completo vive en Market",
+      "headers": {
+        "facility": "Facility",
+        "confirmed": "Confirmados",
+        "cancellation": "Cancelación",
+        "level": "Nivel"
+      },
+      "newBadge": "nuevo",
+      "empty": "Sin datos en este filtro.",
+      "viewFullRanking": "Ver ranking completo en Market →"
+    },
+    "marketTeaser": {
+      "title": "Precio y engagement de este market",
+      "subtitle": "Vista rápida — el desglose por facility vive en Market",
+      "avgTicket": "Ticket promedio",
+      "avgTicketSub": "por jugador",
+      "conversion": "Conversión",
+      "conversionSub": "lista de espera → jugador final",
+      "nearMiss": "Cancelaciones near-miss",
+      "nearMissSub": "{pct} de las canceladas",
+      "viewPrice": "Ver precio completo →",
+      "viewEngagement": "Ver engagement completo →"
+    },
+    "cancellation": {
+      "title": "Motivos de cancelación",
+      "subtitleSingle": "{cancelled} partidos cancelados · {rate} de tasa",
+      "compareTitle": "Comparativa por región",
+      "compareSubtitle": "Motivo principal y volumen total de cada región",
+      "headers": {
+        "region": "Región",
+        "cancelled": "Cancelados",
+        "rate": "Tasa",
+        "topReason": "Motivo principal"
+      },
+      "rankingTitleRegion": "Ranking de motivos — {region}",
+      "empty": "Sin cancelaciones en este filtro.",
+      "topContributorsTitle": "Facilities que más aportaron a las cancelaciones",
+      "gamesCancelledCount": "{n} cancelados",
+      "topContributorWarning": "⚠ <link>{facility}</link> es la que más aporta a \"{reason}\" en {region} ({count} de {total}) — vale la pena revisarla."
+    },
+    "satisfaction": {
+      "title": "Satisfacción",
+      "rating": "Rating",
+      "ratingSub": "de 5",
+      "reviews": "Reviews",
+      "coverage": "Cobertura",
+      "noData": "Sin datos de rating."
+    },
+    "priceRevenue": {
+      "title": "Precio y revenue",
+      "avgPrice": "Precio promedio",
+      "avgPriceSub": "por jugador",
+      "totalRevenue": "Revenue total",
+      "totalRevenueSub": "dato secundario"
+    },
+    "organizer": {
+      "title": "Por organizador",
+      "summary": "{organizer}: {confirmed} confirmados, {cancelled} cancelados · {rate} cancelación"
+    },
+    "satisfactionGlossary": {
+      "rating": {
+        "term": "Rating",
+        "def": "promedio ponderado por cantidad de reviews de cada partido."
+      },
+      "coverage": {
+        "term": "Cobertura",
+        "def": "% de los partidos que tiene al menos un rating cargado."
+      },
+      "avgPrice": {
+        "term": "Precio promedio",
+        "def": "precio cobrado por jugador, promediado sobre los partidos con ese dato cargado."
+      },
+      "totalRevenue": {
+        "term": "Revenue total",
+        "def": "dato secundario — la base mezcla distintos esquemas de precio, confiabilidad limitada."
+      }
+    },
+    "rankings": {
+      "contribConfirmTitle": "Contribución al cambio — Confirmación",
+      "contribConfirmSubtitle": "Confirmaciones de más (barra más larga = mayor desvío) respecto a lo esperado si esa facility mantenía su propia tasa de {period}",
+      "contribCancelTitle": "Contribución al cambio — Cancelación",
+      "contribCancelSubtitle": "Cancelaciones de más (barra más larga = mayor desvío) respecto a lo esperado si esa facility mantenía su propia tasa de {period}",
+      "vsExpected": "vs. esperado",
+      "contribGlossary": {
+        "whatShows": {
+          "term": "Qué muestra",
+          "def": "cada facility comparada contra su propio comportamiento en el período anterior — no contra el promedio de otras."
+        },
+        "barLength": {
+          "term": "Largo de la barra",
+          "def": "proporcional a la magnitud del desvío — cuánto más larga, más se alejó esa facility de lo que era esperable según su propia historia reciente."
+        }
+      },
+      "paretoConfirmedTitle": "Concentración de negocio confirmado (Pareto)",
+      "paretoConfirmedSubtitle": "Estos {n} facilities concentran el {pct} de los confirmados",
+      "confirmedSuffix": "{n} confirmados",
+      "paretoCancelledTitle": "Concentración de cancelaciones (Pareto)",
+      "paretoCancelledSubtitle": "Estos {n} facilities concentran el {pct} de las cancelaciones",
+      "cancelledSuffix": "{n} cancelados",
+      "cumulativePctGlossary": {
+        "term": "% acumulado",
+        "def": "porcentaje del total de confirmados (o cancelados) que representa esa facility sumada a todas las de arriba en la lista — así se ve cuántas facilities hacen falta para explicar el 80% del negocio."
+      },
+      "worstRateTitle": "Peor tasa de cancelación",
+      "worstRateSubtitle": "Mínimo 7 partidos en el período (1 por día en una semana), para que la tasa sea representativa",
+      "allFacilities": "Todas las facilities",
+      "allFacilitiesRegion": "Todas las facilities — {region}",
+      "clickToExpand": "({n} — click para desplegar)",
+      "cumulativeSuffix": "{pct} acum.",
+      "gamesSuffix": "{n} partidos"
+    },
+    "facilityTable": {
+      "headers": {
+        "facility": "Facility",
+        "games": "Partidos",
+        "confirmed": "Confirmados",
+        "cancelled": "Cancelados",
+        "cancellation": "Cancelación",
+        "rating": "Rating",
+        "price": "Precio"
+      },
+      "glossary": {
+        "confirmedCancelled": {
+          "term": "Confirmados / Cancelados",
+          "def": "recuento real de cada uno, no derivado de la tasa."
+        },
+        "rating": {
+          "term": "Rating",
+          "def": "promedio ponderado por cantidad de reviews, sobre 5."
+        },
+        "price": {
+          "term": "Precio",
+          "def": "precio promedio cobrado por jugador."
+        },
+        "sortableColumns": {
+          "term": "Columnas con ▲▼",
+          "def": "clickeables para ordenar — click de nuevo invierte el orden."
+        }
+      }
+    },
+    "schedule": {
+      "heatmapTitle": "Partidos por hora, por día de la semana",
+      "heatmapSubtitle": "Volumen — sin discriminar por día, el dato pierde confiabilidad. Esto sí es válido a nivel red (no mezcla tasas de facilities distintas, solo cuenta cuándo pasan los partidos)",
+      "viewTrendsMarket": "Ver tendencias y consistencia de slots en Trends →",
+      "viewTrendsRegion": "Ver tendencias de esta región en Trends →",
+      "viewDailyToday": "Ver slots críticos de hoy en Daily →"
+    },
+    "operation": {
+      "leadTimeTitle": "Tiempo de confirmación",
+      "leadTimeLabel": "Lead time típico",
+      "leadTimeWarning": "⚠ El tiempo típico entre confirmación y partido es alto — podría valer la pena revisar el proceso de confirmación.",
+      "demandTitle": "Dinámica de demanda",
+      "waitlist": "En lista de espera",
+      "dropped": "Abandonaron",
+      "deficit": "Déficit promedio",
+      "deficitSub": "en {n} con faltantes",
+      "topWaitlist": "Top 3 — más lista de espera",
+      "topDropped": "Top 3 — más abandono",
+      "noData": "Sin datos.",
+      "glossary": {
+        "leadTime": {
+          "term": "Lead time típico",
+          "def": "mediana (no promedio) del tiempo entre la confirmación y el partido — el dato tiene valores atípicos extremos."
+        },
+        "waitlistDropped": {
+          "term": "En lista de espera / Abandonaron",
+          "def": "jugadores que quedaron esperando cupo, o que se anotaron y se bajaron antes del partido."
+        },
+        "deficit": {
+          "term": "Déficit promedio",
+          "def": "jugadores que faltaban en promedio, solo en partidos con faltantes."
+        }
+      }
+    },
+    "facility": {
+      "statusTitle": "Estado actual — {month}",
+      "statusNoGames": "Todavía no hay partidos registrados este mes para esta facility.",
+      "statusBase": "Este mes lleva una <bold>tasa de confirmación del {rate}</bold> ({confirmed} de {total} partidos programados), con <bold2>{cancelRate} de cancelación</bold2> ({cancelled} partidos)",
+      "aboveHistorical": "por encima de su promedio histórico de confirmación ({pct})",
+      "belowHistorical": "por debajo de su promedio histórico de confirmación ({pct})",
+      "inLineHistorical": "en línea con su promedio histórico ({pct})",
+      "deviationInLine": "en línea con el promedio de la red ({rate})",
+      "deviationAbove": "{points} puntos por encima del promedio de la red ({rate})",
+      "deviationBelow": "{points} puntos por debajo del promedio de la red ({rate})",
+      "positionLabel": "Es la <rank>#{rankNum} de {totalNum}</rank> facilities de <market>{marketName}</market> por tasa de cancelación",
+      "amongWorst": "— entre las peores de su market",
+      "amongBest": "— entre las mejores de su market",
+      "evolutionTitleWeekly": "Evolución semanal",
+      "evolutionTitleMonthly": "Evolución mensual",
+      "evolutionSubtitle": "Tasa de confirmación, {window} — se adapta según el filtro de tiempo activo",
+      "window6Weeks": "últimas 6 semanas",
+      "window1Year": "último año",
+      "window6Months": "últimos 6 meses",
+      "evolutionEmpty": "No hay suficiente historial todavía para graficar una evolución.",
+      "viewEvolutionTrends": "Ver evolución completa y consistencia de slots en Trends →",
+      "cancellationsChartLabel": "Cancelaciones",
+      "deficitSub": "en {n} partidos con faltantes",
+      "glossary": {
+        "waitlist": {
+          "term": "En lista de espera",
+          "def": "jugadores que quedaron esperando cupo en partidos de este filtro."
+        },
+        "dropped": {
+          "term": "Abandonaron",
+          "def": "jugadores que se anotaron y luego se bajaron antes del partido."
+        },
+        "deficit": {
+          "term": "Déficit promedio",
+          "def": "cuántos jugadores faltaban en promedio, solo contando partidos donde faltó gente."
+        }
+      },
+      "formatTitle": "Formato de partidos",
+      "formatSubtitle": "Tamaño real (Game Size del dataset) combinado con el tipo de cancha cuando está especificado — ej: «Indoor 7v7»",
+      "formatRow": "{count} partidos · {pct}",
+      "formatEmpty": "Sin datos suficientes en este filtro.",
+      "quickLookTitle": "Vistazo rápido",
+      "viewPriceReputationMarket": "Ver precio y reputación completos en Market →",
+      "seeMoreDailyTitle": "Ver el día a día en Daily →",
+      "seeMoreDailyDesc": "Partidos de un día puntual, con el detalle completo de cada uno.",
+      "seeMoreTrendsTitle": "Ver tendencia y detalle filtrable en Trends →",
+      "seeMoreTrendsDesc": "Evolución completa, consistencia de slots, y la lista de partidos filtrable.",
+      "evolutionLatestSuffix": " de confirmación en {label}"
+    }
   }
 }

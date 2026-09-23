@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { resolveFilterNames, getFilterOptions, getMonthProjection, type FacilitySortKey } from "./lib/db/queries";
 import { resolvePeriod, shiftAnchor, todayISO, type Granularity, type ResolvedPeriod } from "./lib/period";
 import { buildQuery, type SP } from "./lib/searchParams";
@@ -81,10 +82,11 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
     : "games";
   const facilitySortDir: "asc" | "desc" = sp.facilitySortDir === "asc" ? "asc" : "desc";
 
-  const [names, filterOptions, monthProjection] = await Promise.all([
+  const [names, filterOptions, monthProjection, t] = await Promise.all([
     resolveFilterNames(sp),
     getFilterOptions(),
     getMonthProjection({ regionId: sp.regionId, marketId: sp.marketId, facilityId: sp.facilityId }),
+    getTranslations("Overview"),
   ]);
 
   const hasFilter = Boolean(sp.regionId || sp.marketId || sp.facilityId);
@@ -93,22 +95,27 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
     <div>
       <div className="flex items-center justify-between gap-4 flex-wrap mb-6 pb-5 border-b border-border">
         <h1 className="font-display text-3xl font-bold text-ink shrink-0">
-          {names.facilityName ?? "Overview"}
+          {names.facilityName ?? t("pageTitle")}
         </h1>
 
         <div className="rounded-xl bg-brand-soft border border-brand/20 px-4 py-2 shrink-0">
           {monthProjection.available ? (
             <>
               <div className="text-sm text-brand font-medium">
-                Proyección de {monthProjection.monthLabel}: ~{monthProjection.projectedGames!.toLocaleString("en-US")} partidos confirmados
+                {t("projection.title", { month: monthProjection.monthLabel, n: monthProjection.projectedGames!.toLocaleString("en-US") })}
               </div>
               <div className="text-xs text-ink-faint mt-0.5">
-                Revenue proyectado: ~{formatUSD(monthProjection.projectedRevenue!)} · en base a {monthProjection.confirmedSoFar.toLocaleString("en-US")} confirmados en {monthProjection.daysElapsed} de {monthProjection.daysInMonth} días
+                {t("projection.detail", {
+                  revenue: formatUSD(monthProjection.projectedRevenue!),
+                  confirmed: monthProjection.confirmedSoFar.toLocaleString("en-US"),
+                  elapsed: monthProjection.daysElapsed,
+                  total: monthProjection.daysInMonth,
+                })}
               </div>
             </>
           ) : (
             <div className="text-sm text-ink-muted">
-              Proyección de {monthProjection.monthLabel} disponible desde el día {monthProjection.availableFromDay}
+              {t("projection.notYetAvailable", { month: monthProjection.monthLabel, day: monthProjection.availableFromDay })}
             </div>
           )}
         </div>
@@ -117,7 +124,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
       <FilterPanel regions={filterOptions.regions} markets={filterOptions.markets} facilities={filterOptions.facilities} hasFilter={hasFilter} clearHref={buildQuery(sp, { regionId: undefined, marketId: undefined, facilityId: undefined })} />
 
       {compare && comparePeriod?.label && (
-        <div className="text-xs text-ink-faint mb-4 -mt-3">Período anterior disponible para comparar: {comparePeriod.label}</div>
+        <div className="text-xs text-ink-faint mb-4 -mt-3">{t("comparePeriodAvailable", { period: comparePeriod.label })}</div>
       )}
 
       {sp.facilityId ? (
