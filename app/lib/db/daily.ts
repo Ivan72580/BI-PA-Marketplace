@@ -835,7 +835,7 @@ export type DailyRiskFacility = {
   severity: "high" | "medium";
 };
 
-type RiskGroupCount = { facilityId: string; _count: { _all: number } };
+type FacilityCountRow = { facilityId: string; _count: { _all: number } };
 
 async function getDailyRiskFacilitiesImpl(dateISO: string, limit = 8): Promise<DailyRiskFacility[]> {
   const referenceDate = addDaysUTC(parseISODate(dateISO), -1);
@@ -847,19 +847,32 @@ async function getDailyRiskFacilitiesImpl(dateISO: string, limit = 8): Promise<D
   const recentWhere = buildWhere({ dateFrom: recentFrom, dateTo: recentTo });
   const baselineWhere = buildWhere({ dateFrom: baselineFrom, dateTo: baselineTo });
 
-  const [recentTotals, recentConfirmed, baselineTotals, baselineConfirmed, facilityRows] = await Promise.all([
-    prisma.game.groupBy({ by: ["facilityId"], where: recentWhere, _count: { _all: true } }) as Promise<RiskGroupCount[]>,
-    prisma.game.groupBy({ by: ["facilityId"], where: { ...recentWhere, status: GameStatus.CONFIRMED }, _count: { _all: true } }) as Promise<RiskGroupCount[]>,
-    prisma.game.groupBy({ by: ["facilityId"], where: baselineWhere, _count: { _all: true } }) as Promise<RiskGroupCount[]>,
-    prisma.game.groupBy({ by: ["facilityId"], where: { ...baselineWhere, status: GameStatus.CONFIRMED }, _count: { _all: true } }) as Promise<RiskGroupCount[]>,
+  // Los 4 groupBy van SIN "as Promise<...>" (eso rompía el generic propio de
+  // Prisma con un cliente real: "Argument ... missing length, pop, push...").
+  // El cast a FacilityCountRow[] se aplica ACÁ, sobre el valor ya resuelto
+  // (post-await) — nunca sobre la Promise ni sobre el argumento de la
+  // llamada — así no interfiere con cómo Prisma infiere el resultado a
+  // partir de by/_count en un cliente real, y en este sandbox (sin cliente
+  // generado, donde el resultado cae a "any") le da a todo lo de abajo un
+  // tipo concreto en vez de dejar que el "any" se propague sin control.
+  const results = await Promise.all([
+    prisma.game.groupBy({ by: ["facilityId"], where: recentWhere, _count: { _all: true } }),
+    prisma.game.groupBy({ by: ["facilityId"], where: { ...recentWhere, status: GameStatus.CONFIRMED }, _count: { _all: true } }),
+    prisma.game.groupBy({ by: ["facilityId"], where: baselineWhere, _count: { _all: true } }),
+    prisma.game.groupBy({ by: ["facilityId"], where: { ...baselineWhere, status: GameStatus.CONFIRMED }, _count: { _all: true } }),
     prisma.facility.findMany({ select: { id: true, name: true } }),
   ]);
+  const recentTotals = results[0] as FacilityCountRow[];
+  const recentConfirmed = results[1] as FacilityCountRow[];
+  const baselineTotals = results[2] as FacilityCountRow[];
+  const baselineConfirmed = results[3] as FacilityCountRow[];
+  const facilityRows = results[4] as { id: string; name: string }[];
 
-  const nameById = new Map(facilityRows.map((f) => [f.id, f.name]));
-  const recentTotalMap = new Map(recentTotals.map((g) => [g.facilityId, Number(g._count._all)]));
-  const recentConfirmedMap = new Map(recentConfirmed.map((g) => [g.facilityId, Number(g._count._all)]));
-  const baselineTotalMap = new Map(baselineTotals.map((g) => [g.facilityId, Number(g._count._all)]));
-  const baselineConfirmedMap = new Map(baselineConfirmed.map((g) => [g.facilityId, Number(g._count._all)]));
+  const nameById = new Map(facilityRows.map((f): [string, string] => [f.id, f.name]));
+  const recentTotalMap = new Map(recentTotals.map((g): [string, number] => [g.facilityId, Number(g._count._all)]));
+  const recentConfirmedMap = new Map(recentConfirmed.map((g): [string, number] => [g.facilityId, Number(g._count._all)]));
+  const baselineTotalMap = new Map(baselineTotals.map((g): [string, number] => [g.facilityId, Number(g._count._all)]));
+  const baselineConfirmedMap = new Map(baselineConfirmed.map((g): [string, number] => [g.facilityId, Number(g._count._all)]));
 
   type Candidate = {
     facilityId: string;
