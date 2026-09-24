@@ -1,6 +1,8 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
+import { headers } from "next/headers";
 import { prisma } from "./db/prisma";
+import { defaultLocale, preferredBrowserLocale } from "@/i18n/config";
 
 // Restringe el login a un dominio de Google Workspace específico.
 // Si no se configura ALLOWED_GOOGLE_DOMAIN, no se restringe (útil en desarrollo local).
@@ -49,6 +51,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             name: profile?.name,
             image: (profile as { picture?: string } | undefined)?.picture,
             role: SEED_ADMIN_EMAILS.has(email) ? "ADMIN" : "MEMBER",
+            // Primera cuenta: arranca en el idioma del navegador en vez de
+            // asumir español para todo el mundo (mismo criterio que la
+            // resolución de idioma en i18n/request.ts).
+            locale: preferredBrowserLocale((await headers()).get("accept-language")) ?? defaultLocale,
             lastLoginAt: new Date(),
           },
         });

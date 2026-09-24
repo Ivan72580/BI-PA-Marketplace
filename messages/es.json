@@ -869,5 +869,10 @@
     },
     "customRangeLabel": "Rango personalizado",
     "samePeriodLabel": "{from}–{to} {month} (mismo tramo)"
+  },
+  "Login": {
+    "subtitle": "Marketplace Intelligence",
+    "description": "Ingresá con tu cuenta de Google Workspace de la empresa para continuar.",
+    "signInButton": "Continuar con Google"
   }
 }
