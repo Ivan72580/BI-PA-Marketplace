@@ -30,7 +30,8 @@
   "UserMenu": {
     "guest": "Guest",
     "signOut": "Sign out",
-    "adminLink": "Admin"
+    "adminLink": "Admin",
+    "language": "Language"
   },
   "Admin": {
     "usersTitle": "Users",
