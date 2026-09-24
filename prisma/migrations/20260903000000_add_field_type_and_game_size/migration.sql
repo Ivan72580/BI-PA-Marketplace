@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "games" ADD COLUMN IF NOT EXISTS "fieldType" TEXT;
+ALTER TABLE "games" ADD COLUMN IF NOT EXISTS "gameSize" TEXT;
