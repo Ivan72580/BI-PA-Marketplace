@@ -4,6 +4,7 @@
     "trends": "Trends",
     "market": "Market",
     "daily": "Daily",
+    "leadership": "Leadership",
     "facilitySearch": {
       "placeholder": "Search facility...",
       "empty": "No results for \"{query}\""
@@ -40,6 +41,7 @@
       "user": "User",
       "email": "Email",
       "role": "Role",
+      "leadership": "Leadership",
       "lastLogin": "Last login",
       "never": "Never"
     },
@@ -874,5 +876,33 @@
     "subtitle": "Marketplace Intelligence",
     "description": "Sign in with your company Google Workspace account to continue.",
     "signInButton": "Continue with Google"
+  },
+  "Leadership": {
+    "pageTitle": "Leadership",
+    "subtitle": "Executive view of the whole network — independent of any filter active elsewhere in the app.",
+    "kpis": {
+      "confirmationRate": "Confirmation rate",
+      "cancellationRate": "Cancellation rate",
+      "avgFillRate": "Average fill rate",
+      "totalRevenue": "Revenue this month"
+    },
+    "projection": {
+      "title": "{month} projection: {n} confirmed games",
+      "detail": "{confirmed} confirmed in the first {elapsed} of {total} days · projected revenue {revenue}",
+      "notYetAvailable": "No projection yet for {month} — available from day {day}"
+    },
+    "regionTable": {
+      "title": "Region comparison",
+      "subtitle": "Current month vs. full prior month (East/West).",
+      "headers": {
+        "region": "Region",
+        "confirmedGames": "Confirmed",
+        "changeVsPriorMonth": "vs. prior month",
+        "confirmationRate": "Confirmation rate",
+        "changePts": "Change"
+      },
+      "empty": "Not enough data to compare regions this month yet."
+    },
+    "marketDetailLink": "See market and facility detail →"
   }
 }

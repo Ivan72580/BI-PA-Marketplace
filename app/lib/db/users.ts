@@ -30,3 +30,12 @@ export async function requireAdmin(): Promise<User | null> {
   const user = await getCurrentUser();
   return user?.role === "ADMIN" ? user : null;
 }
+
+// Mismo criterio que requireAdmin, para el permiso independiente que gatea
+// /leadership. A propósito NO es "o ADMIN o esto": son dos preguntas
+// distintas (ver comentario en schema.prisma), así que un Admin sin el flag
+// no pasa este check.
+export async function requireLeadershipAccess(): Promise<User | null> {
+  const user = await getCurrentUser();
+  return user?.canViewLeadership ? user : null;
+}

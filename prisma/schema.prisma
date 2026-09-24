@@ -108,9 +108,12 @@ model Game {
 }
 
 // Rol de cuenta. Simple a propósito: hoy solo distingue quién puede
-// administrar usuarios (ADMIN) del resto (MEMBER). Es el punto de extensión
-// para permisos más finos (por región/market, etc.) cuando haya un caso de
-// uso real que lo pida — no se construye antes de tiempo.
+// administrar usuarios (ADMIN) del resto (MEMBER). Deliberadamente NO se usa
+// para modelar "acceso a leadership" (ver canViewLeadership abajo): son dos
+// preguntas distintas — quién administra usuarios vs. quién ve data
+// estratégica — y no siempre coinciden (un admin técnico no necesariamente
+// es leadership, y viceversa). Este enum queda como el punto de extensión
+// si en el futuro aparecen roles de administración genuinamente distintos.
 enum Role {
   ADMIN
   MEMBER
@@ -130,6 +133,10 @@ model User {
   name        String?
   image       String?
   role        Role      @default(MEMBER)
+  // Permiso independiente del Role (ver comentario en el enum): habilita la
+  // vista /leadership. Se puede combinar con cualquier Role — un Admin no
+  // lo tiene automáticamente, y se otorga/revoca desde /admin/users.
+  canViewLeadership Boolean @default(false)
   // Reemplaza a la vieja UserPreference: mismo dato (idioma elegido), ahora
   // en la misma fila que el resto de la cuenta en vez de una tabla aparte
   // keyed por el mismo email.

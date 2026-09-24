@@ -3,17 +3,54 @@
 import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import type { Role } from "@prisma/client";
-import { updateUserRole } from "../../lib/actions/adminUsers";
+import { updateUserRole, updateLeadershipAccess } from "../../lib/actions/adminUsers";
 
 type UserRow = {
   id: string;
   email: string;
   name: string | null;
   role: Role;
+  canViewLeadership: boolean;
   lastLoginAt: string | null;
 };
 
 type Feedback = { type: "ok" | "error"; text: string };
+
+// Checkbox de leadership: a diferencia del select de rol (que junta varios
+// cambios y los guarda con un botón), este guarda apenas se togglea — es un
+// solo booleano por fila, sin necesidad de un paso de "confirmar" separado.
+function LeadershipCheckbox({ userId, initialValue }: { userId: string; initialValue: boolean }) {
+  const t = useTranslations("Admin");
+  const [checked, setChecked] = useState(initialValue);
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  function handleChange(next: boolean) {
+    setChecked(next);
+    setError(null);
+    startTransition(async () => {
+      const result = await updateLeadershipAccess(userId, next);
+      if (!result.ok) {
+        setChecked(!next);
+        setError(t(`errors.${result.errorKey}`));
+      }
+    });
+  }
+
+  return (
+    <div>
+      <input
+        type="checkbox"
+        checked={checked}
+        disabled={isPending}
+        onChange={(e) => handleChange(e.target.checked)}
+        aria-label={t("table.leadership")}
+        className="w-4 h-4 rounded border-border text-brand cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+      />
+      {error && <div className="text-[11px] text-red-600 mt-1">{error}</div>}
+    </div>
+  );
+}
 
 const selectClass =
   "rounded-md border border-border bg-surface/60 px-2 py-0.5 text-xs text-ink cursor-pointer focus:outline-none focus:ring-1 focus:ring-brand/30 hover:border-border-strong transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
@@ -65,6 +102,7 @@ export default function UserRoleTable({
           <th className="text-left px-3 py-2 font-medium">{t("table.user")}</th>
           <th className="text-left px-3 py-2 font-medium">{t("table.email")}</th>
           <th className="text-left px-3 py-2 font-medium">{t("table.role")}</th>
+          <th className="text-left px-3 py-2 font-medium">{t("table.leadership")}</th>
           <th className="text-left px-3 py-2 font-medium">{t("table.lastLogin")}</th>
           <th className="px-3 py-2" />
         </tr>
@@ -95,6 +133,9 @@ export default function UserRoleTable({
                   <option value="ADMIN">{t("role.ADMIN")}</option>
                   <option value="MEMBER">{t("role.MEMBER")}</option>
                 </select>
+              </td>
+              <td className="px-3 py-2">
+                <LeadershipCheckbox userId={user.id} initialValue={user.canViewLeadership} />
               </td>
               <td className="px-3 py-2 text-ink-muted">
                 {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : t("table.never")}

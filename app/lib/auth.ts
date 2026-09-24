@@ -51,6 +51,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             name: profile?.name,
             image: (profile as { picture?: string } | undefined)?.picture,
             role: SEED_ADMIN_EMAILS.has(email) ? "ADMIN" : "MEMBER",
+            // La primera cuenta Admin también arranca con acceso a
+            // leadership — necesita poder ver /leadership para otorgarle el
+            // acceso a otras cuentas desde /admin/users. De ahí en más, este
+            // flag se administra ahí, no editando ADMIN_EMAILS.
+            canViewLeadership: SEED_ADMIN_EMAILS.has(email),
             // Primera cuenta: arranca en el idioma del navegador en vez de
             // asumir español para todo el mundo (mismo criterio que la
             // resolución de idioma en i18n/request.ts).

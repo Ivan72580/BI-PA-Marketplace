@@ -4,6 +4,7 @@
     "trends": "Trends",
     "market": "Market",
     "daily": "Diario",
+    "leadership": "Leadership",
     "facilitySearch": {
       "placeholder": "Buscar facility...",
       "empty": "Sin resultados para \"{query}\""
@@ -40,6 +41,7 @@
       "user": "Usuario",
       "email": "Email",
       "role": "Rol",
+      "leadership": "Leadership",
       "lastLogin": "Último acceso",
       "never": "Nunca"
     },
@@ -874,5 +876,33 @@
     "subtitle": "Marketplace Intelligence",
     "description": "Ingresá con tu cuenta de Google Workspace de la empresa para continuar.",
     "signInButton": "Continuar con Google"
+  },
+  "Leadership": {
+    "pageTitle": "Leadership",
+    "subtitle": "Vista ejecutiva de la red completa — no depende de ningún filtro activo en el resto de la app.",
+    "kpis": {
+      "confirmationRate": "Tasa de confirmación",
+      "cancellationRate": "Tasa de cancelación",
+      "avgFillRate": "Ocupación promedio",
+      "totalRevenue": "Revenue del mes"
+    },
+    "projection": {
+      "title": "Proyección de {month}: {n} partidos confirmados",
+      "detail": "{confirmed} confirmados en los primeros {elapsed} de {total} días · revenue proyectado {revenue}",
+      "notYetAvailable": "Todavía sin proyección para {month} — disponible a partir del día {day}"
+    },
+    "regionTable": {
+      "title": "Comparación por región",
+      "subtitle": "Mes en curso vs. mes anterior completo (East/West).",
+      "headers": {
+        "region": "Región",
+        "confirmedGames": "Confirmados",
+        "changeVsPriorMonth": "vs. mes anterior",
+        "confirmationRate": "Tasa de confirmación",
+        "changePts": "Variación"
+      },
+      "empty": "Todavía no hay datos suficientes para comparar regiones este mes."
+    },
+    "marketDetailLink": "Ver detalle por market y facility →"
   }
 }

@@ -36,3 +36,24 @@ export async function updateUserRole(userId: string, newRole: Role): Promise<Upd
     return { ok: false, errorKey: "generic" };
   }
 }
+
+export type UpdateLeadershipAccessResult =
+  | { ok: true }
+  | { ok: false; errorKey: "unauthorized" | "generic" };
+
+// Prende/apaga el acceso a /leadership. A diferencia del rol, no hay un
+// mínimo que proteger (no es un recurso escaso como "al menos un Admin"),
+// así que no necesita el chequeo de "último Admin" — solo re-validar que
+// quien llama sea Admin.
+export async function updateLeadershipAccess(userId: string, value: boolean): Promise<UpdateLeadershipAccessResult> {
+  const admin = await requireAdmin();
+  if (!admin) return { ok: false, errorKey: "unauthorized" };
+
+  try {
+    await prisma.user.update({ where: { id: userId }, data: { canViewLeadership: value } });
+    revalidatePath("/admin/users");
+    return { ok: true };
+  } catch {
+    return { ok: false, errorKey: "generic" };
+  }
+}

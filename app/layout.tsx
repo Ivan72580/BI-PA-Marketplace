@@ -7,6 +7,7 @@ import UserMenu from "./components/UserMenu";
 import AppChrome from "./components/AppChrome";
 import { GlobalProvider } from "./context/GlobalContext";
 import { getFilterOptions } from "./lib/db/queries";
+import { getCurrentUser } from "./lib/db/users";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -25,10 +26,11 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [filterOptions, locale, messages] = await Promise.all([
+  const [filterOptions, locale, messages, currentUser] = await Promise.all([
     getFilterOptions(),
     getLocale(),
     getMessages(),
+    getCurrentUser(),
   ]);
 
   return (
@@ -37,7 +39,14 @@ export default async function RootLayout({
         <NextIntlClientProvider locale={locale} messages={messages}>
           <GlobalProvider>
             <AppChrome
-              topNav={<TopNav userMenu={<UserMenu />} facilities={filterOptions.facilities} markets={filterOptions.markets} />}
+              topNav={
+                <TopNav
+                  userMenu={<UserMenu />}
+                  facilities={filterOptions.facilities}
+                  markets={filterOptions.markets}
+                  showLeadershipLink={currentUser?.canViewLeadership ?? false}
+                />
+              }
             >
               {children}
             </AppChrome>

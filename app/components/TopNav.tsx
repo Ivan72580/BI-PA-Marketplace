@@ -44,27 +44,43 @@ function DailyIcon() {
     </svg>
   );
 }
+function LeadershipIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2 3 7l9 5 9-5-9-5z" />
+      <path d="M3 12l9 5 9-5" />
+      <path d="M3 17l9 5 9-5" />
+    </svg>
+  );
+}
 
 // Las labels viven en messages/*.json (namespace TopNav) — labelKey referencia
 // esa clave, se traduce en el render porque useTranslations es un hook.
-const links: { href: string; labelKey: "overview" | "trends" | "market" | "daily"; icon: () => ReactNode }[] = [
+type NavLink = { href: string; labelKey: "overview" | "trends" | "market" | "daily" | "leadership"; icon: () => ReactNode };
+
+const links: NavLink[] = [
   { href: "/", labelKey: "overview", icon: OverviewIcon },
   { href: "/trends", labelKey: "trends", icon: TrendsIcon },
   { href: "/market", labelKey: "market", icon: MarketIcon },
   { href: "/daily", labelKey: "daily", icon: DailyIcon },
 ];
 
+const leadershipLink: NavLink = { href: "/leadership", labelKey: "leadership", icon: LeadershipIcon };
+
 export default function TopNav({
   userMenu,
   facilities,
   markets,
+  showLeadershipLink = false,
 }: {
   userMenu: ReactNode;
   facilities: { id: string; name: string; marketId: string }[];
   markets: { id: string; name: string; regionId: string }[];
+  showLeadershipLink?: boolean;
 }) {
   const pathname = usePathname();
   const t = useTranslations("TopNav");
+  const visibleLinks = showLeadershipLink ? [...links, leadershipLink] : links;
 
   return (
     <div className="sticky top-0 z-40 bg-[#0b3b2e]/95 backdrop-blur-xl">
@@ -72,7 +88,7 @@ export default function TopNav({
         <div className="font-display text-base font-semibold text-white pr-4 shrink-0">Plei</div>
 
         <nav className="flex items-end self-stretch gap-1 flex-1 min-w-0 overflow-x-auto">
-          {links.map((l) => {
+          {visibleLinks.map((l) => {
             const Icon = l.icon;
             const isActive = pathname === l.href;
             return (
