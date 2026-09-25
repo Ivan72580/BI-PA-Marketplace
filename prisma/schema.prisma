@@ -213,6 +213,15 @@ enum Role {
   MEMBER
 }
 
+// Los dos "módulos" de la app, cada uno con su propio nav/permiso: MAGIC es
+// Overview/Trends/Market/Daily (todo lo operativo, visible para cualquier
+// cuenta), EXECUTIVE es /panel-ejecutivo (gateado por canViewLeadership).
+// Ver User.lastModule.
+enum AppModule {
+  MAGIC
+  EXECUTIVE
+}
+
 // Cuenta de la app. NextAuth sigue en JWT puro (sin adapter/DB sessions) —
 // esta tabla no reemplaza esa sesión, es el registro de negocio asociado
 // a cada email. Se crea/actualiza sola en el callback signIn (ver
@@ -378,6 +387,14 @@ model User {
   // en la misma fila que el resto de la cuenta en vez de una tabla aparte
   // keyed por el mismo email.
   locale      String    @default("es")
+  // Último módulo que el usuario visitó (Magic u Executive) — mismo criterio
+  // que locale: persiste en la cuenta para que viaje entre dispositivos, y
+  // hay una cookie en paralelo (ver app/lib/actions/module.ts) para que
+  // funcione en el primer request de una sesión nueva sin esperar la
+  // consulta a esta fila. Default MAGIC porque es lo que cualquier cuenta
+  // nueva (sin canViewLeadership todavía) ve hoy — el valor es irrelevante
+  // para quien nunca tiene acceso a Executive.
+  lastModule  AppModule @default(MAGIC)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   lastLoginAt DateTime?

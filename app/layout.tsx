@@ -5,6 +5,7 @@ import { getLocale, getMessages } from "next-intl/server";
 import TopNav from "./components/TopNav";
 import UserMenu from "./components/UserMenu";
 import AppChrome from "./components/AppChrome";
+import ModuleTracker from "./components/ModuleTracker";
 import { GlobalProvider } from "./context/GlobalContext";
 import { getFilterOptions } from "./lib/db/queries";
 import { getCurrentUser } from "./lib/db/users";
@@ -38,6 +39,7 @@ export default async function RootLayout({
       <body className="m-0 antialiased">
         <NextIntlClientProvider locale={locale} messages={messages}>
           <GlobalProvider>
+            <ModuleTracker />
             <AppChrome
               topNav={
                 <TopNav
