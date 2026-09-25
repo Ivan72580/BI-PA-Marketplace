@@ -13,6 +13,7 @@
     "db:import": "tsx scripts/import-csv.ts data/events.csv",
     "db:import-game-reviews": "tsx scripts/import-game-reviews.ts data/game-reviews.csv",
     "db:import-app-reviews": "tsx scripts/import-app-reviews.ts data/app-reviews.csv",
+    "db:import-satisfaction": "tsx scripts/import-satisfaction.ts",
     "auto-import": "tsx scripts/auto-import.ts"
   },
   "dependencies": {
