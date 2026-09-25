@@ -904,7 +904,8 @@
       "empty": "Not enough data to compare regions this month yet."
     },
     "marketDetailLink": "See market and facility detail →",
-    "facilityProfilesLink": "See facility profiles →"
+    "facilityProfilesLink": "See facility profiles →",
+    "playerSatisfactionLink": "See Player Satisfaction →"
   },
   "FacilityProfile": {
     "backToLeadership": "← Back to Leadership",
@@ -1026,6 +1027,93 @@
     "errors": {
       "unauthorized": "You don't have permission to edit this profile.",
       "generic": "Something went wrong. Please try again."
+    }
+  },
+  "PlayerSatisfaction": {
+    "backToLeadership": "← Back to Leadership",
+    "pageTitle": "Player Satisfaction",
+    "subtitle": "Per-game player reviews and app-store reviews — two sources, same category.",
+    "caveat": "This dataset doesn't cover the 11 facility-specific feedback attributes requested in the Leadership report — today it only resolves field quality. The rest of those attributes are still pending a decision on how to collect them.",
+    "tabs": {
+      "gameReviews": "Game reviews",
+      "appReviews": "App reviews"
+    },
+    "gameReviews": {
+      "summary": {
+        "totalReviews": "Total reviews",
+        "averageRating": "Average rating",
+        "playerComplaints": "Reviews with player conflict",
+        "playerComplaintsSublabel": "{n} reviews tagged with a conflict",
+        "dateRange": "Date range covered"
+      },
+      "tags": {
+        "title": "Most mentioned tags",
+        "subtitle": "Each review can carry more than one tag — percentages don't add up to 100.",
+        "headers": {
+          "tag": "Tag",
+          "count": "Reviews",
+          "pct": "% of reviews"
+        },
+        "empty": "No reviews imported yet.",
+        "labels": {
+          "friendlyPlayers": "Friendly players",
+          "competitiveGame": "Competitive game",
+          "notCompetitive": "Wasn't competitive",
+          "goodPlayers": "Good players",
+          "issuesWithOtherPlayers": "Issues with other players",
+          "fieldQualityGreat": "Field quality was great",
+          "fieldQualityGood": "Field quality was good",
+          "fieldConditionsIssues": "Issues with field conditions"
+        }
+      },
+      "fieldQuality": {
+        "title": "Field quality by facility",
+        "subtitle": "Sorted by % of reviews flagging a field problem, worst to best — the only one of the PDF's 11 facility-feedback attributes this dataset resolves today. Facilities with at least {min} reviews only.",
+        "headers": {
+          "facility": "Facility",
+          "market": "Market",
+          "reviews": "Reviews",
+          "avgRating": "Avg. rating",
+          "positivePct": "% good/great field",
+          "negativePct": "% with issues"
+        },
+        "empty": "No facility has enough reviews yet."
+      },
+      "recent": {
+        "title": "Recent reviews",
+        "subtitle": "The last 30 imported reviews.",
+        "noText": "No comment.",
+        "empty": "No reviews imported yet."
+      }
+    },
+    "appReviews": {
+      "summary": {
+        "totalReviews": "Total reviews",
+        "averageRating": "Average rating",
+        "replyRate": "Reply rate",
+        "averageReplyTimeDays": "Avg. reply time",
+        "days": "{n} days"
+      },
+      "byPlatform": {
+        "title": "By platform",
+        "headers": {
+          "platform": "Platform",
+          "count": "Reviews",
+          "avgRating": "Avg. rating"
+        },
+        "labels": {
+          "ios": "iOS",
+          "android": "Android"
+        },
+        "empty": "No reviews imported yet."
+      },
+      "recent": {
+        "title": "Recent reviews",
+        "subtitle": "The last 30 imported reviews.",
+        "noText": "No comment.",
+        "replyLabel": "Reply",
+        "empty": "No reviews imported yet."
+      }
     }
   }
 }

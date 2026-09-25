@@ -97,6 +97,10 @@ model Game {
   ratingCount           Int?
   averageRating         Float?
   createdAt             DateTime              @default(now())
+  // Reviews individuales (ver GameReview) — ratingCount/averageRating de
+  // arriba siguen siendo la fuente de verdad del agregado; esto es el
+  // detalle crudo (texto, tags, jugador) detrás de ese número.
+  reviews               GameReview[]
 
   @@index([facilityId])
   @@index([date])
@@ -109,6 +113,75 @@ model Game {
   @@index([facilityId, status])
   @@index([facilityId, date])
   @@map("games")
+}
+
+// ---------- Player Satisfaction (reviews) ----------
+// Dos fuentes bien distintas, deliberadamente NO mezcladas en un solo
+// modelo: GameReview es por partido/facility (del export de reviews del
+// dashboard de Plei); AppReview es de las tiendas de apps (iOS/Android),
+// sin ningún vínculo a facility o partido. Se muestran como dos pestañas
+// de la misma sección de Leadership, no como una sola métrica combinada.
+//
+// Ninguno de los dos CSV trae un ID de review estable, así que el
+// deduplicado en la importación no es por ID sino por sourceHash (hash del
+// contenido de la fila) — así una resincronización completa nunca duplica,
+// y un export incremental más chico (por rango de fecha) simplemente
+// agrega las filas cuyo hash todavía no existe.
+
+// Catálogo cerrado de tags del export de reviews por partido (9 valores
+// reales al 25 sep 2026, ver mapa de campos en el Project). Dos variantes
+// de tilde para "Wasn't/Wasn't Competitive" en el CSV de origen se
+// normalizan a un solo valor en la importación.
+enum GameReviewTag {
+  FRIENDLY_PLAYERS
+  COMPETITIVE_GAME
+  NOT_COMPETITIVE
+  GOOD_PLAYERS
+  ISSUES_WITH_OTHER_PLAYERS
+  FIELD_QUALITY_GREAT
+  FIELD_QUALITY_GOOD
+  FIELD_CONDITIONS_ISSUES
+}
+
+model GameReview {
+  id     String        @id @default(cuid())
+  gameId Int
+  game   Game          @relation(fields: [gameId], references: [id])
+  date   DateTime      @db.Date
+  rating Int
+  tags   GameReviewTag[]
+  reviewText String?
+  // Nunca el número real (decisión de Ivan, 25 sep 2026): SHA-256 del
+  // teléfono normalizado. Permite detectar al mismo jugador en varios
+  // partidos (proxy de repeat booking) sin guardar ni mostrar PII.
+  playerPhoneHash String?
+  // Hash de contenido (gameId+fecha+rating+tags+texto+teléfono) — la clave
+  // de deduplicación real, ver nota arriba.
+  sourceHash String @unique
+
+  @@index([gameId])
+  @@index([playerPhoneHash])
+  @@map("game_reviews")
+}
+
+enum AppReviewSource {
+  IOS
+  ANDROID
+}
+
+model AppReview {
+  id            String          @id @default(cuid())
+  reviewDate    DateTime
+  source        AppReviewSource
+  rating        Int
+  reviewText    String?
+  replyText     String?
+  replyDate     DateTime?
+  replied       Boolean         @default(false)
+  replyTimeDays Float?
+  sourceHash    String          @unique
+
+  @@map("app_reviews")
 }
 
 // Rol de cuenta. Simple a propósito: hoy solo distingue quién puede

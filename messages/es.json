@@ -904,7 +904,8 @@
       "empty": "Todavía no hay datos suficientes para comparar regiones este mes."
     },
     "marketDetailLink": "Ver detalle por market y facility →",
-    "facilityProfilesLink": "Ver perfiles de facility →"
+    "facilityProfilesLink": "Ver perfiles de facility →",
+    "playerSatisfactionLink": "Ver Player Satisfaction →"
   },
   "FacilityProfile": {
     "backToLeadership": "← Volver a Leadership",
@@ -1026,6 +1027,93 @@
     "errors": {
       "unauthorized": "No tenés permiso para editar este perfil.",
       "generic": "Ocurrió un error. Probá de nuevo."
+    }
+  },
+  "PlayerSatisfaction": {
+    "backToLeadership": "← Volver a Leadership",
+    "pageTitle": "Player Satisfaction",
+    "subtitle": "Reviews de jugadores por partido y reviews de la app en las tiendas — dos fuentes, misma categoría.",
+    "caveat": "Este dataset no cubre los 11 atributos de feedback específico por facility que pide el reporte de Leadership — hoy solo resuelve calidad de campo. El resto de esos atributos sigue pendiente de definir cómo se va a recopilar.",
+    "tabs": {
+      "gameReviews": "Reviews de partidos",
+      "appReviews": "Reviews de la app"
+    },
+    "gameReviews": {
+      "summary": {
+        "totalReviews": "Reviews totales",
+        "averageRating": "Rating promedio",
+        "playerComplaints": "Reviews con queja entre jugadores",
+        "playerComplaintsSublabel": "{n} reviews con tag de conflicto",
+        "dateRange": "Rango cubierto"
+      },
+      "tags": {
+        "title": "Motivos más mencionados",
+        "subtitle": "Cada review puede traer más de un tag — los % no suman 100.",
+        "headers": {
+          "tag": "Tag",
+          "count": "Reviews",
+          "pct": "% de reviews"
+        },
+        "empty": "Todavía no hay reviews importadas.",
+        "labels": {
+          "friendlyPlayers": "Jugadores amigables",
+          "competitiveGame": "Partido competitivo",
+          "notCompetitive": "Faltó competitividad",
+          "goodPlayers": "Buenos jugadores",
+          "issuesWithOtherPlayers": "Problemas con otros jugadores",
+          "fieldQualityGreat": "Calidad de campo excelente",
+          "fieldQualityGood": "Calidad de campo buena",
+          "fieldConditionsIssues": "Problemas con las condiciones del campo"
+        }
+      },
+      "fieldQuality": {
+        "title": "Calidad de campo por facility",
+        "subtitle": "Ordenado por % de reviews con problema de campo, de peor a mejor — es lo único de los 11 atributos de feedback del PDF que este dataset resuelve hoy. Solo facilities con al menos {min} reviews.",
+        "headers": {
+          "facility": "Facility",
+          "market": "Market",
+          "reviews": "Reviews",
+          "avgRating": "Rating prom.",
+          "positivePct": "% campo bueno/excelente",
+          "negativePct": "% con problemas"
+        },
+        "empty": "Ningún facility tiene suficientes reviews todavía."
+      },
+      "recent": {
+        "title": "Reviews recientes",
+        "subtitle": "Las últimas 30 reviews importadas.",
+        "noText": "Sin comentario.",
+        "empty": "Todavía no hay reviews importadas."
+      }
+    },
+    "appReviews": {
+      "summary": {
+        "totalReviews": "Reviews totales",
+        "averageRating": "Rating promedio",
+        "replyRate": "Tasa de respuesta",
+        "averageReplyTimeDays": "Tiempo prom. de respuesta",
+        "days": "{n} días"
+      },
+      "byPlatform": {
+        "title": "Por plataforma",
+        "headers": {
+          "platform": "Plataforma",
+          "count": "Reviews",
+          "avgRating": "Rating prom."
+        },
+        "labels": {
+          "ios": "iOS",
+          "android": "Android"
+        },
+        "empty": "Todavía no hay reviews importadas."
+      },
+      "recent": {
+        "title": "Reviews recientes",
+        "subtitle": "Las últimas 30 reviews importadas.",
+        "noText": "Sin comentario.",
+        "replyLabel": "Respuesta",
+        "empty": "Todavía no hay reviews importadas."
+      }
     }
   }
 }

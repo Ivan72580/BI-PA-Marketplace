@@ -19,6 +19,7 @@
 //   region.ts          - ranking por región (East/West), para la vista de Leadership
 //   daily.ts           - seguimiento diario: foto del día, línea base, evolución y calendario "sí o sí"
 //   facilityProfile.ts - módulo de datos maestros del facility (perfil + relación + historial), enlazado desde Leadership
+//   satisfaction.ts    - Player Satisfaction: reviews por partido (GameReview) y reviews de tienda de apps (AppReview), enlazado desde Leadership
 
 export * from "./shared";
 export * from "./filters";
@@ -37,3 +38,4 @@ export * from "./market";
 export * from "./region";
 export * from "./daily";
 export * from "./facilityProfile";
+export * from "./satisfaction";
