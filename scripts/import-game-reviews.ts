@@ -6,22 +6,21 @@
  *   npx tsx scripts/import-game-reviews.ts /ruta/al/archivo.csv
  *
  * A diferencia de import-csv.ts, este CSV no trae un ID de review estable
- * (no hay columna "Review ID"), así que el dedupe NO es por ID: cada fila
- * se hashea (Game ID + fecha + rating + tags + texto + teléfono-hasheado) y
- * se inserta con skipDuplicates. Efecto práctico:
- *   - Correr esto de nuevo con el mismo archivo, o con un export más
- *     grande que lo incluya (resync completo) → nunca duplica.
- *   - Un export más chico y acotado por fecha (solo lo nuevo) → agrega
- *     justo esas filas.
- *   - Limitación conocida: si una review se edita después de exportada, el
- *     hash cambia y queda como fila nueva en vez de actualizar la vieja —
- *     no hay forma de distinguir "edición" de "review nueva" sin un ID real
- *     en el CSV de origen. Poco frecuente en la práctica, pero vale saberlo.
+ * (no hay columna "Review ID"), así que en vez de un ID real se usa
+ * reviewKey (gameId + teléfono hasheado + fecha, ver scripts/lib/reviewKeys.ts)
+ * para identificar "la misma review" entre una exportación y la siguiente.
+ * Es un upsert real, igual criterio que import-csv.ts usa para Game:
+ *   - reviewKey ya existe → se actualiza (rating/tags/reviewText pueden
+ *     haber cambiado, ej. una edición).
+ *   - reviewKey nuevo → se agrega.
+ *   - Una review que ya teníamos y no aparece en este archivo (típico de
+ *     un export incremental más chico, por rango de fecha) queda como
+ *     está — este script nunca borra filas que no vinieron en el CSV.
+ * Correr esto de nuevo con el mismo archivo, o con un export más grande o
+ * más chico, siempre da el mismo resultado (idempotente).
  *
  * El teléfono del jugador NUNCA se guarda en texto plano (decisión de
- * Ivan, 25 sep 2026) — se hashea antes de tocar la base, y ese mismo hash
- * es el que entra al hash de contenido (así tampoco queda de paso en el
- * sourceHash).
+ * Ivan, 25 sep 2026) — se hashea antes de tocar la base.
  *
  * Requiere que los partidos ya existan (correr antes npm run db:import).
  * Requiere DATABASE_URL y DIRECT_URL en .env.
@@ -30,7 +29,7 @@
 import { PrismaClient, GameReviewTag } from "@prisma/client";
 import { parse } from "csv-parse/sync";
 import fs from "fs";
-import crypto from "crypto";
+import { hashPhone, gameReviewKey } from "./lib/reviewKeys";
 
 const prisma = new PrismaClient();
 
@@ -74,30 +73,21 @@ function parseTags(raw: string): GameReviewTag[] {
   return tags;
 }
 
-// Normaliza el teléfono ANTES de hashear, para que el mismo número real
-// siempre produzca el mismo hash aunque el formato de texto varíe entre
-// filas o entre exports. Se queda solo con los dígitos y, si el resultado
-// tiene 10 dígitos (el caso del 99.7% de las filas — EE.UU. sin código de
-// país), le agrega el "1" — mismo criterio que usa el resto del dataset
-// (+1XXXXXXXXXX). Números de otros países ya vienen con su código y se
-// dejan como están.
-function hashPhone(raw: string | undefined): string | null {
-  const digits = raw?.replace(/\D/g, "");
-  if (!digits) return null;
-  const normalized = digits.length === 10 ? `1${digits}` : digits;
-  return crypto.createHash("sha256").update(normalized).digest("hex");
-}
-
-function sourceHash(row: CsvRow): string {
-  const parts = [row["Game ID"], row["Date"], row["Rating"], row["Tags"], row["Review Text"], hashPhone(row["Player Phone"]) ?? ""];
-  return crypto.createHash("sha256").update(parts.join("|")).digest("hex");
-}
-
 function toIntOrNull(v: string | undefined): number | null {
   if (!v) return null;
   const n = Number(v);
   return Number.isFinite(n) ? Math.round(n) : null;
 }
+
+type PendingRow = {
+  gameId: number;
+  date: Date;
+  rating: number;
+  tags: GameReviewTag[];
+  reviewText: string | null;
+  playerPhoneHash: string | null;
+  reviewKey: string;
+};
 
 async function main() {
   const path = process.argv[2];
@@ -114,27 +104,36 @@ async function main() {
   const existingGames = (await prisma.game.findMany({ select: { id: true } })) as { id: number }[];
   const existingGameIds = new Set(existingGames.map((g) => g.id));
 
-  type PendingRow = {
-    gameId: number;
-    date: Date;
-    rating: number;
-    tags: GameReviewTag[];
-    reviewText: string | null;
-    playerPhoneHash: string | null;
-    sourceHash: string;
-  };
-  const pending: PendingRow[] = [];
+  // Map en vez de array: si dos filas del MISMO archivo caen en el mismo
+  // reviewKey (puede pasar — el mismo jugador reseñando el mismo partido el
+  // mismo día más de una vez), se quedan con la última en vez de mandar dos
+  // filas con la misma clave única a createMany, que rompería todo el lote
+  // con un error de constraint.
+  const pending = new Map<string, PendingRow>();
   const BATCH_SIZE = 2000;
-  let totalInserted = 0;
+  let totalNuevas = 0;
+  let totalActualizadas = 0;
   let skippedNoGame = 0;
   let skippedBadData = 0;
 
   async function flushBatch() {
-    if (pending.length === 0) return;
-    const result = await prisma.gameReview.createMany({ data: pending, skipDuplicates: true });
-    totalInserted += result.count;
-    console.log(`  ${totalInserted} reviews nuevas insertadas...`);
-    pending.length = 0;
+    if (pending.size === 0) return;
+    const rows = Array.from(pending.values());
+    const keys = Array.from(pending.keys());
+
+    // Upsert real en bloque, mismo patrón que import-csv.ts para Game:
+    // contamos cuántas de estas claves ya existían (para reportar
+    // nuevas/actualizadas por separado), borramos esas filas del lote y
+    // reinsertamos el lote entero — el efecto neto es insertar lo nuevo y
+    // actualizar lo que cambió, en operaciones masivas.
+    const existingCount = await prisma.gameReview.count({ where: { reviewKey: { in: keys } } });
+    await prisma.gameReview.deleteMany({ where: { reviewKey: { in: keys } } });
+    const result = await prisma.gameReview.createMany({ data: rows });
+
+    totalActualizadas += existingCount;
+    totalNuevas += result.count - existingCount;
+    console.log(`  ${totalNuevas} nuevas, ${totalActualizadas} actualizadas...`);
+    pending.clear();
   }
 
   for (const row of rows) {
@@ -152,22 +151,23 @@ async function main() {
       continue;
     }
 
-    pending.push({
+    const reviewKey = gameReviewKey({ gameId: row["Game ID"], date: row["Date"], playerPhone: row["Player Phone"] });
+    pending.set(reviewKey, {
       gameId,
       date: new Date(row["Date"]),
       rating,
       tags: parseTags(row["Tags"]),
       reviewText: row["Review Text"]?.trim() || null,
       playerPhoneHash: hashPhone(row["Player Phone"]),
-      sourceHash: sourceHash(row),
+      reviewKey,
     });
 
-    if (pending.length >= BATCH_SIZE) await flushBatch();
+    if (pending.size >= BATCH_SIZE) await flushBatch();
   }
   await flushBatch();
 
   console.log(
-    `Listo. Insertadas: ${totalInserted}. Omitidas (Game inexistente): ${skippedNoGame}. Omitidas (datos incompletos): ${skippedBadData}.`
+    `Listo. Nuevas: ${totalNuevas}. Actualizadas: ${totalActualizadas}. Omitidas (Game inexistente): ${skippedNoGame}. Omitidas (datos incompletos): ${skippedBadData}.`
   );
 }
 

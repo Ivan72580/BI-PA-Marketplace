@@ -122,11 +122,18 @@ model Game {
 // sin ningún vínculo a facility o partido. Se muestran como dos pestañas
 // de la misma sección de Leadership, no como una sola métrica combinada.
 //
-// Ninguno de los dos CSV trae un ID de review estable, así que el
-// deduplicado en la importación no es por ID sino por sourceHash (hash del
-// contenido de la fila) — así una resincronización completa nunca duplica,
-// y un export incremental más chico (por rango de fecha) simplemente
-// agrega las filas cuyo hash todavía no existe.
+// Ninguno de los dos CSV trae un ID de review estable, así que en vez de
+// un ID real se usa reviewKey: un hash de un subconjunto de columnas que
+// identifican "la misma review" aunque el resto de sus datos cambie entre
+// una exportación y la siguiente (v6, 25 sep 2026 — antes era hash de TODO
+// el contenido de la fila, que solo servía para descartar duplicados
+// exactos, nunca para detectar una edición). Con reviewKey como identidad:
+// una fila cuyo reviewKey ya existe se trata como la MISMA review y
+// actualiza sus campos "mutables" (ver cada modelo); una fila nueva se
+// agrega; una fila existente que no aparece en la exportación actual (por
+// ej. quedó afuera de un export incremental más chico) se deja como está.
+// Este es el mismo criterio de upsert real que usa import-csv.ts para
+// Game, adaptado a que acá no hay un ID de origen para apoyarse.
 
 // Catálogo cerrado de tags del export de reviews por partido (9 valores
 // reales al 25 sep 2026, ver mapa de campos en el Project). Dos variantes
@@ -147,17 +154,22 @@ model GameReview {
   id     String        @id @default(cuid())
   gameId Int
   game   Game          @relation(fields: [gameId], references: [id])
+  // Identidad (compone reviewKey junto con playerPhoneHash): gameId + date.
   date   DateTime      @db.Date
+  // Mutable: se actualiza si una fila con el mismo reviewKey vuelve a
+  // aparecer con otro valor (ej. la review se editó).
   rating Int
   tags   GameReviewTag[]
   reviewText String?
   // Nunca el número real (decisión de Ivan, 25 sep 2026): SHA-256 del
   // teléfono normalizado. Permite detectar al mismo jugador en varios
-  // partidos (proxy de repeat booking) sin guardar ni mostrar PII.
+  // partidos (proxy de repeat booking) sin guardar ni mostrar PII. También
+  // es parte de la identidad de reviewKey (ver abajo).
   playerPhoneHash String?
-  // Hash de contenido (gameId+fecha+rating+tags+texto+teléfono) — la clave
-  // de deduplicación real, ver nota arriba.
-  sourceHash String @unique
+  // Identidad = hash(gameId + playerPhoneHash + date) — ver nota arriba del
+  // bloque. NO incluye rating/tags/reviewText a propósito: esos son los
+  // campos que se actualizan cuando la misma review vuelve a aparecer.
+  reviewKey String @unique
 
   @@index([gameId])
   @@index([playerPhoneHash])
@@ -170,16 +182,21 @@ enum AppReviewSource {
 }
 
 model AppReview {
-  id            String          @id @default(cuid())
-  reviewDate    DateTime
-  source        AppReviewSource
+  id         String          @id @default(cuid())
+  // Identidad (compone reviewKey): reviewDate + source.
+  reviewDate DateTime
+  source     AppReviewSource
+  // Mutables: se actualizan si la misma review (mismo reviewKey) vuelve a
+  // aparecer con otro valor — el caso real más común es que se le agregue
+  // una respuesta después de que ya la habíamos importado.
   rating        Int
   reviewText    String?
   replyText     String?
   replyDate     DateTime?
   replied       Boolean         @default(false)
   replyTimeDays Float?
-  sourceHash    String          @unique
+  // Identidad = hash(reviewDate + source) — ver nota arriba del bloque.
+  reviewKey String @unique
 
   @@map("app_reviews")
 }

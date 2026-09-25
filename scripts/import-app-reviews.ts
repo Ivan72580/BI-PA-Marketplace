@@ -4,10 +4,16 @@
  * Uso:
  *   npx tsx scripts/import-app-reviews.ts /ruta/al/archivo.csv
  *
- * Mismo criterio de dedupe que import-game-reviews.ts: el CSV no trae un ID
- * estable, así que cada fila se hashea (fecha + fuente + rating + texto +
- * fecha de respuesta) y se inserta con skipDuplicates — nunca duplica al
- * reimportar el mismo export o uno más grande que lo incluya.
+ * El CSV no trae un ID de review estable, así que en vez de un ID real se
+ * usa reviewKey (fecha de review + plataforma, ver scripts/lib/reviewKeys.ts)
+ * para identificar "la misma review" entre una exportación y la siguiente.
+ * Es un upsert real, igual criterio que import-csv.ts usa para Game:
+ *   - reviewKey ya existe → se actualiza (rating/texto/respuesta pueden
+ *     haber cambiado — el caso real más común es que se agregue una
+ *     respuesta después de que ya la habíamos importado).
+ *   - reviewKey nuevo → se agrega.
+ *   - Una review que ya teníamos y no aparece en este archivo queda como
+ *     está — este script nunca borra filas que no vinieron en el CSV.
  *
  * A diferencia de GameReview, esto NO tiene vínculo a facility ni a
  * partido — es sentimiento de red completa sobre la app (App Store / Play
@@ -19,7 +25,7 @@
 import { PrismaClient, AppReviewSource } from "@prisma/client";
 import { parse } from "csv-parse/sync";
 import fs from "fs";
-import crypto from "crypto";
+import { appReviewKey } from "./lib/reviewKeys";
 
 const prisma = new PrismaClient();
 
@@ -53,10 +59,17 @@ function toSource(raw: string | undefined): AppReviewSource | null {
   return null;
 }
 
-function sourceHash(row: CsvRow): string {
-  const parts = [row["Review Date"], row["Source"], row["Rating"], row["Review Text"], row["Reply Date"]];
-  return crypto.createHash("sha256").update(parts.join("|")).digest("hex");
-}
+type PendingRow = {
+  reviewDate: Date;
+  source: AppReviewSource;
+  rating: number;
+  reviewText: string | null;
+  replyText: string | null;
+  replyDate: Date | null;
+  replied: boolean;
+  replyTimeDays: number | null;
+  reviewKey: string;
+};
 
 async function main() {
   const path = process.argv[2];
@@ -69,27 +82,29 @@ async function main() {
   const rows: CsvRow[] = parse(raw, { columns: true, skip_empty_lines: true });
   console.log(`Leídas ${rows.length} filas. Importando...`);
 
-  type PendingRow = {
-    reviewDate: Date;
-    source: AppReviewSource;
-    rating: number;
-    reviewText: string | null;
-    replyText: string | null;
-    replyDate: Date | null;
-    replied: boolean;
-    replyTimeDays: number | null;
-    sourceHash: string;
-  };
-  const pending: PendingRow[] = [];
+  // Map en vez de array: si dos filas del mismo archivo caen en el mismo
+  // reviewKey (misma fecha+plataforma — ver el comentario del archivo), se
+  // quedan con la última en vez de mandar dos filas con la misma clave
+  // única a createMany, que rompería todo el lote con un error de
+  // constraint.
+  const pending = new Map<string, PendingRow>();
   const BATCH_SIZE = 2000;
-  let totalInserted = 0;
+  let totalNuevas = 0;
+  let totalActualizadas = 0;
   let skipped = 0;
 
   async function flushBatch() {
-    if (pending.length === 0) return;
-    const result = await prisma.appReview.createMany({ data: pending, skipDuplicates: true });
-    totalInserted += result.count;
-    pending.length = 0;
+    if (pending.size === 0) return;
+    const rows = Array.from(pending.values());
+    const keys = Array.from(pending.keys());
+
+    const existingCount = await prisma.appReview.count({ where: { reviewKey: { in: keys } } });
+    await prisma.appReview.deleteMany({ where: { reviewKey: { in: keys } } });
+    const result = await prisma.appReview.createMany({ data: rows });
+
+    totalActualizadas += existingCount;
+    totalNuevas += result.count - existingCount;
+    pending.clear();
   }
 
   for (const row of rows) {
@@ -100,7 +115,8 @@ async function main() {
       continue;
     }
 
-    pending.push({
+    const reviewKey = appReviewKey({ reviewDate: row["Review Date"], source: row["Source"] });
+    pending.set(reviewKey, {
       reviewDate: new Date(row["Review Date"]),
       source,
       rating,
@@ -109,14 +125,14 @@ async function main() {
       replyDate: row["Reply Date"]?.trim() ? new Date(row["Reply Date"]) : null,
       replied: row["Reply Status"]?.trim().toLowerCase() === "replied",
       replyTimeDays: toFloatOrNull(row["Reply Time (days)"]),
-      sourceHash: sourceHash(row),
+      reviewKey,
     });
 
-    if (pending.length >= BATCH_SIZE) await flushBatch();
+    if (pending.size >= BATCH_SIZE) await flushBatch();
   }
   await flushBatch();
 
-  console.log(`Listo. Insertadas: ${totalInserted}. Omitidas por datos incompletos: ${skipped}.`);
+  console.log(`Listo. Nuevas: ${totalNuevas}. Actualizadas: ${totalActualizadas}. Omitidas por datos incompletos: ${skipped}.`);
 }
 
 main()
