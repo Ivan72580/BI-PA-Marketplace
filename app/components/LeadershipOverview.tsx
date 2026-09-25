@@ -136,9 +136,14 @@ export default async function LeadershipOverview({ month, locale }: { month: str
         </div>
       </div>
 
-      <Link href="/market" className="text-sm text-brand hover:underline mt-5 inline-block">
-        {t("marketDetailLink")}
-      </Link>
+      <div className="flex items-center gap-4 mt-5">
+        <Link href="/market" className="text-sm text-brand hover:underline">
+          {t("marketDetailLink")}
+        </Link>
+        <Link href="/leadership/facilities" className="text-sm text-brand hover:underline">
+          {t("facilityProfilesLink")}
+        </Link>
+      </div>
     </div>
   );
 }

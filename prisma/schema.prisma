@@ -44,6 +44,10 @@ model Facility {
   marketId String
   market   Market @relation(fields: [marketId], references: [id])
   games    Game[]
+  // Datos maestros manuales (perfil + relación comercial) — ver
+  // FacilityProfile. Opcional porque no todos los facilities lo van a tener
+  // completo desde el día uno.
+  profile  FacilityProfile?
 
   @@unique([name, marketId])
   @@index([marketId])
@@ -127,6 +131,149 @@ enum Role {
 // sale de ADMIN_EMAILS (variable de entorno, solo importa en el primer
 // login de cada cuenta); a partir de ahí, los cambios de rol se hacen desde
 // /admin/users, no editando esa variable.
+// ---------- Facility Profile (módulo de datos maestros) ----------
+// Datos manuales sobre cada facility que no vienen del CSV de partidos:
+// atributos físicos, términos de la relación comercial, y una bitácora de
+// eventos. Módulo aparte, enlazado desde /leadership (mismo gate que
+// canViewLeadership en v1 — ver requireLeadershipAccess). Nace del gap
+// analysis de Leadership Metrics (ver el mapa de campos en el Project);
+// casi todo es opcional porque se va completando de a poco, no de una vez.
+
+enum IndoorOutdoor {
+  INDOOR
+  OUTDOOR
+  MIXED
+}
+
+// Catálogo cerrado de amenities + un campo de texto libre para lo que no
+// entra en el catálogo (decisión de Ivan: las dos cosas, no solo una).
+// Lista inicial, ampliable con el tiempo sin romper nada existente.
+enum Amenity {
+  PARKING
+  LOCKER_ROOMS
+  SHOWERS
+  CAFETERIA_BAR
+  WIFI
+  PRO_SHOP
+  SPECTATOR_SEATING
+  AIR_CONDITIONING
+  FIRST_AID
+  SECURITY_CAMERAS
+  NIGHT_LIGHTING
+}
+
+// Decisión de Ivan: enum + campos tipados, no texto libre — Leadership
+// quiere comparar economics entre facilities y un modelo de texto libre no
+// es agregable en reportes.
+enum PricingModel {
+  FIXED_RATE
+  REVENUE_SHARE
+  HYBRID
+}
+
+model FacilityProfile {
+  id         String   @id @default(cuid())
+  facilityId String   @unique
+  facility   Facility @relation(fields: [facilityId], references: [id])
+
+  // --- Datos básicos ---
+  city             String?
+  state            String?
+  fieldCount       Int?
+  // Formatos que el facility puede albergar (ej. "7v7", "11v11"). Texto
+  // libre, no enum: el resto de la app tampoco tiene un catálogo cerrado
+  // para esto (gameSize/fieldType en Game son String? de origen CSV), así
+  // que se mantiene el mismo criterio en vez de inventar uno nuevo acá.
+  supportedFormats String[]
+  indoorOutdoor    IndoorOutdoor?
+  amenities        Amenity[]
+  amenitiesOther   String?
+  // = "Published Rate(s)" (Facility Profile) = "Market rate" (Commercial
+  // Terms) en el PDF de Leadership: es el mismo dato mirado desde dos
+  // categorías distintas, se modela una sola vez.
+  marketRate       Float?
+
+  // --- Relación (Relationship Attributes) ---
+  partnershipStartDate DateTime? @db.Date
+  contactName          String?
+  contactEmail         String?
+  contactPhone         String?
+  // Texto libre v1 (decisión de Ivan) — sin contratos reales cargados
+  // todavía, estructurar esto ahora sería adivinar una forma. Candidato a
+  // volverse campos estructurados más adelante si aparecen patrones claros.
+  paymentTerms      String?
+  bookingTerms      String?
+  cancellationTerms String?
+  depositAmount     Float?
+  depositNotes      String?
+
+  // --- Comercial (depende de pricingModel) ---
+  pricingModel      PricingModel?
+  fixedRate         Float? // aplica si FIXED_RATE o HYBRID
+  revenueSharePct   Float? // aplica si REVENUE_SHARE o HYBRID
+  discountAmount    Float?
+  discountPct       Float?
+  freeHoursPerMonth Float?
+
+  peakWindows FacilityPeakWindow[]
+  events      FacilityRelationshipEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("facility_profiles")
+}
+
+// Decisión de Ivan: peak hours manual por facility (no una regla de red
+// única ni calculado desde demanda histórica). Un facility puede tener
+// varias ventanas recurrentes semanales (ej. lun-vie 17-22h Y todo el
+// fin de semana) — de ahí que sea una tabla y no un par de campos sueltos.
+model FacilityPeakWindow {
+  id                String          @id @default(cuid())
+  facilityProfileId String
+  facilityProfile   FacilityProfile @relation(fields: [facilityProfileId], references: [id], onDelete: Cascade)
+  dayOfWeek         Int // 0=domingo … 6=sábado
+  startHour         Int // 0–23
+  endHour           Int // 1–24 (exclusivo)
+
+  @@index([facilityProfileId])
+  @@map("facility_peak_windows")
+}
+
+enum RelationshipEventType {
+  EVENT // Major relationship event — bitácora libre
+  AGREEMENT // Facility Partnership Agreement — con archivo adjunto
+  ACTION_ITEM // Open action item — con estado abierto/cerrado
+}
+
+enum RelationshipEventStatus {
+  OPEN
+  CLOSED
+}
+
+// Resuelve 3 campos de Relationship History que estaban pendientes de
+// definición sin necesidad de esperar la feature de Notas (que sigue
+// pausada): una bitácora simple por facility, con un tipo para distinguir
+// evento / acuerdo / pendiente de acción.
+model FacilityRelationshipEvent {
+  id                String                   @id @default(cuid())
+  facilityProfileId String
+  facilityProfile   FacilityProfile          @relation(fields: [facilityProfileId], references: [id], onDelete: Cascade)
+  type              RelationshipEventType
+  date              DateTime                 @db.Date
+  note              String
+  status            RelationshipEventStatus? // solo aplica a ACTION_ITEM
+  attachmentUrl     String? // solo aplica a AGREEMENT
+  // Sin relación formal a User a propósito — es solo un dato de auditoría
+  // liviano, no necesita el vínculo/cascade de una relación Prisma.
+  createdByUserId   String?
+  createdAt         DateTime                 @default(now())
+
+  @@index([facilityProfileId])
+  @@index([facilityProfileId, type])
+  @@map("facility_relationship_events")
+}
+
 model User {
   id          String    @id @default(cuid())
   email       String    @unique

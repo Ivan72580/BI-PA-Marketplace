@@ -18,6 +18,7 @@
 //   market.ts          - resumen y ranking por facility/market
 //   region.ts          - ranking por región (East/West), para la vista de Leadership
 //   daily.ts           - seguimiento diario: foto del día, línea base, evolución y calendario "sí o sí"
+//   facilityProfile.ts - módulo de datos maestros del facility (perfil + relación + historial), enlazado desde Leadership
 
 export * from "./shared";
 export * from "./filters";
@@ -35,3 +36,4 @@ export * from "./trends";
 export * from "./market";
 export * from "./region";
 export * from "./daily";
+export * from "./facilityProfile";

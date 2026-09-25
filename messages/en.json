@@ -903,6 +903,129 @@
       },
       "empty": "Not enough data to compare regions this month yet."
     },
-    "marketDetailLink": "See market and facility detail →"
+    "marketDetailLink": "See market and facility detail →",
+    "facilityProfilesLink": "See facility profiles →"
+  },
+  "FacilityProfile": {
+    "backToLeadership": "← Back to Leadership",
+    "backToList": "← Back to facility list",
+    "listTitle": "Facility profiles",
+    "listSubtitle": "Master relationship data — fill it in gradually, no need to finish it all at once.",
+    "table": {
+      "facility": "Facility",
+      "market": "Market",
+      "region": "Region",
+      "completion": "Completion",
+      "edit": "Edit",
+      "complete": "Complete profile"
+    },
+    "sections": {
+      "basics": "Basic info",
+      "relationship": "Relationship",
+      "commercial": "Commercial",
+      "commercialHint": "Fills in based on the chosen pricing model — fields that don't apply stay hidden."
+    },
+    "fields": {
+      "city": "City",
+      "state": "State/Province",
+      "fieldCount": "Number of fields/courts",
+      "supportedFormats": "Supported formats",
+      "supportedFormatsHint": "E.g. \"7v7\", \"11v11\" — type a format and press Enter or Add.",
+      "supportedFormatsPlaceholder": "E.g. 7v7",
+      "addFormat": "Add",
+      "removeFormat": "Remove",
+      "indoorOutdoor": "Indoor / outdoor",
+      "amenities": "Amenities",
+      "amenitiesOtherPlaceholder": "Other (free text)",
+      "marketRate": "Published rate",
+      "marketRateHint": "Same value as \"Market rate\" in Commercial — stored once.",
+      "partnershipStartDate": "Partnership start date",
+      "contactName": "Primary contact",
+      "contactEmail": "Contact email",
+      "contactPhone": "Contact phone",
+      "depositAmount": "Deposit / prepayment",
+      "depositNotes": "Deposit notes",
+      "termsHint": "Free text for now — without real contracts loaded yet, forcing a structure would be guessing.",
+      "paymentTerms": "Payment terms",
+      "bookingTerms": "Booking terms",
+      "cancellationTerms": "Cancellation terms",
+      "pricingModel": "Pricing model",
+      "fixedRate": "Fixed rate",
+      "revenueSharePct": "Revenue share (%)",
+      "discountAmount": "Discount ($)",
+      "discountPct": "Discount (%)",
+      "freeHoursPerMonth": "Free hours / month"
+    },
+    "indoorOutdoor": {
+      "INDOOR": "Indoor",
+      "OUTDOOR": "Outdoor",
+      "MIXED": "Mixed"
+    },
+    "amenity": {
+      "PARKING": "Parking",
+      "LOCKER_ROOMS": "Locker rooms",
+      "SHOWERS": "Showers",
+      "CAFETERIA_BAR": "Cafeteria/bar",
+      "WIFI": "WiFi",
+      "PRO_SHOP": "Pro shop",
+      "SPECTATOR_SEATING": "Spectator seating",
+      "AIR_CONDITIONING": "Air conditioning",
+      "FIRST_AID": "First aid",
+      "SECURITY_CAMERAS": "Security cameras",
+      "NIGHT_LIGHTING": "Night lighting"
+    },
+    "pricingModel": {
+      "FIXED_RATE": "Fixed rate",
+      "REVENUE_SHARE": "Revenue share",
+      "HYBRID": "Hybrid"
+    },
+    "peakWindows": {
+      "title": "Peak hours",
+      "hint": "Manual per facility — there's no single network-wide rule. Outside these windows counts as off-peak.",
+      "empty": "No peak windows defined yet.",
+      "add": "+ Add window",
+      "remove": "Remove",
+      "to": "to",
+      "days": {
+        "0": "Sunday",
+        "1": "Monday",
+        "2": "Tuesday",
+        "3": "Wednesday",
+        "4": "Thursday",
+        "5": "Friday",
+        "6": "Saturday"
+      }
+    },
+    "history": {
+      "title": "Relationship history",
+      "subtitle": "Log of events, agreements and open items — replaces what was pending definition in Relationship History.",
+      "gamesHosted": "Confirmed games (historical)",
+      "revenueGenerated": "Revenue generated (historical)",
+      "empty": "No events logged yet.",
+      "type": {
+        "EVENT": "Event",
+        "AGREEMENT": "Agreement",
+        "ACTION_ITEM": "Action item"
+      },
+      "status": {
+        "OPEN": "Open",
+        "CLOSED": "Closed"
+      },
+      "attachmentLinkLabel": "View attachment →",
+      "attachmentUrlLabel": "File link (Drive, Dropbox, etc.)",
+      "attachmentUrlPlaceholder": "https://...",
+      "newType": "Type",
+      "newDate": "Date",
+      "newNote": "Note",
+      "addEvent": "Add",
+      "delete": "Delete"
+    },
+    "save": "Save changes",
+    "saving": "Saving...",
+    "saved": "Changes saved.",
+    "errors": {
+      "unauthorized": "You don't have permission to edit this profile.",
+      "generic": "Something went wrong. Please try again."
+    }
   }
 }

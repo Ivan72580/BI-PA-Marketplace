@@ -903,6 +903,129 @@
       },
       "empty": "Todavía no hay datos suficientes para comparar regiones este mes."
     },
-    "marketDetailLink": "Ver detalle por market y facility →"
+    "marketDetailLink": "Ver detalle por market y facility →",
+    "facilityProfilesLink": "Ver perfiles de facility →"
+  },
+  "FacilityProfile": {
+    "backToLeadership": "← Volver a Leadership",
+    "backToList": "← Volver al listado de facilities",
+    "listTitle": "Perfiles de facility",
+    "listSubtitle": "Datos maestros de relación comercial — completalo de a poco, no hace falta terminarlo de una vez.",
+    "table": {
+      "facility": "Facility",
+      "market": "Market",
+      "region": "Región",
+      "completion": "Completitud",
+      "edit": "Editar",
+      "complete": "Completar perfil"
+    },
+    "sections": {
+      "basics": "Datos básicos",
+      "relationship": "Relación",
+      "commercial": "Comercial",
+      "commercialHint": "Se completa según el modelo de precio elegido — los campos que no aplican quedan ocultos."
+    },
+    "fields": {
+      "city": "Ciudad",
+      "state": "Provincia/Estado",
+      "fieldCount": "Cantidad de canchas",
+      "supportedFormats": "Formatos que soporta",
+      "supportedFormatsHint": "Ej. \"7v7\", \"11v11\" — escribí un formato y presioná Enter o Agregar.",
+      "supportedFormatsPlaceholder": "Ej. 7v7",
+      "addFormat": "Agregar",
+      "removeFormat": "Quitar",
+      "indoorOutdoor": "Indoor / outdoor",
+      "amenities": "Amenities",
+      "amenitiesOtherPlaceholder": "Otros (texto libre)",
+      "marketRate": "Tarifa publicada",
+      "marketRateHint": "Mismo dato que \"Market rate\" en Comercial — se guarda una sola vez.",
+      "partnershipStartDate": "Inicio de la relación",
+      "contactName": "Contacto principal",
+      "contactEmail": "Email de contacto",
+      "contactPhone": "Teléfono de contacto",
+      "depositAmount": "Depósito / adelanto",
+      "depositNotes": "Notas del depósito",
+      "termsHint": "Texto libre por ahora — sin contratos reales cargados todavía, no tiene sentido forzar una estructura.",
+      "paymentTerms": "Términos de pago",
+      "bookingTerms": "Términos de reserva",
+      "cancellationTerms": "Términos de cancelación",
+      "pricingModel": "Modelo de precio",
+      "fixedRate": "Tarifa fija",
+      "revenueSharePct": "Revenue share (%)",
+      "discountAmount": "Descuento ($)",
+      "discountPct": "Descuento (%)",
+      "freeHoursPerMonth": "Horas gratis / mes"
+    },
+    "indoorOutdoor": {
+      "INDOOR": "Indoor",
+      "OUTDOOR": "Outdoor",
+      "MIXED": "Mixto"
+    },
+    "amenity": {
+      "PARKING": "Estacionamiento",
+      "LOCKER_ROOMS": "Vestuarios",
+      "SHOWERS": "Duchas",
+      "CAFETERIA_BAR": "Cafetería/bar",
+      "WIFI": "WiFi",
+      "PRO_SHOP": "Pro shop",
+      "SPECTATOR_SEATING": "Tribuna",
+      "AIR_CONDITIONING": "Aire acondicionado",
+      "FIRST_AID": "Primeros auxilios",
+      "SECURITY_CAMERAS": "Cámaras de seguridad",
+      "NIGHT_LIGHTING": "Iluminación nocturna"
+    },
+    "pricingModel": {
+      "FIXED_RATE": "Tarifa fija",
+      "REVENUE_SHARE": "Revenue share",
+      "HYBRID": "Híbrido"
+    },
+    "peakWindows": {
+      "title": "Horarios peak",
+      "hint": "Definición manual por facility — no hay una regla de red única. Fuera de estas ventanas se considera off-peak.",
+      "empty": "Todavía no hay horarios peak definidos.",
+      "add": "+ Agregar ventana",
+      "remove": "Quitar",
+      "to": "a",
+      "days": {
+        "0": "Domingo",
+        "1": "Lunes",
+        "2": "Martes",
+        "3": "Miércoles",
+        "4": "Jueves",
+        "5": "Viernes",
+        "6": "Sábado"
+      }
+    },
+    "history": {
+      "title": "Historial de la relación",
+      "subtitle": "Bitácora de eventos, acuerdos y pendientes — reemplaza lo que estaba pendiente de definir en Relationship History.",
+      "gamesHosted": "Partidos confirmados (histórico)",
+      "revenueGenerated": "Revenue generado (histórico)",
+      "empty": "Todavía no hay eventos registrados.",
+      "type": {
+        "EVENT": "Evento",
+        "AGREEMENT": "Acuerdo",
+        "ACTION_ITEM": "Pendiente"
+      },
+      "status": {
+        "OPEN": "Abierto",
+        "CLOSED": "Cerrado"
+      },
+      "attachmentLinkLabel": "Ver archivo adjunto →",
+      "attachmentUrlLabel": "Link al archivo (Drive, Dropbox, etc.)",
+      "attachmentUrlPlaceholder": "https://...",
+      "newType": "Tipo",
+      "newDate": "Fecha",
+      "newNote": "Nota",
+      "addEvent": "Agregar",
+      "delete": "Eliminar"
+    },
+    "save": "Guardar cambios",
+    "saving": "Guardando...",
+    "saved": "Cambios guardados.",
+    "errors": {
+      "unauthorized": "No tenés permiso para editar este perfil.",
+      "generic": "Ocurrió un error. Probá de nuevo."
+    }
   }
 }
