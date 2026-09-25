@@ -1,4 +1,4 @@
-import { GameStatus } from "@prisma/client";
+import { GameStatus, type Amenity, type IndoorOutdoor, type PricingModel, type RelationshipEventStatus, type RelationshipEventType } from "@prisma/client";
 import { prisma } from "./prisma";
 
 // Módulo de datos maestros del facility (perfil + relación comercial +
@@ -17,11 +17,11 @@ type CoreProfileFields = {
   city: string | null;
   state: string | null;
   fieldCount: number | null;
-  indoorOutdoor: string | null;
+  indoorOutdoor: IndoorOutdoor | null;
   marketRate: number | null;
   partnershipStartDate: Date | null;
   contactName: string | null;
-  pricingModel: string | null;
+  pricingModel: PricingModel | null;
 };
 
 function countCoreFieldsFilled(profile: CoreProfileFields | null): number {
@@ -96,17 +96,17 @@ export async function listFacilityProfileStatus(): Promise<FacilityProfileListRo
 type PeakWindowRow = { id: string; dayOfWeek: number; startHour: number; endHour: number };
 type RelationshipEventRow = {
   id: string;
-  type: string;
+  type: RelationshipEventType;
   date: Date;
   note: string;
-  status: string | null;
+  status: RelationshipEventStatus | null;
   attachmentUrl: string | null;
 };
 // Superset de CoreProfileFields con el resto de columnas del perfil + las
 // dos listas hijas — mismo motivo que FacilityStatusRow arriba.
 type FacilityProfileFullRow = CoreProfileFields & {
   supportedFormats: string[];
-  amenities: string[];
+  amenities: Amenity[];
   amenitiesOther: string | null;
   contactEmail: string | null;
   contactPhone: string | null;
