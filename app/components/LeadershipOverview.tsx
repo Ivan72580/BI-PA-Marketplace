@@ -136,15 +136,13 @@ export default async function LeadershipOverview({ month, locale }: { month: str
         </div>
       </div>
 
+      {/* facilityProfilesLink/playerSatisfactionLink se sacaron de acá — esa
+          navegación ahora la cubre la barra de pestañas de layout.tsx.
+          marketDetailLink se queda: es el único de los tres que cruza fuera
+          de /panel-ejecutivo. */}
       <div className="flex items-center gap-4 mt-5">
         <Link href="/market" className="text-sm text-brand hover:underline">
           {t("marketDetailLink")}
-        </Link>
-        <Link href="/leadership/facilities" className="text-sm text-brand hover:underline">
-          {t("facilityProfilesLink")}
-        </Link>
-        <Link href="/leadership/satisfaction" className="text-sm text-brand hover:underline">
-          {t("playerSatisfactionLink")}
         </Link>
       </div>
     </div>

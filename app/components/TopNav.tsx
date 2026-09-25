@@ -56,7 +56,7 @@ function LeadershipIcon() {
 
 // Las labels viven en messages/*.json (namespace TopNav) — labelKey referencia
 // esa clave, se traduce en el render porque useTranslations es un hook.
-type NavLink = { href: string; labelKey: "overview" | "trends" | "market" | "daily" | "leadership"; icon: () => ReactNode };
+type NavLink = { href: string; labelKey: "overview" | "trends" | "market" | "daily" | "panelEjecutivo"; icon: () => ReactNode };
 
 const links: NavLink[] = [
   { href: "/", labelKey: "overview", icon: OverviewIcon },
@@ -65,7 +65,7 @@ const links: NavLink[] = [
   { href: "/daily", labelKey: "daily", icon: DailyIcon },
 ];
 
-const leadershipLink: NavLink = { href: "/leadership", labelKey: "leadership", icon: LeadershipIcon };
+const panelEjecutivoLink: NavLink = { href: "/panel-ejecutivo", labelKey: "panelEjecutivo", icon: LeadershipIcon };
 
 export default function TopNav({
   userMenu,
@@ -80,7 +80,11 @@ export default function TopNav({
 }) {
   const pathname = usePathname();
   const t = useTranslations("TopNav");
-  const visibleLinks = showLeadershipLink ? [...links, leadershipLink] : links;
+  // Va primero (no al final) cuando el usuario tiene el permiso: es su vista
+  // "default" en el sentido de ser la primera que ve, sin necesidad de un
+  // redirect automático post-login — ver nota de entrega sobre por qué no
+  // se implementó ese redirect todavía.
+  const visibleLinks = showLeadershipLink ? [panelEjecutivoLink, ...links] : links;
 
   return (
     <div className="sticky top-0 z-40 bg-[#0b3b2e]/95 backdrop-blur-xl">

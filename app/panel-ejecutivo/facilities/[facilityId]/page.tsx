@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { requireLeadershipAccess } from "../../../lib/db/users";
 import { getFacilityProfileDetail } from "../../../lib/db/queries";
 import type { FacilityProfileInput, PeakWindowInput } from "../../../lib/actions/facilityProfile";
 import FacilityProfileForm from "./FacilityProfileForm";
@@ -18,9 +17,7 @@ export default async function FacilityProfileDetailPage({
 }) {
   const { facilityId } = await params;
 
-  const access = await requireLeadershipAccess();
-  if (!access) redirect("/");
-
+  // El chequeo de acceso ahora vive una sola vez en layout.tsx.
   const [detail, t] = await Promise.all([getFacilityProfileDetail(facilityId), getTranslations("FacilityProfile")]);
   if (!detail) notFound();
 
@@ -71,7 +68,7 @@ export default async function FacilityProfileDetailPage({
   return (
     <div>
       <div className="mb-5">
-        <Link href="/leadership/facilities" className="text-xs text-ink-faint hover:text-brand">
+        <Link href="/panel-ejecutivo/facilities" className="text-xs text-ink-faint hover:text-brand">
           {t("backToList")}
         </Link>
       </div>

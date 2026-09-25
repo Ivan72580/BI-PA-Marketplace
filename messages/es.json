@@ -4,7 +4,7 @@
     "trends": "Trends",
     "market": "Market",
     "daily": "Diario",
-    "leadership": "Leadership",
+    "panelEjecutivo": "Panel Ejecutivo",
     "facilitySearch": {
       "placeholder": "Buscar facility...",
       "empty": "Sin resultados para \"{query}\""
@@ -878,7 +878,7 @@
     "signInButton": "Continuar con Google"
   },
   "Leadership": {
-    "pageTitle": "Leadership",
+    "pageTitle": "Panel Ejecutivo",
     "subtitle": "Vista ejecutiva de la red completa — no depende de ningún filtro activo en el resto de la app.",
     "kpis": {
       "confirmationRate": "Tasa de confirmación",
@@ -903,12 +903,14 @@
       },
       "empty": "Todavía no hay datos suficientes para comparar regiones este mes."
     },
-    "marketDetailLink": "Ver detalle por market y facility →",
-    "facilityProfilesLink": "Ver perfiles de facility →",
-    "playerSatisfactionLink": "Ver Player Satisfaction →"
+    "marketDetailLink": "Ver detalle por market y facility →"
+  },
+  "PanelEjecutivoNav": {
+    "overview": "Resumen",
+    "facilities": "Facility Profiles",
+    "satisfaction": "Player Satisfaction"
   },
   "FacilityProfile": {
-    "backToLeadership": "← Volver a Leadership",
     "backToList": "← Volver al listado de facilities",
     "listTitle": "Perfiles de facility",
     "listSubtitle": "Datos maestros de relación comercial — completalo de a poco, no hace falta terminarlo de una vez.",
@@ -1030,7 +1032,6 @@
     }
   },
   "PlayerSatisfaction": {
-    "backToLeadership": "← Volver a Leadership",
     "pageTitle": "Player Satisfaction",
     "subtitle": "Reviews de jugadores por partido y reviews de la app en las tiendas — dos fuentes, misma categoría.",
     "caveat": "Este dataset no cubre los 11 atributos de feedback específico por facility que pide el reporte de Leadership — hoy solo resuelve calidad de campo. El resto de esos atributos sigue pendiente de definir cómo se va a recopilar.",

@@ -4,7 +4,7 @@
     "trends": "Trends",
     "market": "Market",
     "daily": "Daily",
-    "leadership": "Leadership",
+    "panelEjecutivo": "Executive Panel",
     "facilitySearch": {
       "placeholder": "Search facility...",
       "empty": "No results for \"{query}\""
@@ -878,7 +878,7 @@
     "signInButton": "Continue with Google"
   },
   "Leadership": {
-    "pageTitle": "Leadership",
+    "pageTitle": "Executive Panel",
     "subtitle": "Executive view of the whole network — independent of any filter active elsewhere in the app.",
     "kpis": {
       "confirmationRate": "Confirmation rate",
@@ -903,12 +903,14 @@
       },
       "empty": "Not enough data to compare regions this month yet."
     },
-    "marketDetailLink": "See market and facility detail →",
-    "facilityProfilesLink": "See facility profiles →",
-    "playerSatisfactionLink": "See Player Satisfaction →"
+    "marketDetailLink": "See market and facility detail →"
+  },
+  "PanelEjecutivoNav": {
+    "overview": "Overview",
+    "facilities": "Facility Profiles",
+    "satisfaction": "Player Satisfaction"
   },
   "FacilityProfile": {
-    "backToLeadership": "← Back to Leadership",
     "backToList": "← Back to facility list",
     "listTitle": "Facility profiles",
     "listSubtitle": "Master relationship data — fill it in gradually, no need to finish it all at once.",
@@ -1030,7 +1032,6 @@
     }
   },
   "PlayerSatisfaction": {
-    "backToLeadership": "← Back to Leadership",
     "pageTitle": "Player Satisfaction",
     "subtitle": "Per-game player reviews and app-store reviews — two sources, same category.",
     "caveat": "This dataset doesn't cover the 11 facility-specific feedback attributes requested in the Leadership report — today it only resolves field quality. The rest of those attributes are still pending a decision on how to collect them.",

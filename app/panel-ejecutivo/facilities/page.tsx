@@ -1,23 +1,15 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { requireLeadershipAccess } from "../../lib/db/users";
 import { listFacilityProfileStatus } from "../../lib/db/queries";
 
+// El chequeo de acceso ahora vive una sola vez en layout.tsx. El link "volver"
+// también se sacó de acá: la barra de pestañas del layout ya cubre esa
+// navegación.
 export default async function FacilityProfilesPage() {
-  const access = await requireLeadershipAccess();
-  if (!access) redirect("/");
-
   const [rows, t] = await Promise.all([listFacilityProfileStatus(), getTranslations("FacilityProfile")]);
 
   return (
     <div>
-      <div className="mb-5">
-        <Link href="/leadership" className="text-xs text-ink-faint hover:text-brand">
-          {t("backToLeadership")}
-        </Link>
-      </div>
-
       <div className="mb-6 pb-5 border-b border-border">
         <h1 className="font-display text-2xl font-bold text-ink">{t("listTitle")}</h1>
         <div className="text-sm text-ink-faint mt-1">{t("listSubtitle")}</div>
@@ -54,7 +46,7 @@ export default async function FacilityProfilesPage() {
                   </div>
                 </td>
                 <td className="py-2 px-4 text-right">
-                  <Link href={`/leadership/facilities/${r.facilityId}`} className="text-xs text-brand hover:underline">
+                  <Link href={`/panel-ejecutivo/facilities/${r.facilityId}`} className="text-xs text-brand hover:underline">
                     {r.hasProfile ? t("table.edit") : t("table.complete")}
                   </Link>
                 </td>

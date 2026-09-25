@@ -58,8 +58,8 @@ export async function saveFacilityProfile(facilityId: string, input: FacilityPro
         partnershipStartDate: partnershipStartDate ? new Date(partnershipStartDate) : null,
       },
     });
-    revalidatePath(`/leadership/facilities/${facilityId}`);
-    revalidatePath("/leadership/facilities");
+    revalidatePath(`/panel-ejecutivo/facilities/${facilityId}`);
+    revalidatePath("/panel-ejecutivo/facilities");
     return { ok: true };
   } catch {
     return { ok: false, errorKey: "generic" };
@@ -83,7 +83,7 @@ export async function savePeakWindows(facilityId: string, windows: PeakWindowInp
         data: windows.map((w) => ({ ...w, facilityProfileId: profile.id })),
       }),
     ]);
-    revalidatePath(`/leadership/facilities/${facilityId}`);
+    revalidatePath(`/panel-ejecutivo/facilities/${facilityId}`);
     return { ok: true };
   } catch {
     return { ok: false, errorKey: "generic" };
@@ -115,7 +115,7 @@ export async function addRelationshipEvent(facilityId: string, input: Relationsh
         createdByUserId: access.id,
       },
     });
-    revalidatePath(`/leadership/facilities/${facilityId}`);
+    revalidatePath(`/panel-ejecutivo/facilities/${facilityId}`);
     return { ok: true };
   } catch {
     return { ok: false, errorKey: "generic" };
@@ -132,7 +132,7 @@ export async function updateRelationshipEventStatus(
 
   try {
     await prisma.facilityRelationshipEvent.update({ where: { id: eventId }, data: { status } });
-    revalidatePath(`/leadership/facilities/${facilityId}`);
+    revalidatePath(`/panel-ejecutivo/facilities/${facilityId}`);
     return { ok: true };
   } catch {
     return { ok: false, errorKey: "generic" };
@@ -145,7 +145,7 @@ export async function deleteRelationshipEvent(eventId: string, facilityId: strin
 
   try {
     await prisma.facilityRelationshipEvent.delete({ where: { id: eventId } });
-    revalidatePath(`/leadership/facilities/${facilityId}`);
+    revalidatePath(`/panel-ejecutivo/facilities/${facilityId}`);
     return { ok: true };
   } catch {
     return { ok: false, errorKey: "generic" };
