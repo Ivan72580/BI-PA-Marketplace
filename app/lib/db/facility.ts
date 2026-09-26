@@ -4,6 +4,27 @@ import { cached } from "./cache";
 import { buildWhere, type OverviewFilters } from "./shared";
 import type { Locale } from "@/i18n/config";
 
+// ---------- Facilities activas vs. dormidas ----------
+
+// Una facility sin ningún Game (confirmado o cancelado — cualquiera cuenta
+// como "hubo movimiento", no solo lo confirmado) en los últimos
+// DORMANT_FACILITY_MONTHS meses se considera dormida: con la que dejamos de
+// trabajar, o en stand-by indefinido. No se borra ni se marca con un flag
+// manual — es un filtro vivo sobre Game.date, así que si le entra un
+// partido nuevo, vuelve a aparecer sola en cuanto se refresque el caché de
+// 5 minutos que ya tiene el resto de la app (ver cache.ts). Se usa para
+// sacarla de buscadores/listados (getFilterOptions, listFacilityProfileStatus)
+// — no afecta los rankings por partido (Market/Trends/Daily), que ya se
+// arman agrupando por Game y nunca muestran una facility sin partidos en el
+// período seleccionado.
+export const DORMANT_FACILITY_MONTHS = 6;
+
+export function activeFacilityWhere(now: Date = new Date()) {
+  const cutoff = new Date(now);
+  cutoff.setUTCMonth(cutoff.getUTCMonth() - DORMANT_FACILITY_MONTHS);
+  return { games: { some: { date: { gte: cutoff } } } };
+}
+
 // ---------- Contexto de una facility puntual ----------
 
 // A diferencia de resolveFilterNames (que solo resuelve lo que ya está en

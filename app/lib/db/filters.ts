@@ -1,13 +1,22 @@
 import { prisma } from "./prisma";
 import { cached } from "./cache";
+import { activeFacilityWhere } from "./facility";
 
 // ---------- Filtros disponibles (para los selectores de la UI) ----------
 
+// Facilities dormidas (ver activeFacilityWhere en facility.ts) no entran acá
+// — este resultado alimenta el buscador del nav, el FilterPanel y el panel
+// de búsqueda de Daily, y no vale la pena ofrecerlas como resultado de
+// búsqueda ni como filtro si no hay nada reciente que mostrar con ellas.
 export const getFilterOptions = cached("getFilterOptions", async () => {
   const [regions, markets, facilities] = await Promise.all([
     prisma.region.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.market.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, regionId: true } }),
-    prisma.facility.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, marketId: true } }),
+    prisma.facility.findMany({
+      where: activeFacilityWhere(),
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, marketId: true },
+    }),
   ]);
 
   return { regions, markets, facilities };

@@ -1,5 +1,6 @@
 import { GameStatus, type Amenity, type IndoorOutdoor, type PricingModel, type RelationshipEventStatus, type RelationshipEventType } from "@prisma/client";
 import { prisma } from "./prisma";
+import { activeFacilityWhere } from "./facility";
 
 // Módulo de datos maestros del facility (perfil + relación comercial +
 // bitácora), enlazado desde /leadership. A diferencia del resto de
@@ -54,8 +55,12 @@ type FacilityStatusRow = {
   profile: CoreProfileFields | null;
 };
 
+// No lista facilities dormidas (ver activeFacilityWhere en facility.ts) —
+// con las que dejamos de trabajar o están en stand-by no vale la pena
+// mostrarlas acá para completar, aunque sigan enteras en la base.
 export async function listFacilityProfileStatus(): Promise<FacilityProfileListRow[]> {
   const facilities = (await prisma.facility.findMany({
+    where: activeFacilityWhere(),
     select: {
       id: true,
       name: true,
