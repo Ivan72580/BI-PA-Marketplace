@@ -300,8 +300,14 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
   // página reporta el detalle operativo de UNA facility en UN día puntual —
   // sin facility no hay "todo lo que pasó" que mostrar.
   if (!sp.regionId || !sp.marketId || !sp.facilityId) {
+    // Mismo breadcrumb que la vista completa (no una pantalla aparte): si
+    // ya había región/market elegidos (ej. se acaba de cambiar el market,
+    // que a propósito limpia la facility para no dejar seleccionada una que
+    // no es de ese market), esa elección se sigue viendo y se puede
+    // terminar ahí mismo con el tercer selector — no se vuelve "a cero".
     return (
       <div>
+        <DailyBreadcrumb regions={filterOptions.regions} markets={filterOptions.markets} facilities={filterOptions.facilities} sp={sp} />
         <h1 className="font-display text-3xl font-bold text-ink mb-1">{t("title")}</h1>
         <div className="text-sm text-ink-faint mb-4 max-w-2xl">{t("subtitle")}</div>
 
@@ -539,7 +545,24 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
   return (
     <div className="space-y-5">
       <div>
-        <DailyBreadcrumb regions={filterOptions.regions} markets={filterOptions.markets} facilities={filterOptions.facilities} sp={sp} />
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <DailyBreadcrumb regions={filterOptions.regions} markets={filterOptions.markets} facilities={filterOptions.facilities} sp={sp} />
+          {/* Mismo buscador que la pantalla de selección inicial — antes
+              desaparecía apenas se elegía una facility, y la única forma de
+              cambiar a otra pasaba a ser el selector del breadcrumb (sin
+              texto libre, sin cruzar markets/regiones de un tirón). */}
+          <div className="w-full sm:w-72 shrink-0">
+            <FacilitySearch
+              facilities={filterOptions.facilities}
+              markets={filterOptions.markets}
+              variant="panel"
+              placeholder={t("facilitySearch.placeholder")}
+              emptyMessageTemplate={t("facilitySearch.empty", { query: "{query}" })}
+              basePath="/daily"
+              extraParams={{ date: sp.date }}
+            />
+          </div>
+        </div>
         <h1 className="font-display text-3xl font-bold text-ink mb-1">{t("title")}</h1>
         <div className="text-sm text-ink-faint">{summary.dayLabel} {dateISO} — {summary.facilityName}</div>
       </div>
