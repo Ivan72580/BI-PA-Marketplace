@@ -72,13 +72,32 @@ function SectionCard({ title, subtitle, action, children }: { title: string; sub
   );
 }
 
-function Stat({ label, value, sublabel, delta, deltaInvert }: { label: string; value: string; sublabel?: string; delta?: number | null; deltaInvert?: boolean }) {
+function Stat({
+  label,
+  value,
+  sublabel,
+  delta,
+  deltaInvert,
+  deltaUnit = "pts",
+}: {
+  label: string;
+  value: string;
+  sublabel?: string;
+  delta?: number | null;
+  deltaInvert?: boolean;
+  // Todos los usos actuales de este Stat comparan una TASA (confirmación,
+  // cancelación, ocupación, conversión) contra la misma tasa en el período
+  // anterior — es decir, siempre una diferencia de puntos, nunca una
+  // variación relativa. Default "pts" a propósito (distinto del default
+  // "pct" de ChangeBadge/KpiCard, que se usa para conteos).
+  deltaUnit?: "pct" | "pts";
+}) {
   return (
     <div className="rounded-2xl bg-surface shadow-sm hover:shadow-lg transition-shadow p-5">
       <div className="text-xs text-ink-faint mb-1">{label}</div>
       <div className="flex items-baseline gap-2 flex-wrap">
         <div className="font-display text-xl font-semibold text-ink">{value}</div>
-        {delta !== undefined && <ChangeBadge value={delta} invert={deltaInvert} />}
+        {delta !== undefined && <ChangeBadge value={delta} invert={deltaInvert} unit={deltaUnit} />}
       </div>
       {sublabel && <div className="text-xs text-ink-faint mt-0.5">{sublabel}</div>}
     </div>
@@ -222,7 +241,11 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
                               {t("landing.confirmationOf", { pct: formatPct(m.confirmationRate), n: m.totalGames.toLocaleString("en-US") })}
                             </div>
                           </div>
-                          <ChangeBadge value={m.changePts} />
+                          <ChangeBadge
+                            value={m.changePts}
+                            unit="pts"
+                            secondary={m.priorConfirmationRate !== null ? t("landing.vsPriorRate", { pct: formatPct(m.priorConfirmationRate) }) : undefined}
+                          />
                         </Link>
                       );
                     })}
@@ -631,7 +654,12 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
               />
             </div>
 
-            <Glossary items={[{ term: t("facility.glossaryTerm"), def: t("facility.glossaryDef") }]} />
+            <Glossary
+              items={[
+                { term: t("facility.glossaryTerm"), def: t("facility.glossaryDef") },
+                { term: t("facility.methodologyNoteTerm"), def: t("facility.methodologyNoteDef") },
+              ]}
+            />
           </GroupSection>
 
           <GroupSection title={t("facility.byDayTitle")}>

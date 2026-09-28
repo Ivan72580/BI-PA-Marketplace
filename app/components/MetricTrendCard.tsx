@@ -46,7 +46,7 @@ export default function MetricTrendCard({
       {showCompare && priorValue !== null && (
         <div className="flex items-baseline gap-2 mb-2">
           <span className="text-lg font-semibold text-ink">{formatPct(currentValue)}</span>
-          <ChangeBadge value={delta} />
+          <ChangeBadge value={delta} unit="pts" />
           <span className="text-xs text-ink-faint">{t("vsLabel", { value: formatPct(priorValue) })}</span>
         </div>
       )}

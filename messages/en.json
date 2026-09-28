@@ -285,7 +285,8 @@
       "bestHourTitle": "Best time slot to confirm",
       "bestHourSubtitle": "Whole network · minimum {n} games per time slot",
       "bestFormatTitle": "Most consistent formats",
-      "bestFormatSubtitle": "Whole network · minimum {n} games per format"
+      "bestFormatSubtitle": "Whole network · minimum {n} games per format",
+      "vsPriorRate": "vs. {pct} last month"
     },
     "quarterInsight": {
       "noVariation": "{label}: no meaningful variation between quarters.",
@@ -352,7 +353,9 @@
       "granDay": "Day",
       "detailThisMonthLastMonth": "{n} this month · {m} last month",
       "detailConfirmedOfTotal8w": "{n} confirmed of {total} in 8 weeks",
-      "detailCancelledOfTotal8w": "{n} cancelled of {total} in 8 weeks"
+      "detailCancelledOfTotal8w": "{n} cancelled of {total} in 8 weeks",
+      "methodologyNoteTerm": "Different from Daily",
+      "methodologyNoteDef": "\"Consistency\" (above) measures the % of observed months with at least one game — historical and descriptive. Daily uses a rolling 3-month window with a 55%+ confirmation threshold — recent and actionable. They can flag different slots for the same facility; that is not a bug, they answer different questions."
     },
     "metricCard": {
       "compareVs": "Compare vs. {label}",
@@ -421,7 +424,8 @@
     }
   },
   "ChangeBadge": {
-    "noPriorData": "no data for the prior period"
+    "noPriorData": "no data for the prior period",
+    "ptsSuffix": "pts"
   },
   "Market": {
     "title": "Market",
@@ -496,7 +500,8 @@
           "term": "Not enough data",
           "def": "fewer than {min} games in the month — not enough for a reliable score."
         }
-      }
+      },
+      "empty": "No data for this filter."
     },
     "price": {
       "title": "Average ticket, players per game, and estimated revenue",

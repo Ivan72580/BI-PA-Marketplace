@@ -185,13 +185,30 @@ function buildDayOfWeekCancelSummaries(pattern: PatternRow[], topCancelSlots: To
   });
 }
 
-function Stat({ label, value, sublabel, delta, deltaInvert }: { label: string; value: string; sublabel?: string; delta?: number | null; deltaInvert?: boolean }) {
+function Stat({
+  label,
+  value,
+  sublabel,
+  delta,
+  deltaInvert,
+  deltaUnit = "pts",
+}: {
+  label: string;
+  value: string;
+  sublabel?: string;
+  delta?: number | null;
+  deltaInvert?: boolean;
+  // Los dos usos actuales (confirmación/ocupación vs. baseline de los
+  // mismos slots) son diferencias de puntos entre tasas, no variación
+  // relativa — mismo criterio que Trends.Stat.
+  deltaUnit?: "pct" | "pts";
+}) {
   return (
     <div className="rounded-2xl bg-surface shadow-sm hover:shadow-lg transition-shadow p-5">
       <div className="text-xs text-ink-faint mb-1">{label}</div>
       <div className="flex items-baseline gap-2 flex-wrap">
         <div className="font-display text-xl font-semibold text-ink">{value}</div>
-        {delta !== undefined && <ChangeBadge value={delta} invert={deltaInvert} />}
+        {delta !== undefined && <ChangeBadge value={delta} invert={deltaInvert} unit={deltaUnit} />}
       </div>
       {sublabel && <div className="text-xs text-ink-faint mt-0.5">{sublabel}</div>}
     </div>

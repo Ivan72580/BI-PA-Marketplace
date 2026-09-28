@@ -285,7 +285,8 @@
       "bestHourTitle": "Mejor horario para confirmar",
       "bestHourSubtitle": "Toda la red · mínimo {n} partidos por horario",
       "bestFormatTitle": "Formatos más consistentes",
-      "bestFormatSubtitle": "Toda la red · mínimo {n} partidos por formato"
+      "bestFormatSubtitle": "Toda la red · mínimo {n} partidos por formato",
+      "vsPriorRate": "vs. {pct} el mes pasado"
     },
     "quarterInsight": {
       "noVariation": "{label}: sin variación relevante entre trimestres.",
@@ -352,7 +353,9 @@
       "granDay": "Día",
       "detailThisMonthLastMonth": "{n} este mes · {m} el mes pasado",
       "detailConfirmedOfTotal8w": "{n} confirmados de {total} en 8 semanas",
-      "detailCancelledOfTotal8w": "{n} cancelados de {total} en 8 semanas"
+      "detailCancelledOfTotal8w": "{n} cancelados de {total} en 8 semanas",
+      "methodologyNoteTerm": "Distinto de Daily",
+      "methodologyNoteDef": "\"Consistencia\" (arriba) mide % de meses observados con al menos un partido — es histórico y descriptivo. Daily usa una ventana móvil de 3 meses con umbral de 55%+ de confirmación — es reciente y accionable. Pueden marcar horarios distintos para la misma facility; no es un error, responden preguntas distintas."
     },
     "metricCard": {
       "compareVs": "Comparar vs. {label}",
@@ -421,7 +424,8 @@
     }
   },
   "ChangeBadge": {
-    "noPriorData": "sin dato del período anterior"
+    "noPriorData": "sin dato del período anterior",
+    "ptsSuffix": "pts"
   },
   "Market": {
     "title": "Market",
@@ -496,7 +500,8 @@
           "term": "Sin datos suficientes",
           "def": "menos de {min} partidos en el mes — no alcanza para un score confiable."
         }
-      }
+      },
+      "empty": "Sin datos en este filtro."
     },
     "price": {
       "title": "Ticket promedio, jugadores por partido y revenue estimado",

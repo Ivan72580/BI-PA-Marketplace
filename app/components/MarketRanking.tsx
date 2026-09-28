@@ -3,10 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { getParetoGroups, getMonthlyFacilityRanking, type OverviewFilters } from "../lib/db/queries";
 import MonthPicker from "./MonthPicker";
 import Glossary from "./Glossary";
-
-function formatPct(n: number) {
-  return `${(n * 100).toFixed(1)}%`;
-}
+import MonthlyRankingTable from "./MonthlyRankingTable";
 
 export default async function MarketRanking({
   filters,
@@ -42,43 +39,7 @@ export default async function MarketRanking({
       <div className="text-sm text-ink-faint mb-5">{t("facilitiesInGroup", { n: target.facilityIds.length })}</div>
 
       <div className="rounded-2xl bg-surface shadow-sm hover:shadow-lg transition-shadow p-5">
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-ink-muted">
-                <th className="py-1.5 px-2 font-normal">{t("headers.facility")}</th>
-                <th className="py-1.5 px-2 font-normal">{t("headers.confirmed")}</th>
-                <th className="py-1.5 px-2 font-normal">{t("headers.cancelled")}</th>
-                <th className="py-1.5 px-2 font-normal">{t("headers.conversion")}</th>
-                <th className="py-1.5 px-2 font-normal">{t("headers.leadTime")}</th>
-                <th className="py-1.5 px-2 font-normal">{t("headers.avgWaitlist")}</th>
-                <th className="py-1.5 px-2 font-normal">{t("headers.occupancy")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.facilityId} className="border-b border-surface-sunken">
-                  <td className="py-1.5 px-2">
-                    <Link href={buildQuery({ facilityId: r.facilityId, view: undefined, group: undefined, month: undefined })} className="text-brand hover:underline">
-                      {r.name}
-                    </Link>
-                  </td>
-                  <td className="py-1.5 px-2 text-ink">{r.confirmedGames}</td>
-                  <td className="py-1.5 px-2 text-ink">{r.cancelledGames}</td>
-                  <td className="py-1.5 px-2 text-ink">{formatPct(r.conversionRate)}</td>
-                  <td className="py-1.5 px-2 text-ink">{r.medianLeadTime !== null ? r.medianLeadTime.toFixed(1) : "—"}</td>
-                  <td className="py-1.5 px-2 text-ink">{r.avgWaitlist !== null ? r.avgWaitlist.toFixed(1) : "—"}</td>
-                  <td className="py-1.5 px-2 text-ink">{formatPct(r.occupancyRate)}</td>
-                </tr>
-              ))}
-              {rows.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="py-4 text-center text-ink-faint">{t("empty")}</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <MonthlyRankingTable rows={rows} />
         <Glossary
           items={[
             { term: t("glossary.conversion.term"), def: t("glossary.conversion.def") },

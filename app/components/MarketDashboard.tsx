@@ -17,6 +17,7 @@ import TabFilters from "./TabFilters";
 import RegionConcentrationPies from "./RegionConcentrationPies";
 import PriceTable from "./PriceTable";
 import EngagementTable from "./EngagementTable";
+import ReputationTable, { type ReputationRow } from "./ReputationTable";
 
 function formatPct(n: number) {
   return `${(n * 100).toFixed(1)}%`;
@@ -37,6 +38,17 @@ function SectionCard({ title, subtitle, children }: { title: string; subtitle?: 
       {children}
     </div>
   );
+}
+
+// Destino canónico de "detalle por facility" en toda la app: la vista de
+// Overview con el filtro puesto en esa facility (FacilityDetailView), que
+// a su vez linkea a "/daily?..." para el detalle día por día. Todo link a
+// una facility puntual en esta página (Pareto, Market share, Reputación)
+// debería terminar acá — antes algunos se quedaban en /market (filtro
+// degenerado, sin vista real de detalle) o iban a /trends (destino
+// distinto al resto de la app).
+function facilityDetailHref(facilityId: string, marketId: string, regionId: string): string {
+  return `/?${new URLSearchParams({ facilityId, marketId, regionId }).toString()}`;
 }
 
 function shiftMonth(month: string, delta: number): string {
@@ -119,13 +131,22 @@ export default async function MarketDashboard({
               <PieChart data={paretoChart} showLegend={false} />
               <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
                 {pareto.top80.facilities.map((f) => (
-                  <div key={f.facilityId} className="flex items-center justify-between text-sm">
-                    <span className="text-ink truncate mr-2">{f.name}</span>
+                  <Link
+                    key={f.facilityId}
+                    href={facilityDetailHref(f.facilityId, f.marketId, f.regionId)}
+                    className="flex items-center justify-between text-sm group"
+                  >
+                    <span className="text-brand group-hover:underline truncate mr-2">{f.name}</span>
                     <span className="flex items-center gap-2 shrink-0">
                       <span className="text-ink-muted">{f.count.toLocaleString("en-US")}</span>
-                      {f.changePct !== null && <ChangeBadge value={f.changePct} />}
+                      {f.changePct !== null && (
+                        <ChangeBadge
+                          value={f.changePct}
+                          secondary={f.priorYearCount !== null ? `${f.count - f.priorYearCount >= 0 ? "+" : ""}${f.count - f.priorYearCount}` : undefined}
+                        />
+                      )}
                     </span>
-                  </div>
+                  </Link>
                 ))}
                 <div className="flex items-center justify-between text-sm pt-1 border-t border-surface-sunken">
                   <span className="text-ink-faint">{t("concentration.othersLabel", { n: pareto.others.facilityIds.length })}</span>
@@ -166,7 +187,14 @@ export default async function MarketDashboard({
                 <div className="text-sm font-medium text-brand">{m.marketName}</div>
                 <div className="flex items-baseline gap-2 mt-2">
                   <div className="font-display text-xl font-semibold text-ink">{m.confirmedGames.toLocaleString("en-US")}</div>
-                  <ChangeBadge value={m.changePct} />
+                  <ChangeBadge
+                    value={m.changePct}
+                    secondary={
+                      m.priorMonthConfirmedGames !== null
+                        ? `${m.confirmedGames - m.priorMonthConfirmedGames >= 0 ? "+" : ""}${m.confirmedGames - m.priorMonthConfirmedGames}`
+                        : undefined
+                    }
+                  />
                 </div>
                 <div className="text-xs text-ink-faint mt-0.5">{t("share.confirmedGamesLabel")}</div>
               </Link>
@@ -180,14 +208,17 @@ export default async function MarketDashboard({
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {marketShareTarget.map((f) => {
               const priorShare = facilityShareCompare?.get(f.facilityId) ?? null;
-              const shareChange = priorShare !== null && priorShare > 0 ? (f.marketSharePct - priorShare) / priorShare : null;
-              const trendsHref = `/trends?${new URLSearchParams({ facilityId: f.facilityId, marketId: f.marketId, regionId: f.regionId }).toString()}`;
+              // Puntos de share ganados/perdidos, no un "%-del-%" (una
+              // facility que pasó de 2% a 3% de share ganó 1 punto, no
+              // "50% más de share" — esa segunda lectura es la que estaba
+              // antes y confundía variación relativa con puntos).
+              const shareChangePts = priorShare !== null ? f.marketSharePct - priorShare : null;
               return (
-                <Link key={f.facilityId} href={trendsHref} className="block rounded-2xl bg-surface shadow-sm hover:shadow-lg transition-shadow p-4">
+                <Link key={f.facilityId} href={facilityDetailHref(f.facilityId, f.marketId, f.regionId)} className="block rounded-2xl bg-surface shadow-sm hover:shadow-lg transition-shadow p-4">
                   <div className="text-sm font-medium text-brand">{f.name}</div>
                   <div className="flex items-baseline gap-2 mt-2">
                     <div className="font-display text-xl font-semibold text-ink">{formatPct(f.marketSharePct)}</div>
-                    <ChangeBadge value={shareChange} />
+                    <ChangeBadge value={shareChangePts} unit="pts" />
                   </div>
                   <div className="text-xs text-ink-faint mt-0.5">{t("share.confirmedCount", { n: f.confirmedGames.toLocaleString("en-US") })}</div>
                 </Link>
@@ -202,38 +233,24 @@ export default async function MarketDashboard({
   );
 
   // ---------- Reputación ----------
+  const reputationTableRows: ReputationRow[] = reputationRows.map((f) => ({
+    facilityId: f.facilityId,
+    name: f.name,
+    marketId: f.marketId,
+    regionId: f.regionId,
+    tierLabel: TIER_LABEL[f.reputationTier],
+    tierClass: TIER_CLASS[f.reputationTier],
+    confirmedGames: f.confirmedGames,
+    regionRank: f.regionRank,
+    regionTotal: f.regionTotal,
+    marketRank: f.marketRank,
+    marketTotal: f.marketTotal,
+  }));
   const reputacionContent = (
     <div className="space-y-5">
       <TabFilters regions={filterOptions.regions} markets={filterOptions.markets} />
       <SectionCard title={t("reputation.title")} subtitle={t("reputation.subtitle", { month })}>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-ink-muted">
-                <th className="py-1.5 px-2 font-normal">{t("reputation.headers.facility")}</th>
-                <th className="py-1.5 px-2 font-normal">{t("reputation.headers.level")}</th>
-                <th className="py-1.5 px-2 font-normal">{t("reputation.headers.confirmed")}</th>
-                <th className="py-1.5 px-2 font-normal">{t("reputation.headers.rankRegion")}</th>
-                <th className="py-1.5 px-2 font-normal">{t("reputation.headers.rankMarket")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {reputationRows.slice(0, 50).map((f) => (
-                <tr key={f.facilityId} className="border-b border-surface-sunken">
-                  <td className="py-1.5 px-2">
-                    <Link href={buildQuery({ facilityId: f.facilityId, marketId: f.marketId, regionId: f.regionId, view: undefined, group: undefined })} className="text-brand hover:underline">
-                      {f.name}
-                    </Link>
-                  </td>
-                  <td className="py-1.5 px-2"><span className={`text-[10px] px-1.5 py-0.5 rounded ${TIER_CLASS[f.reputationTier]}`}>{TIER_LABEL[f.reputationTier]}</span></td>
-                  <td className="py-1.5 px-2 text-ink">{f.confirmedGames}</td>
-                  <td className="py-1.5 px-2 text-ink-muted">{f.regionRank ? t("reputation.rankOf", { rank: f.regionRank, total: f.regionTotal }) : "—"}</td>
-                  <td className="py-1.5 px-2 text-ink-muted">{f.marketRank ? t("reputation.rankOf", { rank: f.marketRank, total: f.marketTotal }) : "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ReputationTable rows={reputationTableRows} />
         <Glossary
           items={[
             { term: t("reputation.glossary.platinum.term"), def: t("reputation.glossary.platinum.def") },

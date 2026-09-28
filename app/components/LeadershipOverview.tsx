@@ -122,7 +122,7 @@ export default async function LeadershipOverview({ month, locale }: { month: str
                     {r.confirmation ? formatPct(r.confirmation.confirmationRate) : "—"}
                   </td>
                   <td className="py-1.5 px-2">
-                    <ChangeBadge value={r.confirmation?.changePts ?? null} />
+                    <ChangeBadge value={r.confirmation?.changePts ?? null} unit="pts" />
                   </td>
                 </tr>
               ))}

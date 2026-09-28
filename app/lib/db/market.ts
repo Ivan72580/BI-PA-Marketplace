@@ -236,7 +236,15 @@ export const getMarketFacilitySummary = cached("getMarketFacilitySummary", getMa
 
 // ---------- Grupos del Pareto 80/20 (para la torta + subpágina de ranking) ----------
 
-export type ParetoFacility = { facilityId: string; name: string; count: number; priorYearCount: number | null; changePct: number | null };
+export type ParetoFacility = {
+  facilityId: string;
+  name: string;
+  marketId: string;
+  regionId: string;
+  count: number;
+  priorYearCount: number | null;
+  changePct: number | null;
+};
 export type ParetoGroup = { facilityIds: string[]; facilities: ParetoFacility[]; count: number; pct: number };
 
 async function getParetoGroupsImpl(filters: OverviewFilters): Promise<{ top80: ParetoGroup; others: ParetoGroup; total: number }> {
@@ -247,16 +255,28 @@ async function getParetoGroupsImpl(filters: OverviewFilters): Promise<{ top80: P
     _count: { _all: true },
   });
 
-  type FacilityNameInfo = { id: string; name: string };
+  // Se necesita marketId/regionId (no solo el nombre) para poder armar el
+  // link canónico de detalle "/?facilityId=...&marketId=...&regionId=..."
+  // — mismo patrón que ya usa getMarketFacilitySummary más abajo.
+  type FacilityInfo = { id: string; name: string; marketId: string; market: { regionId: string } };
   const facilityIds = groups.map((g) => g.facilityId);
   const facilityInfoRows = (await prisma.facility.findMany({
     where: { id: { in: facilityIds } },
-    select: { id: true, name: true },
-  })) as FacilityNameInfo[];
-  const nameMap = new Map(facilityInfoRows.map((f): [string, string] => [f.id, f.name]));
+    select: { id: true, name: true, marketId: true, market: { select: { regionId: true } } },
+  })) as FacilityInfo[];
+  const infoMap = new Map(facilityInfoRows.map((f): [string, FacilityInfo] => [f.id, f]));
 
   const sorted = groups
-    .map((g) => ({ facilityId: g.facilityId, name: nameMap.get(g.facilityId) ?? "—", count: Number(g._count._all) }))
+    .map((g) => {
+      const info = infoMap.get(g.facilityId);
+      return {
+        facilityId: g.facilityId,
+        name: info?.name ?? "—",
+        marketId: info?.marketId ?? "",
+        regionId: info?.market.regionId ?? "",
+        count: Number(g._count._all),
+      };
+    })
     .sort((a, b) => b.count - a.count);
   const total = sorted.reduce((s, f) => s + f.count, 0);
 
@@ -294,10 +314,10 @@ async function getParetoGroupsImpl(filters: OverviewFilters): Promise<{ top80: P
   const top80Facilities: ParetoFacility[] = top80Rows.map((r) => {
     const priorYearCount = hasDateRange ? priorCountMap.get(r.facilityId) ?? 0 : null;
     const changePct = priorYearCount !== null && priorYearCount > 0 ? (r.count - priorYearCount) / priorYearCount : null;
-    return { facilityId: r.facilityId, name: r.name, count: r.count, priorYearCount, changePct };
+    return { facilityId: r.facilityId, name: r.name, marketId: r.marketId, regionId: r.regionId, count: r.count, priorYearCount, changePct };
   });
   const othersFacilities: ParetoFacility[] = othersRows.map((r) => ({
-    facilityId: r.facilityId, name: r.name, count: r.count, priorYearCount: null, changePct: null,
+    facilityId: r.facilityId, name: r.name, marketId: r.marketId, regionId: r.regionId, count: r.count, priorYearCount: null, changePct: null,
   }));
 
   return {
@@ -324,6 +344,8 @@ export const getParetoGroups = cached("getParetoGroups", getParetoGroupsImpl);
 export type MonthlyFacilityRankingRow = {
   facilityId: string;
   name: string;
+  marketId: string;
+  regionId: string;
   confirmedGames: number;
   cancelledGames: number;
   conversionRate: number;
@@ -355,12 +377,12 @@ async function getMonthlyFacilityRankingImpl(facilityIds: string[], month: strin
     prisma.game.groupBy({ by: ["facilityId"], where, _avg: { waitlistPlayers: true } }),
   ]);
 
-  type FacilityNameInfo = { id: string; name: string };
+  type FacilityInfo = { id: string; name: string; marketId: string; market: { regionId: string } };
   const facilityInfoRows = (await prisma.facility.findMany({
     where: { id: { in: facilityIds } },
-    select: { id: true, name: true },
-  })) as FacilityNameInfo[];
-  const nameMap = new Map(facilityInfoRows.map((f): [string, string] => [f.id, f.name]));
+    select: { id: true, name: true, marketId: true, market: { select: { regionId: true } } },
+  })) as FacilityInfo[];
+  const infoMap = new Map(facilityInfoRows.map((f): [string, FacilityInfo] => [f.id, f]));
 
   const cancelledMap = new Map<string, number>(cancelledGroups.map((g) => [g.facilityId, Number(g._count._all)]));
   const occMap = new Map<string, { final: number; max: number }>(
@@ -384,9 +406,12 @@ async function getMonthlyFacilityRankingImpl(facilityIds: string[], month: strin
       const total = Number(t._count._all);
       const occ = occMap.get(t.facilityId) ?? { final: 0, max: 0 };
       const eng = engMap.get(t.facilityId) ?? { final: 0, dropped: 0, waitlist: 0 };
+      const info = infoMap.get(t.facilityId);
       return {
         facilityId: t.facilityId,
-        name: nameMap.get(t.facilityId) ?? "—",
+        name: info?.name ?? "—",
+        marketId: info?.marketId ?? "",
+        regionId: info?.market.regionId ?? "",
         confirmedGames: total - cancelled,
         cancelledGames: cancelled,
         conversionRate: eng.final + eng.dropped > 0 ? eng.final / (eng.final + eng.dropped) : 0,

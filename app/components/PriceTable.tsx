@@ -85,7 +85,7 @@ export default function PriceTable({ rows }: { rows: PriceRow[] }) {
           {sorted.slice(0, 30).map((f) => (
             <tr key={f.facilityId} className="border-b border-surface-sunken">
               <td className="py-1.5 px-2">
-                <Link href={`/trends?regionId=${f.regionId}&marketId=${f.marketId}&facilityId=${f.facilityId}`} className="text-brand hover:underline">
+                <Link href={`/?regionId=${f.regionId}&marketId=${f.marketId}&facilityId=${f.facilityId}`} className="text-brand hover:underline">
                   {f.name}
                 </Link>
               </td>
