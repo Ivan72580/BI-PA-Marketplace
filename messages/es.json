@@ -595,15 +595,17 @@
     },
     "tabs": {
       "summary": "Resumen",
-      "byFacility": "Por facility",
-      "bySchedule": "Por horario"
+      "cancellations": "Cancelaciones",
+      "confirmations": "Confirmaciones",
+      "gameRating": "Calificación",
+      "facilities": "Facilities"
     },
     "sections": {
       "performance": "Rendimiento",
       "regionConcentration": "Concentración por región",
       "composition": "Composición",
       "cancellationReasons": "Motivos de cancelación",
-      "satisfactionPriceOrganizer": "Satisfacción, precio y organizador",
+      "satisfactionPriceOrganizer": "Precio y organizador",
       "rankings": "Rankings",
       "rankingsRegion": "Rankings — {region}",
       "schedule": "Horario",
@@ -688,7 +690,9 @@
       "empty": "Sin cancelaciones en este filtro.",
       "topContributorsTitle": "Facilities que más aportaron a las cancelaciones",
       "gamesCancelledCount": "{n} cancelados",
-      "topContributorWarning": "⚠ <link>{facility}</link> es la que más aporta a \"{reason}\" en {region} ({count} de {total}) — vale la pena revisarla."
+      "topContributorWarning": "⚠ <link>{facility}</link> es la que más aporta a \"{reason}\" en {region} ({count} de {total}) — vale la pena revisarla.",
+      "topReasonInline": "Motivo principal: {reason} ({pct})",
+      "viewFullDetail": "Ver el desglose completo por motivo y el ranking de facilities en la pestaña Cancelaciones."
     },
     "cancellationRanking": {
       "back": "Volver al resumen",
@@ -697,6 +701,14 @@
       "rankingTitle": "Facilities involucradas",
       "rankingSubtitle": "Variación vs. {period}",
       "countSuffix": "{n} cancelaciones"
+    },
+    "gameRating": {
+      "topRatedTitle": "Facilities mejor calificadas",
+      "topRatedSubtitle": "Mínimo {n} partidos en el período, para que el promedio sea representativo",
+      "needsAttentionTitle": "Facilities a revisar",
+      "needsAttentionSubtitle": "Mínimo {n} partidos en el período, para que el promedio sea representativo",
+      "viewFullReviews": "Ver reviews de partidos y de la app →",
+      "viewFullReviewsCaveat": "Esa vista es de toda la red, sin el filtro de región/market/facility/período de acá."
     },
     "satisfaction": {
       "title": "Satisfacción",

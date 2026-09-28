@@ -595,15 +595,17 @@
     },
     "tabs": {
       "summary": "Summary",
-      "byFacility": "By facility",
-      "bySchedule": "By schedule"
+      "cancellations": "Cancellations",
+      "confirmations": "Confirmations",
+      "gameRating": "Game Rating",
+      "facilities": "Facilities"
     },
     "sections": {
       "performance": "Performance",
       "regionConcentration": "Concentration by region",
       "composition": "Composition",
       "cancellationReasons": "Cancellation reasons",
-      "satisfactionPriceOrganizer": "Satisfaction, price & organizer",
+      "satisfactionPriceOrganizer": "Price & organizer",
       "rankings": "Rankings",
       "rankingsRegion": "Rankings — {region}",
       "schedule": "Schedule",
@@ -688,7 +690,9 @@
       "empty": "No cancellations for this filter.",
       "topContributorsTitle": "Facilities that contributed most to cancellations",
       "gamesCancelledCount": "{n} cancelled",
-      "topContributorWarning": "⚠ <link>{facility}</link> contributes the most to \"{reason}\" in {region} ({count} of {total}) — worth reviewing."
+      "topContributorWarning": "⚠ <link>{facility}</link> contributes the most to \"{reason}\" in {region} ({count} of {total}) — worth reviewing.",
+      "topReasonInline": "Top reason: {reason} ({pct})",
+      "viewFullDetail": "See the full breakdown by reason and the facility ranking in the Cancellations tab."
     },
     "cancellationRanking": {
       "back": "Back to overview",
@@ -697,6 +701,14 @@
       "rankingTitle": "Facilities involved",
       "rankingSubtitle": "Change vs. {period}",
       "countSuffix": "{n} cancellations"
+    },
+    "gameRating": {
+      "topRatedTitle": "Top rated facilities",
+      "topRatedSubtitle": "Minimum {n} games in the period, so the average is representative",
+      "needsAttentionTitle": "Facilities to review",
+      "needsAttentionSubtitle": "Minimum {n} games in the period, so the average is representative",
+      "viewFullReviews": "See match and app reviews →",
+      "viewFullReviewsCaveat": "That view covers the whole network, without the region/market/facility/period filter from here."
     },
     "satisfaction": {
       "title": "Satisfaction",

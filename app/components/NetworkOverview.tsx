@@ -10,6 +10,7 @@ import {
   getFacilityTable,
   getMarketFacilitySummary,
   getTopCancellationFacilityForReason,
+  MIN_GAMES_FOR_RANKING,
   TIER_CLASS,
   type FacilitySortKey,
   type OverviewFilters,
@@ -330,37 +331,164 @@ export default async function NetworkOverview({
 
       <GroupSection title={t("sections.cancellationReasons")}>
         {isMultiScope ? (
-          <>
-            <SectionCard title={t("cancellation.compareTitle")} subtitle={t("cancellation.compareSubtitle")}>
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-sm">
-                  <thead>
-                    <tr className="border-b border-border text-left text-ink-muted">
-                      <th className="py-1.5 px-2 font-normal">{t("cancellation.headers.region")}</th>
-                      <th className="py-1.5 px-2 font-normal">{t("cancellation.headers.cancelled")}</th>
-                      <th className="py-1.5 px-2 font-normal">{t("cancellation.headers.rate")}</th>
-                      <th className="py-1.5 px-2 font-normal">{t("cancellation.headers.topReason")}</th>
+          <SectionCard title={t("cancellation.compareTitle")} subtitle={t("cancellation.compareSubtitle")}>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left text-ink-muted">
+                    <th className="py-1.5 px-2 font-normal">{t("cancellation.headers.region")}</th>
+                    <th className="py-1.5 px-2 font-normal">{t("cancellation.headers.cancelled")}</th>
+                    <th className="py-1.5 px-2 font-normal">{t("cancellation.headers.rate")}</th>
+                    <th className="py-1.5 px-2 font-normal">{t("cancellation.headers.topReason")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {scopeData.map(({ scope, current }) => (
+                    <tr key={scope.regionId} className="border-b border-surface-sunken">
+                      <td className="py-1.5 px-2 text-ink font-medium">{scope.regionName}</td>
+                      <td className="py-1.5 px-2 text-ink">{current.cancelledGames.toLocaleString("en-US")}</td>
+                      <td className="py-1.5 px-2 text-ink">{formatPct(current.cancellationRate)}</td>
+                      <td className="py-1.5 px-2 text-ink-muted">
+                        {current.cancellationBreakdown[0] ? `${current.cancellationBreakdown[0].label} (${formatPct(current.cancellationBreakdown[0].pct)})` : "—"}
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {scopeData.map(({ scope, current }) => (
-                      <tr key={scope.regionId} className="border-b border-surface-sunken">
-                        <td className="py-1.5 px-2 text-ink font-medium">{scope.regionName}</td>
-                        <td className="py-1.5 px-2 text-ink">{current.cancelledGames.toLocaleString("en-US")}</td>
-                        <td className="py-1.5 px-2 text-ink">{formatPct(current.cancellationRate)}</td>
-                        <td className="py-1.5 px-2 text-ink-muted">
-                          {current.cancellationBreakdown[0] ? `${current.cancellationBreakdown[0].label} (${formatPct(current.cancellationBreakdown[0].pct)})` : "—"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </SectionCard>
+        ) : (
+          scopeData.map(({ scope, current }) => (
+            <SectionCard key={scope.regionId} title={t("cancellation.title")} subtitle={t("cancellation.subtitleSingle", { cancelled: current.cancelledGames.toLocaleString("en-US"), rate: formatPct(current.cancellationRate) })}>
+              <div className="text-sm text-ink-muted">
+                {current.cancellationBreakdown[0]
+                  ? t("cancellation.topReasonInline", { reason: current.cancellationBreakdown[0].label, pct: formatPct(current.cancellationBreakdown[0].pct) })
+                  : t("cancellation.empty")}
               </div>
             </SectionCard>
+          ))
+        )}
+        {/* El desglose por motivo (con drill-down por facility) y los rankings
+            de cancelación se movieron a su propia pestaña — este bloque ahora
+            es sólo el pantallazo, no la duplica. */}
+        <div className="text-xs text-ink-faint px-1 pt-1">{t("cancellation.viewFullDetail")}</div>
+      </GroupSection>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-              {scopeData.map(({ scope, current, prior, topReasonFacility }) => (
-                <div key={scope.regionId}>
+      <GroupSection title={t("sections.satisfactionPriceOrganizer")}>
+        <div className={`grid grid-cols-1 ${isMultiScope ? "lg:grid-cols-2" : ""} gap-5`}>
+          {scopeData.map(({ scope, current, extended }) => (
+            <div key={scope.regionId} className="space-y-4">
+              {isMultiScope && <div className="text-xs font-medium text-ink-muted px-1">{scope.regionName}</div>}
+              <SectionCard title={t("priceRevenue.title")}>
+                <div className="flex items-end gap-6">
+                  <Stat label={t("priceRevenue.avgPrice")} value={extended.avgPrice !== null ? formatUSD(extended.avgPrice) : "—"} sublabel={t("priceRevenue.avgPriceSub")} />
+                  <Stat label={t("priceRevenue.totalRevenue")} value={formatUSD(current.totalRevenue)} sublabel={t("priceRevenue.totalRevenueSub")} />
+                </div>
+              </SectionCard>
+              <div className="rounded-xl bg-surface-panel px-5 py-3.5 shadow-sm">
+                <div className="text-xs text-ink-faint mb-2">{t("organizer.title")}</div>
+                <div className="flex flex-wrap gap-x-6 gap-y-1.5">
+                  {extended.organizerBreakdown.map((o) => (
+                    <span key={o.organizer} className="text-xs text-ink-muted">
+                      {t("organizer.summary", {
+                        organizer: o.organizer,
+                        confirmed: o.confirmedCount.toLocaleString("en-US"),
+                        cancelled: (o.count - o.confirmedCount).toLocaleString("en-US"),
+                        rate: formatPct(o.cancellationRate),
+                      })}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <Glossary
+          items={[
+            { term: t("satisfactionGlossary.avgPrice.term"), def: t("satisfactionGlossary.avgPrice.def") },
+            { term: t("satisfactionGlossary.totalRevenue.term"), def: t("satisfactionGlossary.totalRevenue.def") },
+          ]}
+        />
+      </GroupSection>
+    </div>
+  );
+
+  // ---------- Tab: Cancellations ----------
+  // Consolida lo que antes vivía repartido entre "Resumen" (desglose por
+  // motivo + drill-down por facility) y "Por facility" (peor tasa, Pareto de
+  // cancelados, contribución) — un solo lugar con todo el detalle de
+  // cancelaciones, en vez de dos pestañas que mezclaban confirmación y
+  // cancelación sin separar.
+  const cancellationsContent = (
+    <div className="space-y-6">
+      {scopeData.map(({ scope, current, prior, contribution, topReasonFacility }) => {
+        const priorParetoCancelledOrder = prior?.paretoCancellations.map((f) => f.facilityId) ?? null;
+        const priorWorstRateOrder = prior?.worstCancellationRate.map((f) => f.facilityId) ?? null;
+        const priorCancelledValue = new Map((prior?.paretoCancellations ?? []).map((f): [string, number] => [f.facilityId, f.value]));
+
+        const paretoCancelledRows: RankingRow[] = withRankChange(current.paretoCancellations, priorParetoCancelledOrder).map((f) => ({
+          facilityId: f.facilityId, marketId: f.marketId, regionId: f.regionId, label: f.label,
+          value: f.value, extra: t("rankings.cumulativeSuffix", { pct: formatPct(f.cumulativePct) }), rankChange: f.rankChange,
+          delta: prior ? pctDelta(f.value, priorCancelledValue.get(f.facilityId)) ?? null : undefined,
+        }));
+        const worstRateRows: RankingRow[] = withRankChange(current.worstCancellationRate, priorWorstRateOrder).map((f) => ({
+          facilityId: f.facilityId, marketId: f.marketId, regionId: f.regionId, label: f.label,
+          value: Math.round(f.rate * 100), extra: t("rankings.gamesSuffix", { n: f.totalGames }), rankChange: f.rankChange,
+        }));
+        const cancelContribRows: RankingRow[] = [...contribution]
+          .sort((a, b) => b.excessCancellations - a.excessCancellations)
+          .slice(0, 10)
+          .map((f) => ({
+            facilityId: f.facilityId, marketId: f.marketId, regionId: f.regionId, label: f.label,
+            value: Math.abs(f.excessCancellations),
+            displayValue: `${f.excessCancellations > 0 ? "+" : ""}${f.excessCancellations.toFixed(1)} ${t("rankings.vsExpected")}`,
+          }));
+
+        return (
+          <div key={scope.regionId}>
+            <GroupSection title={isMultiScope ? t("sections.rankingsRegion", { region: scope.regionName }) : t("sections.rankings")}>
+              {contribution.length > 0 && (
+                <>
+                  <RankingCard
+                    title={t("rankings.contribCancelTitle")}
+                    subtitle={t("rankings.contribCancelSubtitle", { period: comparePeriodLabel })}
+                    rows={cancelContribRows}
+                    buildHref={(facilityId, marketId, regionId) => buildQuery(sp, { facilityId, marketId, regionId })}
+                    formatValue={(v) => `${v}`}
+                    tone="danger"
+                  />
+                  <Glossary
+                    items={[
+                      { term: t("rankings.contribGlossary.whatShows.term"), def: t("rankings.contribGlossary.whatShows.def") },
+                      { term: t("rankings.contribGlossary.barLength.term"), def: t("rankings.contribGlossary.barLength.def") },
+                    ]}
+                  />
+                </>
+              )}
+
+              <RankingCard
+                title={t("rankings.paretoCancelledTitle")}
+                subtitle={t("rankings.paretoCancelledSubtitle", { n: paretoCancelledRows.length, pct: formatPct(current.paretoCoveragePct) })}
+                rows={paretoCancelledRows}
+                buildHref={(facilityId, marketId, regionId) => buildQuery(sp, { facilityId, marketId, regionId })}
+                formatValue={(v) => t("rankings.cancelledSuffix", { n: v })}
+                tone="danger"
+              />
+              <Glossary items={[{ term: t("rankings.cumulativePctGlossary.term"), def: t("rankings.cumulativePctGlossary.def") }]} />
+
+              <RankingCard
+                title={t("rankings.worstRateTitle")}
+                subtitle={t("rankings.worstRateSubtitle")}
+                rows={worstRateRows}
+                buildHref={(facilityId, marketId, regionId) => buildQuery(sp, { facilityId, marketId, regionId })}
+                formatValue={(v) => `${v}%`}
+                tone="danger"
+              />
+            </GroupSection>
+
+            <div className="mt-5">
+              <GroupSection title={t("sections.cancellationReasons")}>
+                {isMultiScope ? (
                   <SectionCard title={t("cancellation.rankingTitleRegion", { region: scope.regionName })}>
                     <div className="space-y-2">
                       {current.cancellationBreakdown.map((reason) => {
@@ -399,134 +527,56 @@ export default async function NetworkOverview({
                       </div>
                     )}
                   </SectionCard>
-                </div>
-              ))}
-            </div>
-          </>
-        ) : (
-          scopeData.map(({ scope, current, prior }) => {
-            const top3Facilities = current.paretoCancellations.slice(0, 3);
-            return (
-              <div key={scope.regionId}>
-              <SectionCard title={t("cancellation.title")} subtitle={t("cancellation.subtitleSingle", { cancelled: current.cancelledGames.toLocaleString("en-US"), rate: formatPct(current.cancellationRate) })}>
-                <div className="space-y-2 mb-4">
-                  {current.cancellationBreakdown.map((reason) => {
-                    const priorReason = prior?.cancellationBreakdown.find((r) => r.category === reason.category);
-                    const delta = priorReason ? pctDelta(reason.count, priorReason.count) ?? null : null;
-                    return (
-                      <Link
-                        key={reason.category}
-                        href={buildQuery(sp, { cancellationReason: reason.category, regionId: scope.regionId })}
-                        className="flex items-center justify-between text-sm rounded-md -mx-1 px-1 py-0.5 hover:bg-surface-sunken/50 transition-colors group"
-                      >
-                        <span className="text-ink group-hover:text-brand">{reason.label}</span>
-                        <span className="flex items-center gap-2 text-ink-muted">
-                          {reason.count} · {formatPct(reason.pct)}
-                          {compare && <ChangeBadge value={delta} invert />}
-                        </span>
-                      </Link>
-                    );
-                  })}
-                  {current.cancellationBreakdown.length === 0 && <div className="text-sm text-ink-faint">{t("cancellation.empty")}</div>}
-                </div>
-                {top3Facilities.length > 0 && (
-                  <div className="pt-3 border-t border-surface-sunken">
-                    <div className="text-xs text-ink-faint mb-2">{t("cancellation.topContributorsTitle")}</div>
-                    <div className="space-y-1.5">
-                      {top3Facilities.map((f, i) => (
-                        <div key={f.facilityId} className="flex items-center justify-between text-sm">
-                          <span className="text-ink-muted">{i + 1}. <Link href={buildQuery(sp, { facilityId: f.facilityId })} className="text-brand hover:underline">{f.label}</Link></span>
-                          <span className="text-ink">{t("cancellation.gamesCancelledCount", { n: f.value })}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </SectionCard>
-              </div>
-            );
-          })
-        )}
-      </GroupSection>
-
-      <GroupSection title={t("sections.satisfactionPriceOrganizer")}>
-        <div className={`grid grid-cols-1 ${isMultiScope ? "lg:grid-cols-2" : ""} gap-5`}>
-          {scopeData.map(({ scope, current, extended }) => (
-            <div key={scope.regionId} className="space-y-4">
-              {isMultiScope && <div className="text-xs font-medium text-ink-muted px-1">{scope.regionName}</div>}
-              <SectionCard title={t("satisfaction.title")}>
-                {extended.avgRating !== null ? (
-                  <div className="flex items-end gap-6 flex-wrap">
-                    <Stat label={t("satisfaction.rating")} value={extended.avgRating.toFixed(2)} sublabel={t("satisfaction.ratingSub")} />
-                    <Stat label={t("satisfaction.reviews")} value={extended.totalRatingCount.toLocaleString("en-US")} />
-                    <Stat label={t("satisfaction.coverage")} value={formatPct(extended.ratingsCoveragePct)} />
-                  </div>
                 ) : (
-                  <div className="text-sm text-ink-faint">{t("satisfaction.noData")}</div>
-                )}
-              </SectionCard>
-              <SectionCard title={t("priceRevenue.title")}>
-                <div className="flex items-end gap-6">
-                  <Stat label={t("priceRevenue.avgPrice")} value={extended.avgPrice !== null ? formatUSD(extended.avgPrice) : "—"} sublabel={t("priceRevenue.avgPriceSub")} />
-                  <Stat label={t("priceRevenue.totalRevenue")} value={formatUSD(current.totalRevenue)} sublabel={t("priceRevenue.totalRevenueSub")} />
-                </div>
-              </SectionCard>
-              <div className="rounded-xl bg-surface-panel px-5 py-3.5 shadow-sm">
-                <div className="text-xs text-ink-faint mb-2">{t("organizer.title")}</div>
-                <div className="flex flex-wrap gap-x-6 gap-y-1.5">
-                  {extended.organizerBreakdown.map((o) => (
-                    <span key={o.organizer} className="text-xs text-ink-muted">
-                      {t("organizer.summary", {
-                        organizer: o.organizer,
-                        confirmed: o.confirmedCount.toLocaleString("en-US"),
-                        cancelled: (o.count - o.confirmedCount).toLocaleString("en-US"),
-                        rate: formatPct(o.cancellationRate),
+                  <SectionCard title={t("cancellation.title")} subtitle={t("cancellation.subtitleSingle", { cancelled: current.cancelledGames.toLocaleString("en-US"), rate: formatPct(current.cancellationRate) })}>
+                    <div className="space-y-2">
+                      {current.cancellationBreakdown.map((reason) => {
+                        const priorReason = prior?.cancellationBreakdown.find((r) => r.category === reason.category);
+                        const delta = priorReason ? pctDelta(reason.count, priorReason.count) ?? null : null;
+                        return (
+                          <Link
+                            key={reason.category}
+                            href={buildQuery(sp, { cancellationReason: reason.category, regionId: scope.regionId })}
+                            className="flex items-center justify-between text-sm rounded-md -mx-1 px-1 py-0.5 hover:bg-surface-sunken/50 transition-colors group"
+                          >
+                            <span className="text-ink group-hover:text-brand">{reason.label}</span>
+                            <span className="flex items-center gap-2 text-ink-muted">
+                              {reason.count} · {formatPct(reason.pct)}
+                              {compare && <ChangeBadge value={delta} invert />}
+                            </span>
+                          </Link>
+                        );
                       })}
-                    </span>
-                  ))}
-                </div>
-              </div>
+                      {current.cancellationBreakdown.length === 0 && <div className="text-sm text-ink-faint">{t("cancellation.empty")}</div>}
+                    </div>
+                  </SectionCard>
+                )}
+              </GroupSection>
             </div>
-          ))}
-        </div>
-        <Glossary
-          items={[
-            { term: t("satisfactionGlossary.rating.term"), def: t("satisfactionGlossary.rating.def") },
-            { term: t("satisfactionGlossary.coverage.term"), def: t("satisfactionGlossary.coverage.def") },
-            { term: t("satisfactionGlossary.avgPrice.term"), def: t("satisfactionGlossary.avgPrice.def") },
-            { term: t("satisfactionGlossary.totalRevenue.term"), def: t("satisfactionGlossary.totalRevenue.def") },
-          ]}
-        />
-      </GroupSection>
+          </div>
+        );
+      })}
     </div>
   );
 
-  // ---------- Tab: Por facility ----------
-  const facilityContent = (
+  // ---------- Tab: Confirmations ----------
+  // Junta lo confirmación-céntrico que antes estaba repartido entre "Por
+  // facility" (Pareto de confirmados, contribución) y "Por horario" (heatmap
+  // día×hora, lead time, demanda/waitlist) — la pregunta que responde esta
+  // pestaña es siempre "¿qué está pasando con los partidos que SÍ se
+  // confirman?", así que tiene más sentido junta que separada en dos tabs
+  // sin nombre claro.
+  const confirmationsContent = (
     <div className="space-y-6">
-      {scopeData.map(({ scope, current, prior, contribution, facilityTable }) => {
+      {scopeData.map(({ scope, current, prior, contribution }) => {
         const priorParetoConfirmedOrder = prior?.paretoConfirmations.map((f) => f.facilityId) ?? null;
-        const priorParetoCancelledOrder = prior?.paretoCancellations.map((f) => f.facilityId) ?? null;
-        const priorWorstRateOrder = prior?.worstCancellationRate.map((f) => f.facilityId) ?? null;
-
         const priorConfirmedValue = new Map((prior?.paretoConfirmations ?? []).map((f): [string, number] => [f.facilityId, f.value]));
-        const priorCancelledValue = new Map((prior?.paretoCancellations ?? []).map((f): [string, number] => [f.facilityId, f.value]));
 
         const paretoConfirmedRows: RankingRow[] = withRankChange(current.paretoConfirmations, priorParetoConfirmedOrder).map((f) => ({
           facilityId: f.facilityId, marketId: f.marketId, regionId: f.regionId, label: f.label,
           value: f.value, extra: t("rankings.cumulativeSuffix", { pct: formatPct(f.cumulativePct) }), rankChange: f.rankChange,
           delta: prior ? pctDelta(f.value, priorConfirmedValue.get(f.facilityId)) ?? null : undefined,
         }));
-        const paretoCancelledRows: RankingRow[] = withRankChange(current.paretoCancellations, priorParetoCancelledOrder).map((f) => ({
-          facilityId: f.facilityId, marketId: f.marketId, regionId: f.regionId, label: f.label,
-          value: f.value, extra: t("rankings.cumulativeSuffix", { pct: formatPct(f.cumulativePct) }), rankChange: f.rankChange,
-          delta: prior ? pctDelta(f.value, priorCancelledValue.get(f.facilityId)) ?? null : undefined,
-        }));
-        const worstRateRows: RankingRow[] = withRankChange(current.worstCancellationRate, priorWorstRateOrder).map((f) => ({
-          facilityId: f.facilityId, marketId: f.marketId, regionId: f.regionId, label: f.label,
-          value: Math.round(f.rate * 100), extra: t("rankings.gamesSuffix", { n: f.totalGames }), rankChange: f.rankChange,
-        }));
-
         const confirmContribRows: RankingRow[] = [...contribution]
           .sort((a, b) => b.excessConfirmations - a.excessConfirmations)
           .slice(0, 10)
@@ -535,21 +585,12 @@ export default async function NetworkOverview({
             value: Math.abs(f.excessConfirmations),
             displayValue: `${f.excessConfirmations > 0 ? "+" : ""}${f.excessConfirmations.toFixed(1)} ${t("rankings.vsExpected")}`,
           }));
-        const cancelContribRows: RankingRow[] = [...contribution]
-          .sort((a, b) => b.excessCancellations - a.excessCancellations)
-          .slice(0, 10)
-          .map((f) => ({
-            facilityId: f.facilityId, marketId: f.marketId, regionId: f.regionId, label: f.label,
-            value: Math.abs(f.excessCancellations),
-            displayValue: `${f.excessCancellations > 0 ? "+" : ""}${f.excessCancellations.toFixed(1)} ${t("rankings.vsExpected")}`,
-          }));
 
         return (
           <div key={scope.regionId}>
-          <GroupSection title={isMultiScope ? t("sections.rankingsRegion", { region: scope.regionName }) : t("sections.rankings")}>
-            {contribution.length > 0 && (
-              <>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <GroupSection title={isMultiScope ? t("sections.rankingsRegion", { region: scope.regionName }) : t("sections.rankings")}>
+              {contribution.length > 0 && (
+                <>
                   <RankingCard
                     title={t("rankings.contribConfirmTitle")}
                     subtitle={t("rankings.contribConfirmSubtitle", { period: comparePeriodLabel })}
@@ -557,25 +598,15 @@ export default async function NetworkOverview({
                     buildHref={(facilityId, marketId, regionId) => buildQuery(sp, { facilityId, marketId, regionId })}
                     formatValue={(v) => `${v}`}
                   />
-                  <RankingCard
-                    title={t("rankings.contribCancelTitle")}
-                    subtitle={t("rankings.contribCancelSubtitle", { period: comparePeriodLabel })}
-                    rows={cancelContribRows}
-                    buildHref={(facilityId, marketId, regionId) => buildQuery(sp, { facilityId, marketId, regionId })}
-                    formatValue={(v) => `${v}`}
-                    tone="danger"
+                  <Glossary
+                    items={[
+                      { term: t("rankings.contribGlossary.whatShows.term"), def: t("rankings.contribGlossary.whatShows.def") },
+                      { term: t("rankings.contribGlossary.barLength.term"), def: t("rankings.contribGlossary.barLength.def") },
+                    ]}
                   />
-                </div>
-                <Glossary
-                  items={[
-                    { term: t("rankings.contribGlossary.whatShows.term"), def: t("rankings.contribGlossary.whatShows.def") },
-                    { term: t("rankings.contribGlossary.barLength.term"), def: t("rankings.contribGlossary.barLength.def") },
-                  ]}
-                />
-              </>
-            )}
+                </>
+              )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
               <RankingCard
                 title={t("rankings.paretoConfirmedTitle")}
                 subtitle={t("rankings.paretoConfirmedSubtitle", { n: paretoConfirmedRows.length, pct: formatPct(current.paretoConfirmedCoveragePct) })}
@@ -583,91 +614,12 @@ export default async function NetworkOverview({
                 buildHref={(facilityId, marketId, regionId) => buildQuery(sp, { facilityId, marketId, regionId })}
                 formatValue={(v) => t("rankings.confirmedSuffix", { n: v })}
               />
-              <RankingCard
-                title={t("rankings.paretoCancelledTitle")}
-                subtitle={t("rankings.paretoCancelledSubtitle", { n: paretoCancelledRows.length, pct: formatPct(current.paretoCoveragePct) })}
-                rows={paretoCancelledRows}
-                buildHref={(facilityId, marketId, regionId) => buildQuery(sp, { facilityId, marketId, regionId })}
-                formatValue={(v) => t("rankings.cancelledSuffix", { n: v })}
-                tone="danger"
-              />
-            </div>
-            <Glossary items={[{ term: t("rankings.cumulativePctGlossary.term"), def: t("rankings.cumulativePctGlossary.def") }]} />
-
-            <RankingCard
-              title={t("rankings.worstRateTitle")}
-              subtitle={t("rankings.worstRateSubtitle")}
-              rows={worstRateRows}
-              buildHref={(facilityId, marketId, regionId) => buildQuery(sp, { facilityId, marketId, regionId })}
-              formatValue={(v) => `${v}%`}
-              tone="danger"
-            />
-          </GroupSection>
-
-          <div className="mt-5">
-            <details className="rounded-2xl bg-surface shadow-sm p-5">
-              <summary className="cursor-pointer text-sm font-medium text-ink">
-                {isMultiScope ? t("rankings.allFacilitiesRegion", { region: scope.regionName }) : t("rankings.allFacilities")} <span className="text-ink-faint font-normal">{t("rankings.clickToExpand", { n: facilityTable.length })}</span>
-              </summary>
-              <div className="mt-4">
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse text-sm">
-                    <thead>
-                      <tr className="border-b border-border text-left text-ink-muted">
-                        <th className="py-1.5 px-2 font-normal">{t("facilityTable.headers.facility")}</th>
-                        <th className="py-1.5 px-2 font-normal">{sortLink("games", t("facilityTable.headers.games"))}</th>
-                        <th className="py-1.5 px-2 font-normal">{t("facilityTable.headers.confirmed")}</th>
-                        <th className="py-1.5 px-2 font-normal">{t("facilityTable.headers.cancelled")}</th>
-                        <th className="py-1.5 px-2 font-normal">{sortLink("cancellationRate", t("facilityTable.headers.cancellation"))}</th>
-                        <th className="py-1.5 px-2 font-normal">{sortLink("rating", t("facilityTable.headers.rating"))}</th>
-                        <th className="py-1.5 px-2 font-normal">{sortLink("price", t("facilityTable.headers.price"))}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {facilityTable.slice(0, 50).map((f) => (
-                        <tr key={f.facilityId} className="border-b border-surface-sunken">
-                          <td className="py-1.5 px-2">
-                            <Link href={buildQuery(sp, { facilityId: f.facilityId, marketId: f.marketId, regionId: f.regionId })} className="text-brand hover:underline">
-                              {f.name}
-                            </Link>
-                          </td>
-                          <td className="py-1.5 px-2 text-ink">{f.totalGames}</td>
-                          <td className="py-1.5 px-2 text-ink">{f.confirmedGames}</td>
-                          <td className="py-1.5 px-2 text-ink">{f.totalGames - f.confirmedGames}</td>
-                          <td className="py-1.5 px-2 text-ink">{formatPct(f.cancellationRate)}</td>
-                          <td className="py-1.5 px-2 text-ink">{f.avgRating !== null ? f.avgRating.toFixed(2) : "—"}</td>
-                          <td className="py-1.5 px-2 text-ink">{f.avgPrice !== null ? formatUSD(f.avgPrice) : "—"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                <Glossary
-                  items={[
-                    { term: t("facilityTable.glossary.confirmedCancelled.term"), def: t("facilityTable.glossary.confirmedCancelled.def") },
-                    { term: t("facilityTable.glossary.rating.term"), def: t("facilityTable.glossary.rating.def") },
-                    { term: t("facilityTable.glossary.price.term"), def: t("facilityTable.glossary.price.def") },
-                    { term: t("facilityTable.glossary.sortableColumns.term"), def: t("facilityTable.glossary.sortableColumns.def") },
-                  ]}
-                />
-              </div>
-            </details>
-          </div>
+              <Glossary items={[{ term: t("rankings.cumulativePctGlossary.term"), def: t("rankings.cumulativePctGlossary.def") }]} />
+            </GroupSection>
           </div>
         );
       })}
-    </div>
-  );
 
-  // ---------- Tab: Por horario ----------
-  // La lista de barras "horarios por tasa de confirmación" que vivía acá se
-  // sacó: es el mismo dato que ya se ve en el heatmap de abajo (mismo
-  // getDayHourHeatmap), sólo que menos legible como lista larga de horas. El
-  // heatmap queda como única vista rápida de día×hora, con links hacia las
-  // dos páginas que sí profundizan el patrón horario a nivel de slot
-  // individual (Daily y Trends) en vez de duplicar ese análisis acá.
-  const horarioContent = (
-    <div className="space-y-5">
       <GroupSection title={t("sections.schedule")}>
         <div className={`grid grid-cols-1 ${isMultiScope ? "lg:grid-cols-2" : ""} gap-5`}>
           {scopeData.map(({ scope, dayHourHeatmap }) => (
@@ -754,12 +706,149 @@ export default async function NetworkOverview({
     </div>
   );
 
+  // ---------- Tab: Game Rating ----------
+  // El agregado (promedio ponderado, cobertura) ya existía en Resumen; lo que
+  // faltaba — y es la razón de tener esta pestaña propia — es el ranking por
+  // facility, que hoy ya se puede armar sin datos nuevos: facilityTable trae
+  // avgRating por facility (mismo piso MIN_GAMES_FOR_RANKING que el resto de
+  // los rankings, para que el promedio no lo domine una facility con 2
+  // partidos jugados).
+  const gameRatingContent = (
+    <div className="space-y-6">
+      <div className={`grid grid-cols-1 ${isMultiScope ? "lg:grid-cols-2" : ""} gap-5`}>
+        {scopeData.map(({ scope, extended }) => (
+          <div key={scope.regionId} className="space-y-2">
+            {isMultiScope && <div className="text-xs font-medium text-ink-muted px-1">{scope.regionName}</div>}
+            <SectionCard title={t("satisfaction.title")}>
+              {extended.avgRating !== null ? (
+                <div className="flex items-end gap-6 flex-wrap">
+                  <Stat label={t("satisfaction.rating")} value={extended.avgRating.toFixed(2)} sublabel={t("satisfaction.ratingSub")} />
+                  <Stat label={t("satisfaction.reviews")} value={extended.totalRatingCount.toLocaleString("en-US")} />
+                  <Stat label={t("satisfaction.coverage")} value={formatPct(extended.ratingsCoveragePct)} />
+                </div>
+              ) : (
+                <div className="text-sm text-ink-faint">{t("satisfaction.noData")}</div>
+              )}
+            </SectionCard>
+          </div>
+        ))}
+      </div>
+      <Glossary
+        items={[
+          { term: t("satisfactionGlossary.rating.term"), def: t("satisfactionGlossary.rating.def") },
+          { term: t("satisfactionGlossary.coverage.term"), def: t("satisfactionGlossary.coverage.def") },
+        ]}
+      />
+
+      {scopeData.map(({ scope, facilityTable }) => {
+        const rated = facilityTable.filter((f) => f.avgRating !== null && f.totalGames >= MIN_GAMES_FOR_RANKING);
+        const topRatedRows: RankingRow[] = [...rated]
+          .sort((a, b) => (b.avgRating as number) - (a.avgRating as number))
+          .slice(0, 10)
+          .map((f) => ({ facilityId: f.facilityId, marketId: f.marketId, regionId: f.regionId, label: f.name, value: f.avgRating as number }));
+        const needsAttentionRows: RankingRow[] = [...rated]
+          .sort((a, b) => (a.avgRating as number) - (b.avgRating as number))
+          .slice(0, 10)
+          .map((f) => ({ facilityId: f.facilityId, marketId: f.marketId, regionId: f.regionId, label: f.name, value: f.avgRating as number }));
+
+        return (
+          <div key={scope.regionId}>
+            <GroupSection title={isMultiScope ? t("sections.rankingsRegion", { region: scope.regionName }) : t("sections.rankings")}>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                <RankingCard
+                  title={t("gameRating.topRatedTitle")}
+                  subtitle={t("gameRating.topRatedSubtitle", { n: MIN_GAMES_FOR_RANKING })}
+                  rows={topRatedRows}
+                  buildHref={(facilityId, marketId, regionId) => buildQuery(sp, { facilityId, marketId, regionId })}
+                  formatValue={(v) => v.toFixed(2)}
+                />
+                <RankingCard
+                  title={t("gameRating.needsAttentionTitle")}
+                  subtitle={t("gameRating.needsAttentionSubtitle", { n: MIN_GAMES_FOR_RANKING })}
+                  rows={needsAttentionRows}
+                  buildHref={(facilityId, marketId, regionId) => buildQuery(sp, { facilityId, marketId, regionId })}
+                  formatValue={(v) => v.toFixed(2)}
+                  tone="danger"
+                />
+              </div>
+            </GroupSection>
+          </div>
+        );
+      })}
+
+      <div className="rounded-xl bg-surface-panel px-5 py-3.5 shadow-sm text-sm">
+        <Link href="/panel-ejecutivo/satisfaction" className="text-brand hover:underline font-medium">
+          {t("gameRating.viewFullReviews")}
+        </Link>
+        <div className="text-xs text-ink-faint mt-1">{t("gameRating.viewFullReviewsCaveat")}</div>
+      </div>
+    </div>
+  );
+
+  // ---------- Tab: Facilities ----------
+  // La lista maestra ordenable — antes vivía colapsada dentro de "Por
+  // facility" junto a los rankings (que ahora tienen su propia pestaña); acá
+  // es el contenido completo de la pestaña, así que ya no hace falta el
+  // <details> para no abrumar la vista.
+  const facilitiesContent = (
+    <div className="space-y-6">
+      {scopeData.map(({ scope, facilityTable }) => (
+        <div key={scope.regionId}>
+          <GroupSection title={isMultiScope ? t("rankings.allFacilitiesRegion", { region: scope.regionName }) : t("rankings.allFacilities")}>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left text-ink-muted">
+                    <th className="py-1.5 px-2 font-normal">{t("facilityTable.headers.facility")}</th>
+                    <th className="py-1.5 px-2 font-normal">{sortLink("games", t("facilityTable.headers.games"))}</th>
+                    <th className="py-1.5 px-2 font-normal">{t("facilityTable.headers.confirmed")}</th>
+                    <th className="py-1.5 px-2 font-normal">{t("facilityTable.headers.cancelled")}</th>
+                    <th className="py-1.5 px-2 font-normal">{sortLink("cancellationRate", t("facilityTable.headers.cancellation"))}</th>
+                    <th className="py-1.5 px-2 font-normal">{sortLink("rating", t("facilityTable.headers.rating"))}</th>
+                    <th className="py-1.5 px-2 font-normal">{sortLink("price", t("facilityTable.headers.price"))}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {facilityTable.slice(0, 50).map((f) => (
+                    <tr key={f.facilityId} className="border-b border-surface-sunken">
+                      <td className="py-1.5 px-2">
+                        <Link href={buildQuery(sp, { facilityId: f.facilityId, marketId: f.marketId, regionId: f.regionId })} className="text-brand hover:underline">
+                          {f.name}
+                        </Link>
+                      </td>
+                      <td className="py-1.5 px-2 text-ink">{f.totalGames}</td>
+                      <td className="py-1.5 px-2 text-ink">{f.confirmedGames}</td>
+                      <td className="py-1.5 px-2 text-ink">{f.totalGames - f.confirmedGames}</td>
+                      <td className="py-1.5 px-2 text-ink">{formatPct(f.cancellationRate)}</td>
+                      <td className="py-1.5 px-2 text-ink">{f.avgRating !== null ? f.avgRating.toFixed(2) : "—"}</td>
+                      <td className="py-1.5 px-2 text-ink">{f.avgPrice !== null ? formatUSD(f.avgPrice) : "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Glossary
+              items={[
+                { term: t("facilityTable.glossary.confirmedCancelled.term"), def: t("facilityTable.glossary.confirmedCancelled.def") },
+                { term: t("facilityTable.glossary.rating.term"), def: t("facilityTable.glossary.rating.def") },
+                { term: t("facilityTable.glossary.price.term"), def: t("facilityTable.glossary.price.def") },
+                { term: t("facilityTable.glossary.sortableColumns.term"), def: t("facilityTable.glossary.sortableColumns.def") },
+              ]}
+            />
+          </GroupSection>
+        </div>
+      ))}
+    </div>
+  );
+
   return (
     <Tabs
       tabs={[
         { id: "resumen", label: t("tabs.summary"), content: resumenContent },
-        { id: "facility", label: t("tabs.byFacility"), content: facilityContent },
-        { id: "horario", label: t("tabs.bySchedule"), content: horarioContent },
+        { id: "cancellations", label: t("tabs.cancellations"), content: cancellationsContent },
+        { id: "confirmations", label: t("tabs.confirmations"), content: confirmationsContent },
+        { id: "gameRating", label: t("tabs.gameRating"), content: gameRatingContent },
+        { id: "facilities", label: t("tabs.facilities"), content: facilitiesContent },
       ]}
     />
   );
