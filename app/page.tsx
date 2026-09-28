@@ -1,3 +1,4 @@
+import { CancellationCategory } from "@prisma/client";
 import { getTranslations, getLocale } from "next-intl/server";
 import { resolveFilterNames, getFilterOptions, getMonthProjection, type FacilitySortKey } from "./lib/db/queries";
 import { resolvePeriod, shiftAnchor, todayISO, type Granularity, type ResolvedPeriod } from "./lib/period";
@@ -6,6 +7,11 @@ import { buildQuery, type SP } from "./lib/searchParams";
 import FilterPanel from "./components/FilterPanel";
 import NetworkOverview from "./components/NetworkOverview";
 import FacilityDetailView from "./components/FacilityDetailView";
+import CancellationReasonRanking from "./components/CancellationReasonRanking";
+
+function isCancellationCategory(value: string | undefined): value is CancellationCategory {
+  return !!value && (Object.values(CancellationCategory) as string[]).includes(value);
+}
 
 function formatUSD(n: number) {
   return n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
@@ -128,7 +134,16 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
         <div className="text-xs text-ink-faint mb-4 -mt-3">{t("comparePeriodAvailable", { period: comparePeriod.label })}</div>
       )}
 
-      {sp.facilityId ? (
+      {isCancellationCategory(sp.cancellationReason) ? (
+        <CancellationReasonRanking
+          sp={sp}
+          filters={filters}
+          category={sp.cancellationReason}
+          period={period}
+          comparePeriod={comparePeriod}
+          compare={compare}
+        />
+      ) : sp.facilityId ? (
         <FacilityDetailView
           facilityId={sp.facilityId}
           filters={filters}

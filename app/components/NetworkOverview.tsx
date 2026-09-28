@@ -367,13 +367,17 @@ export default async function NetworkOverview({
                         const priorReason = prior?.cancellationBreakdown.find((r) => r.category === reason.category);
                         const delta = priorReason ? pctDelta(reason.count, priorReason.count) ?? null : null;
                         return (
-                          <div key={reason.category} className="flex items-center justify-between text-sm">
-                            <span className="text-ink">{reason.label}</span>
+                          <Link
+                            key={reason.category}
+                            href={buildQuery(sp, { cancellationReason: reason.category, regionId: scope.regionId })}
+                            className="flex items-center justify-between text-sm rounded-md -mx-1 px-1 py-0.5 hover:bg-surface-sunken/50 transition-colors group"
+                          >
+                            <span className="text-ink group-hover:text-brand">{reason.label}</span>
                             <span className="flex items-center gap-2 text-ink-muted">
                               {reason.count} · {formatPct(reason.pct)}
                               {compare && <ChangeBadge value={delta} invert />}
                             </span>
-                          </div>
+                          </Link>
                         );
                       })}
                       {current.cancellationBreakdown.length === 0 && <div className="text-sm text-ink-faint">{t("cancellation.empty")}</div>}
@@ -410,13 +414,17 @@ export default async function NetworkOverview({
                     const priorReason = prior?.cancellationBreakdown.find((r) => r.category === reason.category);
                     const delta = priorReason ? pctDelta(reason.count, priorReason.count) ?? null : null;
                     return (
-                      <div key={reason.category} className="flex items-center justify-between text-sm">
-                        <span className="text-ink">{reason.label}</span>
+                      <Link
+                        key={reason.category}
+                        href={buildQuery(sp, { cancellationReason: reason.category, regionId: scope.regionId })}
+                        className="flex items-center justify-between text-sm rounded-md -mx-1 px-1 py-0.5 hover:bg-surface-sunken/50 transition-colors group"
+                      >
+                        <span className="text-ink group-hover:text-brand">{reason.label}</span>
                         <span className="flex items-center gap-2 text-ink-muted">
                           {reason.count} · {formatPct(reason.pct)}
                           {compare && <ChangeBadge value={delta} invert />}
                         </span>
-                      </div>
+                      </Link>
                     );
                   })}
                   {current.cancellationBreakdown.length === 0 && <div className="text-sm text-ink-faint">{t("cancellation.empty")}</div>}

@@ -247,6 +247,75 @@ export const getTopCancellationFacilityForReason = cached(
   getTopCancellationFacilityForReasonImpl
 );
 
+// ---------- Ranking por motivo de cancelación (drill-down desde Overview) ----------
+// Al hacer click en un motivo de "Cancellation reasons" en Overview: todas
+// las facilities con al menos una cancelación por ESE motivo en el período
+// filtrado, con la variación (% y valor absoluto) contra el período de
+// comparación de esa misma vista (mes anterior por default — ver
+// resolvePartialPriorMonth en page.tsx). Solo incluye facilities con
+// cancelaciones por este motivo AHORA — una que tenía el problema y ya no,
+// no es parte de "quién está involucrado en el período seleccionado".
+export type CancellationReasonFacilityRow = {
+  facilityId: string;
+  marketId: string;
+  regionId: string;
+  name: string;
+  count: number;
+  // null = no hay período de comparación disponible (ej. granularity "all"
+  // o "custom") — distinto de 0, que sí es un valor real (pasó de 0 a N).
+  priorCount: number | null;
+};
+
+async function getCancellationReasonRankingImpl(
+  filters: OverviewFilters,
+  category: CancellationCategory,
+  priorRange: { dateFrom?: Date; dateTo?: Date } | null
+): Promise<CancellationReasonFacilityRow[]> {
+  const categoryWhere: Prisma.GameWhereInput = { ...buildWhere(filters), status: GameStatus.CANCELLED, cancellationCategory: category };
+  const groups = await prisma.game.groupBy({ by: ["facilityId"], where: categoryWhere, _count: { _all: true } });
+  if (groups.length === 0) return [];
+
+  const priorGroups =
+    priorRange?.dateFrom && priorRange?.dateTo
+      ? await prisma.game.groupBy({
+          by: ["facilityId"],
+          where: {
+            ...buildWhere({ ...filters, dateFrom: priorRange.dateFrom, dateTo: priorRange.dateTo }),
+            status: GameStatus.CANCELLED,
+            cancellationCategory: category,
+          },
+          _count: { _all: true },
+        })
+      : null;
+  const priorMap = priorGroups ? new Map(priorGroups.map((g) => [g.facilityId, Number(g._count._all)])) : null;
+
+  const facilityIds = groups.map((g) => g.facilityId);
+  type FacilityInfo = { id: string; name: string; marketId: string; market: { regionId: string } };
+  const facilityInfo = (await prisma.facility.findMany({
+    where: { id: { in: facilityIds } },
+    select: { id: true, name: true, marketId: true, market: { select: { regionId: true } } },
+  })) as FacilityInfo[];
+  const infoMap = new Map(facilityInfo.map((f): [string, typeof f] => [f.id, f]));
+
+  return groups
+    .map((g) => {
+      const info = infoMap.get(g.facilityId);
+      if (!info) return null;
+      return {
+        facilityId: g.facilityId,
+        marketId: info.marketId,
+        regionId: info.market.regionId,
+        name: info.name,
+        count: Number(g._count._all),
+        priorCount: priorMap ? priorMap.get(g.facilityId) ?? 0 : null,
+      };
+    })
+    .filter((r): r is CancellationReasonFacilityRow => r !== null)
+    .sort((a, b) => b.count - a.count);
+}
+
+export const getCancellationReasonRanking = cached("getCancellationReasonRanking", getCancellationReasonRankingImpl);
+
 function generateOverviewInsights(m: {
   confirmationRate: number;
   cancellationRate: number;

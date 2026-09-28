@@ -9,6 +9,10 @@ export type SP = {
   facilitySortDir?: string;
   customFrom?: string;
   customTo?: string;
+  // CancellationCategory elegida desde "Cancellation reasons" en Overview —
+  // ver CancellationReasonRanking.tsx. Solo tiene efecto cuando no hay
+  // facilityId (ambos comparten la misma vista principal de "/").
+  cancellationReason?: string;
 };
 
 export function buildQuery(current: SP, overrides: Partial<SP>): string {

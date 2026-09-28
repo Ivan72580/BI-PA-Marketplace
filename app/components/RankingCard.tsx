@@ -46,6 +46,7 @@ export default function RankingCard({
   buildHref,
   formatValue,
   tone = "brand",
+  invertDelta = false,
 }: {
   title: string;
   subtitle?: string;
@@ -53,6 +54,11 @@ export default function RankingCard({
   buildHref: (facilityId: string, marketId: string, regionId: string) => string;
   formatValue: (v: number) => string;
   tone?: "brand" | "danger";
+  // Para métricas donde SUBIR es malo (ej. cancelaciones) — invierte el
+  // color/flecha de ChangeBadge, igual que ya se hace en otros lados de
+  // Overview con `<ChangeBadge invert />`. Default false: no cambia nada
+  // para los rankings que ya usan este componente.
+  invertDelta?: boolean;
 }) {
   const max = Math.max(1, ...rows.map((r) => r.value));
   const barColor = tone === "danger" ? "bg-danger/70" : "bg-brand/70";
@@ -78,7 +84,7 @@ export default function RankingCard({
               <span className="text-ink font-medium shrink-0 ml-2 flex items-center gap-1.5">
                 {item.displayValue ?? formatValue(item.value)}
                 {item.extra && <span className="text-ink-faint font-normal"> · {item.extra}</span>}
-                {item.delta !== undefined && <ChangeBadge value={item.delta} />}
+                {item.delta !== undefined && <ChangeBadge value={item.delta} invert={invertDelta} />}
               </span>
             </div>
             <div className="h-1.5 rounded-full bg-surface-sunken overflow-hidden">

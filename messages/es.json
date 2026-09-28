@@ -690,6 +690,14 @@
       "gamesCancelledCount": "{n} cancelados",
       "topContributorWarning": "⚠ <link>{facility}</link> es la que más aporta a \"{reason}\" en {region} ({count} de {total}) — vale la pena revisarla."
     },
+    "cancellationRanking": {
+      "back": "Volver al resumen",
+      "title": "Cancelaciones por motivo: {reason}",
+      "subtitle": "{count} cancelaciones por este motivo en {period}",
+      "rankingTitle": "Facilities involucradas",
+      "rankingSubtitle": "Variación vs. {period}",
+      "countSuffix": "{n} cancelaciones"
+    },
     "satisfaction": {
       "title": "Satisfacción",
       "rating": "Rating",
