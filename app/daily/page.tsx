@@ -307,7 +307,7 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
     // terminar ahí mismo con el tercer selector — no se vuelve "a cero".
     return (
       <div>
-        <DailyBreadcrumb regions={filterOptions.regions} markets={filterOptions.markets} facilities={filterOptions.facilities} sp={sp} />
+        <DailyBreadcrumb regions={filterOptions.regions} markets={filterOptions.markets} facilities={filterOptions.facilities} sp={sp} marketPlaceholder={t("breadcrumb.marketPlaceholder")} facilityPlaceholder={t("breadcrumb.facilityPlaceholder")} />
         <h1 className="font-display text-3xl font-bold text-ink mb-1">{t("title")}</h1>
         <div className="text-sm text-ink-faint mb-4 max-w-2xl">{t("subtitle")}</div>
 
@@ -546,7 +546,7 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
     <div className="space-y-5">
       <div>
         <div className="flex items-start justify-between gap-4 flex-wrap">
-          <DailyBreadcrumb regions={filterOptions.regions} markets={filterOptions.markets} facilities={filterOptions.facilities} sp={sp} />
+          <DailyBreadcrumb regions={filterOptions.regions} markets={filterOptions.markets} facilities={filterOptions.facilities} sp={sp} marketPlaceholder={t("breadcrumb.marketPlaceholder")} facilityPlaceholder={t("breadcrumb.facilityPlaceholder")} />
           {/* Mismo buscador que la pantalla de selección inicial — antes
               desaparecía apenas se elegía una facility, y la única forma de
               cambiar a otra pasaba a ser el selector del breadcrumb (sin

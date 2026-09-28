@@ -221,6 +221,10 @@
       "placeholder": "Search facility...",
       "empty": "No results for \"{query}\""
     },
+    "breadcrumb": {
+      "marketPlaceholder": "Pick a market",
+      "facilityPlaceholder": "Pick a facility"
+    },
     "riskFacilities": {
       "title": "Facilities to check first",
       "subtitle": "Last 14 days vs. the previous 14 — data through yesterday, not real-time.",
