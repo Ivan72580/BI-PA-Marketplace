@@ -7,6 +7,7 @@ import {
   getRegionRanking,
   getRegionConfirmationRanking,
 } from "../lib/db/queries";
+import { gamesPerPeriodAverage, formatPerPeriod } from "../lib/period";
 import ChangeBadge from "./ChangeBadge";
 
 function formatUSD(n: number) {
@@ -46,6 +47,13 @@ export default async function LeadershipOverview({ month, locale }: { month: str
     ...r,
     confirmation: confirmationByRegion.get(r.regionId) ?? null,
   }));
+
+  // Contexto ambiente ("≈X/semana") sobre el total mensual de cada región —
+  // mismo helper que Overview/Market, no un desglose nuevo.
+  const perPeriod = (n: number) => {
+    const avg = gamesPerPeriodAverage(n, monthStart, monthEnd);
+    return avg ? formatPerPeriod(avg, locale) : undefined;
+  };
 
   return (
     <div>
@@ -114,7 +122,10 @@ export default async function LeadershipOverview({ month, locale }: { month: str
               {regionRows.map((r) => (
                 <tr key={r.regionId} className="border-b border-surface-sunken">
                   <td className="py-1.5 px-2 text-ink font-medium">{r.regionName}</td>
-                  <td className="py-1.5 px-2 text-ink">{r.confirmedGames.toLocaleString("en-US")}</td>
+                  <td className="py-1.5 px-2 text-ink">
+                    {r.confirmedGames.toLocaleString("en-US")}
+                    {perPeriod(r.confirmedGames) && <span className="text-ink-faint text-[11px] ml-1">({perPeriod(r.confirmedGames)})</span>}
+                  </td>
                   <td className="py-1.5 px-2">
                     <ChangeBadge value={r.changePct} />
                   </td>

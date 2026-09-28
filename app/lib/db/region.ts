@@ -168,3 +168,80 @@ async function getRegionConfirmationRankingImpl(
 }
 
 export const getRegionConfirmationRanking = cached("getRegionConfirmationRanking", getRegionConfirmationRankingImpl);
+
+// ---------- Comparación región-vs-región para Overview (período arbitrario) ----------
+// getRegionRanking/getRegionConfirmationRanking de arriba están atadas a "mes
+// calendario vs. mes calendario anterior" (mismo criterio que Market/
+// Leadership). Overview no tiene esa restricción — su filtro de tiempo puede
+// ser una semana, un trimestre, un año o "todo el histórico" — así que acá
+// se recibe el rango actual y el anterior ya resueltos (mismo patrón que
+// getOverviewData/getContributionRanking), en vez de un string "YYYY-MM".
+// Una sola función en vez de dos (volumen + tasa en la misma fila): con solo
+// 2 regiones en la red, tiene más sentido una tarjeta por región con ambos
+// datos que dos tablas separadas.
+export type RegionComparisonRow = {
+  regionId: string;
+  regionName: string;
+  confirmedGames: number;
+  totalGames: number;
+  changePct: number | null;
+  confirmationRate: number;
+  changePts: number | null;
+};
+
+async function getRegionComparisonImpl(
+  filters: Omit<OverviewFilters, "dateFrom" | "dateTo" | "regionId">,
+  dateFrom?: Date,
+  dateTo?: Date,
+  priorDateFrom?: Date,
+  priorDateTo?: Date
+): Promise<RegionComparisonRow[]> {
+  const where = buildWhere({ ...filters, dateFrom, dateTo });
+  const priorWhere = priorDateFrom && priorDateTo ? buildWhere({ ...filters, dateFrom: priorDateFrom, dateTo: priorDateTo }) : null;
+
+  const [currentGroups, priorGroups, facilityRegionMap] = await Promise.all([
+    prisma.game.groupBy({ by: ["facilityId", "status"], where, _count: { _all: true } }),
+    priorWhere
+      ? prisma.game.groupBy({ by: ["facilityId", "status"], where: priorWhere, _count: { _all: true } })
+      : Promise.resolve([]),
+    loadFacilityRegionMap(),
+  ]);
+
+  function tallyByRegion(groups: { facilityId: string; status: GameStatus; _count: { _all: number } }[]) {
+    const totals = new Map<string, { confirmed: number; total: number }>();
+    for (const g of groups) {
+      const info = facilityRegionMap.get(g.facilityId);
+      if (!info) continue;
+      const entry = totals.get(info.regionId) ?? { confirmed: 0, total: 0 };
+      entry.total += Number(g._count._all);
+      if (g.status === GameStatus.CONFIRMED) entry.confirmed += Number(g._count._all);
+      totals.set(info.regionId, entry);
+    }
+    return totals;
+  }
+
+  const currentByRegion = tallyByRegion(currentGroups as unknown as { facilityId: string; status: GameStatus; _count: { _all: number } }[]);
+  const priorByRegion = tallyByRegion(priorGroups as unknown as { facilityId: string; status: GameStatus; _count: { _all: number } }[]);
+
+  const regionNames = new Map<string, string>();
+  for (const info of facilityRegionMap.values()) regionNames.set(info.regionId, info.regionName);
+
+  const rows: RegionComparisonRow[] = Array.from(currentByRegion.entries()).map(([regionId, cur]) => {
+    const prior = priorByRegion.get(regionId) ?? null;
+    const confirmationRate = cur.total > 0 ? cur.confirmed / cur.total : 0;
+    const priorConfirmationRate = prior && prior.total > 0 ? prior.confirmed / prior.total : null;
+    return {
+      regionId,
+      regionName: regionNames.get(regionId) ?? "—",
+      confirmedGames: cur.confirmed,
+      totalGames: cur.total,
+      changePct: prior && prior.confirmed > 0 ? (cur.confirmed - prior.confirmed) / prior.confirmed : null,
+      confirmationRate,
+      changePts: priorConfirmationRate !== null ? confirmationRate - priorConfirmationRate : null,
+    };
+  });
+
+  return rows.sort((a, b) => b.confirmedGames - a.confirmedGames);
+}
+
+export const getRegionComparison = cached("getRegionComparison", getRegionComparisonImpl);

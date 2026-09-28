@@ -163,6 +163,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
           facilitySort={facilitySort}
           facilitySortDir={facilitySortDir}
           regions={filterOptions.regions}
+          granularity={granularity}
         />
       )}
     </div>

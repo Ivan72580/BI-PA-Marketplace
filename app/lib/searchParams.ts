@@ -13,6 +13,10 @@ export type SP = {
   // ver CancellationReasonRanking.tsx. Solo tiene efecto cuando no hay
   // facilityId (ambos comparten la misma vista principal de "/").
   cancellationReason?: string;
+  // Deep-link a una pestaña puntual de NetworkOverview (ej. desde un KPI
+  // "hero" clickeable del Resumen hacia "confirmations") — mismo patrón que
+  // ya usa Market vía su propio `tab` en app/market/page.tsx.
+  tab?: string;
 };
 
 export function buildQuery(current: SP, overrides: Partial<SP>): string {

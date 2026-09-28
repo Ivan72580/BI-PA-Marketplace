@@ -222,6 +222,35 @@ export function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+// ---------- Promedio de partidos por día/semana/mes ----------
+// Contexto ambiental ("así se ve más o menos un día/semana/mes típico en
+// este rango"), NO un desglose — por eso se elige UNA sola unidad, la que
+// mejor matchea la duración del rango que se está mirando, en vez de
+// mostrar las tres siempre. Mismo criterio en toda la app (Overview,
+// Market, Trends, Daily, Leadership) para que un mismo rango de fechas dé
+// siempre la misma lectura, sin importar en qué página se muestre.
+export type PerPeriodAverage = { value: number; unit: "day" | "week" | "month" };
+
+export function gamesPerPeriodAverage(totalGames: number, dateFrom?: Date, dateTo?: Date): PerPeriodAverage | null {
+  if (!dateFrom || !dateTo || totalGames <= 0) return null;
+  const days = Math.max(1, Math.round((dateTo.getTime() - dateFrom.getTime()) / 86400000) + 1);
+  // <=10 días: por día tiene sentido (una semana o menos). <=70 días (~10
+  // semanas): por semana. Más que eso: por mes — un rango de un año
+  // mostrado "por día" sería un número chico y poco intuitivo.
+  if (days <= 10) return { value: totalGames / days, unit: "day" };
+  if (days <= 70) return { value: totalGames / (days / 7), unit: "week" };
+  return { value: totalGames / (days / 30.44), unit: "month" };
+}
+
+export function formatPerPeriod(avg: PerPeriodAverage, locale: Locale = "es"): string {
+  const rounded = avg.value >= 10 ? Math.round(avg.value) : Math.round(avg.value * 10) / 10;
+  const unitLabel =
+    locale === "en"
+      ? { day: "/day", week: "/week", month: "/month" }[avg.unit]
+      : { day: "/día", week: "/semana", month: "/mes" }[avg.unit];
+  return `≈${rounded}${unitLabel}`;
+}
+
 // Ventana y unidad de bucket para el gráfico de "evolución", adaptada a la
 // granularidad activa:
 //  - all / year        -> mensual, último año

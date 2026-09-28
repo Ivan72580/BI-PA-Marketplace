@@ -10,15 +10,16 @@ import {
   getFacilityTable,
   getMarketFacilitySummary,
   getTopCancellationFacilityForReason,
+  getMetricSeriesInWindow,
+  getRegionComparison,
   MIN_GAMES_FOR_RANKING,
-  TIER_CLASS,
   type FacilitySortKey,
   type OverviewFilters,
   type OverviewData,
   type ReputationTier,
 } from "../lib/db/queries";
 import type { Locale } from "@/i18n/config";
-import type { ResolvedPeriod } from "../lib/period";
+import { resolveEvolutionWindow, gamesPerPeriodAverage, formatPerPeriod, type ResolvedPeriod, type Granularity } from "../lib/period";
 import { buildQuery, type SP } from "../lib/searchParams";
 import Heatmap from "./Heatmap";
 import KpiCard from "./KpiCard";
@@ -28,6 +29,7 @@ import Tabs from "./Tabs";
 import GroupSection from "./GroupSection";
 import Glossary from "./Glossary";
 import RegionConcentrationPies from "./RegionConcentrationPies";
+import RegionComparisonCards from "./RegionComparisonCards";
 
 function formatUSD(n: number) {
   return n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
@@ -83,6 +85,7 @@ export default async function NetworkOverview({
   facilitySort,
   facilitySortDir,
   regions,
+  granularity,
 }: {
   sp: SP;
   filters: OverviewFilters;
@@ -92,6 +95,7 @@ export default async function NetworkOverview({
   facilitySort: FacilitySortKey;
   facilitySortDir: SortDir;
   regions: { id: string; name: string }[];
+  granularity: Granularity;
 }) {
   const t = await getTranslations("Overview");
   const locale = (await getLocale()) as Locale;
@@ -163,6 +167,7 @@ export default async function NetworkOverview({
       // se sigue usando para el teaser de precio/engagement de este market.
       const top5Sorted = [...facilitySummary].sort((a, b) => b.confirmedGames - a.confirmedGames).slice(0, 5);
       const priorTop5Order = priorFacilitySummary ? [...priorFacilitySummary].sort((a, b) => b.confirmedGames - a.confirmedGames).map((f) => f.facilityId) : null;
+      const priorConfirmedByFacility = new Map((priorFacilitySummary ?? []).map((f): [string, number] => [f.facilityId, f.confirmedGames]));
 
       // Teaser de "Precio" y "Engagement" de Market — contenido que hoy no
       // tiene ningún resumen en Overview (ver auditoría). Sólo tiene sentido
@@ -182,22 +187,68 @@ export default async function NetworkOverview({
           })()
         : null;
 
+      const top5WithRank = withRankChange(top5Sorted, priorTop5Order).map((f) => ({
+        ...f,
+        confirmedDelta: priorFacilitySummary ? pctDelta(f.confirmedGames, priorConfirmedByFacility.get(f.facilityId)) ?? null : undefined,
+      }));
+
       return {
         scope,
         current,
         prior,
+        extended,
         contribution,
         insights,
-        extended,
         dayHourHeatmap,
         demandLeaders,
         facilityTable,
-        top5: withRankChange(top5Sorted, priorTop5Order),
+        top5: top5WithRank,
         marketTeaser,
         topReasonFacility,
       };
     })
   );
+
+  // ---------- KPIs "hero" del Resumen ----------
+  // Siempre al nivel del filtro activo (red completa si no hay región
+  // elegida, esa región si se eligió una, ese market/facility si se afinó
+  // más) — igual que el resto de la app (Market/Trends/Daily muestran un
+  // solo nivel, nunca duplicado por sub-scope). La comparación región-vs-
+  // región de abajo es un widget aparte, no una repetición de estos mismos
+  // KPIs por cada región.
+  const heroWindow = resolveEvolutionWindow(granularity, period.dateTo);
+  const [heroCurrent, heroPrior, heroExtended, heroSeries, regionComparison] = await Promise.all([
+    isMultiScope ? getOverviewData(filters, locale) : Promise.resolve(scopeData[0].current),
+    isMultiScope
+      ? compare && comparePeriod?.dateFrom && comparePeriod?.dateTo
+        ? getOverviewData({ ...filters, dateFrom: comparePeriod.dateFrom, dateTo: comparePeriod.dateTo }, locale)
+        : Promise.resolve(null)
+      : Promise.resolve(scopeData[0].prior),
+    isMultiScope ? getExtendedMetrics(filters) : Promise.resolve(scopeData[0].extended),
+    getMetricSeriesInWindow(filters, heroWindow.unit, heroWindow.windowStart, heroWindow.windowEnd, locale),
+    isMultiScope && period.dateFrom && period.dateTo
+      ? getRegionComparison(
+          { marketId: sp.marketId, facilityId: sp.facilityId },
+          period.dateFrom,
+          period.dateTo,
+          comparePeriod?.dateFrom,
+          comparePeriod?.dateTo
+        )
+      : Promise.resolve([]),
+  ]);
+
+  const perPeriod = (n: number) => {
+    const avg = gamesPerPeriodAverage(n, period.dateFrom, period.dateTo);
+    return avg ? formatPerPeriod(avg, locale) : undefined;
+  };
+  const heroHref = (tab: string) => buildQuery(sp, { tab });
+  const marketTabHref = (tab: string) => {
+    const params = new URLSearchParams();
+    if (sp.regionId) params.set("regionId", sp.regionId);
+    if (sp.marketId) params.set("marketId", sp.marketId);
+    params.set("tab", tab);
+    return `/market?${params.toString()}`;
+  };
 
   const sortLink = (key: FacilitySortKey, label: string) => {
     const isActive = facilitySort === key;
@@ -214,35 +265,113 @@ export default async function NetworkOverview({
   };
 
   // ---------- Tab: Resumen ----------
+  // Fila de 8 KPIs "hero", siempre al nivel del filtro activo (ver el
+  // Promise.all de arriba) — clickeables hacia la pestaña donde vive el
+  // detalle de cada métrica, en vez de repetir texto explicativo acá. Debajo,
+  // si no hay región filtrada, la comparación región-vs-región (antes
+  // exclusiva de Panel Ejecutivo); los insights automáticos quedan en un
+  // panel colapsado por defecto, separado de las tarjetas.
+  const heroKpis = (
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <KpiCard
+        label={t("kpi.scheduled")}
+        value={heroCurrent.totalGames.toLocaleString("en-US")}
+        perPeriod={perPeriod(heroCurrent.totalGames)}
+        delta={pctDelta(heroCurrent.totalGames, heroPrior?.totalGames)}
+        staticDelta
+        href={heroHref("facilities")}
+        sparklinePoints={heroSeries.map((p) => p.totalGames)}
+      />
+      <KpiCard
+        label={t("kpi.confirmed")}
+        value={heroCurrent.confirmedGames.toLocaleString("en-US")}
+        perPeriod={perPeriod(heroCurrent.confirmedGames)}
+        delta={pctDelta(heroCurrent.confirmedGames, heroPrior?.confirmedGames)}
+        staticDelta
+        href={heroHref("confirmations")}
+        sparklinePoints={heroSeries.map((p) => p.confirmedGames)}
+      />
+      <KpiCard
+        label={t("kpi.cancelled")}
+        value={heroCurrent.cancelledGames.toLocaleString("en-US")}
+        perPeriod={perPeriod(heroCurrent.cancelledGames)}
+        delta={pctDelta(heroCurrent.cancelledGames, heroPrior?.cancelledGames)}
+        deltaInvert
+        staticDelta
+        href={heroHref("cancellations")}
+        sparklinePoints={heroSeries.map((p) => p.cancelledGames)}
+      />
+      <KpiCard
+        label={t("kpi.confirmationRate")}
+        value={formatPct(heroCurrent.confirmationRate)}
+        delta={heroPrior ? heroCurrent.confirmationRate - heroPrior.confirmationRate : undefined}
+        deltaUnit="pts"
+        staticDelta
+        href={heroHref("confirmations")}
+        sparklinePoints={heroSeries.map((p) => p.confirmationRate)}
+      />
+      <KpiCard
+        label={t("kpi.cancellationRate")}
+        value={formatPct(heroCurrent.cancellationRate)}
+        delta={heroPrior ? heroCurrent.cancellationRate - heroPrior.cancellationRate : undefined}
+        deltaUnit="pts"
+        deltaInvert
+        staticDelta
+        href={heroHref("cancellations")}
+        sparklinePoints={heroSeries.map((p) => p.cancellationRate)}
+      />
+      <KpiCard
+        label={t("kpi.occupancy")}
+        value={formatPct(heroCurrent.avgFillRate)}
+        delta={heroPrior ? heroCurrent.avgFillRate - heroPrior.avgFillRate : undefined}
+        deltaUnit="pts"
+        staticDelta
+        href={heroHref("confirmations")}
+        sparklinePoints={heroSeries.map((p) => p.occupancyRate)}
+      />
+      <KpiCard
+        label={t("kpi.revenue")}
+        value={formatUSD(heroCurrent.totalRevenue)}
+        delta={pctDelta(heroCurrent.totalRevenue, heroPrior?.totalRevenue)}
+        staticDelta
+        href={sp.marketId ? marketTabHref("precio") : undefined}
+      />
+      <KpiCard
+        label={t("kpi.rating")}
+        value={heroExtended.avgRating !== null ? heroExtended.avgRating.toFixed(2) : "—"}
+        sublabel={t("satisfaction.ratingSub")}
+        href={heroHref("gameRating")}
+      />
+    </div>
+  );
+
   const resumenContent = (
     <div className="space-y-5">
-      <GroupSection title={t("sections.performance")}>
-        <div className={`grid grid-cols-1 ${isMultiScope ? "lg:grid-cols-2" : ""} gap-5`}>
-          {scopeData.map(({ scope, current, prior, insights }) => (
-            <div key={scope.regionId} className="space-y-4">
-              {isMultiScope && <div className="text-xs font-medium text-ink-muted px-1">{scope.regionName}</div>}
-              <SectionCard title={t("autoInsights.title")}>
-                <div className="space-y-2">
-                  {insights.map((insight, i) => (
-                    <div key={i} className="text-sm text-ink font-medium">{insight}</div>
-                  ))}
-                </div>
-              </SectionCard>
+      {heroKpis}
+      {comparePeriod?.label && (
+        <div className="text-[11px] text-ink-faint px-1 -mt-2">{t("varianceVs", { period: comparePeriod.label })}</div>
+      )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <KpiCard label={t("kpi.scheduled")} value={current.totalGames.toLocaleString("en-US")} delta={pctDelta(current.totalGames, prior?.totalGames)} staticDelta />
-                <KpiCard label={t("kpi.confirmed")} value={current.confirmedGames.toLocaleString("en-US")} delta={pctDelta(current.confirmedGames, prior?.confirmedGames)} staticDelta />
-                <KpiCard label={t("kpi.cancelled")} value={current.cancelledGames.toLocaleString("en-US")} delta={pctDelta(current.cancelledGames, prior?.cancelledGames)} deltaInvert staticDelta />
-                <KpiCard label={t("kpi.confirmationRate")} value={formatPct(current.confirmationRate)} delta={prior ? current.confirmationRate - prior.confirmationRate : undefined} staticDelta />
-                <KpiCard label={t("kpi.cancellationRate")} value={formatPct(current.cancellationRate)} delta={prior ? current.cancellationRate - prior.cancellationRate : undefined} deltaInvert staticDelta />
-                <KpiCard label={t("kpi.occupancy")} value={formatPct(current.avgFillRate)} delta={prior ? current.avgFillRate - prior.avgFillRate : undefined} staticDelta />
+      {isMultiScope && regionComparison.length >= 2 && (
+        <GroupSection title={t("sections.regionComparison")}>
+          <RegionComparisonCards rows={regionComparison} buildHref={(regionId) => buildQuery(sp, { regionId })} />
+        </GroupSection>
+      )}
+
+      <GroupSection title={t("autoInsights.title")} defaultOpen={false}>
+        <div className={`grid grid-cols-1 ${isMultiScope ? "lg:grid-cols-2" : ""} gap-5`}>
+          {scopeData.map(({ scope, insights }) => (
+            <div key={scope.regionId} className="space-y-2">
+              {isMultiScope && <div className="text-xs font-medium text-ink-muted px-1">{scope.regionName}</div>}
+              <div className="space-y-2">
+                {insights.map((insight, i) => (
+                  <div key={i} className="text-sm text-ink font-medium">{insight}</div>
+                ))}
+                {insights.length === 0 && <div className="text-sm text-ink-faint">{t("insights.noAlerts")}</div>}
               </div>
             </div>
           ))}
         </div>
-        {comparePeriod?.label && (
-          <div className="text-[11px] text-ink-faint px-1">{t("varianceVs", { period: comparePeriod.label })}</div>
-        )}
       </GroupSection>
 
       {!sp.regionId && (
@@ -253,79 +382,52 @@ export default async function NetworkOverview({
 
       <GroupSection title={t("sections.composition")}>
         <div className={`grid grid-cols-1 ${isMultiScope ? "lg:grid-cols-2" : ""} gap-5`}>
-          {scopeData.map(({ scope, top5, marketTeaser }) => (
-            <div key={scope.regionId} className="space-y-3">
-              <SectionCard
-                title={isMultiScope ? t("composition.top5TitleRegion", { region: scope.regionName }) : t("composition.top5Title")}
-                subtitle={t("composition.subtitle")}
-              >
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse text-sm">
-                    <thead>
-                      <tr className="border-b border-border text-left text-ink-muted">
-                        <th className="py-1.5 px-2 font-normal">{t("composition.headers.facility")}</th>
-                        <th className="py-1.5 px-2 font-normal">{t("composition.headers.confirmed")}</th>
-                        <th className="py-1.5 px-2 font-normal">{t("composition.headers.cancellation")}</th>
-                        <th className="py-1.5 px-2 font-normal">{t("composition.headers.level")}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {top5.map((f, i) => (
-                        <tr key={f.facilityId} className="border-b border-surface-sunken">
-                          <td className="py-1.5 px-2">
-                            <span className="flex items-center gap-1.5">
-                              <span className="text-ink-faint text-xs w-4">{i + 1}.</span>
-                              {f.rankChange === undefined ? null : f.rankChange === null ? (
-                                <span className="text-[9px] text-ink-faint">{t("composition.newBadge")}</span>
-                              ) : f.rankChange === 0 ? (
-                                <span className="text-ink-faint text-xs">—</span>
-                              ) : f.rankChange > 0 ? (
-                                <span className="text-brand text-[10px]">▲{f.rankChange}</span>
-                              ) : (
-                                <span className="text-danger text-[10px]">▼{Math.abs(f.rankChange)}</span>
-                              )}
-                              <Link href={buildQuery(sp, { facilityId: f.facilityId, marketId: f.marketId, regionId: f.regionId })} className="text-brand hover:underline">
-                                {f.name}
-                              </Link>
-                            </span>
-                          </td>
-                          <td className="py-1.5 px-2 text-ink">{f.confirmedGames}</td>
-                          <td className="py-1.5 px-2 text-ink">{formatPct(f.cancellationRate)}</td>
-                          <td className="py-1.5 px-2">
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded ${TIER_CLASS[f.reputationTier]}`}>{TIER_LABEL[f.reputationTier]}</span>
-                          </td>
-                        </tr>
-                      ))}
-                      {top5.length === 0 && (
-                        <tr><td colSpan={4} className="py-3 text-center text-ink-faint">{t("composition.empty")}</td></tr>
-                      )}
-                    </tbody>
-                  </table>
+          {scopeData.map(({ scope, top5, marketTeaser }) => {
+            const top5Rows: RankingRow[] = top5.map((f) => ({
+              facilityId: f.facilityId,
+              marketId: f.marketId,
+              regionId: f.regionId,
+              label: f.name,
+              value: f.confirmedGames,
+              extra: t("composition.rankingExtra", { tier: TIER_LABEL[f.reputationTier], rate: formatPct(f.cancellationRate) }),
+              rankChange: f.rankChange,
+              delta: f.confirmedDelta,
+            }));
+            return (
+              <div key={scope.regionId} className="space-y-3">
+                <div className="space-y-2">
+                  <RankingCard
+                    title={isMultiScope ? t("composition.top5TitleRegion", { region: scope.regionName }) : t("composition.top5Title")}
+                    subtitle={t("composition.subtitle")}
+                    rows={top5Rows}
+                    buildHref={(facilityId, marketId, regionId) => buildQuery(sp, { facilityId, marketId, regionId })}
+                    formatValue={(v) => `${v}`}
+                  />
+                  <Link href={`/market?regionId=${scope.regionId}${sp.marketId ? `&marketId=${sp.marketId}` : ""}&tab=reputacion`} className="text-xs text-brand inline-block px-1">
+                    {t("composition.viewFullRanking")}
+                  </Link>
                 </div>
-                <Link href={`/market?regionId=${scope.regionId}${sp.marketId ? `&marketId=${sp.marketId}` : ""}&tab=reputacion`} className="text-xs text-brand inline-block mt-3">
-                  {t("composition.viewFullRanking")}
-                </Link>
-              </SectionCard>
 
-              {marketTeaser && (
-                <SectionCard title={t("marketTeaser.title")} subtitle={t("marketTeaser.subtitle")}>
-                  <div className="flex items-end gap-6 flex-wrap mb-2">
-                    <Stat label={t("marketTeaser.avgTicket")} value={marketTeaser.avgPrice !== null ? formatUSD(marketTeaser.avgPrice) : "—"} sublabel={t("marketTeaser.avgTicketSub")} />
-                    <Stat label={t("marketTeaser.conversion")} value={marketTeaser.weightedConversion !== null ? formatPct(marketTeaser.weightedConversion) : "—"} sublabel={t("marketTeaser.conversionSub")} />
-                    <Stat
-                      label={t("marketTeaser.nearMiss")}
-                      value={marketTeaser.totalNearMiss.toLocaleString("en-US")}
-                      sublabel={marketTeaser.totalCancelled > 0 ? t("marketTeaser.nearMissSub", { pct: formatPct(marketTeaser.totalNearMiss / marketTeaser.totalCancelled) }) : undefined}
-                    />
-                  </div>
-                  <div className="flex gap-4 text-xs pt-2 border-t border-surface-sunken">
-                    <Link href={`/market?regionId=${scope.regionId}&marketId=${sp.marketId}&tab=precio`} className="text-brand hover:underline">{t("marketTeaser.viewPrice")}</Link>
-                    <Link href={`/market?regionId=${scope.regionId}&marketId=${sp.marketId}&tab=engagement`} className="text-brand hover:underline">{t("marketTeaser.viewEngagement")}</Link>
-                  </div>
-                </SectionCard>
-              )}
-            </div>
-          ))}
+                {marketTeaser && (
+                  <SectionCard title={t("marketTeaser.title")} subtitle={t("marketTeaser.subtitle")}>
+                    <div className="flex items-end gap-6 flex-wrap mb-2">
+                      <Stat label={t("marketTeaser.avgTicket")} value={marketTeaser.avgPrice !== null ? formatUSD(marketTeaser.avgPrice) : "—"} sublabel={t("marketTeaser.avgTicketSub")} />
+                      <Stat label={t("marketTeaser.conversion")} value={marketTeaser.weightedConversion !== null ? formatPct(marketTeaser.weightedConversion) : "—"} sublabel={t("marketTeaser.conversionSub")} />
+                      <Stat
+                        label={t("marketTeaser.nearMiss")}
+                        value={marketTeaser.totalNearMiss.toLocaleString("en-US")}
+                        sublabel={marketTeaser.totalCancelled > 0 ? t("marketTeaser.nearMissSub", { pct: formatPct(marketTeaser.totalNearMiss / marketTeaser.totalCancelled) }) : undefined}
+                      />
+                    </div>
+                    <div className="flex gap-4 text-xs pt-2 border-t border-surface-sunken">
+                      <Link href={`/market?regionId=${scope.regionId}&marketId=${sp.marketId}&tab=precio`} className="text-brand hover:underline">{t("marketTeaser.viewPrice")}</Link>
+                      <Link href={`/market?regionId=${scope.regionId}&marketId=${sp.marketId}&tab=engagement`} className="text-brand hover:underline">{t("marketTeaser.viewEngagement")}</Link>
+                    </div>
+                  </SectionCard>
+                )}
+              </div>
+            );
+          })}
         </div>
       </GroupSection>
 
@@ -843,6 +945,7 @@ export default async function NetworkOverview({
 
   return (
     <Tabs
+      defaultActiveId={sp.tab}
       tabs={[
         { id: "resumen", label: t("tabs.summary"), content: resumenContent },
         { id: "cancellations", label: t("tabs.cancellations"), content: cancellationsContent },

@@ -607,6 +607,8 @@
     },
     "sections": {
       "performance": "Performance",
+      "heroKpis": "Key metrics",
+      "regionComparison": "Region comparison",
       "regionConcentration": "Concentration by region",
       "composition": "Composition",
       "cancellationReasons": "Cancellation reasons",
@@ -622,7 +624,7 @@
       "seeMore": "See more"
     },
     "autoInsights": {
-      "title": "Automatic insights"
+      "title": "What to watch today"
     },
     "varianceVs": "Variation vs. {period}",
     "kpi": {
@@ -633,7 +635,9 @@
       "confirmationRate": "Confirmation rate",
       "cancellationRate": "Cancellation rate",
       "occupancy": "Occupancy (confirmed)",
-      "occupancySub": "final players / max capacity"
+      "occupancySub": "final players / max capacity",
+      "revenue": "Revenue",
+      "rating": "Game rating"
     },
     "insights": {
       "noGames": "No games recorded for the selected period/filter.",
@@ -666,7 +670,8 @@
       },
       "newBadge": "new",
       "empty": "No data for this filter.",
-      "viewFullRanking": "See full ranking in Market →"
+      "viewFullRanking": "See full ranking in Market →",
+      "rankingExtra": "{tier} · {rate} cancellation"
     },
     "marketTeaser": {
       "title": "Price & engagement for this market",
@@ -899,7 +904,11 @@
       "evolutionLatestSuffix": " confirmation in {label}"
     },
     "customRangeLabel": "Custom range",
-    "samePeriodLabel": "{from}–{to} {month} (same stretch)"
+    "samePeriodLabel": "{from}–{to} {month} (same stretch)",
+    "regionComparison": {
+      "confirmedGames": "Confirmed",
+      "confirmationRate": "Confirmation rate"
+    }
   },
   "Login": {
     "subtitle": "Marketplace Intelligence",

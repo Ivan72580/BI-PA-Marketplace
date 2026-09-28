@@ -607,6 +607,8 @@
     },
     "sections": {
       "performance": "Rendimiento",
+      "heroKpis": "Métricas clave",
+      "regionComparison": "Comparación entre regiones",
       "regionConcentration": "Concentración por región",
       "composition": "Composición",
       "cancellationReasons": "Motivos de cancelación",
@@ -622,7 +624,7 @@
       "seeMore": "Ver más"
     },
     "autoInsights": {
-      "title": "Insights automáticos"
+      "title": "Qué mirar hoy"
     },
     "varianceVs": "Variación vs. {period}",
     "kpi": {
@@ -633,7 +635,9 @@
       "confirmationRate": "Tasa de confirmación",
       "cancellationRate": "Tasa de cancelación",
       "occupancy": "Ocupación (confirmados)",
-      "occupancySub": "jugadores finales / cupo máximo"
+      "occupancySub": "jugadores finales / cupo máximo",
+      "revenue": "Revenue",
+      "rating": "Rating de partidos"
     },
     "insights": {
       "noGames": "No hay partidos registrados para el período/filtro seleccionado.",
@@ -666,7 +670,8 @@
       },
       "newBadge": "nuevo",
       "empty": "Sin datos en este filtro.",
-      "viewFullRanking": "Ver ranking completo en Market →"
+      "viewFullRanking": "Ver ranking completo en Market →",
+      "rankingExtra": "{tier} · {rate} cancelación"
     },
     "marketTeaser": {
       "title": "Precio y engagement de este market",
@@ -899,7 +904,11 @@
       "evolutionLatestSuffix": " de confirmación en {label}"
     },
     "customRangeLabel": "Rango personalizado",
-    "samePeriodLabel": "{from}–{to} {month} (mismo tramo)"
+    "samePeriodLabel": "{from}–{to} {month} (mismo tramo)",
+    "regionComparison": {
+      "confirmedGames": "Confirmados",
+      "confirmationRate": "Tasa de confirmación"
+    }
   },
   "Login": {
     "subtitle": "Marketplace Intelligence",

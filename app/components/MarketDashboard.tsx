@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
 import {
   getMarketFacilitySummary,
   getParetoGroups,
@@ -9,6 +9,8 @@ import {
   type ReputationTier,
 } from "../lib/db/queries";
 import { MIN_GAMES_FOR_RANKING } from "../lib/db/shared";
+import { gamesPerPeriodAverage, formatPerPeriod } from "../lib/period";
+import type { Locale } from "@/i18n/config";
 import PieChart from "./charts/PieChart";
 import Glossary from "./Glossary";
 import ChangeBadge from "./ChangeBadge";
@@ -79,13 +81,20 @@ export default async function MarketDashboard({
   // "Concentración". Ver Tabs.tsx (defaultActiveId).
   activeTab?: string;
 }) {
-  const t = await getTranslations("Market");
+  const [t, locale] = await Promise.all([getTranslations("Market"), getLocale()]);
   const TIER_LABEL: Record<ReputationTier, string> = {
     platinum: t("tier.platinum"), bueno: t("tier.bueno"), intermedio: t("tier.intermedio"), a_revisar: t("tier.aRevisar"), sin_datos: t("tier.sinDatos"),
   };
   const baseFilters: Omit<OverviewFilters, "dateFrom" | "dateTo"> = { regionId: sp.regionId, marketId: sp.marketId, facilityId: sp.facilityId };
   const { dateFrom, dateTo } = monthRange(month);
   const monthFilters: OverviewFilters = { ...baseFilters, dateFrom, dateTo };
+  // Contexto ambiente ("≈X/semana") a partir del total del mes seleccionado
+  // — no es un desglose nuevo, solo ayuda a leer un total mensual sin tener
+  // que ir a Trends. Mismo helper que ya usa Overview.
+  const perPeriod = (n: number) => {
+    const avg = gamesPerPeriodAverage(n, dateFrom, dateTo);
+    return avg ? formatPerPeriod(avg, locale as Locale) : undefined;
+  };
 
   const [summary, pareto, marketRanking] = await Promise.all([
     getMarketFacilitySummary(monthFilters),
@@ -196,7 +205,10 @@ export default async function MarketDashboard({
                     }
                   />
                 </div>
-                <div className="text-xs text-ink-faint mt-0.5">{t("share.confirmedGamesLabel")}</div>
+                <div className="text-xs text-ink-faint mt-0.5">
+                  {t("share.confirmedGamesLabel")}
+                  {perPeriod(m.confirmedGames) ? ` · ${perPeriod(m.confirmedGames)}` : ""}
+                </div>
               </Link>
             ))}
           </div>
@@ -220,7 +232,10 @@ export default async function MarketDashboard({
                     <div className="font-display text-xl font-semibold text-ink">{formatPct(f.marketSharePct)}</div>
                     <ChangeBadge value={shareChangePts} unit="pts" />
                   </div>
-                  <div className="text-xs text-ink-faint mt-0.5">{t("share.confirmedCount", { n: f.confirmedGames.toLocaleString("en-US") })}</div>
+                  <div className="text-xs text-ink-faint mt-0.5">
+                    {t("share.confirmedCount", { n: f.confirmedGames.toLocaleString("en-US") })}
+                    {perPeriod(f.confirmedGames) ? ` · ${perPeriod(f.confirmedGames)}` : ""}
+                  </div>
                 </Link>
               );
             })}
