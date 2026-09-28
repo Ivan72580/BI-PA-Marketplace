@@ -42,3 +42,6 @@ next-env.d.ts
 
 # datos crudos (no versionar en git, son datos operativos, no código)
 /data/*.csv
+
+# logs de corridas de auto-import.ts (ver SETUP.md) — operativo, no código
+/logs

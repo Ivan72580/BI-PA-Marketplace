@@ -10,7 +10,9 @@
  *
  * No borra nada de Descargas. Cada fuente es independiente: si no hay un
  * archivo nuevo de una fuente, esa fuente simplemente no se sincroniza esta
- * vez (no es un error) — las demás siguen su curso.
+ * vez (no es un error) — las demás siguen su curso. Lo mismo aplica si una
+ * fuente falla de verdad (ver "Aislamiento entre fuentes" más abajo): las
+ * otras dos igual se procesan.
  *
  * Dos formas de tratar el archivo encontrado en Descargas, según la fuente:
  *   - events.csv: se copia directo como "archivo madre" (data/events.csv,
@@ -28,6 +30,23 @@
  * reviewKey según la fuente) — así que da lo mismo si se lo corre sobre el
  * archivo madre completo o sobre el export nuevo solo; se deja siempre
  * sobre el archivo madre ya mezclado, por consistencia.
+ *
+ * Registro de corridas (logs/auto-import.log):
+ * Corriendo desde el Programador de Tareas, la ventana de cmd.exe se cierra
+ * sola apenas termina el proceso (haya salido bien o mal) — no da tiempo a
+ * leer nada en pantalla. Por eso, ADEMÁS de imprimir por consola, cada línea
+ * se guarda en logs/auto-import.log (se crea solo, no se versiona en git).
+ * Si un día "no pasa nada" o parece cortarse a mitad de camino, ese archivo
+ * tiene el detalle completo de la última corrida — incluida la salida real
+ * del import (npm run db:import, etc.) y el error si lo hubo.
+ *
+ * Aislamiento entre fuentes:
+ * Si una fuente encuentra su archivo pero falla al copiarlo/mezclarlo o al
+ * sincronizarlo con la base, esa fuente queda marcada como fallida en el
+ * log, pero el script sigue con las demás — no se corta todo por un
+ * problema de una sola fuente (antes de este cambio, cualquier error real
+ * —no solo el caso "no hay archivo nuevo", que nunca fue un error— frenaba
+ * el for entero y las fuentes siguientes ni se intentaban).
  */
 import fs from "fs";
 import path from "path";
@@ -38,6 +57,8 @@ import { gameReviewKey, appReviewKey } from "./lib/reviewKeys";
 
 const PROJECT_ROOT = path.join(__dirname, "..");
 const DOWNLOADS_DIR = path.join(os.homedir(), "Downloads");
+const LOG_DIR = path.join(PROJECT_ROOT, "logs");
+const LOG_FILE = path.join(LOG_DIR, "auto-import.log");
 
 type Source = {
   label: string;
@@ -77,6 +98,67 @@ const SOURCES: Source[] = [
   },
 ];
 
+// ---------- Logging a archivo (ver comentario de cabecera) ----------
+
+function log(line: string): void {
+  console.log(line);
+  try {
+    fs.mkdirSync(LOG_DIR, { recursive: true });
+    fs.appendFileSync(LOG_FILE, `[${new Date().toISOString()}] ${line}\n`);
+  } catch {
+    // Si ni el log se puede escribir (disco lleno, permisos), no hay nada
+    // más que hacer — ya se imprimió por consola al menos.
+  }
+}
+
+function logError(context: string, error: unknown): void {
+  const detail = error instanceof Error ? error.stack ?? error.message : String(error);
+  log(`  ERROR en ${context}: ${detail}`);
+}
+
+// Espera activa breve entre reintentos — el script es sincrónico de punta a
+// punta (fs.*Sync, execSync) para no reescribir todo a async solo por esto.
+function sleepSync(ms: number): void {
+  const until = Date.now() + ms;
+  while (Date.now() < until) {
+    /* espera */
+  }
+}
+
+// El archivo recién descargado puede estar momentáneamente bloqueado (el
+// antivirus lo está escaneando, o el navegador todavía lo está terminando
+// de escribir) — reintentar unos segundos antes de tratarlo como error de
+// verdad evita que una corrida falle por algo que se resuelve solo.
+function waitUntilReadable(filePath: string, attempts = 5, delayMs = 1500): void {
+  for (let i = 1; i <= attempts; i++) {
+    try {
+      const fd = fs.openSync(filePath, "r");
+      fs.closeSync(fd);
+      return;
+    } catch (err) {
+      if (i === attempts) throw err;
+      log(`  Archivo todavía no accesible (${(err as NodeJS.ErrnoException).code ?? "?"}), reintentando en ${delayMs}ms (${i}/${attempts})...`);
+      sleepSync(delayMs);
+    }
+  }
+}
+
+// Corre "npm run <npmScript>" capturando toda su salida (antes quedaba con
+// stdio:"inherit", así que si la ventana se cerraba sola, esa salida se
+// perdía para siempre) — ahora se guarda entera en el log, haya salido bien
+// o mal.
+function runNpmScript(npmScript: string): void {
+  try {
+    const output = execSync(`npm run ${npmScript}`, { cwd: PROJECT_ROOT, encoding: "utf-8" });
+    if (output.trim()) log(output.trimEnd());
+  } catch (err) {
+    const e = err as { stdout?: string; stderr?: string; message: string };
+    if (e.stdout?.trim()) log(e.stdout.trimEnd());
+    if (e.stderr?.trim()) log(e.stderr.trimEnd());
+    throw new Error(`falló "npm run ${npmScript}" (ver salida arriba)`);
+  }
+}
+
 function findLatestMatch(pattern: RegExp): string | null {
   const matches = fs
     .readdirSync(DOWNLOADS_DIR)
@@ -90,50 +172,73 @@ function findLatestMatch(pattern: RegExp): string | null {
   if (matches.length === 0) return null;
 
   if (matches.length > 1) {
-    console.log(`  Se encontraron ${matches.length} archivos — usando el más reciente: ${matches[0].name}`);
+    log(`  Se encontraron ${matches.length} archivos — usando el más reciente: ${matches[0].name}`);
   }
 
   return matches[0].fullPath;
 }
 
+// Lanza si algo falla — el llamador (main) decide qué hacer con eso, para
+// que una fuente rota no le impida correr a las demás.
 function runSource(source: Source): void {
-  console.log(`\n${source.label}:`);
+  log(`\n${source.label}:`);
   const latest = findLatestMatch(source.filenamePattern);
 
   if (!latest) {
-    console.log(`  No se encontró ningún archivo nuevo en Descargas para esta fuente. Nada para hacer.`);
+    log(`  No se encontró ningún archivo nuevo en Descargas para esta fuente. Nada para hacer.`);
     return;
   }
 
+  log(`  Encontrado: ${latest}`);
+  waitUntilReadable(latest);
+
   const targetPath = path.join(PROJECT_ROOT, "data", source.targetFilename);
-  console.log(`  Encontrado: ${latest}`);
   fs.mkdirSync(path.dirname(targetPath), { recursive: true });
 
   if (source.mergeKeyFn) {
     const result = mergeCsvIntoMaster(latest, targetPath, source.mergeKeyFn);
-    console.log(`  Mezclado sobre el archivo madre: ${result.added} nuevas, ${result.updated} actualizadas, ${result.unchanged} sin cambios (total: ${result.total}).`);
+    log(`  Mezclado sobre el archivo madre: ${result.added} nuevas, ${result.updated} actualizadas, ${result.unchanged} sin cambios (total: ${result.total}).`);
   } else {
     fs.copyFileSync(latest, targetPath);
-    console.log(`  Copiado a: ${targetPath}`);
+    log(`  Copiado a: ${targetPath}`);
   }
 
-  console.log("  Sincronizando con la base...");
-  execSync(`npm run ${source.npmScript}`, { stdio: "inherit", cwd: PROJECT_ROOT });
+  log("  Sincronizando con la base...");
+  runNpmScript(source.npmScript);
+  log(`  ${source.label}: listo.`);
 }
 
-function main() {
-  console.log(`Buscando exports en: ${DOWNLOADS_DIR}`);
+function main(): void {
+  log(`\n=== auto-import — ${new Date().toISOString()} ===`);
+  log(`Buscando exports en: ${DOWNLOADS_DIR}`);
 
   if (!fs.existsSync(DOWNLOADS_DIR)) {
-    console.error(`No se encontró la carpeta de Descargas en: ${DOWNLOADS_DIR}`);
+    log(`No se encontró la carpeta de Descargas en: ${DOWNLOADS_DIR}`);
+    process.exitCode = 1;
     return;
   }
 
+  let hadError = false;
   for (const source of SOURCES) {
-    runSource(source);
+    try {
+      runSource(source);
+    } catch (err) {
+      hadError = true;
+      logError(source.label, err);
+      log(`  Esta fuente falló — se sigue de todos modos con las que quedan.`);
+    }
   }
 
-  console.log("\nListo.");
+  log(hadError ? "\nListo, con errores (ver detalle arriba y en logs/auto-import.log)." : "\nListo.");
+  if (hadError) process.exitCode = 1;
 }
 
-main();
+try {
+  main();
+} catch (err) {
+  // Red de seguridad final: nada debería llegar hasta acá (main ya aísla
+  // cada fuente), pero si algo lo hace, que quede en el log antes de que el
+  // proceso termine, en vez de perderse con el cierre de la ventana.
+  logError("main()", err);
+  process.exitCode = 1;
+}

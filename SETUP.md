@@ -109,6 +109,8 @@ Para que corra solo una vez por día, programalo con el **Programador de Tareas 
 
 Si no bajaste ningún export nuevo ese día, el script no encuentra nada y no hace nada (no rompe nada, solo no tiene novedades que sincronizar).
 
+**Si algo no anduvo bien**: la ventana de `cmd.exe` se cierra sola apenas el proceso termina (haya salido bien o mal), así que no da tiempo a leer nada en pantalla — no es un indicador confiable de si funcionó. Revisá en cambio `logs\auto-import.log` dentro de la carpeta del proyecto: ahí queda registrada cada corrida completa, línea por línea, incluida la salida real del import y cualquier error (por ejemplo, si el archivo llegó pero falló al copiarlo o al sincronizar con la base). Si tres fuentes están configuradas y una falla, las otras dos igual se procesan — no se corta todo por una sola.
+
 ## Caché y performance (agregado para que aguante crecimiento de datos y varios usuarios a la vez)
 
 Las consultas pesadas (Overview, tabla de facilities, heatmap, etc.) ahora se cachean 5 minutos server-side — si dos personas (o dos pestañas tuyas) miran el mismo filtro dentro de esa ventana, la segunda carga es instantánea, no recalcula nada. No requiere ninguna configuración de tu parte, ya viene activo.
