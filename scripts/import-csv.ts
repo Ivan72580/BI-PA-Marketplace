@@ -185,11 +185,53 @@ async function main() {
     // que ya existían (si los hay) y reinsertamos el lote entero. El efecto
     // neto es insertar los nuevos y actualizar los que cambiaron, en dos
     // operaciones masivas — no una por fila.
-    await prisma.game.deleteMany({ where: { id: { in: ids } } });
-    const result = await prisma.game.createMany({ data: pendingGames });
+    //
+    // Excepción: un partido con al menos una GameReview asociada NO se
+    // puede borrar (game_reviews.gameId es RESTRICT — Postgres rechaza el
+    // delete si hay una review colgando de ese id, y cascadear el delete
+    // borraría reviews reales de jugadores cada vez que ese partido se
+    // resincroniza, que es justo lo que no queremos). Para esos, en vez de
+    // borrar+reinsertar, se actualiza cada uno individualmente — no rompe
+    // la relación porque el id nunca deja de existir. Es más lento que el
+    // camino en bloque, pero solo aplica a los partidos que ya tienen
+    // reviews cargadas, no a todo el lote.
+    // Tipo explícito por el mismo motivo que el resto de app/lib/db/*.ts: el
+    // cliente de Prisma generado en este sandbox está desactualizado y
+    // devuelve `any`, lo que arrastraría un implicit-any al callback de abajo.
+    const reviewed = (await prisma.gameReview.findMany({
+      where: { gameId: { in: ids } },
+      select: { gameId: true },
+      distinct: ["gameId"],
+    })) as { gameId: number }[];
+    const reviewedIds = new Set(reviewed.map((r) => r.gameId));
 
-    totalSynced += result.count;
-    console.log(`  ${totalSynced} partidos sincronizados...`);
+    const byId = new Map(pendingGames.map((g) => [g.id, g]));
+    const safeToDeleteIds = ids.filter((id) => !reviewedIds.has(id));
+    const mustUpdateIds = ids.filter((id) => reviewedIds.has(id));
+
+    if (safeToDeleteIds.length > 0) {
+      await prisma.game.deleteMany({ where: { id: { in: safeToDeleteIds } } });
+      const created = await prisma.game.createMany({
+        data: safeToDeleteIds.map((id) => byId.get(id)!),
+      });
+      totalSynced += created.count;
+    }
+
+    if (mustUpdateIds.length > 0) {
+      // upsert (no update) por si alguna vez aparece una review para un id
+      // que todavía no llegó a crearse como Game — no debería pasar en la
+      // práctica, pero así no revienta si pasa.
+      await Promise.all(
+        mustUpdateIds.map((id) => {
+          const game = byId.get(id)!;
+          const { id: _id, ...updateData } = game; // id va en el `where`, no hace falta repetirlo en `update`
+          return prisma.game.upsert({ where: { id }, create: game, update: updateData });
+        })
+      );
+      totalSynced += mustUpdateIds.length;
+    }
+
+    console.log(`  ${totalSynced} partidos sincronizados... (${mustUpdateIds.length} actualizados fila por fila por tener reviews)`);
     pendingGames.length = 0;
   }
 
