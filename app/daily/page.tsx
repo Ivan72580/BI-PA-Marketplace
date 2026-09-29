@@ -192,6 +192,8 @@ function Stat({
   delta,
   deltaInvert,
   deltaUnit = "pts",
+  rawDelta,
+  baselineNote,
 }: {
   label: string;
   value: string;
@@ -202,6 +204,16 @@ function Stat({
   // mismos slots) son diferencias de puntos entre tasas, no variación
   // relativa — mismo criterio que Trends.Stat.
   deltaUnit?: "pct" | "pts";
+  // Diferencia cruda vs. el promedio de referencia, en la misma unidad que
+  // `value` (ej. +2 partidos) — NO pasa por ChangeBadge, que multiplica
+  // todo ×100 asumiendo %/puntos porcentuales; para un conteo esa lógica
+  // da un número sin sentido (mismo criterio que el rawDelta de KpiCard
+  // en Overview, para el KPI de Rating).
+  rawDelta?: number | null;
+  // Valor absoluto del promedio de referencia (ej. "Prom. martes: 6.4
+  // partidos (n=8)") — el delta/rawDelta ya muestran la diferencia, pero
+  // no el número contra el que se está comparando.
+  baselineNote?: string;
 }) {
   return (
     <div className="rounded-2xl bg-surface shadow-sm hover:shadow-lg transition-shadow p-5">
@@ -209,8 +221,15 @@ function Stat({
       <div className="flex items-baseline gap-2 flex-wrap">
         <div className="font-display text-xl font-semibold text-ink">{value}</div>
         {delta !== undefined && <ChangeBadge value={delta} invert={deltaInvert} unit={deltaUnit} />}
+        {rawDelta !== undefined && rawDelta !== null && (
+          <span className={`text-xs font-semibold ${rawDelta === 0 ? "text-ink-muted" : rawDelta > 0 ? "text-brand" : "text-danger"}`}>
+            {rawDelta === 0 ? "→" : rawDelta > 0 ? "↑" : "↓"} {rawDelta > 0 ? "+" : ""}
+            {Math.round(rawDelta * 10) / 10}
+          </span>
+        )}
       </div>
       {sublabel && <div className="text-xs text-ink-faint mt-0.5">{sublabel}</div>}
+      {baselineNote && <div className="text-xs text-ink-faint mt-0.5">{baselineNote}</div>}
     </div>
   );
 }
@@ -399,6 +418,8 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
   }));
 
   const insights = buildDayInsights(summary, baseline, evolution, t, locale as Locale);
+  const weekdayPl = weekdayPlural(summary.dayOfWeek, locale as Locale);
+  const hasBaseline = baseline.occurrences >= 3;
 
   const evolutionChartData = {
     labels: evolution.map((p) => p.label),
@@ -617,9 +638,25 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            <Stat label={t("stats.games")} value={String(summary.totalGames)} sublabel={t("stats.gamesSublabel", { confirmed: summary.confirmedGames, cancelled: summary.cancelledGames })} />
-            <Stat label={t("stats.confirmation")} value={formatPct(summary.confirmationRate)} delta={baseline.occurrences >= 3 ? summary.confirmationRate - baseline.avgConfirmationRate : undefined} />
-            <Stat label={t("stats.occupancy")} value={formatPct(summary.occupancyRate)} delta={baseline.occurrences >= 3 ? summary.occupancyRate - baseline.avgOccupancyRate : undefined} />
+            <Stat
+              label={t("stats.games")}
+              value={String(summary.totalGames)}
+              sublabel={t("stats.gamesSublabel", { confirmed: summary.confirmedGames, cancelled: summary.cancelledGames })}
+              rawDelta={hasBaseline ? summary.totalGames - baseline.avgGamesPerOccurrence : undefined}
+              baselineNote={hasBaseline ? t("stats.baselineGames", { weekday: weekdayPl, avg: baseline.avgGamesPerOccurrence.toFixed(1), n: baseline.occurrences }) : undefined}
+            />
+            <Stat
+              label={t("stats.confirmation")}
+              value={formatPct(summary.confirmationRate)}
+              delta={hasBaseline ? summary.confirmationRate - baseline.avgConfirmationRate : undefined}
+              baselineNote={hasBaseline ? t("stats.baselineRate", { weekday: weekdayPl, avg: formatPct(baseline.avgConfirmationRate), n: baseline.occurrences }) : undefined}
+            />
+            <Stat
+              label={t("stats.occupancy")}
+              value={formatPct(summary.occupancyRate)}
+              delta={hasBaseline ? summary.occupancyRate - baseline.avgOccupancyRate : undefined}
+              baselineNote={hasBaseline ? t("stats.baselineRate", { weekday: weekdayPl, avg: formatPct(baseline.avgOccupancyRate), n: baseline.occurrences }) : undefined}
+            />
             <Stat label={t("stats.revenue")} value={formatUSD(summary.totalRevenue)} sublabel={summary.avgRating != null ? t("stats.avgRating", { rating: summary.avgRating.toFixed(1) }) : undefined} />
             <Stat
               label={t("stats.pricePerPlayer")}
@@ -630,11 +667,11 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
 
           <GroupSection title={t("variationSection")}>
             <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-5">
-              <SectionCard title={t("evolution.title", { n: evolution.length, weekday: weekdayPlural(summary.dayOfWeek, locale as Locale) })} subtitle={t("evolution.subtitle")}>
+              <SectionCard title={t("evolution.title", { n: evolution.length, weekday: weekdayPl })} subtitle={t("evolution.subtitle")}>
                 {evolution.length > 1 ? (
                   <EvolutionChart data={evolutionChartData} />
                 ) : (
-                  <div className="text-sm text-ink-faint">{t("evolution.empty", { weekday: weekdayPlural(summary.dayOfWeek, locale as Locale) })}</div>
+                  <div className="text-sm text-ink-faint">{t("evolution.empty", { weekday: weekdayPl })}</div>
                 )}
               </SectionCard>
               <SectionCard title={t("todayInsights.title")} subtitle={t("todayInsights.subtitle")}>

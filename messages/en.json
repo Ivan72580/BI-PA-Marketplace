@@ -76,7 +76,9 @@
       "revenue": "Day's revenue",
       "avgRating": "Average rating: {rating}",
       "pricePerPlayer": "Price per player",
-      "avgTicket": "Average ticket: {price}"
+      "avgTicket": "Average ticket: {price}",
+    "baselineGames": "Avg. {weekday}: {avg} games (n={n})",
+    "baselineRate": "Avg. {weekday}: {avg} (n={n})"
     },
     "variationSection": "Day variation & insights",
     "evolution": {

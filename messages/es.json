@@ -76,7 +76,9 @@
       "revenue": "Revenue del día",
       "avgRating": "Rating promedio: {rating}",
       "pricePerPlayer": "Precio x jugador",
-      "avgTicket": "Ticket promedio: {price}"
+      "avgTicket": "Ticket promedio: {price}",
+    "baselineGames": "Prom. {weekday}: {avg} partidos (n={n})",
+    "baselineRate": "Prom. {weekday}: {avg} (n={n})"
     },
     "variationSection": "Variación e insights del día",
     "evolution": {
