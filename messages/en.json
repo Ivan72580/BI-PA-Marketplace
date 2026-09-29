@@ -10,6 +10,7 @@
     "market": "Market",
     "daily": "Daily",
     "panelEjecutivo": "Executive Panel",
+    "forecast": "Forecast",
     "facilitySearch": {
       "placeholder": "Search facility...",
       "empty": "No results for \"{query}\""
@@ -1229,6 +1230,66 @@
         "replyLabel": "Reply",
         "empty": "No reviews imported yet."
       }
+    }
+  },
+  "Forecast": {
+    "pageTitle": "Forecast",
+    "subtitle": "What to expect across the network (or the chosen filter) for the coming days, based on recent historical trend — an estimate with a margin of error, not games already scheduled.",
+    "allNetwork": "Whole network",
+    "rangeWeek": "Next week",
+    "rangeMonth": "Next month",
+    "windowLabel": "Next {n} days",
+    "badge": "Forecast",
+    "disclaimer": "Estimate from linear regression over comparable historical blocks ({n} of the last {lookback} available) — not real data or games already scheduled. Each metric's range shows the margin of error (±1 historical standard deviation).",
+    "methodAverage": "Not enough history to estimate a trend — used the simple average of the last {n} comparable blocks.",
+    "methodInsufficient": "Not enough comparable history for this filter and range (at least {min} blocks needed, {n} available).",
+    "games": { "label": "Games expected" },
+    "confirmation": { "label": "Confirmation expected" },
+    "occupancy": { "label": "Occupancy expected" },
+    "revenue": {
+      "label": "Revenue expected",
+      "lowConfidence": "Lower confidence: combines price, players and volume, all three uncertain."
+    },
+    "breakdown": {
+      "title": "Expected breakdown",
+      "confirmed": "Confirmed",
+      "cancelled": "Cancelled"
+    },
+    "yoy": {
+      "value": "Same period, last year: {games} games · {pct} confirmation (real data, not projected)."
+    },
+    "risk": {
+      "title": "Facilities to watch",
+      "subtitle": "Own trend projected forward ({range}) — only the ones showing signs of decline.",
+      "empty": "No facility in this filter shows a projected declining trend.",
+      "cancelledLabel": "{n} cancellations expected"
+    },
+    "glossary": {
+      "regression": {
+        "term": "Linear regression",
+        "def": "fits a trend line over the comparable historical blocks and projects one step forward — not a flat average, it reflects whether the metric has been trending up or down."
+      },
+      "range": {
+        "term": "Range (margin of error)",
+        "def": "± 1 standard deviation of those same historical blocks — the more irregular the history, the wider the range."
+      },
+      "risk": {
+        "term": "Facilities to watch",
+        "def": "facilities whose own recent trend, projected forward, worsens — same ranking criteria as Daily's risk radar, but looking forward instead of back."
+      }
+    },
+    "insights": {
+      "panelTitle": "Insights for this forecast",
+      "insufficient": "Not enough comparable history to estimate with this filter (at least {min} blocks needed, {n} available).",
+      "average": "Not enough history to estimate a trend — used the simple average of the last {n} blocks.",
+      "confirmationUp": "Expected confirmation has been improving: ~{pct}.",
+      "confirmationDown": "Expected confirmation has been dropping: ~{pct}.",
+      "gamesUp": "Expected volume has been growing: ~{n} games.",
+      "gamesDown": "Expected volume has been dropping: ~{n} games.",
+      "yoyUp": "Expected volume is {pct}% above what actually happened in the same period last year.",
+      "yoyDown": "Expected volume is {pct}% below what actually happened in the same period last year.",
+      "riskTop": "{n} facilities show a projected declining trend — the most pronounced is {name}.",
+      "revenueCaveat": "Expected revenue is the least reliable number in this forecast: it combines price, players and volume, all three uncertain."
     }
   }
 }

@@ -79,3 +79,34 @@ export function sortHoursByOperatingDay(hours: string[]): string[] {
   const key = (h: string) => (parseInt(h, 10) - 6 + 24) % 24;
   return [...hours].sort((a, b) => key(a) - key(b));
 }
+
+// ---------- Estadística mínima compartida (predicciones) ----------
+// Usada por getDailyForecast (daily.ts, por facility/día) y getNetworkForecast
+// (forecast.ts, por región/market/facility/semana/mes) — mismo método en los
+// dos, para no tener dos criterios de "regresión" distintos convivendo en la
+// app. Sin librería externa: son 3 funciones de manual de estadística, no
+// justifica una dependencia nueva.
+export function average(values: number[]): number {
+  return values.length > 0 ? values.reduce((s, v) => s + v, 0) / values.length : 0;
+}
+
+// Desvío estándar poblacional (no muestral): estas series son el historial
+// COMPLETO disponible para esa ventana, no una muestra de algo más grande.
+export function stdDev(values: number[]): number {
+  if (values.length === 0) return 0;
+  const m = average(values);
+  return Math.sqrt(average(values.map((v) => (v - m) ** 2)));
+}
+
+export function linearRegression(xs: number[], ys: number[]): { slope: number; intercept: number } {
+  const n = xs.length;
+  const sumX = xs.reduce((s, x) => s + x, 0);
+  const sumY = ys.reduce((s, y) => s + y, 0);
+  const sumXY = xs.reduce((s, x, i) => s + x * ys[i], 0);
+  const sumXX = xs.reduce((s, x) => s + x * x, 0);
+  const denom = n * sumXX - sumX * sumX;
+  if (denom === 0) return { slope: 0, intercept: sumY / n };
+  const slope = (n * sumXY - sumX * sumY) / denom;
+  const intercept = (sumY - slope * sumX) / n;
+  return { slope, intercept };
+}

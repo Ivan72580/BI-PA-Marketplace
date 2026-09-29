@@ -44,6 +44,16 @@ function DailyIcon() {
     </svg>
   );
 }
+function ForecastIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3a6 6 0 0 0-3.7 10.7c.4.4.7.9.7 1.5V17h6v-1.8c0-.6.3-1.1.7-1.5A6 6 0 0 0 12 3Z" />
+      <line x1="9" y1="21" x2="15" y2="21" />
+      <line x1="10" y1="17" x2="10" y2="18.5" />
+      <line x1="14" y1="17" x2="14" y2="18.5" />
+    </svg>
+  );
+}
 function LeadershipIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -56,13 +66,14 @@ function LeadershipIcon() {
 
 // Las labels viven en messages/*.json (namespace TopNav) — labelKey referencia
 // esa clave, se traduce en el render porque useTranslations es un hook.
-type NavLink = { href: string; labelKey: "overview" | "trends" | "market" | "daily" | "panelEjecutivo"; icon: () => ReactNode };
+type NavLink = { href: string; labelKey: "overview" | "trends" | "market" | "daily" | "forecast" | "panelEjecutivo"; icon: () => ReactNode };
 
 const links: NavLink[] = [
   { href: "/", labelKey: "overview", icon: OverviewIcon },
   { href: "/trends", labelKey: "trends", icon: TrendsIcon },
   { href: "/market", labelKey: "market", icon: MarketIcon },
   { href: "/daily", labelKey: "daily", icon: DailyIcon },
+  { href: "/forecast", labelKey: "forecast", icon: ForecastIcon },
 ];
 
 const panelEjecutivoLink: NavLink = { href: "/panel-ejecutivo", labelKey: "panelEjecutivo", icon: LeadershipIcon };

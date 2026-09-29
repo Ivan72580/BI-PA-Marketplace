@@ -10,6 +10,7 @@
     "market": "Market",
     "daily": "Diario",
     "panelEjecutivo": "Panel Ejecutivo",
+    "forecast": "Pronóstico",
     "facilitySearch": {
       "placeholder": "Buscar facility...",
       "empty": "Sin resultados para \"{query}\""
@@ -1229,6 +1230,66 @@
         "replyLabel": "Respuesta",
         "empty": "Todavía no hay reviews importadas."
       }
+    }
+  },
+  "Forecast": {
+    "pageTitle": "Pronóstico",
+    "subtitle": "Qué esperar en la red (o en el filtro elegido) para los próximos días, según la tendencia histórica reciente — una estimación con margen de error, no partidos ya agendados.",
+    "allNetwork": "Toda la red",
+    "rangeWeek": "Próxima semana",
+    "rangeMonth": "Próximo mes",
+    "windowLabel": "Próximos {n} días",
+    "badge": "Predicción",
+    "disclaimer": "Estimación por regresión lineal sobre bloques históricos comparables ({n} de los últimos {lookback} disponibles) — no es un dato real ni partidos ya agendados. El rango de cada métrica muestra el margen de error (±1 desvío estándar histórico).",
+    "methodAverage": "Poco historial para estimar tendencia — se usó el promedio simple de los últimos {n} bloques comparables.",
+    "methodInsufficient": "Sin suficiente historial comparable para este filtro y este rango (se necesitan al menos {min} bloques, hay {n}).",
+    "games": { "label": "Partidos esperados" },
+    "confirmation": { "label": "Confirmación esperada" },
+    "occupancy": { "label": "Ocupación esperada" },
+    "revenue": {
+      "label": "Revenue esperado",
+      "lowConfidence": "Menor confiabilidad: combina precio, jugadores y volumen, las tres inciertas."
+    },
+    "breakdown": {
+      "title": "Desglose esperado",
+      "confirmed": "Confirmados",
+      "cancelled": "Cancelados"
+    },
+    "yoy": {
+      "value": "Mismo período, año pasado: {games} partidos · {pct} de confirmación (dato real, no proyectado)."
+    },
+    "risk": {
+      "title": "Facilities a vigilar",
+      "subtitle": "Tendencia propia proyectada hacia adelante ({range}) — solo las que muestran señales de deterioro.",
+      "empty": "Ninguna facility de este filtro muestra una tendencia de deterioro proyectada.",
+      "cancelledLabel": "{n} cancelados esperados"
+    },
+    "glossary": {
+      "regression": {
+        "term": "Regresión lineal",
+        "def": "ajusta una línea de tendencia sobre los bloques históricos comparables y proyecta un paso más adelante — no es un promedio plano, refleja si la métrica viene subiendo o bajando."
+      },
+      "range": {
+        "term": "Rango (margen de error)",
+        "def": "± 1 desvío estándar de esos mismos bloques históricos — cuanto más irregular fue el historial, más ancho el rango."
+      },
+      "risk": {
+        "term": "Facilities a vigilar",
+        "def": "facilities cuya propia tendencia reciente, proyectada hacia adelante, empeora — mismo criterio de ranking que el radar de riesgo de Diario, pero mirando hacia adelante en vez de hacia atrás."
+      }
+    },
+    "insights": {
+      "panelTitle": "Insights de este pronóstico",
+      "insufficient": "Sin suficiente historial comparable para estimar con este filtro (se necesitan al menos {min} bloques, hay {n}).",
+      "average": "Poco historial para estimar tendencia — se usó el promedio simple de los últimos {n} bloques.",
+      "confirmationUp": "La confirmación esperada viene mejorando: ~{pct}.",
+      "confirmationDown": "La confirmación esperada viene bajando: ~{pct}.",
+      "gamesUp": "El volumen esperado viene creciendo: ~{n} partidos.",
+      "gamesDown": "El volumen esperado viene bajando: ~{n} partidos.",
+      "yoyUp": "El volumen esperado está {pct}% por encima de lo que pasó real en el mismo período el año pasado.",
+      "yoyDown": "El volumen esperado está {pct}% por debajo de lo que pasó real en el mismo período el año pasado.",
+      "riskTop": "{n} facilities muestran una tendencia de deterioro proyectada — la más marcada es {name}.",
+      "revenueCaveat": "El revenue esperado es el número menos confiable de este pronóstico: combina precio, jugadores y volumen, las tres inciertas."
     }
   }
 }

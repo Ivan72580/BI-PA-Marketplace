@@ -1,7 +1,7 @@
 import { CancellationCategory, GameStatus } from "@prisma/client";
 import { prisma } from "./prisma";
 import { cached } from "./cache";
-import { buildWhere, DAY_ORDER, sortHoursByOperatingDay, labelForCancellationCategory, MIN_GAMES_FOR_CONTRIBUTION } from "./shared";
+import { buildWhere, DAY_ORDER, sortHoursByOperatingDay, labelForCancellationCategory, MIN_GAMES_FOR_CONTRIBUTION, average, linearRegression } from "./shared";
 import { combineFormatLabel } from "./format";
 import { weekdayAbbr } from "./weekday";
 import { getDailyTranslator, type DailyTranslator } from "./dailyMessages";
@@ -428,23 +428,6 @@ const MIN_OCCURRENCES_FOR_TREND = 5;
 // mismas ocurrencias, no un dato externo.
 const FORECAST_MIN_GAMES_CHANGE_PCT = 0.15;
 const FORECAST_MIN_RATE_CHANGE_PTS = 0.03;
-
-function linearRegression(xs: number[], ys: number[]): { slope: number; intercept: number } {
-  const n = xs.length;
-  const sumX = xs.reduce((s, x) => s + x, 0);
-  const sumY = ys.reduce((s, y) => s + y, 0);
-  const sumXY = xs.reduce((s, x, i) => s + x * ys[i], 0);
-  const sumXX = xs.reduce((s, x) => s + x * x, 0);
-  const denom = n * sumXX - sumX * sumX;
-  if (denom === 0) return { slope: 0, intercept: sumY / n };
-  const slope = (n * sumXY - sumX * sumY) / denom;
-  const intercept = (sumY - slope * sumX) / n;
-  return { slope, intercept };
-}
-
-function average(values: number[]): number {
-  return values.length > 0 ? values.reduce((s, v) => s + v, 0) / values.length : 0;
-}
 
 async function getDailyForecastImpl(facilityId: string, todayISOStr: string, locale: Locale): Promise<DailyForecastDay[]> {
   const today = parseISODate(todayISOStr);

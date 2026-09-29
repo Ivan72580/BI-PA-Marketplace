@@ -18,6 +18,7 @@
 //   market.ts          - resumen y ranking por facility/market
 //   region.ts          - ranking por región (East/West), para la vista de Leadership
 //   daily.ts           - seguimiento diario: foto del día, línea base, evolución y calendario "sí o sí"
+//   forecast.ts         - pronóstico de red: próxima semana/mes (regresión agregada) y radar de riesgo hacia adelante
 //   facilityProfile.ts - módulo de datos maestros del facility (perfil + relación + historial), enlazado desde Leadership
 //   satisfaction.ts    - Player Satisfaction: reviews por partido (GameReview) y reviews de tienda de apps (AppReview), enlazado desde Leadership
 
@@ -37,5 +38,6 @@ export * from "./trends";
 export * from "./market";
 export * from "./region";
 export * from "./daily";
+export * from "./forecast";
 export * from "./facilityProfile";
 export * from "./satisfaction";
