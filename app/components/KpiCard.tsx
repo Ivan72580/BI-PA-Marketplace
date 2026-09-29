@@ -19,7 +19,7 @@ export default function KpiCard({
   staticDelta = false,
   href,
   sparklinePoints,
-  sparklineFormatValue,
+  sparklineFormat,
   popover,
 }: {
   label: string;
@@ -50,7 +50,12 @@ export default function KpiCard({
   // números sueltos o {label, value} para que el tooltip nativo muestre
   // "período: valor" al pasar el mouse.
   sparklinePoints?: SparklinePoint[];
-  sparklineFormatValue?: (v: number) => string;
+  // Identificador serializable, NO una función: KpiCard es "use client" y
+  // NetworkOverview (Server Component) es quien lo llama — una función no
+  // se puede pasar de un Server Component a un Client Component ("Functions
+  // cannot be passed directly to Client Components..."). KpiCard resuelve
+  // el formateador real localmente, del lado del cliente.
+  sparklineFormat?: "count" | "pct";
   // Contenido a mostrar al pasar el mouse sobre la tarjeta (ej. top 5
   // facilities que más aportan) — para KPIs que hoy no tienen a dónde
   // llevar al hacer click (nivel red/región, sin market elegido).
@@ -61,6 +66,12 @@ export default function KpiCard({
   // verde o rojo según corresponda (eso lo resuelve ChangeBadge).
   const hasComparison = delta !== undefined;
   const deltaVisible = staticDelta || showDelta;
+  const sparklineFormatValue =
+    sparklineFormat === "count"
+      ? (v: number) => v.toLocaleString("en-US")
+      : sparklineFormat === "pct"
+      ? (v: number) => `${(v * 100).toFixed(1)}%`
+      : undefined;
 
   const body = (
     <>

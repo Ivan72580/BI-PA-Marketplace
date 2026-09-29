@@ -376,7 +376,7 @@ export default async function NetworkOverview({
         staticDelta
         href={heroHref("facilities")}
         sparklinePoints={heroSeries.map((p) => ({ label: p.label, value: p.totalGames }))}
-        sparklineFormatValue={(v) => v.toLocaleString("en-US")}
+        sparklineFormat="count"
       />
       <KpiCard
         label={t("kpi.confirmed")}
@@ -386,7 +386,7 @@ export default async function NetworkOverview({
         staticDelta
         href={heroHref("confirmations")}
         sparklinePoints={heroSeries.map((p) => ({ label: p.label, value: p.confirmedGames }))}
-        sparklineFormatValue={(v) => v.toLocaleString("en-US")}
+        sparklineFormat="count"
       />
       <KpiCard
         label={t("kpi.cancelled")}
@@ -397,7 +397,7 @@ export default async function NetworkOverview({
         staticDelta
         href={heroHref("cancellations")}
         sparklinePoints={heroSeries.map((p) => ({ label: p.label, value: p.cancelledGames }))}
-        sparklineFormatValue={(v) => v.toLocaleString("en-US")}
+        sparklineFormat="count"
       />
       <KpiCard
         label={t("kpi.confirmationRate")}
@@ -407,7 +407,7 @@ export default async function NetworkOverview({
         staticDelta
         href={heroHref("confirmations")}
         sparklinePoints={heroSeries.map((p) => ({ label: p.label, value: p.confirmationRate }))}
-        sparklineFormatValue={(v) => formatPct(v)}
+        sparklineFormat="pct"
       />
       <KpiCard
         label={t("kpi.cancellationRate")}
@@ -418,7 +418,7 @@ export default async function NetworkOverview({
         staticDelta
         href={heroHref("cancellations")}
         sparklinePoints={heroSeries.map((p) => ({ label: p.label, value: p.cancellationRate }))}
-        sparklineFormatValue={(v) => formatPct(v)}
+        sparklineFormat="pct"
       />
       <KpiCard
         label={t("kpi.occupancy")}
@@ -428,7 +428,7 @@ export default async function NetworkOverview({
         staticDelta
         href={heroHref("confirmations")}
         sparklinePoints={heroSeries.map((p) => ({ label: p.label, value: p.occupancyRate }))}
-        sparklineFormatValue={(v) => formatPct(v)}
+        sparklineFormat="pct"
       />
       <KpiCard
         label={t("kpi.revenue")}
