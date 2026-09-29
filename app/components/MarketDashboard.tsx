@@ -7,6 +7,9 @@ import {
   TIER_CLASS,
   type OverviewFilters,
   type ReputationTier,
+  type MarketFacilityRow,
+  type ParetoFacility,
+  type MarketRankingRow,
 } from "../lib/db/queries";
 import { MIN_GAMES_FOR_RANKING } from "../lib/db/shared";
 import { gamesPerPeriodAverage, formatPerPeriod } from "../lib/period";
@@ -20,6 +23,104 @@ import RegionConcentrationPies from "./RegionConcentrationPies";
 import PriceTable from "./PriceTable";
 import EngagementTable from "./EngagementTable";
 import ReputationTable, { type ReputationRow } from "./ReputationTable";
+import InsightsPanel, { type PanelInsight, type PanelInsightGroup } from "./InsightsPanel";
+
+// ---------- Insights (panel flotante, ver InsightsPanel.tsx) ----------
+// Todo lo de abajo reusa exclusivamente datos ya calculados más arriba
+// (summary/pareto/marketRanking/facilityShareCompare) — sin queries nuevas,
+// mismo criterio que Trends. Umbrales elegidos para no generar ruido con
+// variaciones chicas: 15% de volumen, 1 punto de share, 30% de "casi llegan".
+
+type MarketTranslator = (key: string, values?: Record<string, string | number>) => string;
+
+const MIN_VOLUME_CHANGE_PCT = 0.15;
+const MIN_SHARE_CHANGE_PTS = 0.01;
+const MIN_NEAR_MISS_RATIO = 0.3;
+
+function buildParetoInsights(top80: ParetoFacility[], t: MarketTranslator): PanelInsight[] {
+  const withChange = top80.filter((f) => f.changePct !== null);
+  if (withChange.length === 0) return [];
+  const worst = withChange.reduce((a, b) => (a.changePct! < b.changePct! ? a : b));
+  const best = withChange.reduce((a, b) => (a.changePct! > b.changePct! ? a : b));
+  const lines: PanelInsight[] = [];
+  if (worst.changePct! <= -MIN_VOLUME_CHANGE_PCT) {
+    lines.push({ text: t("insights.top80Drop", { name: worst.name, pts: Math.abs(worst.changePct! * 100).toFixed(0) }), severity: "critical" });
+  }
+  if (best.changePct! >= MIN_VOLUME_CHANGE_PCT && best.facilityId !== worst.facilityId) {
+    lines.push({ text: t("insights.top80Rise", { name: best.name, pts: (best.changePct! * 100).toFixed(0) }), severity: "notable" });
+  }
+  if (lines.length === 0) lines.push({ text: t("insights.top80Stable"), severity: "info" });
+  return lines;
+}
+
+function buildMarketRankingInsights(rows: MarketRankingRow[], t: MarketTranslator): PanelInsight[] {
+  const withChange = rows.filter((m) => m.changePct !== null);
+  if (withChange.length === 0) return [];
+  const worst = withChange.reduce((a, b) => (a.changePct! < b.changePct! ? a : b));
+  const best = withChange.reduce((a, b) => (a.changePct! > b.changePct! ? a : b));
+  const lines: PanelInsight[] = [];
+  if (worst.changePct! <= -MIN_VOLUME_CHANGE_PCT) {
+    lines.push({ text: t("insights.marketDrop", { market: worst.marketName, pts: Math.abs(worst.changePct! * 100).toFixed(0) }), severity: "critical" });
+  }
+  if (best.changePct! >= MIN_VOLUME_CHANGE_PCT && best.marketId !== worst.marketId) {
+    lines.push({ text: t("insights.marketRise", { market: best.marketName, pts: (best.changePct! * 100).toFixed(0) }), severity: "notable" });
+  }
+  if (lines.length === 0) lines.push({ text: t("insights.marketStable"), severity: "info" });
+  return lines;
+}
+
+function buildShareChangeInsights(
+  rows: { facilityId: string; name: string; marketSharePct: number }[],
+  priorShare: Map<string, number>,
+  t: MarketTranslator
+): PanelInsight[] {
+  const withChange = rows
+    .map((f) => {
+      const prior = priorShare.get(f.facilityId);
+      return prior === undefined ? null : { ...f, changePts: f.marketSharePct - prior };
+    })
+    .filter((f): f is { facilityId: string; name: string; marketSharePct: number; changePts: number } => f !== null);
+  if (withChange.length === 0) return [];
+  const worst = withChange.reduce((a, b) => (a.changePts < b.changePts ? a : b));
+  const best = withChange.reduce((a, b) => (a.changePts > b.changePts ? a : b));
+  const lines: PanelInsight[] = [];
+  if (best.changePts >= MIN_SHARE_CHANGE_PTS) {
+    lines.push({ text: t("insights.shareGain", { name: best.name, pts: (best.changePts * 100).toFixed(1), current: (best.marketSharePct * 100).toFixed(1) }), severity: "notable" });
+  }
+  if (worst.changePts <= -MIN_SHARE_CHANGE_PTS && worst.facilityId !== best.facilityId) {
+    lines.push({ text: t("insights.shareLoss", { name: worst.name, pts: Math.abs(worst.changePts * 100).toFixed(1), current: (worst.marketSharePct * 100).toFixed(1) }), severity: "critical" });
+  }
+  if (lines.length === 0) lines.push({ text: t("insights.shareStable"), severity: "info" });
+  return lines;
+}
+
+function buildReputationInsights(rows: MarketFacilityRow[], t: MarketTranslator): PanelInsight[] {
+  const eligible = rows.filter((r) => r.reputationTier !== "sin_datos");
+  const reviewCount = eligible.filter((r) => r.reputationTier === "a_revisar").length;
+  const platinumCount = eligible.filter((r) => r.reputationTier === "platinum").length;
+  const lines: PanelInsight[] = [];
+  if (reviewCount > 0) lines.push({ text: t("insights.reviewCount", { count: reviewCount }), severity: "critical" });
+  if (platinumCount > 0) lines.push({ text: t("insights.platinumCount", { count: platinumCount }), severity: "notable" });
+  return lines;
+}
+
+function buildEngagementInsights(
+  rows: MarketFacilityRow[],
+  totalNearMiss: number,
+  totalCancelled: number,
+  facilityHref: (r: MarketFacilityRow) => string,
+  t: MarketTranslator
+): PanelInsight[] {
+  const lines: PanelInsight[] = [];
+  if (totalCancelled > 0 && totalNearMiss / totalCancelled >= MIN_NEAR_MISS_RATIO) {
+    lines.push({ text: t("insights.nearMissOpportunity", { pct: ((totalNearMiss / totalCancelled) * 100).toFixed(0) }), severity: "critical" });
+  }
+  const top = [...rows].sort((a, b) => b.nearMissCancelledCount - a.nearMissCancelledCount)[0];
+  if (top && top.nearMissCancelledCount > 0) {
+    lines.push({ text: t("insights.topNearMissFacility", { name: top.name, count: top.nearMissCancelledCount }), href: facilityHref(top), severity: "notable" });
+  }
+  return lines;
+}
 
 function formatPct(n: number) {
   return `${(n * 100).toFixed(1)}%`;
@@ -319,16 +420,42 @@ export default async function MarketDashboard({
     </div>
   );
 
+  // ---------- Insights (panel flotante) ----------
+  const concentracionInsights = sp.regionId ? buildParetoInsights(pareto.top80.facilities, t) : [];
+  const shareInsights = !sp.marketId
+    ? buildMarketRankingInsights(marketRanking, t)
+    : facilityShareCompare
+      ? buildShareChangeInsights(marketShareTarget, facilityShareCompare, t)
+      : [];
+  const reputacionInsights = buildReputationInsights(summary, t);
+  const engagementInsights = buildEngagementInsights(
+    summary,
+    totalNearMiss,
+    totalCancelled,
+    (r) => facilityDetailHref(r.facilityId, r.marketId, r.regionId),
+    t
+  );
+
+  const insightGroups: PanelInsightGroup[] = [
+    { label: t("tabs.concentration"), insights: concentracionInsights },
+    { label: t("tabs.share"), insights: shareInsights },
+    { label: t("tabs.reputation"), insights: reputacionInsights },
+    { label: t("tabs.engagement"), insights: engagementInsights },
+  ];
+
   return (
-    <Tabs
-      defaultActiveId={activeTab}
-      tabs={[
-        { id: "concentracion", label: t("tabs.concentration"), content: concentracionContent },
-        { id: "share", label: t("tabs.share"), content: marketShareContent },
-        { id: "reputacion", label: t("tabs.reputation"), content: reputacionContent },
-        { id: "precio", label: t("tabs.price"), content: precioContent },
-        { id: "engagement", label: t("tabs.engagement"), content: engagementContent },
-      ]}
-    />
+    <>
+      <Tabs
+        defaultActiveId={activeTab}
+        tabs={[
+          { id: "concentracion", label: t("tabs.concentration"), content: concentracionContent },
+          { id: "share", label: t("tabs.share"), content: marketShareContent },
+          { id: "reputacion", label: t("tabs.reputation"), content: reputacionContent },
+          { id: "precio", label: t("tabs.price"), content: precioContent },
+          { id: "engagement", label: t("tabs.engagement"), content: engagementContent },
+        ]}
+      />
+      <InsightsPanel title={t("insights.panelTitle")} groups={insightGroups} />
+    </>
   );
 }

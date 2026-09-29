@@ -30,6 +30,7 @@ import GroupSection from "./GroupSection";
 import Glossary from "./Glossary";
 import RegionConcentrationPies from "./RegionConcentrationPies";
 import RegionComparisonCards from "./RegionComparisonCards";
+import InsightsPanel, { type PanelInsight, type PanelInsightGroup } from "./InsightsPanel";
 
 function formatUSD(n: number) {
   return n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
@@ -75,12 +76,13 @@ function Stat({ label, value, sublabel }: { label: string; value: string; sublab
 
 type RegionScope = { regionId: string; regionName: string };
 type SortDir = "asc" | "desc";
-// Insight del panel "Qué mirar hoy": texto + link opcional. Los insights
-// "propios" (contribución, variación de confirmados) no llevan link porque
-// ya hablan del período/scope actual; los de cross-tab (aviso de la peor
-// tasa de cancelación, la peor calificación, etc.) sí, porque apuntan a un
-// dato puntual de otra pestaña.
-type InsightItem = { text: string; href?: string };
+// Insight del panel flotante de Insights (InsightsPanel — "qué mirar hoy"):
+// texto + link opcional + severidad. Los insights "propios" (contribución,
+// variación de confirmados) no llevan link porque ya hablan del período/
+// scope actual; los de cross-tab (aviso de la peor tasa de cancelación, la
+// peor calificación, etc.) sí, porque apuntan a un dato puntual de otra
+// pestaña. Alias local para no repetir el import en cada firma de función.
+type InsightItem = PanelInsight;
 
 export default async function NetworkOverview({
   sp,
@@ -155,7 +157,16 @@ export default async function NetworkOverview({
       const topReason = current.cancellationBreakdown[0] ?? null;
       const topReasonFacility = topReason ? await getTopCancellationFacilityForReason(scopeFilters, topReason.category) : null;
 
-      const insights: InsightItem[] = [...generateContributionInsights(contribution, comparePeriodLabel, t), ...current.insights].map((text) => ({ text }));
+      // Severidad: los insights "propios" (generateOverviewInsights/
+      // contribution) describen el período en curso, sin alarma puntual —
+      // "notable" por defecto. Los cross-tab de abajo SÍ son alarmas
+      // puntuales sobre un peor performer (cancelación, abandono, rating) —
+      // "critical" — salvo "facility con más volumen", que es descriptivo,
+      // no un problema — "info".
+      const insights: InsightItem[] = [...generateContributionInsights(contribution, comparePeriodLabel, t), ...current.insights].map((text) => ({
+        text,
+        severity: "notable" as const,
+      }));
       // Insight dedicado a volumen de confirmados, con variación vs. período anterior.
       if (prior) {
         const delta = pctDelta(current.confirmedGames, prior.confirmedGames);
@@ -163,6 +174,7 @@ export default async function NetworkOverview({
           const key = delta > 0 ? "insights.confirmedUp" : "insights.confirmedDown";
           insights.push({
             text: t(key, { pct: Math.abs(delta * 100).toFixed(1), period: comparePeriodLabel, prior: prior.confirmedGames, current: current.confirmedGames }),
+            severity: delta > 0 ? "notable" : "critical",
           });
         }
       }
@@ -182,6 +194,7 @@ export default async function NetworkOverview({
             games: worstCancel.totalGames,
           }),
           href: buildQuery(sp, { facilityId: worstCancel.facilityId, marketId: worstCancel.marketId, regionId: worstCancel.regionId }),
+          severity: "critical",
         });
       }
 
@@ -190,6 +203,7 @@ export default async function NetworkOverview({
         insights.push({
           text: t("insights.crossTab.topDropped", { facility: topDropped.name, n: topDropped.value }),
           href: buildQuery(sp, { facilityId: topDropped.facilityId }),
+          severity: "critical",
         });
       }
 
@@ -203,6 +217,7 @@ export default async function NetworkOverview({
             n: MIN_GAMES_FOR_RANKING,
           }),
           href: buildQuery(sp, { facilityId: worstRated.facilityId, marketId: worstRated.marketId, regionId: worstRated.regionId }),
+          severity: "critical",
         });
       }
 
@@ -211,6 +226,7 @@ export default async function NetworkOverview({
         insights.push({
           text: t("insights.crossTab.busiestFacility", { facility: busiest.name, n: busiest.totalGames }),
           href: buildQuery(sp, { facilityId: busiest.facilityId, marketId: busiest.marketId, regionId: busiest.regionId }),
+          severity: "info",
         });
       }
 
@@ -460,28 +476,6 @@ export default async function NetworkOverview({
           <RegionComparisonCards rows={regionComparisonOrdered} buildHref={(regionId) => buildQuery(sp, { regionId })} />
         </GroupSection>
       )}
-
-      <GroupSection title={t("autoInsights.title")} defaultOpen={false}>
-        <div className={`grid grid-cols-1 ${isMultiScope ? "lg:grid-cols-2" : ""} gap-5`}>
-          {scopeData.map(({ scope, insights }) => (
-            <div key={scope.regionId} className="space-y-2">
-              {isMultiScope && <div className="text-xs font-medium text-ink-muted px-1">{scope.regionName}</div>}
-              <div className="space-y-2">
-                {insights.map((insight, i) =>
-                  insight.href ? (
-                    <Link key={i} href={insight.href} className="block text-sm text-ink font-medium hover:text-brand hover:underline">
-                      {insight.text}
-                    </Link>
-                  ) : (
-                    <div key={i} className="text-sm text-ink font-medium">{insight.text}</div>
-                  )
-                )}
-                {insights.length === 0 && <div className="text-sm text-ink-faint">{t("insights.noAlerts")}</div>}
-              </div>
-            </div>
-          ))}
-        </div>
-      </GroupSection>
 
       {!sp.regionId && (
         <GroupSection title={t("sections.regionConcentration")}>
@@ -1090,16 +1084,28 @@ export default async function NetworkOverview({
     </div>
   );
 
+  // Antes vivía dentro del tab "Resumen" (GroupSection colapsado) — ahora es
+  // el panel flotante compartido (InsightsPanel), a nivel de página: visible
+  // desde cualquiera de las 5 pestañas, no solo Resumen (antes ese "qué
+  // mirar hoy" no se veía si el usuario ya había navegado a otra pestaña).
+  const insightGroups: PanelInsightGroup[] = scopeData.map(({ scope, insights }) => ({
+    label: isMultiScope ? scope.regionName : undefined,
+    insights,
+  }));
+
   return (
-    <Tabs
-      defaultActiveId={sp.tab}
-      tabs={[
-        { id: "resumen", label: t("tabs.summary"), content: resumenContent },
-        { id: "cancellations", label: t("tabs.cancellations"), content: cancellationsContent },
-        { id: "confirmations", label: t("tabs.confirmations"), content: confirmationsContent },
-        { id: "gameRating", label: t("tabs.gameRating"), content: gameRatingContent },
-        { id: "facilities", label: t("tabs.facilities"), content: facilitiesContent },
-      ]}
-    />
+    <>
+      <Tabs
+        defaultActiveId={sp.tab}
+        tabs={[
+          { id: "resumen", label: t("tabs.summary"), content: resumenContent },
+          { id: "cancellations", label: t("tabs.cancellations"), content: cancellationsContent },
+          { id: "confirmations", label: t("tabs.confirmations"), content: confirmationsContent },
+          { id: "gameRating", label: t("tabs.gameRating"), content: gameRatingContent },
+          { id: "facilities", label: t("tabs.facilities"), content: facilitiesContent },
+        ]}
+      />
+      <InsightsPanel title={t("autoInsights.title")} groups={insightGroups} />
+    </>
   );
 }

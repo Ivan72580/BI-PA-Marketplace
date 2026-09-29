@@ -1,4 +1,9 @@
 {
+  "InsightsPanel": {
+    "toggleLabel": "Insights",
+    "close": "Close",
+    "empty": "No insights for this view yet."
+  },
   "TopNav": {
     "overview": "Overview",
     "trends": "Trends",
@@ -310,6 +315,20 @@
       "waitlistTitle": "Average waitlist",
       "leadTimeTitle": "Lead time (median)"
     },
+    "panoramaInsights": {
+      "panelTitle": "Insights for this view",
+      "notEnoughHistory": "Not enough history in this period to compare yet.",
+      "noCompare": "No prior period to compare yet.",
+      "stable": "The main metrics are in line with {period}, no relevant change.",
+      "confirmationUp": "Confirmation rose {pts} pts vs. {period} (now {current}).",
+      "confirmationDown": "Confirmation dropped {pts} pts vs. {period} (now {current}).",
+      "cancellationUp": "Cancellation rose {pts} pts vs. {period} (now {current}).",
+      "cancellationDown": "Cancellation dropped {pts} pts vs. {period} (now {current}).",
+      "occupancyUp": "Occupancy rose {pts} pts vs. {period} (now {current}).",
+      "occupancyDown": "Occupancy dropped {pts} pts vs. {period} (now {current}).",
+      "conversionUp": "Conversion rose {pts} pts vs. {period} (now {current}).",
+      "conversionDown": "Conversion dropped {pts} pts vs. {period} (now {current})."
+    },
     "facility": {
       "marketOverviewTitle": "{market} overview",
       "defaultMarketName": "this market",
@@ -564,6 +583,22 @@
         "nearMiss": "Cancelled \"near misses\""
       },
       "empty": "No data for this filter."
+    },
+    "insights": {
+      "panelTitle": "Insights for this view",
+      "top80Drop": "{name} has been dropping within the top 80% of volume: -{pts}% vs. last year.",
+      "top80Rise": "{name} grew {pts}% vs. last year within the top 80% of volume.",
+      "top80Stable": "The top 80% of volume shows no relevant change vs. last year.",
+      "marketDrop": "{market} dropped {pts}% in confirmed games vs. the previous month.",
+      "marketRise": "{market} grew {pts}% in confirmed games vs. the previous month.",
+      "marketStable": "Markets show no relevant change in confirmed games vs. the previous month.",
+      "shareGain": "{name} gained {pts} share points vs. the previous month (now {current}%).",
+      "shareLoss": "{name} lost {pts} share points vs. the previous month (now {current}%).",
+      "shareStable": "Facility market share shows no relevant change vs. the previous month.",
+      "reviewCount": "{count} facilities are in the \"Needs review\" tier — quality score below the rest of the network.",
+      "platinumCount": "{count} facilities reached the \"Platinum\" tier this month.",
+      "nearMissOpportunity": "{pct}% of cancelled games reached half or more of the minimum required players — a conversion opportunity being lost.",
+      "topNearMissFacility": "{name} is the facility with the most \"near miss\" cancellations ({count})."
     },
     "ranking": {
       "backToMarket": "‹ Back to Market",

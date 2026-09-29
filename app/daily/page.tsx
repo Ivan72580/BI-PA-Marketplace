@@ -32,6 +32,7 @@ import Sparkline from "../components/Sparkline";
 import EvolutionChart from "../components/charts/EvolutionChart";
 import MustScheduleBoard from "../components/MustScheduleBoard";
 import type { MustScheduleCalendarCell } from "../components/MustScheduleCalendar";
+import InsightsPanel, { type PanelInsight } from "../components/InsightsPanel";
 
 type SP = { regionId?: string; marketId?: string; facilityId?: string; date?: string };
 
@@ -236,14 +237,20 @@ function Stat({
 
 // Insights de "variación diaria" + "recomendaciones" — determinísticos,
 // calculados sobre datos ya obtenidos (mismo criterio que buildQuarterInsights
-// en Trends), no una consulta nueva.
-function buildDayInsights(summary: DaySummary, baseline: DayBaseline, evolution: DayEvolutionPoint[], t: Translator, locale: Locale): string[] {
-  const lines: string[] = [];
+// en Trends), no una consulta nueva. Devuelven PanelInsight[] (texto +
+// severidad) para alimentar el panel flotante InsightsPanel — "critical" es
+// para alarmas puntuales y accionables (confirmación por debajo de lo
+// habitual, motivo de cancelación concreto, tendencia bajando en semanas,
+// hoy rompiendo la tendencia reciente hacia abajo); el resto es "notable"
+// (variación positiva/neutral) o "info" (contexto sin alarma, ej. "sin
+// baseline todavía").
+function buildDayInsights(summary: DaySummary, baseline: DayBaseline, evolution: DayEvolutionPoint[], t: Translator, locale: Locale): PanelInsight[] {
+  const lines: PanelInsight[] = [];
   const weekdaySing = weekdaySingular(summary.dayOfWeek, locale);
   const weekdayPl = weekdayPlural(summary.dayOfWeek, locale);
 
   if (summary.totalGames === 0) {
-    lines.push(t("insights.noGames", { weekday: weekdaySing }));
+    lines.push({ text: t("insights.noGames", { weekday: weekdaySing }), severity: "info" });
     return lines;
   }
 
@@ -251,26 +258,30 @@ function buildDayInsights(summary: DaySummary, baseline: DayBaseline, evolution:
     const deltaConfirm = summary.confirmationRate - baseline.avgConfirmationRate;
     const deltaPts = Math.abs(deltaConfirm * 100).toFixed(1);
     if (Math.abs(deltaConfirm) < 0.03) {
-      lines.push(t("insights.confirmationInLine", { rate: formatPct(summary.confirmationRate), n: baseline.occurrences, weekday: weekdayPl, avg: formatPct(baseline.avgConfirmationRate) }));
+      lines.push({ text: t("insights.confirmationInLine", { rate: formatPct(summary.confirmationRate), n: baseline.occurrences, weekday: weekdayPl, avg: formatPct(baseline.avgConfirmationRate) }), severity: "info" });
     } else if (deltaConfirm > 0) {
-      lines.push(t("insights.confirmationAbove", { rate: formatPct(summary.confirmationRate), pts: deltaPts, n: baseline.occurrences, weekday: weekdayPl, avg: formatPct(baseline.avgConfirmationRate) }));
+      lines.push({ text: t("insights.confirmationAbove", { rate: formatPct(summary.confirmationRate), pts: deltaPts, n: baseline.occurrences, weekday: weekdayPl, avg: formatPct(baseline.avgConfirmationRate) }), severity: "notable" });
     } else {
-      lines.push(t("insights.confirmationBelow", { rate: formatPct(summary.confirmationRate), pts: deltaPts, n: baseline.occurrences, weekday: weekdayPl, avg: formatPct(baseline.avgConfirmationRate) }));
+      lines.push({ text: t("insights.confirmationBelow", { rate: formatPct(summary.confirmationRate), pts: deltaPts, n: baseline.occurrences, weekday: weekdayPl, avg: formatPct(baseline.avgConfirmationRate) }), severity: "critical" });
     }
 
     const deltaGames = summary.totalGames - baseline.avgGamesPerOccurrence;
     if (Math.abs(deltaGames) >= 1) {
       const n = Math.abs(Math.round(deltaGames));
       const avg = baseline.avgGamesPerOccurrence.toFixed(1);
-      lines.push(deltaGames > 0 ? t("insights.gamesMore", { n, avg }) : t("insights.gamesLess", { n, avg }));
+      lines.push(
+        deltaGames > 0
+          ? { text: t("insights.gamesMore", { n, avg }), severity: "notable" }
+          : { text: t("insights.gamesLess", { n, avg }), severity: "notable" }
+      );
     }
   } else {
-    lines.push(t("insights.noBaseline", { weekday: weekdayPl }));
+    lines.push({ text: t("insights.noBaseline", { weekday: weekdayPl }), severity: "info" });
   }
 
   const topCancel = summary.cancellationBreakdown[0];
   if (topCancel && topCancel.count >= 2) {
-    lines.push(t("insights.topCancelReason", { reason: topCancel.label, count: topCancel.count, total: summary.cancelledGames }));
+    lines.push({ text: t("insights.topCancelReason", { reason: topCancel.label, count: topCancel.count, total: summary.cancelledGames }), severity: "critical" });
   }
 
   const withData = evolution.filter((p) => p.totalGames > 0);
@@ -285,8 +296,8 @@ function buildDayInsights(summary: DaySummary, baseline: DayBaseline, evolution:
     const minRate = Math.min(...rates);
     const diff = lastPoint.confirmationRate - first.confirmationRate;
     const trendKey = diff >= 0.08 ? "insights.trendUp" : diff <= -0.08 ? "insights.trendDown" : "insights.trendStable";
-    lines.push(
-      t("insights.trendSummary", {
+    lines.push({
+      text: t("insights.trendSummary", {
         n: withData.length,
         weekday: weekdayPl,
         trend: t(trendKey),
@@ -294,10 +305,11 @@ function buildDayInsights(summary: DaySummary, baseline: DayBaseline, evolution:
         last: formatPct(lastPoint.confirmationRate),
         min: formatPct(minRate),
         max: formatPct(maxRate),
-      })
-    );
+      }),
+      severity: trendKey === "insights.trendDown" ? "critical" : trendKey === "insights.trendUp" ? "notable" : "info",
+    });
   } else {
-    lines.push(t("insights.noWeeklyHistory", { weekday: weekdayPl }));
+    lines.push({ text: t("insights.noWeeklyHistory", { weekday: weekdayPl }), severity: "info" });
   }
 
   // Punto 2: comportamiento de HOY respecto a esa tendencia reciente (no el
@@ -311,11 +323,11 @@ function buildDayInsights(summary: DaySummary, baseline: DayBaseline, evolution:
       const diffFromTrend = today.confirmationRate - recentAvg;
       const diffPts = Math.abs(diffFromTrend * 100).toFixed(1);
       if (Math.abs(diffFromTrend) < 0.05) {
-        lines.push(t("insights.todayInLine", { n: recentWindow.length, weekday: weekdayPl, avg: formatPct(recentAvg) }));
+        lines.push({ text: t("insights.todayInLine", { n: recentWindow.length, weekday: weekdayPl, avg: formatPct(recentAvg) }), severity: "info" });
       } else if (diffFromTrend > 0) {
-        lines.push(t("insights.todayAbove", { pts: diffPts, avg: formatPct(recentAvg), n: recentWindow.length, weekday: weekdayPl }));
+        lines.push({ text: t("insights.todayAbove", { pts: diffPts, avg: formatPct(recentAvg), n: recentWindow.length, weekday: weekdayPl }), severity: "notable" });
       } else {
-        lines.push(t("insights.todayBelow", { pts: diffPts, avg: formatPct(recentAvg), n: recentWindow.length, weekday: weekdayPl }));
+        lines.push({ text: t("insights.todayBelow", { pts: diffPts, avg: formatPct(recentAvg), n: recentWindow.length, weekday: weekdayPl }), severity: "critical" });
       }
     }
   }
@@ -676,10 +688,10 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
               </SectionCard>
               <SectionCard title={t("todayInsights.title")} subtitle={t("todayInsights.subtitle")}>
                 <ul className="space-y-2 text-sm text-ink">
-                  {insights.map((line, i) => (
+                  {insights.map((insight, i) => (
                     <li key={i} className="flex gap-2">
-                      <span className="text-brand shrink-0">·</span>
-                      <span>{line}</span>
+                      <span className={`shrink-0 ${insight.severity === "critical" ? "text-danger" : "text-brand"}`}>·</span>
+                      <span>{insight.text}</span>
                     </li>
                   ))}
                 </ul>
@@ -761,6 +773,8 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
           ]}
         />
       </GroupSection>
+
+      <InsightsPanel title={t("todayInsights.title")} insights={insights} />
     </div>
   );
 }

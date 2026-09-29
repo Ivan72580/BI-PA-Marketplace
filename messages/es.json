@@ -1,4 +1,9 @@
 {
+  "InsightsPanel": {
+    "toggleLabel": "Insights",
+    "close": "Cerrar",
+    "empty": "No hay insights para esta vista todavía."
+  },
   "TopNav": {
     "overview": "Overview",
     "trends": "Trends",
@@ -310,6 +315,20 @@
       "waitlistTitle": "Waitlist promedio",
       "leadTimeTitle": "Lead time (mediana)"
     },
+    "panoramaInsights": {
+      "panelTitle": "Insights de esta vista",
+      "notEnoughHistory": "Todavía no hay suficiente historial en este período para comparar.",
+      "noCompare": "Sin período anterior para comparar todavía.",
+      "stable": "Las métricas principales están en línea con {period}, sin variación relevante.",
+      "confirmationUp": "Confirmación subió {pts} pts vs. {period} (ahora {current}).",
+      "confirmationDown": "Confirmación bajó {pts} pts vs. {period} (ahora {current}).",
+      "cancellationUp": "Cancelación subió {pts} pts vs. {period} (ahora {current}).",
+      "cancellationDown": "Cancelación bajó {pts} pts vs. {period} (ahora {current}).",
+      "occupancyUp": "Ocupación subió {pts} pts vs. {period} (ahora {current}).",
+      "occupancyDown": "Ocupación bajó {pts} pts vs. {period} (ahora {current}).",
+      "conversionUp": "Conversión subió {pts} pts vs. {period} (ahora {current}).",
+      "conversionDown": "Conversión bajó {pts} pts vs. {period} (ahora {current})."
+    },
     "facility": {
       "marketOverviewTitle": "Panorama de {market}",
       "defaultMarketName": "este market",
@@ -564,6 +583,22 @@
         "nearMiss": "Cancelados \"casi llegan\""
       },
       "empty": "Sin datos en este filtro."
+    },
+    "insights": {
+      "panelTitle": "Insights de esta vista",
+      "top80Drop": "{name} viene cayendo dentro del top 80% de volumen: -{pts}% vs. el año pasado.",
+      "top80Rise": "{name} creció {pts}% vs. el año pasado dentro del top 80% de volumen.",
+      "top80Stable": "El top 80% de volumen no muestra variaciones relevantes vs. el año pasado.",
+      "marketDrop": "{market} cayó {pts}% en partidos confirmados vs. el mes anterior.",
+      "marketRise": "{market} creció {pts}% en partidos confirmados vs. el mes anterior.",
+      "marketStable": "Los markets no muestran variaciones relevantes en partidos confirmados vs. el mes anterior.",
+      "shareGain": "{name} ganó {pts} puntos de share vs. el mes anterior (ahora {current}%).",
+      "shareLoss": "{name} perdió {pts} puntos de share vs. el mes anterior (ahora {current}%).",
+      "shareStable": "La participación por facility no tuvo variaciones relevantes vs. el mes anterior.",
+      "reviewCount": "{count} facilities están en el tier «A revisar» — score de calidad por debajo del resto de la red.",
+      "platinumCount": "{count} facilities alcanzaron el tier «Platinum» este mes.",
+      "nearMissOpportunity": "{pct}% de los partidos cancelados llegaron a la mitad o más del mínimo de jugadores — una oportunidad de conversión que se está perdiendo.",
+      "topNearMissFacility": "{name} es la facility con más cancelaciones «casi llegan» ({count})."
     },
     "ranking": {
       "backToMarket": "‹ Volver a Market",

@@ -23,6 +23,7 @@ import { resolvePeriod, shiftAnchor, todayISO, type Granularity, type ResolvedPe
 import { weekdayAbbr } from "../lib/db/weekday";
 import FilterPanel from "../components/FilterPanel";
 import FacilityDayHeatmap from "../components/FacilityDayHeatmap";
+import InsightsPanel, { type PanelInsight } from "../components/InsightsPanel";
 import LineChart from "../components/charts/LineChart";
 import BarChart from "../components/charts/BarChart";
 import MetricTrendCard from "../components/MetricTrendCard";
@@ -143,6 +144,37 @@ function RateBarList({
 }
 
 type Translator = (key: string, values?: Record<string, string | number>) => string;
+
+// Insights determinísticos para el panel flotante InsightsPanel — reusan
+// summaries YA calculados (currentSummary/priorSummary en Panorama,
+// marketTotals/marketPriorTotals en Por facility) en vez de una consulta
+// nueva. Cada input es un delta ya resuelto (no un par current/prior) para
+// poder alimentar Panorama (4 métricas) y Por facility (3 métricas, sin
+// conversión) con la misma función.
+type RateDeltaInput = {
+  // Sufijo de las claves de traducción: "confirmation" -> panoramaInsights.confirmationUp/Down
+  metricKey: "confirmation" | "cancellation" | "occupancy" | "conversion";
+  delta: number | undefined;
+  better: "higher" | "lower";
+  currentLabel: string;
+};
+
+const MIN_RATE_DELTA_PTS = 0.03; // 3 puntos porcentuales — por debajo es ruido, no una variación real
+
+function buildRateDeltaInsights(inputs: RateDeltaInput[], periodLabel: string, t: Translator): PanelInsight[] {
+  const lines: PanelInsight[] = [];
+  for (const inp of inputs) {
+    if (inp.delta === undefined || Math.abs(inp.delta) < MIN_RATE_DELTA_PTS) continue;
+    const pts = Math.abs(inp.delta * 100).toFixed(1);
+    const isGood = inp.better === "higher" ? inp.delta > 0 : inp.delta < 0;
+    const dirSuffix = inp.delta > 0 ? "Up" : "Down";
+    lines.push({
+      text: t(`panoramaInsights.${inp.metricKey}${dirSuffix}`, { pts, period: periodLabel, current: inp.currentLabel }),
+      severity: isGood ? "notable" : "critical",
+    });
+  }
+  return lines;
+}
 
 function buildQuarterInsights(
   points: { quarter: number; label: string; confirmationRate: number; totalGames: number }[],
@@ -363,6 +395,25 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
   );
 
   // ---------- Tab: Panorama (nivel market) ----------
+  const panoramaInsights: PanelInsight[] =
+    series.length <= 1
+      ? [{ text: t("panoramaInsights.notEnoughHistory"), severity: "info" }]
+      : !priorSummary
+      ? [{ text: t("panoramaInsights.noCompare"), severity: "info" }]
+      : (() => {
+          const built = buildRateDeltaInsights(
+            [
+              { metricKey: "confirmation", delta: currentSummary.confirmationRate - priorSummary.confirmationRate, better: "higher", currentLabel: formatPct(currentSummary.confirmationRate) },
+              { metricKey: "cancellation", delta: currentSummary.cancellationRate - priorSummary.cancellationRate, better: "lower", currentLabel: formatPct(currentSummary.cancellationRate) },
+              { metricKey: "occupancy", delta: currentSummary.occupancyRate - priorSummary.occupancyRate, better: "higher", currentLabel: formatPct(currentSummary.occupancyRate) },
+              { metricKey: "conversion", delta: currentSummary.conversionRate - priorSummary.conversionRate, better: "higher", currentLabel: formatPct(currentSummary.conversionRate) },
+            ],
+            comparePeriod.label,
+            t
+          );
+          return built.length > 0 ? built : [{ text: t("panoramaInsights.stable", { period: comparePeriod.label }), severity: "info" as const }];
+        })();
+
   const panoramaContent = (
     <div className="space-y-5">
       {periodNav}
@@ -397,7 +448,7 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
   );
 
   // ---------- Tab: Por facility ----------
-  const porFacilityContent = !sp.facilityId ? (
+  const { content: porFacilityContent, insights: porFacilityInsights } = !sp.facilityId ? (
     await (async () => {
       const [marketTotals, facilityDowRows] = await Promise.all([
         getOverviewData({ ...marketFilters, dateFrom: period.dateFrom, dateTo: period.dateTo }),
@@ -417,33 +468,51 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
       const heatmapRows = facilityDowRows.map((r) => ({ ...r, facilityName: facilityNameById.get(r.facilityId) ?? r.facilityId }));
       const dayColumns = DAY_ORDER.map((key) => ({ key, label: weekdayAbbr(key, locale) }));
 
-      return (
-        <div className="space-y-5">
-          {periodNav}
-          <SectionCard
-            title={t("facility.marketOverviewTitle", { market: filterOptions.markets.find((m) => m.id === sp.marketId)?.name ?? t("facility.defaultMarketName") })}
-            subtitle={t("facility.marketOverviewSubtitle", { period: period.label })}
-          >
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <Stat label={t("stat.confirmation")} value={formatPct(marketTotals.confirmationRate)} sublabel={t("facility.gamesOfTotal", { n: marketTotals.confirmedGames.toLocaleString("en-US"), total: marketTotals.totalGames.toLocaleString("en-US") })} delta={confirmDelta} />
-              <Stat label={t("stat.cancellation")} value={formatPct(marketTotals.cancellationRate)} sublabel={t("facility.gamesOfTotal", { n: marketTotals.cancelledGames.toLocaleString("en-US"), total: marketTotals.totalGames.toLocaleString("en-US") })} delta={cancelDelta} deltaInvert />
-              <Stat label={t("metric.occupancy")} value={formatPct(marketTotals.avgFillRate)} delta={occDelta} />
-            </div>
-            {marketPriorTotals && <div className="text-[11px] text-ink-faint mt-3 px-1">{t("facility.varianceVs", { period: comparePeriod.label })}</div>}
-          </SectionCard>
+      const marketInsights: PanelInsight[] = !marketPriorTotals
+        ? [{ text: t("panoramaInsights.noCompare"), severity: "info" }]
+        : (() => {
+            const built = buildRateDeltaInsights(
+              [
+                { metricKey: "confirmation", delta: confirmDelta, better: "higher", currentLabel: formatPct(marketTotals.confirmationRate) },
+                { metricKey: "cancellation", delta: cancelDelta, better: "lower", currentLabel: formatPct(marketTotals.cancellationRate) },
+                { metricKey: "occupancy", delta: occDelta, better: "higher", currentLabel: formatPct(marketTotals.avgFillRate) },
+              ],
+              comparePeriod.label,
+              t
+            );
+            return built.length > 0 ? built : [{ text: t("panoramaInsights.stable", { period: comparePeriod.label }), severity: "info" as const }];
+          })();
 
-          <SectionCard title={t("facility.dayMatrixTitle")} subtitle={t("facility.dayMatrixSubtitle", { period: period.label })}>
-            <FacilityDayHeatmap rows={heatmapRows} columns={dayColumns} facilityHref={(facilityId) => buildTrendsQuery(sp, { facilityId })} />
-          </SectionCard>
+      return {
+        insights: marketInsights,
+        content: (
+          <div className="space-y-5">
+            {periodNav}
+            <SectionCard
+              title={t("facility.marketOverviewTitle", { market: filterOptions.markets.find((m) => m.id === sp.marketId)?.name ?? t("facility.defaultMarketName") })}
+              subtitle={t("facility.marketOverviewSubtitle", { period: period.label })}
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <Stat label={t("stat.confirmation")} value={formatPct(marketTotals.confirmationRate)} sublabel={t("facility.gamesOfTotal", { n: marketTotals.confirmedGames.toLocaleString("en-US"), total: marketTotals.totalGames.toLocaleString("en-US") })} delta={confirmDelta} />
+                <Stat label={t("stat.cancellation")} value={formatPct(marketTotals.cancellationRate)} sublabel={t("facility.gamesOfTotal", { n: marketTotals.cancelledGames.toLocaleString("en-US"), total: marketTotals.totalGames.toLocaleString("en-US") })} delta={cancelDelta} deltaInvert />
+                <Stat label={t("metric.occupancy")} value={formatPct(marketTotals.avgFillRate)} delta={occDelta} />
+              </div>
+              {marketPriorTotals && <div className="text-[11px] text-ink-faint mt-3 px-1">{t("facility.varianceVs", { period: comparePeriod.label })}</div>}
+            </SectionCard>
 
-          <div className="rounded-2xl bg-surface-panel p-8 text-center shadow-sm">
-            <div className="text-sm text-ink font-medium mb-3">{t("facility.pickFacilityTitle")}</div>
-            <div className="flex justify-center">
-              <FilterPanel regions={filterOptions.regions} markets={filterOptions.markets} facilities={filterOptions.facilities} showTimeControls={false} />
+            <SectionCard title={t("facility.dayMatrixTitle")} subtitle={t("facility.dayMatrixSubtitle", { period: period.label })}>
+              <FacilityDayHeatmap rows={heatmapRows} columns={dayColumns} facilityHref={(facilityId) => buildTrendsQuery(sp, { facilityId })} />
+            </SectionCard>
+
+            <div className="rounded-2xl bg-surface-panel p-8 text-center shadow-sm">
+              <div className="text-sm text-ink font-medium mb-3">{t("facility.pickFacilityTitle")}</div>
+              <div className="flex justify-center">
+                <FilterPanel regions={filterOptions.regions} markets={filterOptions.markets} facilities={filterOptions.facilities} showTimeControls={false} />
+              </div>
             </div>
           </div>
-        </div>
-      );
+        ),
+      };
     })()
   ) : (
     await (async () => {
@@ -550,7 +619,33 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
         pct: s.cancellationRate, detail: t("facility.detailCancelledOfTotal8w", { n: s.cancelledCount, total: s.totalGames }),
       }));
 
-      return (
+      // Insights de esta facility para el panel flotante: variación de las 4
+      // métricas vs. el período anterior (mismo criterio que Panorama), más
+      // los insights de consistencia de horarios que ya calcula
+      // getSlotConsistency (mustHave/avoid) — "no puede faltar" es contexto
+      // positivo/neutral, "a evitar" es un problema accionable concreto.
+      const facilityRateInsights: PanelInsight[] = facilityDeltas
+        ? buildRateDeltaInsights(
+            [
+              { metricKey: "confirmation", delta: facilityDeltas.confirmationRate, better: "higher", currentLabel: formatPct(facilityCurrentSummary.confirmationRate) },
+              { metricKey: "cancellation", delta: facilityDeltas.cancellationRate, better: "lower", currentLabel: formatPct(facilityCurrentSummary.cancellationRate) },
+              { metricKey: "occupancy", delta: facilityDeltas.occupancyRate, better: "higher", currentLabel: formatPct(facilityCurrentSummary.occupancyRate) },
+              { metricKey: "conversion", delta: facilityDeltas.conversionRate, better: "higher", currentLabel: formatPct(facilityCurrentSummary.conversionRate) },
+            ],
+            comparePeriod.label,
+            t
+          )
+        : [];
+      const facilityInsights: PanelInsight[] = [
+        ...facilityRateInsights,
+        ...mustHave.insights.map((text): PanelInsight => ({ text, severity: "notable" })),
+        ...avoid.insights.map((text): PanelInsight => ({ text, severity: "critical" })),
+      ];
+      if (facilityInsights.length === 0) {
+        facilityInsights.push({ text: t("panoramaInsights.stable", { period: comparePeriod.label }), severity: "info" });
+      }
+
+      const facilityContent = (
         <div className="space-y-5">
           {periodNav}
           <div className="flex items-center gap-3">
@@ -719,6 +814,8 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
           </GroupSection>
         </div>
       );
+
+      return { content: facilityContent, insights: facilityInsights };
     })()
   );
 
@@ -745,6 +842,13 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
         tabs={[
           { id: "panorama", label: t("tabs.panorama"), content: panoramaContent },
           { id: "facility", label: t("tabs.byFacility"), content: porFacilityContent },
+        ]}
+      />
+      <InsightsPanel
+        title={t("panoramaInsights.panelTitle")}
+        groups={[
+          { label: t("tabs.panorama"), insights: panoramaInsights },
+          { label: t("tabs.byFacility"), insights: porFacilityInsights },
         ]}
       />
     </div>
