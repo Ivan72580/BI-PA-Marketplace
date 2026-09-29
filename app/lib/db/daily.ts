@@ -384,6 +384,163 @@ async function getRecentDailyTrendImpl(facilityId: string, dateISO: string, days
 
 export const getRecentDailyTrend = cached("getRecentDailyTrend", getRecentDailyTrendImpl);
 
+// ---------- Predicción: próximos 7 días (hoy + 6) por regresión lineal ----------
+// El dataset de esta app no tiene partidos del día en curso ni de fechas
+// futuras (ver comentario de "Radar de riesgo" más abajo: el dataset está
+// congelado antes de "hoy") — por diseño, no una limitación a resolver acá.
+// Esta función no inventa datos nuevos: para cada uno de los próximos 7 días
+// calendario (hoy + 6), junta las ocurrencias históricas de ESE MISMO día de
+// semana (mismo criterio que getDayEvolution/getDayBaseline, generalizado a
+// los 7 días de la semana en una sola pasada) y ajusta una regresión lineal
+// simple — partidos y tasa de confirmación en función del número de
+// ocurrencia — para estimar la próxima, en vez de un promedio plano: así se
+// refleja una tendencia reciente si existe. Con pocas ocurrencias la
+// regresión es más ruido que señal, así que hay un piso mínimo y un método
+// más simple (promedio) para el rango intermedio — nunca se inventa un
+// número con 0 o 1 ocurrencia.
+
+export type DailyForecastMethod = "regression" | "average" | "insufficient";
+
+export type DailyForecastDay = {
+  dateISO: string;
+  dayOfWeek: string;
+  dayLabel: string;
+  occurrences: number;
+  method: DailyForecastMethod;
+  predictedGames: number | null;
+  predictedConfirmationRate: number | null;
+  avgGames: number | null;
+  avgConfirmationRate: number | null;
+  gamesTrend: "up" | "down" | "flat";
+  rateTrend: "up" | "down" | "flat";
+};
+
+const FORECAST_DAYS = 7;
+const FORECAST_LOOKBACK_OCCURRENCES = 12;
+// Exportado (no solo local): app/daily/page.tsx lo necesita para el mensaje
+// de "historial insuficiente" de una tarjeta — un solo número fuente de
+// verdad en vez de duplicarlo en dos archivos que podrían desincronizarse.
+export const MIN_OCCURRENCES_FOR_PREDICTION = 3;
+const MIN_OCCURRENCES_FOR_TREND = 5;
+// Mismos umbrales que ya usa el resto de la app para no marcar "tendencia"
+// por ruido: 15% de volumen (Market, MIN_VOLUME_CHANGE_PCT) y 3 puntos de
+// tasa (Trends, MIN_RATE_DELTA_PTS) — la predicción vs. el promedio de esas
+// mismas ocurrencias, no un dato externo.
+const FORECAST_MIN_GAMES_CHANGE_PCT = 0.15;
+const FORECAST_MIN_RATE_CHANGE_PTS = 0.03;
+
+function linearRegression(xs: number[], ys: number[]): { slope: number; intercept: number } {
+  const n = xs.length;
+  const sumX = xs.reduce((s, x) => s + x, 0);
+  const sumY = ys.reduce((s, y) => s + y, 0);
+  const sumXY = xs.reduce((s, x, i) => s + x * ys[i], 0);
+  const sumXX = xs.reduce((s, x) => s + x * x, 0);
+  const denom = n * sumXX - sumX * sumX;
+  if (denom === 0) return { slope: 0, intercept: sumY / n };
+  const slope = (n * sumXY - sumX * sumY) / denom;
+  const intercept = (sumY - slope * sumX) / n;
+  return { slope, intercept };
+}
+
+function average(values: number[]): number {
+  return values.length > 0 ? values.reduce((s, v) => s + v, 0) / values.length : 0;
+}
+
+async function getDailyForecastImpl(facilityId: string, todayISOStr: string, locale: Locale): Promise<DailyForecastDay[]> {
+  const today = parseISODate(todayISOStr);
+  // Ventana de historial: exactamente FORECAST_LOOKBACK_OCCURRENCES semanas
+  // atrás desde hoy hasta AYER — nunca "hoy" (nunca tiene partidos en este
+  // dataset, y de todas formas sería data leakage predecir un día con datos
+  // de ese mismo día).
+  const windowStart = addDaysUTC(today, -(FORECAST_LOOKBACK_OCCURRENCES * 7));
+  const windowEnd = addDaysUTC(today, -1);
+  const where = buildWhere({ facilityId, dateFrom: windowStart, dateTo: windowEnd });
+
+  const rows = (await prisma.game.findMany({ where, select: { date: true, status: true } })) as {
+    date: Date;
+    status: "CONFIRMED" | "CANCELLED";
+  }[];
+
+  const byDate = new Map<string, { confirmed: number; cancelled: number }>();
+  for (const g of rows) {
+    const key = isoOf(g.date);
+    const e = byDate.get(key) ?? { confirmed: 0, cancelled: 0 };
+    if (g.status === "CONFIRMED") e.confirmed += 1;
+    else e.cancelled += 1;
+    byDate.set(key, e);
+  }
+
+  const days: DailyForecastDay[] = [];
+  for (let i = 0; i < FORECAST_DAYS; i++) {
+    const targetDate = addDaysUTC(today, i);
+    const dateISO = isoOf(targetDate);
+    const dow = dayOfWeekName(targetDate);
+
+    // Ocurrencias históricas de este mismo día de semana, de más antigua a
+    // más reciente. Los días sin ningún partido agendado se omiten (no se
+    // interpolan con 0: "sin dato" no es lo mismo que "cero demanda"),
+    // mismo criterio que getRecentDailyTrend.
+    const occurrences: { totalGames: number; confirmationRate: number }[] = [];
+    for (let back = FORECAST_LOOKBACK_OCCURRENCES; back >= 1; back--) {
+      const key = isoOf(addDaysUTC(targetDate, -7 * back));
+      const e = byDate.get(key);
+      if (!e) continue;
+      const total = e.confirmed + e.cancelled;
+      if (total > 0) occurrences.push({ totalGames: total, confirmationRate: e.confirmed / total });
+    }
+
+    const n = occurrences.length;
+    const avgGames = n > 0 ? average(occurrences.map((o) => o.totalGames)) : null;
+    const avgConfirmationRate = n > 0 ? average(occurrences.map((o) => o.confirmationRate)) : null;
+
+    let method: DailyForecastMethod = "insufficient";
+    let predictedGames: number | null = null;
+    let predictedConfirmationRate: number | null = null;
+
+    if (n >= MIN_OCCURRENCES_FOR_TREND) {
+      method = "regression";
+      const xs = occurrences.map((_, idx) => idx);
+      const gamesReg = linearRegression(xs, occurrences.map((o) => o.totalGames));
+      const rateReg = linearRegression(xs, occurrences.map((o) => o.confirmationRate));
+      predictedGames = Math.max(0, gamesReg.slope * n + gamesReg.intercept);
+      predictedConfirmationRate = Math.min(1, Math.max(0, rateReg.slope * n + rateReg.intercept));
+    } else if (n >= MIN_OCCURRENCES_FOR_PREDICTION) {
+      method = "average";
+      predictedGames = avgGames;
+      predictedConfirmationRate = avgConfirmationRate;
+    }
+
+    let gamesTrend: "up" | "down" | "flat" = "flat";
+    let rateTrend: "up" | "down" | "flat" = "flat";
+    if (method === "regression" && avgGames !== null && avgGames > 0 && predictedGames !== null) {
+      const pct = (predictedGames - avgGames) / avgGames;
+      gamesTrend = pct >= FORECAST_MIN_GAMES_CHANGE_PCT ? "up" : pct <= -FORECAST_MIN_GAMES_CHANGE_PCT ? "down" : "flat";
+    }
+    if (method === "regression" && avgConfirmationRate !== null && predictedConfirmationRate !== null) {
+      const diff = predictedConfirmationRate - avgConfirmationRate;
+      rateTrend = diff >= FORECAST_MIN_RATE_CHANGE_PTS ? "up" : diff <= -FORECAST_MIN_RATE_CHANGE_PTS ? "down" : "flat";
+    }
+
+    days.push({
+      dateISO,
+      dayOfWeek: dow,
+      dayLabel: weekdayAbbr(dow, locale),
+      occurrences: n,
+      method,
+      predictedGames,
+      predictedConfirmationRate,
+      avgGames,
+      avgConfirmationRate,
+      gamesTrend,
+      rateTrend,
+    });
+  }
+
+  return days;
+}
+
+export const getDailyForecast = cached("getDailyForecast", getDailyForecastImpl);
+
 // ---------- Calendario "sí o sí": qué slots hay que tener agendados ----------
 // Metodología propia y separada de getSlotConsistency (Trends): en vez de
 // "en cuántos meses históricos hubo actividad", esto mide la tasa de

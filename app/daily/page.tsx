@@ -9,6 +9,8 @@ import {
   getRecentDailyTrend,
   getMustScheduleSlots,
   getDayOfWeekPattern,
+  getDailyForecast,
+  MIN_OCCURRENCES_FOR_PREDICTION,
   type DaySummary,
   type DayBaseline,
   type DayEvolutionPoint,
@@ -17,6 +19,7 @@ import {
   type StrugglingSlot,
   type TopCancelSlotSummary,
   type StrugglingCancelSlot,
+  type DailyForecastDay,
 } from "../lib/db/queries";
 import { weekdaySingular, weekdayPlural } from "../lib/db/weekday";
 import { todayISO } from "../lib/period";
@@ -335,6 +338,80 @@ function buildDayInsights(summary: DaySummary, baseline: DayBaseline, evolution:
   return lines;
 }
 
+// Predicción de "próximos días" (hoy + 6) — ver getDailyForecast en
+// app/lib/db/daily.ts para el cálculo (regresión lineal por día de semana).
+// Acá solo se traduce cada resultado numérico a 1-3 líneas de texto, mismo
+// criterio que buildDayOfWeekSummaries: no un gráfico, una síntesis legible.
+function buildForecastInsightLines(day: DailyForecastDay, weekdaySing: string, t: Translator): string[] {
+  const lines: string[] = [];
+
+  if (day.method === "insufficient") {
+    lines.push(t("forecast.methodInsufficient", { weekday: weekdaySing, n: day.occurrences, min: MIN_OCCURRENCES_FOR_PREDICTION }));
+    return lines;
+  }
+
+  if (day.predictedGames !== null && day.avgGames !== null) {
+    const n = Math.round(day.predictedGames);
+    const avg = day.avgGames.toFixed(1);
+    lines.push(
+      day.gamesTrend === "up"
+        ? t("forecast.gamesUp", { n, avg })
+        : day.gamesTrend === "down"
+          ? t("forecast.gamesDown", { n, avg })
+          : t("forecast.gamesFlat", { n, avg })
+    );
+  }
+
+  if (day.predictedConfirmationRate !== null && day.avgConfirmationRate !== null) {
+    const pct = formatPct(day.predictedConfirmationRate);
+    const avg = formatPct(day.avgConfirmationRate);
+    lines.push(
+      day.rateTrend === "up"
+        ? t("forecast.rateUp", { pct, avg })
+        : day.rateTrend === "down"
+          ? t("forecast.rateDown", { pct, avg })
+          : t("forecast.rateFlat", { pct })
+    );
+  }
+
+  if (day.method === "average") {
+    lines.push(t("forecast.methodAverage", { n: day.occurrences, weekday: weekdaySing }));
+  }
+
+  return lines;
+}
+
+function ForecastDayCard({ day, isToday, t, locale }: { day: DailyForecastDay; isToday: boolean; t: Translator; locale: Locale }) {
+  const weekdaySing = weekdaySingular(day.dayOfWeek, locale);
+  const lines = buildForecastInsightLines(day, weekdaySing, t);
+  const hasPrediction = day.method !== "insufficient";
+
+  return (
+    <div className={`rounded-xl bg-surface border p-3 min-w-[168px] shrink-0 ${isToday ? "border-warning/50" : "border-warning/20"}`}>
+      <div className="flex items-center justify-between gap-1 mb-1.5">
+        <span className="text-sm font-semibold text-ink">{day.dayLabel}</span>
+        {isToday && <span className="text-[9px] font-semibold uppercase tracking-wide text-warning">{t("forecast.todayTag")}</span>}
+      </div>
+      {hasPrediction ? (
+        <>
+          <div className="flex items-baseline gap-1">
+            <span className="font-display text-lg font-bold text-ink">~{Math.round(day.predictedGames!)}</span>
+            <span className="text-[11px] text-ink-faint">{t("forecast.gamesLabel")}</span>
+          </div>
+          <div className="text-xs text-ink-muted mt-0.5">{t("forecast.confirmationLabel")}: ~{formatPct(day.predictedConfirmationRate!)}</div>
+        </>
+      ) : (
+        <div className="text-xs text-ink-faint">{t("forecast.noData")}</div>
+      )}
+      <ul className="mt-2 space-y-1 pt-2 border-t border-surface-sunken">
+        {lines.map((line, i) => (
+          <li key={i} className="text-[11px] text-ink-faint leading-snug">{line}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export default async function DailyPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
   const [filterOptions, locale, t] = await Promise.all([
@@ -391,8 +468,13 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
   }
 
   const dateISO = isValidDate(sp.date) ? sp.date : todayISO();
+  // Ancla de la predicción: SIEMPRE "hoy" real, sin importar qué fecha esté
+  // eligiendo el selector — es una ventana hacia adelante que tiene sentido
+  // aunque estés revisando un día pasado por otro motivo (ver discusión de
+  // ubicación de la sección más abajo).
+  const todayReal = todayISO();
 
-  const [summary, baseline, evolution, weekStrip, recentTrend, mustSchedule, dayOfWeekPattern] = await Promise.all([
+  const [summary, baseline, evolution, weekStrip, recentTrend, mustSchedule, dayOfWeekPattern, forecast] = await Promise.all([
     getDaySnapshot(sp.facilityId, dateISO, locale as Locale),
     getDayBaseline(sp.facilityId, dateISO),
     getDayEvolution(sp.facilityId, dateISO, locale as Locale),
@@ -405,6 +487,7 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
     // `.cancellationRate`), así que esto no traduce nada nuevo acá, solo
     // satisface la firma.
     getDayOfWeekPattern({ facilityId: sp.facilityId }, locale as Locale),
+    getDailyForecast(sp.facilityId, todayReal, locale as Locale),
   ]);
 
   const sparklinePoints = recentTrend.map((p) => Math.round(p.confirmationRate * 1000) / 10);
@@ -643,9 +726,51 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
         </div>
       </div>
 
+      {/* Predicción — próximos días (hoy + 6). Fija: no depende de qué fecha
+          esté eligiendo el selector de arriba, porque es una ventana hacia
+          adelante con valor propio (ver comentario largo sobre esta decisión
+          en la conversación con el usuario / historial del proyecto). El
+          "sí o sí" de abajo (mustSchedule) es historial agregado sin fecha;
+          esto es lo opuesto: una estimación puntual para 7 fechas concretas,
+          por eso necesita su propio bloque, claramente diferenciado (borde
+          punteado + badge), nunca mezclado con datos reales. */}
+      <div id="forecast-section" className="rounded-2xl border-2 border-dashed border-warning/40 bg-warning-soft/40 p-4">
+        <div className="flex items-center gap-2 mb-1 flex-wrap">
+          <span className="text-base leading-none" aria-hidden="true">🔮</span>
+          <h3 className="text-sm font-semibold text-ink">{t("forecast.sectionTitle")}</h3>
+          <span className="text-[10px] font-bold uppercase tracking-wide bg-warning text-white px-1.5 py-0.5 rounded-full">{t("forecast.badge")}</span>
+        </div>
+        <p className="text-xs text-ink-muted mb-3 max-w-3xl">{t("forecast.disclaimer")}</p>
+        <div className="flex gap-3 overflow-x-auto pb-1">
+          {forecast.map((day) => (
+            <ForecastDayCard key={day.dateISO} day={day} isToday={day.dateISO === todayReal} t={t} locale={locale as Locale} />
+          ))}
+        </div>
+      </div>
+
       {summary.totalGames === 0 ? (
         <div className="rounded-2xl bg-surface shadow-sm p-6 text-sm text-ink-faint">
-          {t("noGamesToday", { facility: summary.facilityName })}
+          {(() => {
+            // Híbrido: si el día vacío que se está mirando cae dentro de la
+            // ventana de predicción (hoy o alguno de los próximos 6 días),
+            // no se repite el cálculo — se reusa la MISMA tarjeta ya
+            // calculada arriba y se linkea a ella, en vez de duplicar
+            // consulta o criterio. Un día pasado sin partidos (facility
+            // cerrada, etc.) no cae en esta ventana y sigue mostrando el
+            // mensaje de siempre, sin cambios.
+            const forecastForSelected = forecast.find((d) => d.dateISO === dateISO);
+            if (!forecastForSelected) {
+              return t("noGamesToday", { facility: summary.facilityName });
+            }
+            if (forecastForSelected.method === "insufficient") {
+              return t("forecast.fallbackInsufficient", { weekday: weekdaySingular(summary.dayOfWeek, locale as Locale) });
+            }
+            return t.rich("forecast.fallbackWithData", {
+              games: Math.round(forecastForSelected.predictedGames!),
+              pct: formatPct(forecastForSelected.predictedConfirmationRate!),
+              link: (chunks) => <a href="#forecast-section" className="text-brand underline">{chunks}</a>,
+            });
+          })()}
         </div>
       ) : (
         <>
