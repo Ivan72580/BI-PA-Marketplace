@@ -652,9 +652,9 @@
       "improved": "✓ {facility} improved notably: went from {priorRate}% to {curRate}% cancellation vs. {period} ({excess} fewer cancellations than expected).",
       "crossTab": {
         "worstCancellation": "⚠ {facility} has the network's worst cancellation rate: {rate} ({games} games) — Cancellations.",
-        "topDropped": "⚠ {facility} lost the most players below the minimum: {n} — Confirmations.",
-        "worstRating": "⚠ {facility} is the lowest rated: {rating} of 5 (min. {n} games) — Game Rating.",
-        "busiestFacility": "ℹ {facility} scheduled the most games: {n} — Facilities."
+        "topDropped": "⚠ {facility} had the most players drop out before their game after signing up: {n} — Demand & operation.",
+        "worstRating": "⚠ {facility} is the lowest rated: {rating} of 5 (min. {n} games) — Price & reputation.",
+        "busiestFacility": "ℹ {facility} scheduled the most games: {n} — Performance."
       }
     },
     "tier": {

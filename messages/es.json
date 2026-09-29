@@ -652,9 +652,9 @@
       "improved": "✓ {facility} mejoró notablemente: pasó de {priorRate}% a {curRate}% de cancelación respecto a {period} ({excess} cancelaciones menos de lo esperado).",
       "crossTab": {
         "worstCancellation": "⚠ {facility} tiene la peor tasa de cancelación de la red: {rate} ({games} partidos) — Cancelaciones.",
-        "topDropped": "⚠ {facility} es la que más jugadores perdió por debajo del mínimo: {n} — Confirmaciones.",
-        "worstRating": "⚠ {facility} es la peor calificada: {rating} de 5 (mín. {n} partidos) — Calificación.",
-        "busiestFacility": "ℹ {facility} es la que más partidos agendó: {n} — Facilities."
+        "topDropped": "⚠ {facility} es donde más jugadores abandonaron antes del partido, después de anotarse: {n} — Demanda y operación.",
+        "worstRating": "⚠ {facility} es la peor calificada: {rating} de 5 (mín. {n} partidos) — Precio y reputación.",
+        "busiestFacility": "ℹ {facility} es la que más partidos agendó: {n} — Rendimiento."
       }
     },
     "tier": {
