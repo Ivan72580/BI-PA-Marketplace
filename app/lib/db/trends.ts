@@ -240,6 +240,89 @@ async function getDayOfWeekPatternImpl(filters: OverviewFilters, locale: Locale)
 
 export const getDayOfWeekPattern = cached("getDayOfWeekPattern", getDayOfWeekPatternImpl);
 
+// ---------- Patrón por día de la semana, cruzado por facility (Trends > Por facility, sin facility elegida) ----------
+// A diferencia de getDayOfWeekPattern (un solo total agregado por día para
+// todo el filtro), esto separa cada facility del scope actual (market o
+// región) para comparar cómo agenda cada una según el día — "promedio de
+// partidos agendados x día x facility" que pidió el usuario. El promedio es
+// por OCURRENCIA de ese día de semana (mismo criterio que avgGamesPerOccurrence
+// en getDayBaseline de /daily: total de partidos de ese día / cantidad de
+// fechas distintas de ese día con al menos 1 partido) — no por semana
+// calendario del período completo, que diluiría el número en meses con
+// pocos datos.
+
+export type FacilityDayCell = {
+  occurrences: number; // fechas distintas de ese día de semana con partidos
+  avgGames: number;
+  avgConfirmed: number;
+  avgCancelled: number;
+  confirmationRate: number;
+  cancellationRate: number;
+};
+
+export type FacilityDayOfWeekRow = {
+  facilityId: string;
+  totalGames: number; // suma de los 7 días — para ordenar por volumen, no un promedio
+  cells: Partial<Record<string, FacilityDayCell>>; // key = "Monday".."Sunday", ausente si esa facility nunca jugó ese día
+};
+
+type FacilityDowRawRow = { facilityId: string; date: Date; dayOfWeek: string; status: "CONFIRMED" | "CANCELLED" };
+
+async function getDayOfWeekPatternByFacilityImpl(filters: OverviewFilters): Promise<FacilityDayOfWeekRow[]> {
+  const where = buildWhere(filters);
+  const rows = (await prisma.game.findMany({
+    where,
+    select: { facilityId: true, date: true, dayOfWeek: true, status: true },
+  })) as FacilityDowRawRow[];
+
+  // facilityId -> dayOfWeek -> fecha ISO -> conteos de ese día puntual (el
+  // nivel más fino, para poder contar OCURRENCIAS distintas antes de
+  // promediar, igual que getDayBaselineImpl).
+  const byFacility = new Map<string, Map<string, Map<string, { total: number; confirmed: number; cancelled: number }>>>();
+  for (const g of rows) {
+    const dateKey = g.date.toISOString().slice(0, 10);
+    const byDay = byFacility.get(g.facilityId) ?? new Map<string, Map<string, { total: number; confirmed: number; cancelled: number }>>();
+    const byDate = byDay.get(g.dayOfWeek) ?? new Map<string, { total: number; confirmed: number; cancelled: number }>();
+    const e = byDate.get(dateKey) ?? { total: 0, confirmed: 0, cancelled: 0 };
+    e.total += 1;
+    if (g.status === "CONFIRMED") e.confirmed += 1;
+    else e.cancelled += 1;
+    byDate.set(dateKey, e);
+    byDay.set(g.dayOfWeek, byDate);
+    byFacility.set(g.facilityId, byDay);
+  }
+
+  const result: FacilityDayOfWeekRow[] = [];
+  for (const [facilityId, byDay] of byFacility) {
+    const cells: Partial<Record<string, FacilityDayCell>> = {};
+    let totalGames = 0;
+    for (const [dayOfWeek, byDate] of byDay) {
+      let sumTotal = 0, sumConfirmed = 0, sumCancelled = 0;
+      for (const e of byDate.values()) {
+        sumTotal += e.total;
+        sumConfirmed += e.confirmed;
+        sumCancelled += e.cancelled;
+      }
+      const occurrences = byDate.size;
+      cells[dayOfWeek] = {
+        occurrences,
+        avgGames: occurrences > 0 ? sumTotal / occurrences : 0,
+        avgConfirmed: occurrences > 0 ? sumConfirmed / occurrences : 0,
+        avgCancelled: occurrences > 0 ? sumCancelled / occurrences : 0,
+        confirmationRate: sumTotal > 0 ? sumConfirmed / sumTotal : 0,
+        cancellationRate: sumTotal > 0 ? sumCancelled / sumTotal : 0,
+      };
+      totalGames += sumTotal;
+    }
+    result.push({ facilityId, totalGames, cells });
+  }
+
+  // Más volumen primero — mismo criterio "lo más relevante arriba" que el
+  // resto de los rankings de la app (ej. MarketRanking).
+  return result.sort((a, b) => b.totalGames - a.totalGames);
+}
+
+export const getDayOfWeekPatternByFacility = cached("getDayOfWeekPatternByFacility", getDayOfWeekPatternByFacilityImpl);
 
 // ---------- Patrón por horario (fila por fila: la hora sale de un substring) ----------
 

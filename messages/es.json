@@ -316,7 +316,9 @@
       "marketOverviewSubtitle": "{period} — elegí una facility abajo para ver su tendencia en detalle",
       "gamesOfTotal": "{n} de {total} partidos",
       "varianceVs": "Variación vs. {period}",
-      "pickFacilityTitle": "Elegí una facility para ver el detalle pormenorizado",
+      "dayMatrixTitle": "Patrón por día de semana — cada facility",
+      "dayMatrixSubtitle": "{period} — hacé click en una facility para ver su detalle completo",
+      "pickFacilityTitle": "¿Buscás una facility puntual? Elegila acá para ver el detalle pormenorizado",
       "facilityLabel": "Facility:",
       "backToMarket": "volver al panorama del market",
       "consistencyTitle": "Consistencia de horarios",
@@ -358,6 +360,15 @@
       "detailCancelledOfTotal8w": "{n} cancelados de {total} en 8 semanas",
       "methodologyNoteTerm": "Distinto de Daily",
       "methodologyNoteDef": "\"Consistencia\" (arriba) mide % de meses observados con al menos un partido — es histórico y descriptivo. Daily usa una ventana móvil de 3 meses con umbral de 55%+ de confirmación — es reciente y accionable. Pueden marcar horarios distintos para la misma facility; no es un error, responden preguntas distintas."
+    },
+    "facilityHeatmap": {
+      "hint": "≈partidos agendados ese día · ≈confirmados/cancelados · % del total. Colores fuertes = 75% o más.",
+      "toggleConfirmed": "Confirmados",
+      "toggleCancelled": "Cancelados",
+      "facilityColumn": "Facility",
+      "empty": "No hay datos suficientes en este market todavía.",
+      "lowSampleTooltip": "Solo {n} fecha(s) registrada(s) para este día — dato con baja confianza",
+      "legend": "≈ = promedio por fecha distinta de ese día con partidos registrados. Celdas apagadas: menos de 3 fechas."
     },
     "metricCard": {
       "compareVs": "Comparar vs. {label}",

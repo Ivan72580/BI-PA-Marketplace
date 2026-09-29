@@ -316,7 +316,9 @@
       "marketOverviewSubtitle": "{period} — pick a facility below to see its trend in detail",
       "gamesOfTotal": "{n} of {total} games",
       "varianceVs": "Change vs. {period}",
-      "pickFacilityTitle": "Pick a facility to see the detailed breakdown",
+      "dayMatrixTitle": "Day-of-week pattern — every facility",
+      "dayMatrixSubtitle": "{period} — click a facility to see its full detail",
+      "pickFacilityTitle": "Looking for a specific facility? Pick it here to see the detailed breakdown",
       "facilityLabel": "Facility:",
       "backToMarket": "back to market overview",
       "consistencyTitle": "Schedule consistency",
@@ -358,6 +360,15 @@
       "detailCancelledOfTotal8w": "{n} cancelled of {total} in 8 weeks",
       "methodologyNoteTerm": "Different from Daily",
       "methodologyNoteDef": "\"Consistency\" (above) measures the % of observed months with at least one game — historical and descriptive. Daily uses a rolling 3-month window with a 55%+ confirmation threshold — recent and actionable. They can flag different slots for the same facility; that is not a bug, they answer different questions."
+    },
+    "facilityHeatmap": {
+      "hint": "≈games scheduled that day · ≈confirmed/cancelled · % of total. Strong colors = 75% or more.",
+      "toggleConfirmed": "Confirmed",
+      "toggleCancelled": "Cancelled",
+      "facilityColumn": "Facility",
+      "empty": "Not enough data in this market yet.",
+      "lowSampleTooltip": "Only {n} date(s) on record for this day — low-confidence figure",
+      "legend": "≈ = average per distinct date of that day with games on record. Dimmed cells: fewer than 3 dates."
     },
     "metricCard": {
       "compareVs": "Compare vs. {label}",

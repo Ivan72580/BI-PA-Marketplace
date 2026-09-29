@@ -8,6 +8,7 @@ import {
   getQuarterClimate,
   getOverviewData,
   getDayOfWeekPattern,
+  getDayOfWeekPatternByFacility,
   getHourPattern,
   getFormatPattern,
   getNetworkFormatLeaderboard,
@@ -15,10 +16,13 @@ import {
   getSlotRecentPerformance,
   getGameList,
   getMarketConfirmationRanking,
+  DAY_ORDER,
   type OverviewFilters,
 } from "../lib/db/queries";
 import { resolvePeriod, shiftAnchor, todayISO, type Granularity, type ResolvedPeriod } from "../lib/period";
+import { weekdayAbbr } from "../lib/db/weekday";
 import FilterPanel from "../components/FilterPanel";
+import FacilityDayHeatmap from "../components/FacilityDayHeatmap";
 import LineChart from "../components/charts/LineChart";
 import BarChart from "../components/charts/BarChart";
 import MetricTrendCard from "../components/MetricTrendCard";
@@ -395,13 +399,23 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
   // ---------- Tab: Por facility ----------
   const porFacilityContent = !sp.facilityId ? (
     await (async () => {
-      const marketTotals = await getOverviewData({ ...marketFilters, dateFrom: period.dateFrom, dateTo: period.dateTo });
+      const [marketTotals, facilityDowRows] = await Promise.all([
+        getOverviewData({ ...marketFilters, dateFrom: period.dateFrom, dateTo: period.dateTo }),
+        getDayOfWeekPatternByFacility({ ...marketFilters, dateFrom: period.dateFrom, dateTo: period.dateTo }),
+      ]);
       const marketPriorTotals = comparePeriod.dateFrom && comparePeriod.dateTo
         ? await getOverviewData({ ...marketFilters, dateFrom: comparePeriod.dateFrom, dateTo: comparePeriod.dateTo })
         : null;
       const confirmDelta = marketPriorTotals ? marketTotals.confirmationRate - marketPriorTotals.confirmationRate : undefined;
       const cancelDelta = marketPriorTotals ? marketTotals.cancellationRate - marketPriorTotals.cancellationRate : undefined;
       const occDelta = marketPriorTotals ? marketTotals.avgFillRate - marketPriorTotals.avgFillRate : undefined;
+
+      // Nombre de cada facility — la query solo devuelve facilityId (no hace
+      // join), así que se resuelve acá con filterOptions, ya cargado para el
+      // selector de abajo.
+      const facilityNameById = new Map<string, string>(filterOptions.facilities.map((f) => [f.id, f.name]));
+      const heatmapRows = facilityDowRows.map((r) => ({ ...r, facilityName: facilityNameById.get(r.facilityId) ?? r.facilityId }));
+      const dayColumns = DAY_ORDER.map((key) => ({ key, label: weekdayAbbr(key, locale) }));
 
       return (
         <div className="space-y-5">
@@ -417,6 +431,11 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
             </div>
             {marketPriorTotals && <div className="text-[11px] text-ink-faint mt-3 px-1">{t("facility.varianceVs", { period: comparePeriod.label })}</div>}
           </SectionCard>
+
+          <SectionCard title={t("facility.dayMatrixTitle")} subtitle={t("facility.dayMatrixSubtitle", { period: period.label })}>
+            <FacilityDayHeatmap rows={heatmapRows} columns={dayColumns} facilityHref={(facilityId) => buildTrendsQuery(sp, { facilityId })} />
+          </SectionCard>
+
           <div className="rounded-2xl bg-surface-panel p-8 text-center shadow-sm">
             <div className="text-sm text-ink font-medium mb-3">{t("facility.pickFacilityTitle")}</div>
             <div className="flex justify-center">
