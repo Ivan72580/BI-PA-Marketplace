@@ -649,7 +649,13 @@
       "confirmedUp": "✓ Confirmed games rose {pct}% vs. {period} ({prior} → {current}).",
       "confirmedDown": "⚠ Confirmed games fell {pct}% vs. {period} ({prior} → {current}).",
       "worsened": "⚠ {facility} explains much of the change: went from {priorRate}% to {curRate}% cancellation vs. {period} (+{excess} more cancellations than expected).",
-      "improved": "✓ {facility} improved notably: went from {priorRate}% to {curRate}% cancellation vs. {period} ({excess} fewer cancellations than expected)."
+      "improved": "✓ {facility} improved notably: went from {priorRate}% to {curRate}% cancellation vs. {period} ({excess} fewer cancellations than expected).",
+      "crossTab": {
+        "worstCancellation": "⚠ {facility} has the network's worst cancellation rate: {rate} ({games} games) — Cancellations.",
+        "topDropped": "⚠ {facility} lost the most players below the minimum: {n} — Confirmations.",
+        "worstRating": "⚠ {facility} is the lowest rated: {rating} of 5 (min. {n} games) — Game Rating.",
+        "busiestFacility": "ℹ {facility} scheduled the most games: {n} — Facilities."
+      }
     },
     "tier": {
       "platinum": "Platinum",

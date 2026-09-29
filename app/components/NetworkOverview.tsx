@@ -75,6 +75,12 @@ function Stat({ label, value, sublabel }: { label: string; value: string; sublab
 
 type RegionScope = { regionId: string; regionName: string };
 type SortDir = "asc" | "desc";
+// Insight del panel "Qué mirar hoy": texto + link opcional. Los insights
+// "propios" (contribución, variación de confirmados) no llevan link porque
+// ya hablan del período/scope actual; los de cross-tab (aviso de la peor
+// tasa de cancelación, la peor calificación, etc.) sí, porque apuntan a un
+// dato puntual de otra pestaña.
+type InsightItem = { text: string; href?: string };
 
 export default async function NetworkOverview({
   sp,
@@ -149,16 +155,63 @@ export default async function NetworkOverview({
       const topReason = current.cancellationBreakdown[0] ?? null;
       const topReasonFacility = topReason ? await getTopCancellationFacilityForReason(scopeFilters, topReason.category) : null;
 
-      const insights = [...generateContributionInsights(contribution, comparePeriodLabel, t), ...current.insights];
+      const insights: InsightItem[] = [...generateContributionInsights(contribution, comparePeriodLabel, t), ...current.insights].map((text) => ({ text }));
       // Insight dedicado a volumen de confirmados, con variación vs. período anterior.
       if (prior) {
         const delta = pctDelta(current.confirmedGames, prior.confirmedGames);
         if (delta !== undefined && Math.abs(delta) >= 0.05) {
           const key = delta > 0 ? "insights.confirmedUp" : "insights.confirmedDown";
-          insights.push(
-            t(key, { pct: Math.abs(delta * 100).toFixed(1), period: comparePeriodLabel, prior: prior.confirmedGames, current: current.confirmedGames })
-          );
+          insights.push({
+            text: t(key, { pct: Math.abs(delta * 100).toFixed(1), period: comparePeriodLabel, prior: prior.confirmedGames, current: current.confirmedGames }),
+          });
         }
+      }
+
+      // ---------- Highlights cross-tab ----------
+      // "Qué mirar hoy" no debería limitarse a lo que ya se ve en las
+      // tarjetas hero — acá se suma, por cada una de las otras pestañas de
+      // Overview, el dato más crítico o destacable que tiene, con link
+      // directo a la facility (mismo destino canónico que usa el resto de
+      // la app) en vez de quedar como texto suelto.
+      const worstCancel = current.worstCancellationRate[0];
+      if (worstCancel) {
+        insights.push({
+          text: t("insights.crossTab.worstCancellation", {
+            facility: worstCancel.label,
+            rate: formatPct(worstCancel.rate),
+            games: worstCancel.totalGames,
+          }),
+          href: buildQuery(sp, { facilityId: worstCancel.facilityId, marketId: worstCancel.marketId, regionId: worstCancel.regionId }),
+        });
+      }
+
+      const topDropped = demandLeaders.dropped[0];
+      if (topDropped && topDropped.value > 0) {
+        insights.push({
+          text: t("insights.crossTab.topDropped", { facility: topDropped.name, n: topDropped.value }),
+          href: buildQuery(sp, { facilityId: topDropped.facilityId }),
+        });
+      }
+
+      const ratedFacilities = facilityTable.filter((f) => f.avgRating !== null && f.totalGames >= MIN_GAMES_FOR_RANKING);
+      const worstRated = [...ratedFacilities].sort((a, b) => (a.avgRating as number) - (b.avgRating as number))[0];
+      if (worstRated) {
+        insights.push({
+          text: t("insights.crossTab.worstRating", {
+            facility: worstRated.name,
+            rating: (worstRated.avgRating as number).toFixed(2),
+            n: MIN_GAMES_FOR_RANKING,
+          }),
+          href: buildQuery(sp, { facilityId: worstRated.facilityId, marketId: worstRated.marketId, regionId: worstRated.regionId }),
+        });
+      }
+
+      const busiest = [...facilityTable].sort((a, b) => b.totalGames - a.totalGames)[0];
+      if (busiest) {
+        insights.push({
+          text: t("insights.crossTab.busiestFacility", { facility: busiest.name, n: busiest.totalGames }),
+          href: buildQuery(sp, { facilityId: busiest.facilityId, marketId: busiest.marketId, regionId: busiest.regionId }),
+        });
       }
 
       // Se muestran sólo las Top 5 en el resumen (el ranking completo, con
@@ -236,6 +289,14 @@ export default async function NetworkOverview({
         )
       : Promise.resolve([]),
   ]);
+
+  // Mismo orden de regiones que el panel "Qué mirar hoy" (que sigue el
+  // orden de `scopes`, es decir de `regions`) — antes esta tarjeta se
+  // ordenaba por volumen de confirmados y podía quedar en un orden distinto
+  // al de los insights de al lado.
+  const regionComparisonOrdered = scopes
+    .map((s) => regionComparison.find((r) => r.regionId === s.regionId))
+    .filter((r): r is (typeof regionComparison)[number] => r !== undefined);
 
   const perPeriod = (n: number) => {
     const avg = gamesPerPeriodAverage(n, period.dateFrom, period.dateTo);
@@ -352,9 +413,9 @@ export default async function NetworkOverview({
         <div className="text-[11px] text-ink-faint px-1 -mt-2">{t("varianceVs", { period: comparePeriod.label })}</div>
       )}
 
-      {isMultiScope && regionComparison.length >= 2 && (
+      {isMultiScope && regionComparisonOrdered.length >= 2 && (
         <GroupSection title={t("sections.regionComparison")}>
-          <RegionComparisonCards rows={regionComparison} buildHref={(regionId) => buildQuery(sp, { regionId })} />
+          <RegionComparisonCards rows={regionComparisonOrdered} buildHref={(regionId) => buildQuery(sp, { regionId })} />
         </GroupSection>
       )}
 
@@ -364,9 +425,15 @@ export default async function NetworkOverview({
             <div key={scope.regionId} className="space-y-2">
               {isMultiScope && <div className="text-xs font-medium text-ink-muted px-1">{scope.regionName}</div>}
               <div className="space-y-2">
-                {insights.map((insight, i) => (
-                  <div key={i} className="text-sm text-ink font-medium">{insight}</div>
-                ))}
+                {insights.map((insight, i) =>
+                  insight.href ? (
+                    <Link key={i} href={insight.href} className="block text-sm text-ink font-medium hover:text-brand hover:underline">
+                      {insight.text}
+                    </Link>
+                  ) : (
+                    <div key={i} className="text-sm text-ink font-medium">{insight.text}</div>
+                  )
+                )}
                 {insights.length === 0 && <div className="text-sm text-ink-faint">{t("insights.noAlerts")}</div>}
               </div>
             </div>
@@ -445,30 +512,68 @@ export default async function NetworkOverview({
                   </tr>
                 </thead>
                 <tbody>
-                  {scopeData.map(({ scope, current }) => (
-                    <tr key={scope.regionId} className="border-b border-surface-sunken">
-                      <td className="py-1.5 px-2 text-ink font-medium">{scope.regionName}</td>
-                      <td className="py-1.5 px-2 text-ink">{current.cancelledGames.toLocaleString("en-US")}</td>
-                      <td className="py-1.5 px-2 text-ink">{formatPct(current.cancellationRate)}</td>
-                      <td className="py-1.5 px-2 text-ink-muted">
-                        {current.cancellationBreakdown[0] ? `${current.cancellationBreakdown[0].label} (${formatPct(current.cancellationBreakdown[0].pct)})` : "—"}
-                      </td>
-                    </tr>
-                  ))}
+                  {scopeData.map(({ scope, current }) => {
+                    const cancellationsTabHref = buildQuery(sp, { regionId: scope.regionId, tab: "cancellations" });
+                    const topReason = current.cancellationBreakdown[0] ?? null;
+                    return (
+                      <tr key={scope.regionId} className="border-b border-surface-sunken">
+                        <td className="py-1.5 px-2 text-ink font-medium">
+                          <Link href={buildQuery(sp, { regionId: scope.regionId })} className="hover:text-brand hover:underline">
+                            {scope.regionName}
+                          </Link>
+                        </td>
+                        <td className="py-1.5 px-2 text-ink">
+                          <Link href={cancellationsTabHref} className="hover:text-brand hover:underline">
+                            {current.cancelledGames.toLocaleString("en-US")}
+                          </Link>
+                        </td>
+                        <td className="py-1.5 px-2 text-ink">
+                          <Link href={cancellationsTabHref} className="hover:text-brand hover:underline">
+                            {formatPct(current.cancellationRate)}
+                          </Link>
+                        </td>
+                        <td className="py-1.5 px-2 text-ink-muted">
+                          {topReason ? (
+                            <Link href={buildQuery(sp, { cancellationReason: topReason.category, regionId: scope.regionId })} className="hover:text-brand hover:underline">
+                              {`${topReason.label} (${formatPct(topReason.pct)})`}
+                            </Link>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
           </SectionCard>
         ) : (
-          scopeData.map(({ scope, current }) => (
-            <SectionCard key={scope.regionId} title={t("cancellation.title")} subtitle={t("cancellation.subtitleSingle", { cancelled: current.cancelledGames.toLocaleString("en-US"), rate: formatPct(current.cancellationRate) })}>
-              <div className="text-sm text-ink-muted">
-                {current.cancellationBreakdown[0]
-                  ? t("cancellation.topReasonInline", { reason: current.cancellationBreakdown[0].label, pct: formatPct(current.cancellationBreakdown[0].pct) })
-                  : t("cancellation.empty")}
-              </div>
-            </SectionCard>
-          ))
+          scopeData.map(({ scope, current }) => {
+            const topReason = current.cancellationBreakdown[0] ?? null;
+            return (
+              <SectionCard key={scope.regionId} title={t("cancellation.title")}>
+                <Link
+                  href={buildQuery(sp, { regionId: scope.regionId, tab: "cancellations" })}
+                  className="text-sm text-ink-muted hover:text-brand hover:underline block mb-1"
+                >
+                  {t("cancellation.subtitleSingle", { cancelled: current.cancelledGames.toLocaleString("en-US"), rate: formatPct(current.cancellationRate) })}
+                </Link>
+                <div className="text-sm text-ink-muted">
+                  {topReason ? (
+                    <Link
+                      href={buildQuery(sp, { cancellationReason: topReason.category, regionId: scope.regionId })}
+                      className="hover:text-brand hover:underline"
+                    >
+                      {t("cancellation.topReasonInline", { reason: topReason.label, pct: formatPct(topReason.pct) })}
+                    </Link>
+                  ) : (
+                    t("cancellation.empty")
+                  )}
+                </div>
+              </SectionCard>
+            );
+          })
         )}
         {/* El desglose por motivo (con drill-down por facility) y los rankings
             de cancelación se movieron a su propia pestaña — este bloque ahora
