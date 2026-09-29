@@ -270,7 +270,7 @@ export default async function NetworkOverview({
   // región de abajo es un widget aparte, no una repetición de estos mismos
   // KPIs por cada región.
   const heroWindow = resolveEvolutionWindow(granularity, period.dateTo);
-  const [heroCurrent, heroPrior, heroExtended, heroSeries, regionComparison] = await Promise.all([
+  const [heroCurrent, heroPrior, heroExtended, heroPriorExtended, heroSeries, regionComparison] = await Promise.all([
     isMultiScope ? getOverviewData(filters, locale) : Promise.resolve(scopeData[0].current),
     isMultiScope
       ? compare && comparePeriod?.dateFrom && comparePeriod?.dateTo
@@ -278,6 +278,10 @@ export default async function NetworkOverview({
         : Promise.resolve(null)
       : Promise.resolve(scopeData[0].prior),
     isMultiScope ? getExtendedMetrics(filters) : Promise.resolve(scopeData[0].extended),
+    // Solo para el delta crudo del KPI de Rating (no pasa por ChangeBadge).
+    compare && comparePeriod?.dateFrom && comparePeriod?.dateTo
+      ? getExtendedMetrics({ ...filters, dateFrom: comparePeriod.dateFrom, dateTo: comparePeriod.dateTo })
+      : Promise.resolve(null),
     getMetricSeriesInWindow(filters, heroWindow.unit, heroWindow.windowStart, heroWindow.windowEnd, locale),
     isMultiScope && period.dateFrom && period.dateTo
       ? getRegionComparison(
@@ -303,6 +307,36 @@ export default async function NetworkOverview({
     return avg ? formatPerPeriod(avg, locale) : undefined;
   };
   const heroHref = (tab: string) => buildQuery(sp, { tab });
+
+  // Delta "crudo" del KPI de Rating (ej. "+0.22") — a propósito NO pasa por
+  // ChangeBadge, que multiplica todo ×100 asumiendo %/puntos porcentuales;
+  // un rating 1-5 no es ninguna de las dos cosas.
+  const ratingRawDelta: number | null | undefined =
+    heroExtended.avgRating === null
+      ? undefined
+      : heroPriorExtended && heroPriorExtended.avgRating !== null
+      ? heroExtended.avgRating - heroPriorExtended.avgRating
+      : compare
+      ? null
+      : undefined;
+
+  // Popover del KPI de Revenue cuando no hay un market puntual elegido (ahí
+  // ya se linkea directo a "Precio" de Market) — sin esto, hoy el KPI no
+  // tiene a dónde llevar al hacer click a nivel red/región.
+  const topRevenueRows = heroCurrent.topRevenueFacilities;
+  const revenuePopover = !sp.marketId && topRevenueRows.length > 0 ? (
+    <>
+      <div className="text-xs font-medium text-ink-muted mb-2">{t("priceRevenue.topContributorsTitle")}</div>
+      <div className="space-y-1">
+        {topRevenueRows.map((f, i) => (
+          <div key={f.facilityId} className="flex justify-between gap-2 text-xs">
+            <span className="text-ink truncate">{i + 1}. {f.label}</span>
+            <span className="text-ink-faint shrink-0">{formatUSD(f.value)}</span>
+          </div>
+        ))}
+      </div>
+    </>
+  ) : undefined;
   const marketTabHref = (tab: string) => {
     const params = new URLSearchParams();
     if (sp.regionId) params.set("regionId", sp.regionId);
@@ -341,7 +375,8 @@ export default async function NetworkOverview({
         delta={pctDelta(heroCurrent.totalGames, heroPrior?.totalGames)}
         staticDelta
         href={heroHref("facilities")}
-        sparklinePoints={heroSeries.map((p) => p.totalGames)}
+        sparklinePoints={heroSeries.map((p) => ({ label: p.label, value: p.totalGames }))}
+        sparklineFormatValue={(v) => v.toLocaleString("en-US")}
       />
       <KpiCard
         label={t("kpi.confirmed")}
@@ -350,7 +385,8 @@ export default async function NetworkOverview({
         delta={pctDelta(heroCurrent.confirmedGames, heroPrior?.confirmedGames)}
         staticDelta
         href={heroHref("confirmations")}
-        sparklinePoints={heroSeries.map((p) => p.confirmedGames)}
+        sparklinePoints={heroSeries.map((p) => ({ label: p.label, value: p.confirmedGames }))}
+        sparklineFormatValue={(v) => v.toLocaleString("en-US")}
       />
       <KpiCard
         label={t("kpi.cancelled")}
@@ -360,7 +396,8 @@ export default async function NetworkOverview({
         deltaInvert
         staticDelta
         href={heroHref("cancellations")}
-        sparklinePoints={heroSeries.map((p) => p.cancelledGames)}
+        sparklinePoints={heroSeries.map((p) => ({ label: p.label, value: p.cancelledGames }))}
+        sparklineFormatValue={(v) => v.toLocaleString("en-US")}
       />
       <KpiCard
         label={t("kpi.confirmationRate")}
@@ -369,7 +406,8 @@ export default async function NetworkOverview({
         deltaUnit="pts"
         staticDelta
         href={heroHref("confirmations")}
-        sparklinePoints={heroSeries.map((p) => p.confirmationRate)}
+        sparklinePoints={heroSeries.map((p) => ({ label: p.label, value: p.confirmationRate }))}
+        sparklineFormatValue={(v) => formatPct(v)}
       />
       <KpiCard
         label={t("kpi.cancellationRate")}
@@ -379,7 +417,8 @@ export default async function NetworkOverview({
         deltaInvert
         staticDelta
         href={heroHref("cancellations")}
-        sparklinePoints={heroSeries.map((p) => p.cancellationRate)}
+        sparklinePoints={heroSeries.map((p) => ({ label: p.label, value: p.cancellationRate }))}
+        sparklineFormatValue={(v) => formatPct(v)}
       />
       <KpiCard
         label={t("kpi.occupancy")}
@@ -388,7 +427,8 @@ export default async function NetworkOverview({
         deltaUnit="pts"
         staticDelta
         href={heroHref("confirmations")}
-        sparklinePoints={heroSeries.map((p) => p.occupancyRate)}
+        sparklinePoints={heroSeries.map((p) => ({ label: p.label, value: p.occupancyRate }))}
+        sparklineFormatValue={(v) => formatPct(v)}
       />
       <KpiCard
         label={t("kpi.revenue")}
@@ -396,11 +436,13 @@ export default async function NetworkOverview({
         delta={pctDelta(heroCurrent.totalRevenue, heroPrior?.totalRevenue)}
         staticDelta
         href={sp.marketId ? marketTabHref("precio") : undefined}
+        popover={revenuePopover}
       />
       <KpiCard
         label={t("kpi.rating")}
         value={heroExtended.avgRating !== null ? heroExtended.avgRating.toFixed(2) : "—"}
         sublabel={t("satisfaction.ratingSub")}
+        rawDelta={ratingRawDelta}
         href={heroHref("gameRating")}
       />
     </div>

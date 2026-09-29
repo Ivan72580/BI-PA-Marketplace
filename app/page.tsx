@@ -8,6 +8,7 @@ import FilterPanel from "./components/FilterPanel";
 import NetworkOverview from "./components/NetworkOverview";
 import FacilityDetailView from "./components/FacilityDetailView";
 import CancellationReasonRanking from "./components/CancellationReasonRanking";
+import ChangeBadge from "./components/ChangeBadge";
 
 function isCancellationCategory(value: string | undefined): value is CancellationCategory {
   return !!value && (Object.values(CancellationCategory) as string[]).includes(value);
@@ -105,19 +106,29 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
           {names.facilityName ?? t("pageTitle")}
         </h1>
 
-        <div className="rounded-xl bg-brand-soft border border-brand/20 px-4 py-2 shrink-0">
+        <div className="rounded-2xl bg-brand-soft border border-brand/20 px-5 py-3 shrink-0">
           {monthProjection.available ? (
             <>
-              <div className="text-sm text-brand font-medium">
-                {t("projection.title", { month: monthProjection.monthLabel, n: monthProjection.projectedGames!.toLocaleString("en-US") })}
+              <div className="text-xs font-medium text-brand mb-2">{t("projection.title", { month: monthProjection.monthLabel })}</div>
+              <div className="flex items-stretch gap-4">
+                <div>
+                  <div className="flex items-baseline gap-1.5">
+                    <div className="font-display text-xl font-bold text-ink">{monthProjection.projectedGames!.toLocaleString("en-US")}</div>
+                    {monthProjection.changePctGames !== null && <ChangeBadge value={monthProjection.changePctGames} />}
+                  </div>
+                  <div className="text-[11px] text-ink-faint mt-0.5">{t("projection.gamesLabel")}</div>
+                </div>
+                <div className="w-px bg-brand/20" />
+                <div>
+                  <div className="flex items-baseline gap-1.5">
+                    <div className="font-display text-xl font-bold text-ink">{formatUSD(monthProjection.projectedRevenue!)}</div>
+                    {monthProjection.changePctRevenue !== null && <ChangeBadge value={monthProjection.changePctRevenue} />}
+                  </div>
+                  <div className="text-[11px] text-ink-faint mt-0.5">{t("projection.revenueLabel")}</div>
+                </div>
               </div>
-              <div className="text-xs text-ink-faint mt-0.5">
-                {t("projection.detail", {
-                  revenue: formatUSD(monthProjection.projectedRevenue!),
-                  confirmed: monthProjection.confirmedSoFar.toLocaleString("en-US"),
-                  elapsed: monthProjection.daysElapsed,
-                  total: monthProjection.daysInMonth,
-                })}
+              <div className="text-[11px] text-ink-faint mt-2 pt-2 border-t border-brand/15">
+                {t("projection.basedOn", { confirmed: monthProjection.confirmedSoFar.toLocaleString("en-US"), elapsed: monthProjection.daysElapsed, total: monthProjection.daysInMonth })}
               </div>
             </>
           ) : (

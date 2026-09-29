@@ -594,8 +594,10 @@
     "comparePeriodFallback": "the prior period",
     "comparePeriodAvailable": "Prior period available for comparison: {period}",
     "projection": {
-      "title": "{month} projection: ~{n} confirmed games",
-      "detail": "Projected revenue: ~{revenue} · based on {confirmed} confirmed in {elapsed} of {total} days",
+      "title": "{month} projection",
+      "gamesLabel": "Confirmed games (proj.)",
+      "revenueLabel": "Revenue (proj.)",
+      "basedOn": "Based on {confirmed} confirmed in {elapsed} of {total} days · variation vs. full prior month",
       "notYetAvailable": "{month} projection available from day {day}"
     },
     "tabs": {
@@ -739,7 +741,8 @@
       "avgPrice": "Average price",
       "avgPriceSub": "per player",
       "totalRevenue": "Total revenue",
-      "totalRevenueSub": "secondary metric"
+      "totalRevenueSub": "secondary metric",
+      "topContributorsTitle": "Top 5 — highest revenue"
     },
     "organizer": {
       "title": "By organizer",

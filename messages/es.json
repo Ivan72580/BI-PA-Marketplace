@@ -594,8 +594,10 @@
     "comparePeriodFallback": "el período anterior",
     "comparePeriodAvailable": "Período anterior disponible para comparar: {period}",
     "projection": {
-      "title": "Proyección de {month}: ~{n} partidos confirmados",
-      "detail": "Revenue proyectado: ~{revenue} · en base a {confirmed} confirmados en {elapsed} de {total} días",
+      "title": "Proyección de {month}",
+      "gamesLabel": "Partidos confirmados (proy.)",
+      "revenueLabel": "Revenue (proy.)",
+      "basedOn": "En base a {confirmed} confirmados en {elapsed} de {total} días · variación vs. mes anterior completo",
       "notYetAvailable": "Proyección de {month} disponible desde el día {day}"
     },
     "tabs": {
@@ -739,7 +741,8 @@
       "avgPrice": "Precio promedio",
       "avgPriceSub": "por jugador",
       "totalRevenue": "Revenue total",
-      "totalRevenueSub": "dato secundario"
+      "totalRevenueSub": "dato secundario",
+      "topContributorsTitle": "Top 5 — mayor revenue"
     },
     "organizer": {
       "title": "Por organizador",

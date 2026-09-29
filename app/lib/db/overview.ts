@@ -198,6 +198,18 @@ async function getOverviewDataImpl(filters: OverviewFilters, locale: Locale = "e
     worstCancellationRate,
   }, getOverviewTranslator(locale));
 
+  // Top 5 facilities por revenue (mismo `eventRevenue` que compone
+  // `totalRevenue` arriba, no la estimación de Market — así el popover del
+  // KPI de Revenue en Overview siempre es consistente con el número
+  // grande de la tarjeta). Se usa cuando no hay un market puntual elegido
+  // (a nivel red/región, donde el KPI hoy no tiene a dónde llevar al hacer
+  // click).
+  const topRevenueFacilities = [...facilities]
+    .filter((f) => f.revenue > 0)
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 5)
+    .map((f) => ({ facilityId: f.id, marketId: f.marketId, regionId: f.regionId, label: f.name, value: f.revenue }));
+
   return {
     totalGames: total,
     confirmedGames: confirmedCount,
@@ -214,6 +226,7 @@ async function getOverviewDataImpl(filters: OverviewFilters, locale: Locale = "e
     paretoConfirmations,
     paretoConfirmedCoveragePct,
     worstCancellationRate,
+    topRevenueFacilities,
     insights,
   };
 }

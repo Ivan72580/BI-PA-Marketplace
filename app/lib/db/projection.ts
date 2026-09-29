@@ -33,6 +33,24 @@ async function getMonthProjectionImpl(filters: Omit<OverviewFilters, "dateFrom" 
   const projectedGames = available ? Math.round((confirmedSoFar / daysElapsed) * daysInMonth) : null;
   const projectedRevenue = available ? (revenueSoFar / daysElapsed) * daysInMonth : null;
 
+  // Mes anterior COMPLETO (no proyectado, ya cerrado) — la base de
+  // comparación para la variación %. Mismos filtros, sin fecha, un mes
+  // calendario atrás.
+  const priorMonthAnchor = new Date(Date.UTC(year, month - 1, 1));
+  const priorMonthStart = new Date(Date.UTC(priorMonthAnchor.getUTCFullYear(), priorMonthAnchor.getUTCMonth(), 1));
+  const priorMonthEnd = new Date(Date.UTC(priorMonthAnchor.getUTCFullYear(), priorMonthAnchor.getUTCMonth() + 1, 0, 23, 59, 59));
+  const priorWhere = buildWhere({ ...filters, dateFrom: priorMonthStart, dateTo: priorMonthEnd });
+  const priorGames = await prisma.game.findMany({ where: priorWhere, select: { status: true, eventRevenue: true } });
+  const priorConfirmedGames = priorGames.filter((g) => g.status === "CONFIRMED").length;
+  const priorRevenue = priorGames
+    .filter((g) => g.status === "CONFIRMED")
+    .reduce((s, g) => s + (g.eventRevenue ?? 0), 0);
+
+  const changePctGames =
+    available && projectedGames !== null && priorConfirmedGames > 0 ? (projectedGames - priorConfirmedGames) / priorConfirmedGames : null;
+  const changePctRevenue =
+    available && projectedRevenue !== null && priorRevenue > 0 ? (projectedRevenue - priorRevenue) / priorRevenue : null;
+
   const monthLabel = monthStart.toLocaleDateString(locale === "en" ? "en-US" : "es-AR", { month: "long", year: "numeric", timeZone: "UTC" });
 
   return {
@@ -47,6 +65,10 @@ async function getMonthProjectionImpl(filters: Omit<OverviewFilters, "dateFrom" 
     revenueSoFar,
     projectedGames,
     projectedRevenue,
+    priorConfirmedGames,
+    priorRevenue,
+    changePctGames,
+    changePctRevenue,
     monthLabel,
     availableFromDay: 8,
   };
