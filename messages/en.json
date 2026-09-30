@@ -102,8 +102,8 @@
       "avgRating": "Average rating: {rating}",
       "pricePerPlayer": "Price per player",
       "avgTicket": "Average ticket: {price}",
-    "baselineGames": "Avg. {weekday}: {avg} games (n={n})",
-    "baselineRate": "Avg. {weekday}: {avg} (n={n})"
+      "baselineGames": "Avg. {weekday}: {avg} games (n={n})",
+      "baselineRate": "Avg. {weekday}: {avg} (n={n})"
     },
     "variationSection": "Day variation & insights",
     "evolution": {
@@ -994,17 +994,57 @@
   },
   "Leadership": {
     "pageTitle": "Executive Panel",
-    "subtitle": "Executive view of the whole network — independent of any filter active elsewhere in the app.",
+    "subtitle": "Full-network status — independent of any filter active elsewhere in the app.",
+    "viewDetail": "View detail →",
+    "marketDetailLink": "See market and facility detail →",
+    "forecastDetailLink": "See full forecast →",
+    "satisfactionDetailLink": "See Player Satisfaction →",
     "kpis": {
+      "confirmedGames": "Confirmed games",
       "confirmationRate": "Confirmation rate",
       "cancellationRate": "Cancellation rate",
       "avgFillRate": "Average fill rate",
-      "totalRevenue": "Revenue this month"
+      "totalRevenue": "Revenue this month",
+      "avgRevenuePerGame": "Revenue/game",
+      "rating": "Game rating",
+      "ratingSub": "{pct}% with reviews",
+      "compareCaption": "vs. same day-range last month"
     },
     "projection": {
-      "title": "{month} projection: {n} confirmed games",
-      "detail": "{confirmed} confirmed in the first {elapsed} of {total} days · projected revenue {revenue}",
+      "title": "{month} projection: {n} games",
+      "detail": "{elapsed}/{total} days elapsed · projected revenue {revenue}",
       "notYetAvailable": "No projection yet for {month} — available from day {day}"
+    },
+    "alerts": {
+      "title": "Alerts",
+      "empty": "No active alerts — everything within expected range.",
+      "lowConfirmation": "Network confirmation at {pct} — below the operating floor (50%).",
+      "topReason": "\"{reason}\" accounts for {pct}% of this month’s cancellations ({count} cancellations).",
+      "outlier": "{facility}: {rate}% cancellation — {gap} pts above the network average.",
+      "dailyRisk": "{facility}: {cancelled} recent cancellations, confirmation dropped {delta} pts vs. baseline.",
+      "forecastRisk": "{facility}: trending down — expected confirmation {pct} ({delta} pts).",
+      "forecastConfirmationDown": "Projected confirmation (next week): {pct} ({delta} pts vs. recent).",
+      "forecastConfirmationUp": "Projected confirmation (next week): {pct} (+{delta} pts vs. recent).",
+      "forecastGamesDown": "Expected games (next week): ~{n}, below recent levels.",
+      "forecastGamesUp": "Expected games (next week): ~{n}, above recent levels.",
+      "regionDrop": "{region}: confirmation dropped {pts} pts vs. prior month.",
+      "fieldQualityWorst": "Worst field quality: {facility} — {pct}% reviews flagging an issue.",
+      "profileCoverageEmpty": "Facility profiles: 0/{total} loaded so far."
+    },
+    "forecastMini": {
+      "title": "Next week (projected)",
+      "games": "Expected games",
+      "confirmation": "Expected confirmation",
+      "insufficient": "Not enough history yet."
+    },
+    "satisfaction": {
+      "title": "Player Satisfaction",
+      "gameRating": "Game rating",
+      "appRating": "App rating",
+      "complaints": "Reviews with a complaint"
+    },
+    "profile": {
+      "title": "Profiles loaded"
     },
     "regionTable": {
       "title": "Region comparison",
@@ -1017,8 +1057,7 @@
         "changePts": "Change"
       },
       "empty": "Not enough data to compare regions this month yet."
-    },
-    "marketDetailLink": "See market and facility detail →"
+    }
   },
   "PanelEjecutivoNav": {
     "overview": "Overview",
@@ -1243,9 +1282,15 @@
     "disclaimer": "Estimate from linear regression over comparable historical blocks ({n} of the last {lookback} available) — not real data or games already scheduled. Each metric's range shows the margin of error (±1 historical standard deviation).",
     "methodAverage": "Not enough history to estimate a trend — used the simple average of the last {n} comparable blocks.",
     "methodInsufficient": "Not enough comparable history for this filter and range (at least {min} blocks needed, {n} available).",
-    "games": { "label": "Games expected" },
-    "confirmation": { "label": "Confirmation expected" },
-    "occupancy": { "label": "Occupancy expected" },
+    "games": {
+      "label": "Games expected"
+    },
+    "confirmation": {
+      "label": "Confirmation expected"
+    },
+    "occupancy": {
+      "label": "Occupancy expected"
+    },
     "revenue": {
       "label": "Revenue expected",
       "lowConfidence": "Lower confidence: combines price, players and volume, all three uncertain."

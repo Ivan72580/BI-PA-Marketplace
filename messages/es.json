@@ -102,8 +102,8 @@
       "avgRating": "Rating promedio: {rating}",
       "pricePerPlayer": "Precio x jugador",
       "avgTicket": "Ticket promedio: {price}",
-    "baselineGames": "Prom. {weekday}: {avg} partidos (n={n})",
-    "baselineRate": "Prom. {weekday}: {avg} (n={n})"
+      "baselineGames": "Prom. {weekday}: {avg} partidos (n={n})",
+      "baselineRate": "Prom. {weekday}: {avg} (n={n})"
     },
     "variationSection": "Variación e insights del día",
     "evolution": {
@@ -994,17 +994,57 @@
   },
   "Leadership": {
     "pageTitle": "Panel Ejecutivo",
-    "subtitle": "Vista ejecutiva de la red completa — no depende de ningún filtro activo en el resto de la app.",
+    "subtitle": "Estado de la red completa — no depende de ningún filtro activo en el resto de la app.",
+    "viewDetail": "Ver detalle →",
+    "marketDetailLink": "Ver detalle por market y facility →",
+    "forecastDetailLink": "Ver pronóstico completo →",
+    "satisfactionDetailLink": "Ver Player Satisfaction →",
     "kpis": {
+      "confirmedGames": "Partidos confirmados",
       "confirmationRate": "Tasa de confirmación",
       "cancellationRate": "Tasa de cancelación",
       "avgFillRate": "Ocupación promedio",
-      "totalRevenue": "Revenue del mes"
+      "totalRevenue": "Revenue del mes",
+      "avgRevenuePerGame": "Revenue/partido",
+      "rating": "Rating de partidos",
+      "ratingSub": "{pct}% con reviews",
+      "compareCaption": "vs. mismo tramo del mes anterior"
     },
     "projection": {
-      "title": "Proyección de {month}: {n} partidos confirmados",
-      "detail": "{confirmed} confirmados en los primeros {elapsed} de {total} días · revenue proyectado {revenue}",
-      "notYetAvailable": "Todavía sin proyección para {month} — disponible a partir del día {day}"
+      "title": "Proyección de {month}: {n} partidos",
+      "detail": "{elapsed}/{total} días transcurridos · revenue proyectado {revenue}",
+      "notYetAvailable": "Sin proyección todavía para {month} — disponible desde el día {day}"
+    },
+    "alerts": {
+      "title": "Alertas",
+      "empty": "Sin alertas activas — todo dentro de rango esperado.",
+      "lowConfirmation": "Confirmación de red en {pct} — por debajo del piso operativo (50%).",
+      "topReason": "\"{reason}\" concentra el {pct}% de las cancelaciones del mes ({count} cancelaciones).",
+      "outlier": "{facility}: cancelación {rate}% — {gap} pts sobre el promedio de red.",
+      "dailyRisk": "{facility}: {cancelled} cancelados recientes, confirmación cayó {delta} pts vs. base.",
+      "forecastRisk": "{facility}: tendencia proyectada a la baja — confirmación esperada {pct} ({delta} pts).",
+      "forecastConfirmationDown": "Confirmación proyectada (próx. semana): {pct} ({delta} pts vs. reciente).",
+      "forecastConfirmationUp": "Confirmación proyectada (próx. semana): {pct} (+{delta} pts vs. reciente).",
+      "forecastGamesDown": "Partidos esperados (próx. semana): ~{n}, por debajo de lo reciente.",
+      "forecastGamesUp": "Partidos esperados (próx. semana): ~{n}, por encima de lo reciente.",
+      "regionDrop": "{region}: confirmación cayó {pts} pts vs. mes anterior.",
+      "fieldQualityWorst": "Peor calidad de campo: {facility} — {pct}% reviews con problema.",
+      "profileCoverageEmpty": "Perfiles de facility: 0/{total} cargados todavía."
+    },
+    "forecastMini": {
+      "title": "Próxima semana (proyección)",
+      "games": "Partidos esperados",
+      "confirmation": "Confirmación esperada",
+      "insufficient": "Sin historial suficiente todavía."
+    },
+    "satisfaction": {
+      "title": "Player Satisfaction",
+      "gameRating": "Rating de partidos",
+      "appRating": "Rating de la app",
+      "complaints": "Reviews con queja"
+    },
+    "profile": {
+      "title": "Perfiles cargados"
     },
     "regionTable": {
       "title": "Comparación por región",
@@ -1017,8 +1057,7 @@
         "changePts": "Variación"
       },
       "empty": "Todavía no hay datos suficientes para comparar regiones este mes."
-    },
-    "marketDetailLink": "Ver detalle por market y facility →"
+    }
   },
   "PanelEjecutivoNav": {
     "overview": "Resumen",
@@ -1243,9 +1282,15 @@
     "disclaimer": "Estimación por regresión lineal sobre bloques históricos comparables ({n} de los últimos {lookback} disponibles) — no es un dato real ni partidos ya agendados. El rango de cada métrica muestra el margen de error (±1 desvío estándar histórico).",
     "methodAverage": "Poco historial para estimar tendencia — se usó el promedio simple de los últimos {n} bloques comparables.",
     "methodInsufficient": "Sin suficiente historial comparable para este filtro y este rango (se necesitan al menos {min} bloques, hay {n}).",
-    "games": { "label": "Partidos esperados" },
-    "confirmation": { "label": "Confirmación esperada" },
-    "occupancy": { "label": "Ocupación esperada" },
+    "games": {
+      "label": "Partidos esperados"
+    },
+    "confirmation": {
+      "label": "Confirmación esperada"
+    },
+    "occupancy": {
+      "label": "Ocupación esperada"
+    },
     "revenue": {
       "label": "Revenue esperado",
       "lowConfidence": "Menor confiabilidad: combina precio, jugadores y volumen, las tres inciertas."
