@@ -389,7 +389,7 @@ function ForecastDayCard({ day, isToday, t, locale }: { day: DailyForecastDay; i
   const hasPrediction = day.method !== "insufficient";
 
   return (
-    <div className={`rounded-xl bg-surface border p-3 min-w-[168px] shrink-0 ${isToday ? "border-warning/50" : "border-warning/20"}`}>
+    <div className={`rounded-xl bg-surface-sunken/40 border p-3 min-w-[168px] shrink-0 ${isToday ? "border-warning/50" : "border-warning/20"}`}>
       <div className="flex items-center justify-between gap-1 mb-1.5">
         <span className="text-sm font-semibold text-ink">{day.dayLabel}</span>
         {isToday && <span className="text-[9px] font-semibold uppercase tracking-wide text-warning">{t("forecast.todayTag")}</span>}
@@ -739,22 +739,29 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
           adelante con valor propio (ver comentario largo sobre esta decisión
           en la conversación con el usuario / historial del proyecto). El
           "sí o sí" de abajo (mustSchedule) es historial agregado sin fecha;
-          esto es lo opuesto: una estimación puntual para 7 fechas concretas,
-          por eso necesita su propio bloque, claramente diferenciado (borde
-          punteado + badge), nunca mezclado con datos reales. */}
-      <div id="forecast-section" className="rounded-2xl border-2 border-dashed border-warning/40 bg-warning-soft/40 p-4">
-        <div className="flex items-center gap-2 mb-1 flex-wrap">
-          <span className="text-base leading-none" aria-hidden="true">🔮</span>
-          <h3 className="text-sm font-semibold text-ink">{t("forecast.sectionTitle")}</h3>
-          <span className="text-[10px] font-bold uppercase tracking-wide bg-warning text-white px-1.5 py-0.5 rounded-full">{t("forecast.badge")}</span>
-        </div>
-        <p className="text-xs text-ink-muted mb-3 max-w-3xl">{t("forecast.disclaimer")}</p>
+          esto es lo opuesto: una estimación puntual para 7 fechas concretas.
+          Antes era su propio recuadro con borde punteado (parecía un
+          borrador); ahora es una GroupSection más, con el mismo fondo que
+          el resto — el matiz "esto no es 100% real" queda en el puntito +
+          badge en warning, no en todo el recuadro. Colapsada por default
+          cuando el día que se está mirando ya tiene datos reales (lo más
+          relevante ahí es revisar qué pasó, no una predicción a partir de
+          ese punto); abierta cuando no, que es también cuando el mensaje
+          de "sin partidos" de más abajo linkea hacia acá. */}
+      <GroupSection
+        id="forecast-section"
+        title={`🔮 ${t("forecast.sectionTitle")}`}
+        accent="warning"
+        badge={t("forecast.badge")}
+        defaultOpen={summary.totalGames === 0}
+      >
+        <p className="text-xs text-ink-muted max-w-3xl -mt-1">{t("forecast.disclaimer")}</p>
         <div className="flex gap-3 overflow-x-auto pb-1">
           {forecast.map((day) => (
             <ForecastDayCard key={day.dateISO} day={day} isToday={day.dateISO === todayReal} t={t} locale={locale as Locale} />
           ))}
         </div>
-      </div>
+      </GroupSection>
 
       {/* Calendario de la semana a nivel slot: mismo "hoy + 6" que el
           bloque de arriba, pero proyectando la confiabilidad histórica de
