@@ -15,85 +15,76 @@ export type ContributionRow = {
   priorTotal: number;
 };
 
+// Fila de conteo de un groupBy por facility — mismo shape que ya usa
+// getDailyRiskFacilitiesImpl en daily.ts para este mismo patrón.
+type FacilityCountRow = { facilityId: string; _count: { _all: number } };
+type FacilityInfoRow = { id: string; name: string; marketId: string; market: { regionId: string } };
+
 // Responde "¿quién explica el cambio?", comparando a cada facility contra SU
 // PROPIO comportamiento en el período anterior (no contra un promedio ajeno,
 // ni contra un histórico más amplio — específicamente el período con el que
 // se está comparando en el resto de la página).
+//
+// Antes: un findMany crudo de TODOS los partidos del rango combinado
+// (current ∪ prior), con facility/market/región anidados en CADA fila, y el
+// conteo por facility hecho en JS. Con la red completa y varios meses de
+// historial eso es fácilmente miles de filas viajando desde Neon en cada
+// cache-miss — el mismo patrón que infló memoria (OOM en Vercel) y
+// transferencia de red (tope mensual de Neon) en getGameReviewSatisfaction.
+// Ahora Postgres agrega directamente por facility (groupBy), mismo patrón ya
+// probado en getDailyRiskFacilitiesImpl: lo único que viaja son 4 tandas de
+// conteos por facility (current/prior × total/cancelado) más una lista chica
+// de nombres — nunca una fila por partido.
 async function getContributionRankingImpl(
   filters: Omit<OverviewFilters, "dateFrom" | "dateTo">,
   current: { dateFrom: Date; dateTo: Date },
   prior: { dateFrom: Date; dateTo: Date }
 ): Promise<ContributionRow[]> {
-  const baseWhere = buildWhere(filters);
-  const minDate = prior.dateFrom < current.dateFrom ? prior.dateFrom : current.dateFrom;
-  const maxDate = prior.dateTo > current.dateTo ? prior.dateTo : current.dateTo;
+  const curWhere = buildWhere({ ...filters, dateFrom: current.dateFrom, dateTo: current.dateTo });
+  const priorWhere = buildWhere({ ...filters, dateFrom: prior.dateFrom, dateTo: prior.dateTo });
 
-  const games = await prisma.game.findMany({
-    where: { ...baseWhere, date: { gte: minDate, lte: maxDate } },
-    select: {
-      date: true,
-      status: true,
-      facilityId: true,
-      facility: { select: { name: true, marketId: true, market: { select: { regionId: true } } } },
-    },
-  });
+  const [curTotals, curCancelled, priorTotals, priorCancelled, facilityRows] = await Promise.all([
+    prisma.game.groupBy({ by: ["facilityId"], where: curWhere, _count: { _all: true } }),
+    prisma.game.groupBy({ by: ["facilityId"], where: { ...curWhere, status: "CANCELLED" }, _count: { _all: true } }),
+    prisma.game.groupBy({ by: ["facilityId"], where: priorWhere, _count: { _all: true } }),
+    prisma.game.groupBy({ by: ["facilityId"], where: { ...priorWhere, status: "CANCELLED" }, _count: { _all: true } }),
+    prisma.facility.findMany({ select: { id: true, name: true, marketId: true, market: { select: { regionId: true } } } }),
+  ]) as [FacilityCountRow[], FacilityCountRow[], FacilityCountRow[], FacilityCountRow[], FacilityInfoRow[]];
 
-  type Agg = {
-    name: string;
-    marketId: string;
-    regionId: string;
-    curTotal: number;
-    curCancelled: number;
-    priorTotal: number;
-    priorCancelled: number;
-  };
-  const map = new Map<string, Agg>();
+  const infoById = new Map(facilityRows.map((f): [string, FacilityInfoRow] => [f.id, f]));
+  const curTotalMap = new Map(curTotals.map((g): [string, number] => [g.facilityId, Number(g._count._all)]));
+  const curCancelledMap = new Map(curCancelled.map((g): [string, number] => [g.facilityId, Number(g._count._all)]));
+  const priorTotalMap = new Map(priorTotals.map((g): [string, number] => [g.facilityId, Number(g._count._all)]));
+  const priorCancelledMap = new Map(priorCancelled.map((g): [string, number] => [g.facilityId, Number(g._count._all)]));
 
-  for (const g of games) {
-    const inCurrent = g.date >= current.dateFrom && g.date <= current.dateTo;
-    const inPrior = g.date >= prior.dateFrom && g.date <= prior.dateTo;
-    if (!inCurrent && !inPrior) continue;
+  const rows: ContributionRow[] = [];
+  for (const [facilityId, curTotal] of curTotalMap.entries()) {
+    const priorTotal = priorTotalMap.get(facilityId) ?? 0;
+    if (curTotal < MIN_GAMES_FOR_CONTRIBUTION || priorTotal < MIN_GAMES_FOR_CONTRIBUTION) continue;
+    const info = infoById.get(facilityId);
+    if (!info) continue; // defensivo: no debería pasar, facilityId viene de un Game con FK a Facility
 
-    const entry = map.get(g.facilityId) ?? {
-      name: g.facility.name,
-      marketId: g.facility.marketId,
-      regionId: g.facility.market.regionId,
-      curTotal: 0,
-      curCancelled: 0,
-      priorTotal: 0,
-      priorCancelled: 0,
-    };
-    if (inCurrent) {
-      entry.curTotal += 1;
-      if (g.status === "CANCELLED") entry.curCancelled += 1;
-    } else {
-      entry.priorTotal += 1;
-      if (g.status === "CANCELLED") entry.priorCancelled += 1;
-    }
-    map.set(g.facilityId, entry);
-  }
+    const curCancelledCount = curCancelledMap.get(facilityId) ?? 0;
+    const priorCancelledCount = priorCancelledMap.get(facilityId) ?? 0;
+    const priorCancelRate = priorCancelledCount / priorTotal;
+    const curCancelRate = curCancelledCount / curTotal;
+    const expectedCancelled = curTotal * priorCancelRate;
+    const expectedConfirmed = curTotal * (1 - priorCancelRate);
+    const curConfirmed = curTotal - curCancelledCount;
 
-  const rows: ContributionRow[] = Array.from(map.entries())
-    .filter(([, a]) => a.curTotal >= MIN_GAMES_FOR_CONTRIBUTION && a.priorTotal >= MIN_GAMES_FOR_CONTRIBUTION)
-    .map(([facilityId, a]) => {
-      const priorCancelRate = a.priorCancelled / a.priorTotal;
-      const curCancelRate = a.curCancelled / a.curTotal;
-      const expectedCancelled = a.curTotal * priorCancelRate;
-      const expectedConfirmed = a.curTotal * (1 - priorCancelRate);
-      const curConfirmed = a.curTotal - a.curCancelled;
-      return {
-        facilityId,
-        marketId: a.marketId,
-        regionId: a.regionId,
-        label: a.name,
-        excessCancellations: Math.round((a.curCancelled - expectedCancelled) * 10) / 10,
-        excessConfirmations: Math.round((curConfirmed - expectedConfirmed) * 10) / 10,
-        curCancelRate,
-        priorCancelRate,
-        curTotal: a.curTotal,
-        priorTotal: a.priorTotal,
-      };
+    rows.push({
+      facilityId,
+      marketId: info.marketId,
+      regionId: info.market.regionId,
+      label: info.name,
+      excessCancellations: Math.round((curCancelledCount - expectedCancelled) * 10) / 10,
+      excessConfirmations: Math.round((curConfirmed - expectedConfirmed) * 10) / 10,
+      curCancelRate,
+      priorCancelRate,
+      curTotal,
+      priorTotal,
     });
+  }
 
   return rows;
 }

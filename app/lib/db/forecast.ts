@@ -103,32 +103,45 @@ async function getNetworkForecastImpl(
 ): Promise<NetworkForecast> {
   const blockDays = RANGE_DAYS[range];
   const today = parseISODate(todayISOStr);
-  const windowStart = addDaysUTC(today, -(LOOKBACK_BLOCKS * blockDays));
   const windowEnd = addDaysUTC(today, -1);
-  const where = buildWhere({ ...filters, dateFrom: windowStart, dateTo: windowEnd });
-
-  const rows = (await prisma.game.findMany({
-    where,
-    select: { date: true, status: true, finalPlayers: true, maxPlayers: true, eventRevenue: true },
-  })) as { date: Date; status: "CONFIRMED" | "CANCELLED"; finalPlayers: number; maxPlayers: number; eventRevenue: number | null }[];
 
   // Un bloque por índice (0 = el más antiguo, LOOKBACK_BLOCKS-1 = el más
-  // reciente, terminado ayer) — mismo criterio de indexado que getDailyForecast.
-  const blocks: BlockTotals[] = Array.from({ length: LOOKBACK_BLOCKS }, emptyBlock);
-  for (const g of rows) {
-    const daysAgo = Math.floor((windowEnd.getTime() - g.date.getTime()) / 86400000);
-    const blockFromEnd = Math.floor(daysAgo / blockDays); // 0 = bloque más reciente
-    const idx = LOOKBACK_BLOCKS - 1 - blockFromEnd;
-    if (idx < 0 || idx >= LOOKBACK_BLOCKS) continue;
-    const b = blocks[idx];
-    b.totalGames += 1;
-    if (g.status === "CONFIRMED") {
-      b.confirmedGames += 1;
-      b.sumFinalConfirmed += g.finalPlayers;
-      b.sumMaxConfirmed += g.maxPlayers;
-      if (g.eventRevenue) b.revenue += g.eventRevenue;
-    }
-  }
+  // reciente, terminado ayer) — mismo criterio de indexado que
+  // getDailyForecast. Antes esto era un findMany crudo de TODOS los
+  // partidos de la red en la ventana completa (hasta 12*30 días) y el
+  // binning se hacía partido por partido en JS. Con la red completa eso es
+  // fácilmente decenas de miles de filas viajando desde Neon en cada
+  // cache-miss. Ahora cada bloque se agrega directamente en Postgres
+  // (count + sum) — 12 bloques × 2 consultas chiquitas en vez de una
+  // consulta gigante: lo que viaja por red es un puñado de números, nunca
+  // una fila por partido.
+  const blockRanges = Array.from({ length: LOOKBACK_BLOCKS }, (_, idx) => {
+    const blockFromEnd = LOOKBACK_BLOCKS - 1 - idx;
+    const blockDateTo = addDaysUTC(windowEnd, -blockFromEnd * blockDays);
+    const blockDateFrom = addDaysUTC(blockDateTo, -(blockDays - 1));
+    return { blockDateFrom, blockDateTo };
+  });
+
+  const blocks: BlockTotals[] = await Promise.all(
+    blockRanges.map(async ({ blockDateFrom, blockDateTo }) => {
+      const blockWhere = buildWhere({ ...filters, dateFrom: blockDateFrom, dateTo: blockDateTo });
+      const [totalAgg, confirmedAgg] = await Promise.all([
+        prisma.game.aggregate({ where: blockWhere, _count: { _all: true } }),
+        prisma.game.aggregate({
+          where: { ...blockWhere, status: "CONFIRMED" },
+          _count: { _all: true },
+          _sum: { finalPlayers: true, maxPlayers: true, eventRevenue: true },
+        }),
+      ]);
+      return {
+        totalGames: totalAgg._count._all,
+        confirmedGames: confirmedAgg._count._all,
+        sumFinalConfirmed: confirmedAgg._sum.finalPlayers ?? 0,
+        sumMaxConfirmed: confirmedAgg._sum.maxPlayers ?? 0,
+        revenue: confirmedAgg._sum.eventRevenue ?? 0,
+      };
+    })
+  );
 
   // Bloques sin NINGÚN partido se descartan (no se interpolan con 0): mismo
   // criterio que getRecentDailyTrend/getDailyForecast — "sin dato" no es
@@ -164,10 +177,15 @@ async function getNetworkForecastImpl(
   yoyStart.setUTCFullYear(yoyStart.getUTCFullYear() - 1);
   const yoyEnd = new Date(addDaysUTC(today, blockDays - 1));
   yoyEnd.setUTCFullYear(yoyEnd.getUTCFullYear() - 1);
+  // Antes: findMany crudo de status por partido en la ventana YoY, contado
+  // en JS. Ahora dos count() — uno total, uno filtrado — mismo patrón que
+  // el resto de este archivo: solo viajan dos números.
   const yoyWhere = buildWhere({ ...filters, dateFrom: yoyStart, dateTo: yoyEnd });
-  const yoyRows = (await prisma.game.findMany({ where: yoyWhere, select: { status: true } })) as { status: "CONFIRMED" | "CANCELLED" }[];
-  const yoyTotal = yoyRows.length;
-  const sameWindowLastYear = yoyTotal > 0 ? { totalGames: yoyTotal, confirmationRate: yoyRows.filter((r) => r.status === "CONFIRMED").length / yoyTotal } : null;
+  const [yoyTotal, yoyConfirmed] = await Promise.all([
+    prisma.game.count({ where: yoyWhere }),
+    prisma.game.count({ where: { ...yoyWhere, status: "CONFIRMED" } }),
+  ]);
+  const sameWindowLastYear = yoyTotal > 0 ? { totalGames: yoyTotal, confirmationRate: yoyConfirmed / yoyTotal } : null;
 
   return {
     range,
@@ -206,6 +224,10 @@ export type ForecastRiskFacility = {
   predictedCancelledGames: number | null;
 };
 
+// Fila de conteo de un groupBy por facility, para un bloque puntual — mismo
+// shape que ya usa getDailyRiskFacilitiesImpl/getContributionRanking.
+type FacilityBlockCountRow = { facilityId: string; _count: { _all: number } };
+
 async function getForecastRiskFacilitiesImpl(
   filters: Omit<OverviewFilters, "dateFrom" | "dateTo">,
   range: ForecastRange,
@@ -216,30 +238,46 @@ async function getForecastRiskFacilitiesImpl(
 
   const blockDays = RANGE_DAYS[range];
   const today = parseISODate(todayISOStr);
-  const windowStart = addDaysUTC(today, -(LOOKBACK_BLOCKS * blockDays));
   const windowEnd = addDaysUTC(today, -1);
-  const where = buildWhere({ ...filters, dateFrom: windowStart, dateTo: windowEnd });
 
-  const [rows, facilityRows] = await Promise.all([
-    prisma.game.findMany({ where, select: { facilityId: true, date: true, status: true } }) as Promise<
-      { facilityId: string; date: Date; status: "CONFIRMED" | "CANCELLED" }[]
-    >,
+  // Mismo cambio que getNetworkForecastImpl: antes era un findMany crudo de
+  // TODA la red (facilityId + date + status, sin filtrar por facility) en
+  // la ventana de 12 bloques, binned partido por partido en JS. Ahora cada
+  // bloque se agrega por facility directo en Postgres (groupBy), 12 bloques
+  // × 2 consultas (total + confirmados) — lo que viaja son conteos por
+  // facility, nunca una fila por partido.
+  const blockRanges = Array.from({ length: LOOKBACK_BLOCKS }, (_, idx) => {
+    const blockFromEnd = LOOKBACK_BLOCKS - 1 - idx;
+    const blockDateTo = addDaysUTC(windowEnd, -blockFromEnd * blockDays);
+    const blockDateFrom = addDaysUTC(blockDateTo, -(blockDays - 1));
+    return { blockDateFrom, blockDateTo };
+  });
+
+  const [blockGroups, facilityRows] = await Promise.all([
+    Promise.all(
+      blockRanges.map(async ({ blockDateFrom, blockDateTo }) => {
+        const blockWhere = buildWhere({ ...filters, dateFrom: blockDateFrom, dateTo: blockDateTo });
+        const [totals, confirmed] = (await Promise.all([
+          prisma.game.groupBy({ by: ["facilityId"], where: blockWhere, _count: { _all: true } }),
+          prisma.game.groupBy({ by: ["facilityId"], where: { ...blockWhere, status: "CONFIRMED" }, _count: { _all: true } }),
+        ])) as [FacilityBlockCountRow[], FacilityBlockCountRow[]];
+        return { totals, confirmed };
+      })
+    ),
     prisma.facility.findMany({ select: { id: true, name: true } }) as Promise<{ id: string; name: string }[]>,
   ]);
   const nameById = new Map(facilityRows.map((f): [string, string] => [f.id, f.name]));
 
   const byFacility = new Map<string, BlockTotals[]>();
-  for (const g of rows) {
-    const daysAgo = Math.floor((windowEnd.getTime() - g.date.getTime()) / 86400000);
-    const blockFromEnd = Math.floor(daysAgo / blockDays);
-    const idx = LOOKBACK_BLOCKS - 1 - blockFromEnd;
-    if (idx < 0 || idx >= LOOKBACK_BLOCKS) continue;
-    const blocks = byFacility.get(g.facilityId) ?? Array.from({ length: LOOKBACK_BLOCKS }, emptyBlock);
-    const b = blocks[idx];
-    b.totalGames += 1;
-    if (g.status === "CONFIRMED") b.confirmedGames += 1;
-    byFacility.set(g.facilityId, blocks);
-  }
+  blockGroups.forEach(({ totals, confirmed }, idx) => {
+    const confirmedByFacility = new Map(confirmed.map((g): [string, number] => [g.facilityId, Number(g._count._all)]));
+    for (const g of totals) {
+      const blocks = byFacility.get(g.facilityId) ?? Array.from({ length: LOOKBACK_BLOCKS }, emptyBlock);
+      blocks[idx].totalGames = Number(g._count._all);
+      blocks[idx].confirmedGames = confirmedByFacility.get(g.facilityId) ?? 0;
+      byFacility.set(g.facilityId, blocks);
+    }
+  });
 
   type Candidate = {
     facilityId: string;
