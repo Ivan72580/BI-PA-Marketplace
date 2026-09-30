@@ -97,6 +97,23 @@
       "fallbackWithData": "Todavía no hay partidos registrados para este día. Según la tendencia reciente se esperan ~{games} partidos con ~{pct} de confirmación — <link>ver el detalle en Predicción ↑</link>.",
       "fallbackInsufficient": "Todavía no hay partidos registrados para este día, y tampoco hay suficiente historial de {weekday} para estimarlo."
     },
+    "weeklyCalendar": {
+      "section": "Calendario de la semana: próximos 7 días",
+      "description": "Proyecta la confiabilidad histórica de cada slot (día · hora · formato, ventana de 3 meses) sobre las fechas reales de la semana que viene — no son partidos ya agendados. Un valor por celda; el detalle completo está en Trends.",
+      "noData": "Sin datos suficientes",
+      "legend": {
+        "strong": "≥90% confirmación",
+        "moderate": "55–90% confirmación",
+        "weak": "<55% o sin muestra suficiente"
+      },
+      "unavailable": {
+        "title": "Cancha no disponible: qué vale la pena reservar antes",
+        "empty": "Sin cancelaciones por cancha no disponible en los últimos 3 meses.",
+        "isolated": "Excepcional, reintentable",
+        "recurring": "Recurrente, reservar antes",
+        "countLabel": "{n, plural, one{· # vez} other{· # veces}}"
+      }
+    },
     "stats": {
       "games": "Partidos",
       "gamesSublabel": "{confirmed} confirmados · {cancelled} cancelados",

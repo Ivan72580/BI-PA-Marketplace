@@ -97,6 +97,23 @@
       "fallbackWithData": "No games recorded yet for this day. Based on the recent trend, ~{games} games are expected with ~{pct} confirmation — <link>see the Forecast section above ↑</link>.",
       "fallbackInsufficient": "No games recorded yet for this day, and there isn't enough {weekday} history to estimate it either."
     },
+    "weeklyCalendar": {
+      "section": "Week calendar: next 7 days",
+      "description": "Projects each slot's historical reliability (day · hour · format, 3-month window) onto the real dates of the coming week — these aren't already-scheduled games. One value per cell; full detail lives in Trends.",
+      "noData": "Not enough data",
+      "legend": {
+        "strong": "≥90% confirmation",
+        "moderate": "55–90% confirmation",
+        "weak": "<55% or not enough sample"
+      },
+      "unavailable": {
+        "title": "Facility unavailable: what's worth pre-booking",
+        "empty": "No facility-unavailable cancellations in the last 3 months.",
+        "isolated": "Exceptional, retry-worthy",
+        "recurring": "Recurring, pre-book ahead",
+        "countLabel": "{n, plural, one{· # time} other{· # times}}"
+      }
+    },
     "stats": {
       "games": "Games",
       "gamesSublabel": "{confirmed} confirmed · {cancelled} cancelled",

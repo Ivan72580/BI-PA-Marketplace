@@ -10,6 +10,7 @@ import {
   getMustScheduleSlots,
   getDayOfWeekPattern,
   getDailyForecast,
+  getWeeklySlotForecast,
   MIN_OCCURRENCES_FOR_PREDICTION,
   type DaySummary,
   type DayBaseline,
@@ -35,6 +36,7 @@ import Sparkline from "../components/Sparkline";
 import EvolutionChart from "../components/charts/EvolutionChart";
 import MustScheduleBoard from "../components/MustScheduleBoard";
 import type { MustScheduleCalendarCell } from "../components/MustScheduleCalendar";
+import WeeklySlotCalendar from "../components/WeeklySlotCalendar";
 import InsightsPanel, { type PanelInsight } from "../components/InsightsPanel";
 
 type SP = { regionId?: string; marketId?: string; facilityId?: string; date?: string };
@@ -474,7 +476,7 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
   // ubicación de la sección más abajo).
   const todayReal = todayISO();
 
-  const [summary, baseline, evolution, weekStrip, recentTrend, mustSchedule, dayOfWeekPattern, forecast] = await Promise.all([
+  const [summary, baseline, evolution, weekStrip, recentTrend, mustSchedule, dayOfWeekPattern, forecast, weeklySlotForecast] = await Promise.all([
     getDaySnapshot(sp.facilityId, dateISO, locale as Locale),
     getDayBaseline(sp.facilityId, dateISO),
     getDayEvolution(sp.facilityId, dateISO, locale as Locale),
@@ -488,6 +490,7 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
     // satisface la firma.
     getDayOfWeekPattern({ facilityId: sp.facilityId }, locale as Locale),
     getDailyForecast(sp.facilityId, todayReal, locale as Locale),
+    getWeeklySlotForecast(sp.facilityId, todayReal, locale as Locale),
   ]);
 
   const sparklinePoints = recentTrend.map((p) => Math.round(p.confirmationRate * 1000) / 10);
@@ -511,6 +514,11 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
     rate: c.cancellationRate, totalGames: c.totalGames, matchingGames: c.cancelledGames,
     trend: c.trend, insight: c.insight,
   }));
+
+  // Mismo patrón que FacilityDetailView para saltar a Trends con el
+  // contexto de facility ya puesto — "detalle real" del pedido del usuario
+  // para el calendario semanal de abajo, sin re-derivar filtros nuevos.
+  const trendsHref = `/trends?regionId=${sp.regionId}&marketId=${sp.marketId}&facilityId=${sp.facilityId}`;
 
   const insights = buildDayInsights(summary, baseline, evolution, t, locale as Locale);
   const weekdayPl = weekdayPlural(summary.dayOfWeek, locale as Locale);
@@ -747,6 +755,24 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
           ))}
         </div>
       </div>
+
+      {/* Calendario de la semana a nivel slot: mismo "hoy + 6" que el
+          bloque de arriba, pero proyectando la confiabilidad histórica de
+          getMustScheduleSlots (día*hora*formato) sobre esas fechas reales,
+          en vez del volumen agregado por día que ya muestra el Forecast.
+          Convive con el bloque de "sí o sí" de más abajo (no lo reemplaza):
+          este es "la semana que viene con fecha real", aquél es "el patrón
+          completo, sin atar a fecha" — ver getWeeklySlotForecastImpl. */}
+      <GroupSection title={t("weeklyCalendar.section")}>
+        <p className="text-xs text-ink-faint -mt-1">{t("weeklyCalendar.description")}</p>
+        <WeeklySlotCalendar
+          weekDays={weeklySlotForecast.weekDays}
+          cells={weeklySlotForecast.cells}
+          unavailableFlags={weeklySlotForecast.unavailableFlags}
+          trendsHref={trendsHref}
+          t={t}
+        />
+      </GroupSection>
 
       {summary.totalGames === 0 ? (
         <div className="rounded-2xl bg-surface shadow-sm p-6 text-sm text-ink-faint">

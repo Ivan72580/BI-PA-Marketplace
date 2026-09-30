@@ -944,6 +944,210 @@ async function getMustScheduleSlotsImpl(
 
 export const getMustScheduleSlots = cached("getMustScheduleSlots", getMustScheduleSlotsImpl);
 
+// ---------- Calendario de la semana: próximos 7 días, a nivel slot ----------
+// No es una tercera metodología — combina las dos anteriores en vez de
+// duplicarlas: la ventana hacia adelante de getDailyForecast (hoy real + 6,
+// nunca la fecha elegida en el selector — mismo motivo ahí: es una vista
+// prospectiva con valor propio) proyectada sobre la reputación histórica
+// por slot de getMustScheduleSlots (día*hora*formato, misma ventana móvil
+// de 3 meses, mismo piso de muestra, mismo criterio de tendencia).
+// A diferencia de mustSchedule.cells (que solo lista los slots que superan
+// el 55%), acá se listan TODOS los slots con muestra suficiente: el
+// objetivo no es "qué destacar" sino "cómo se ve la semana completa", con
+// un solo valor de justificación por celda — sin texto — el detalle real
+// vive en /daily o /trends.
+//
+// Cancha no disponible (FACILITY_UNAVAILABLE): en mustSchedule se excluye
+// por completo del cálculo (no es una señal de demanda). Acá se cuenta
+// aparte, por slot, porque sí es información accionable a corto plazo: 1
+// sola ocurrencia en la ventana es "excepcional" (probablemente
+// confirmable si se reintenta); 2 o más es "recurrente" (conviene reservar
+// con anticipación). A propósito sin piso de muestra mínima — a diferencia
+// del resto de este archivo, un solo caso ya es útil acá.
+
+export type WeeklyCalendarDay = { dateISO: string; dateLabel: string; day: string; dayLabel: string };
+
+export type WeeklySlotTier = "strong" | "moderate" | "weak";
+
+export type WeeklySlotCell = {
+  dateISO: string;
+  dateLabel: string;
+  day: string;
+  dayLabel: string;
+  hour: string;
+  formatLabel: string;
+  confirmationRate: number;
+  totalGames: number;
+  confirmedGames: number;
+  tier: WeeklySlotTier;
+  trend: "up" | "down" | "flat";
+};
+
+export type FacilityUnavailableClass = "isolated" | "recurring";
+
+export type FacilityUnavailableFlag = {
+  dateISO: string;
+  dateLabel: string;
+  day: string;
+  dayLabel: string;
+  hour: string;
+  formatLabel: string;
+  count: number;
+  recentCount: number; // ocurrencias en la mitad reciente de la ventana (más peso en la lectura de tendencia)
+  classification: FacilityUnavailableClass;
+};
+
+const WEEKLY_CALENDAR_DAYS = 7;
+const WEEKLY_CALENDAR_LOOKBACK_MONTHS = 3; // misma ventana que mustSchedule, para que ambas secciones lean consistente en la misma página
+
+type WeeklySlotAccumulator = {
+  confirmed: number; total: number;
+  confirmedEarly: number; totalEarly: number;
+  confirmedLate: number; totalLate: number;
+};
+
+type UnavailableAccumulator = { count: number; early: number; late: number };
+
+type WeeklySlotRow = {
+  date: Date;
+  dayOfWeek: string | null;
+  time: string | null;
+  status: "CONFIRMED" | "CANCELLED";
+  gameSize: string | null;
+  fieldType: string | null;
+  maxPlayers: number;
+  cancellationCategory: CancellationCategory | null;
+};
+
+async function getWeeklySlotForecastImpl(
+  facilityId: string,
+  todayISOStr: string,
+  locale: Locale
+): Promise<{ weekDays: WeeklyCalendarDay[]; cells: WeeklySlotCell[]; unavailableFlags: FacilityUnavailableFlag[] }> {
+  const today = parseISODate(todayISOStr);
+  // Misma decisión que getDailyForecast: la ventana histórica termina AYER,
+  // nunca "hoy" (nunca tiene partidos en este dataset, y sería data leakage
+  // de todas formas). Ver el comentario largo en getDailyForecastImpl.
+  const windowEnd = addDaysUTC(today, -1);
+  const windowStart = addMonthsUTC(windowEnd, -WEEKLY_CALENDAR_LOOKBACK_MONTHS);
+  const midPoint = new Date((windowStart.getTime() + windowEnd.getTime()) / 2);
+  const where = buildWhere({ facilityId, dateFrom: windowStart, dateTo: windowEnd });
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const games = (await (prisma.game.findMany as any)({
+    where,
+    select: {
+      date: true, dayOfWeek: true, time: true, status: true,
+      gameSize: true, fieldType: true, maxPlayers: true, cancellationCategory: true,
+    },
+  })) as WeeklySlotRow[];
+
+  const slotMap = new Map<string, WeeklySlotAccumulator>();
+  const unavailableMap = new Map<string, UnavailableAccumulator>();
+
+  for (const g of games) {
+    const hour = g.time?.slice(0, 2);
+    const day = g.dayOfWeek;
+    if (!hour || !day) continue;
+    const formatLabel = combineFormatLabel(g.gameSize, g.fieldType, g.maxPlayers);
+    const slotKey = `${day}|${hour}|${formatLabel}`;
+    const isEarly = g.date < midPoint;
+
+    if (g.status === "CANCELLED" && g.cancellationCategory === CancellationCategory.FACILITY_UNAVAILABLE) {
+      const u = unavailableMap.get(slotKey) ?? { count: 0, early: 0, late: 0 };
+      u.count += 1;
+      if (isEarly) u.early += 1; else u.late += 1;
+      unavailableMap.set(slotKey, u);
+      continue; // mismo criterio que mustSchedule: no cuenta para la tasa de confirmación del slot
+    }
+
+    const e: WeeklySlotAccumulator = slotMap.get(slotKey) ?? {
+      confirmed: 0, total: 0, confirmedEarly: 0, totalEarly: 0, confirmedLate: 0, totalLate: 0,
+    };
+    const isConfirmed = g.status === "CONFIRMED";
+    e.total += 1;
+    if (isConfirmed) e.confirmed += 1;
+    if (isEarly) { e.totalEarly += 1; if (isConfirmed) e.confirmedEarly += 1; }
+    else { e.totalLate += 1; if (isConfirmed) e.confirmedLate += 1; }
+    slotMap.set(slotKey, e);
+  }
+
+  // Próximas 7 fechas reales (hoy + 6): cada nombre de día de semana aparece
+  // exactamente una vez en un rango de 7 días consecutivos, así que el mapeo
+  // día-de-semana -> fecha real es 1 a 1 y no necesita más que esto.
+  const dateLocale = locale === "en" ? "en-US" : "es-AR";
+  const dayToDate = new Map<string, { dateISO: string; dateLabel: string }>();
+  // weekDays preserva el orden cronológico (hoy -> hoy+6) — dayToDate está
+  // indexado por nombre de día y no sirve para eso — así el componente
+  // puede pintar las 7 columnas en orden sin recalcular fechas.
+  const weekDays: WeeklyCalendarDay[] = [];
+  for (let i = 0; i < WEEKLY_CALENDAR_DAYS; i++) {
+    const d = addDaysUTC(today, i);
+    const dow = dayOfWeekName(d);
+    const entry = {
+      dateISO: isoOf(d),
+      dateLabel: d.toLocaleDateString(dateLocale, { day: "2-digit", month: "short", timeZone: "UTC" }),
+    };
+    dayToDate.set(dow, entry);
+    weekDays.push({ ...entry, day: dow, dayLabel: weekdayAbbr(dow, locale) });
+  }
+
+  const cells: WeeklySlotCell[] = [];
+  for (const [slotKey, v] of slotMap.entries()) {
+    if (v.total < MUST_SCHEDULE_MIN_SAMPLE) continue;
+    const [day, hour, formatLabel] = slotKey.split("|");
+    const projected = dayToDate.get(day);
+    if (!projected) continue; // defensivo: no debería pasar, los 7 días cubren los 7 nombres
+
+    const rate = v.confirmed / v.total;
+    const earlyRate = v.totalEarly > 0 ? v.confirmedEarly / v.totalEarly : null;
+    const lateRate = v.totalLate > 0 ? v.confirmedLate / v.totalLate : null;
+    let trend: "up" | "down" | "flat" = "flat";
+    if (earlyRate !== null && lateRate !== null) {
+      if (lateRate - earlyRate >= TREND_DELTA) trend = "up";
+      else if (earlyRate - lateRate >= TREND_DELTA) trend = "down";
+    }
+    const tier: WeeklySlotTier = rate >= TOP_SLOT_MIN_RATE ? "strong" : rate > MUST_SCHEDULE_MIN_RATE ? "moderate" : "weak";
+
+    cells.push({
+      dateISO: projected.dateISO, dateLabel: projected.dateLabel,
+      day, dayLabel: weekdayAbbr(day, locale), hour: `${hour}h`, formatLabel,
+      confirmationRate: rate, totalGames: v.total, confirmedGames: v.confirmed,
+      tier, trend,
+    });
+  }
+  cells.sort((a, b) => (a.dateISO === b.dateISO ? a.hour.localeCompare(b.hour) : a.dateISO.localeCompare(b.dateISO)));
+
+  const unavailableFlags: FacilityUnavailableFlag[] = [];
+  for (const [slotKey, u] of unavailableMap.entries()) {
+    const [day, hour, formatLabel] = slotKey.split("|");
+    const projected = dayToDate.get(day);
+    if (!projected) continue;
+    unavailableFlags.push({
+      dateISO: projected.dateISO, dateLabel: projected.dateLabel,
+      day, dayLabel: weekdayAbbr(day, locale), hour: `${hour}h`, formatLabel,
+      count: u.count, recentCount: u.late,
+      classification: u.count >= 2 ? "recurring" : "isolated",
+    });
+  }
+  unavailableFlags.sort((a, b) => {
+    if (a.classification !== b.classification) return a.classification === "recurring" ? -1 : 1;
+    if (b.count !== a.count) return b.count - a.count;
+    return a.dateISO.localeCompare(b.dateISO);
+  });
+
+  return {
+    weekDays,
+    cells,
+    // Mismo tope que el resto de las listas cortas de esta página (MAX_TOP_SLOTS/
+    // MAX_STRUGGLING_SLOTS = 8) — ya vienen ordenados recurrente-primero así
+    // que el corte nunca tapa lo más urgente.
+    unavailableFlags: unavailableFlags.slice(0, MAX_STRUGGLING_SLOTS),
+  };
+}
+
+export const getWeeklySlotForecast = cached("getWeeklySlotForecast", getWeeklySlotForecastImpl);
+
 // ---------- Radar de riesgo: qué facilities mirar primero en /daily ----------
 // A diferencia de todo lo demás en este archivo (una facility puntual), esto
 // SÍ recorre la red completa — es el punto de entrada para decidir a cuál
