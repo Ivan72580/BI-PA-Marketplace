@@ -81,6 +81,59 @@ para uso no comercial. Mientras esto es una iniciativa propia en etapa
 temprana no hay problema; el día que genere ingresos directos, pasar a Vercel
 Pro (~US$20/mes) es lo correcto.
 
+## 6. Entorno de desarrollo separado (para no gastar el cupo de Neon en pruebas)
+
+Neon (plan free) da 5 GB de transferencia por mes, y ese cupo es **por
+proyecto** — no importa si la consulta viene de `localhost` o de la URL de
+Vercel: si usan el mismo `DATABASE_URL`, cuentan contra el mismo cupo. Si
+todos los días probás cambios en tu compu contra la misma base que usa
+producción, esas pruebas ya están gastando el cupo real, aunque nunca las
+pushees.
+
+La solución es tener un segundo proyecto de Neon, gratis, solo para tu
+compu — Neon permite hasta 100 proyectos por cuenta. Esto **no toca
+producción en ningún momento**: `.env` está en `.gitignore` (nunca se sube
+al repo) y Vercel no lee ese archivo — sus variables están configuradas
+aparte, en *Settings → Environment Variables* de tu proyecto en Vercel. Cambiar
+tu `.env` local es 100% reversible y no puede romper nada en la app real.
+
+1. **Creá el proyecto nuevo**: en el mismo dashboard de [neon.tech](https://neon.tech)
+   donde ya tenés el de producción, apretá "New project" de nuevo. Poné un
+   nombre que lo distinga (ej: `plei-dev`). Copiá el connection string que
+   te da (igual que en el paso 1 de esta guía).
+2. **Guardá una copia de tu `.env` actual**, por si querés volver atrás:
+   duplicá el archivo y renombrá la copia, por ejemplo `.env.produccion-backup.txt`
+   (con `.txt` al final para que no se confunda con un `.env` real).
+3. **Editá `.env`** (el de siempre, no la copia) y reemplazá los valores de
+   `DATABASE_URL` y `DIRECT_URL` por los del proyecto nuevo.
+4. **Creá las tablas en la base nueva**, corriendo en la terminal, parado en
+   la carpeta del proyecto:
+   ```bash
+   npx prisma migrate deploy
+   ```
+   Esto replica toda la estructura (tablas y columnas) que ya existe en
+   producción, pero en la base vacía nueva — no lee ni modifica nada de la
+   base real.
+5. **(Opcional) Cargá datos de prueba**: si todavía tenés a mano los mismos
+   CSV que usaste para cargar producción, podés importarlos también acá con
+   `npm run db:import` (y `db:import-game-reviews` / `db:import-satisfaction`
+   si corresponde) — con `.env` ya apuntando a la base nueva, van a escribir
+   ahí, no en la real. Si no querés cargar nada, la base queda vacía y
+   algunas pantallas van a mostrar "sin datos", pero alcanza para probar que
+   una pantalla no se rompe.
+6. **Confirmá que quedó bien**: `npm run dev` y entrá a `http://localhost:3000`.
+   De ahora en más, todo lo que hagas ahí adentro (recargar, filtrar, probar
+   un cambio) pega contra la base de prueba, no contra la real.
+
+Si alguna vez necesitás mirar los datos reales desde tu compu (poco común),
+restaurá el backup del paso 2 pisando `.env`, y acordate de volver a poner
+los valores de desarrollo después.
+
+**Cuando se agregue una tabla o columna nueva** (una migración nueva en
+`prisma/migrations/`), hay que correr `npx prisma migrate deploy` una vez
+más para que la base de desarrollo la tenga también — se va a avisar
+explícitamente cada vez que pase.
+
 ## Actualizar los datos (procedimiento recurrente)
 
 Cuando tengas un export nuevo desde Hex:
