@@ -1,10 +1,26 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { resolvePeriod, shiftAnchor, todayISO, type Granularity } from "../lib/period";
 import type { Locale } from "@/i18n/config";
+
+function FilterIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="3 4 21 4 14 12.5 14 19 10 21 10 12.5 3 4" />
+    </svg>
+  );
+}
+function ChevronIcon({ open }: { open: boolean }) {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${open ? "rotate-180" : ""}`}>
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
 
 type Option = { id: string; name: string; regionId?: string; marketId?: string };
 
@@ -73,6 +89,10 @@ export default function FilterPanel({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  // Colapsado por default en anchos angostos (<lg): el botón de abajo lo
+  // despliega. En bare (Trends) no aplica — ahí el set de controles ya es
+  // chico (2 selects) y vive dentro de otro contenedor propio.
+  const [mobileExpanded, setMobileExpanded] = useState(false);
 
   const regionId = searchParams.get("regionId") ?? "All";
   const marketId = searchParams.get("marketId") ?? "All";
@@ -105,9 +125,13 @@ export default function FilterPanel({
   const selectClass =
     "rounded-md border border-border bg-surface/60 px-2 py-0.5 text-xs text-ink-muted cursor-pointer focus:outline-none focus:ring-1 focus:ring-brand/30 hover:border-border-strong hover:text-ink transition-colors";
 
-  return (
-    <div className={bare ? "flex flex-wrap items-center gap-2" : "border-b border-border/70 px-1 py-1.5 mb-5 flex flex-wrap items-center gap-1.5"}>
-      {!bare && <span className="text-[10px] text-ink-faint mr-0.5 uppercase tracking-wide">{t("filterLabel")}</span>}
+  const controlsRowClass = bare
+    ? "flex flex-wrap items-center gap-2"
+    : `flex-wrap items-center gap-1.5 ${mobileExpanded ? "flex" : "hidden"} lg:flex`;
+
+  const controls = (
+    <>
+      {!bare && <span className="hidden lg:inline text-[10px] text-ink-faint mr-0.5 uppercase tracking-wide">{t("filterLabel")}</span>}
 
       <select
         className={selectClass}
@@ -206,6 +230,30 @@ export default function FilterPanel({
           {t("clear")}
         </Link>
       )}
+    </>
+  );
+
+  if (bare) {
+    return <div className={controlsRowClass}>{controls}</div>;
+  }
+
+  return (
+    <div className="border-b border-border/70 px-1 py-1.5 mb-5">
+      {/* Header solo <lg: un botón resume el estado del filtro y lo
+          despliega/colapsa, en vez de mostrar siempre los 3-6 selects. */}
+      <button
+        type="button"
+        onClick={() => setMobileExpanded((v) => !v)}
+        aria-expanded={mobileExpanded}
+        className="lg:hidden flex items-center gap-1.5 w-full py-0.5 text-xs text-ink-muted"
+      >
+        <FilterIcon />
+        <span className="uppercase tracking-wide">{t("filterLabel")}</span>
+        {hasFilter && <span className="w-1.5 h-1.5 rounded-full bg-brand" aria-hidden="true" />}
+        <ChevronIcon open={mobileExpanded} />
+      </button>
+
+      <div className={controlsRowClass}>{controls}</div>
     </div>
   );
 }

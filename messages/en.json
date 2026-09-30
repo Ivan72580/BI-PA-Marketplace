@@ -14,6 +14,10 @@
     "facilitySearch": {
       "placeholder": "Search facility...",
       "empty": "No results for \"{query}\""
+    },
+    "menu": {
+      "open": "Open menu",
+      "close": "Close menu"
     }
   },
   "FilterPanel": {

@@ -1,11 +1,23 @@
 "use client";
 
-import { type ReactNode } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { useTranslations } from "next-intl";
 import FacilitySearch from "./FacilitySearch";
+
+function MenuIcon({ open }: { open: boolean }) {
+  // Mismo ícono, alterna entre "hamburguesa" y "cerrar" (X) con las mismas
+  // 3 líneas rotando/colapsando — evita cargar un segundo ícono.
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <line x1="4" y1="6" x2="20" y2="6" className="transition-transform origin-center" style={open ? { transform: "translateY(6px) rotate(45deg)" } : undefined} />
+      <line x1="4" y1="12" x2="20" y2="12" className="transition-opacity" style={open ? { opacity: 0 } : undefined} />
+      <line x1="4" y1="18" x2="20" y2="18" className="transition-transform origin-center" style={open ? { transform: "translateY(-6px) rotate(-45deg)" } : undefined} />
+    </svg>
+  );
+}
 
 function OverviewIcon() {
   return (
@@ -91,11 +103,76 @@ export default function TopNav({
 }) {
   const pathname = usePathname();
   const t = useTranslations("TopNav");
+  const [mobileOpen, setMobileOpen] = useState(false);
+  // Cierra el menú mobile al cambiar de página (click en un link) — ajuste
+  // de estado durante el render en vez de un efecto (patrón recomendado por
+  // React para "resetear estado cuando cambia una prop", evita el
+  // cascading-render que dispararía un setState síncrono dentro de un
+  // useEffect con éste mismo fin).
+  const [lastPathname, setLastPathname] = useState(pathname);
+  if (pathname !== lastPathname) {
+    setLastPathname(pathname);
+    setMobileOpen(false);
+  }
+  const mobilePanelRef = useRef<HTMLDivElement>(null);
   // Va primero (no al final) cuando el usuario tiene el permiso: es su vista
   // "default" en el sentido de ser la primera que ve, sin necesidad de un
   // redirect automático post-login — ver nota de entrega sobre por qué no
   // se implementó ese redirect todavía.
   const visibleLinks = showLeadershipLink ? [panelEjecutivoLink, ...links] : links;
+
+  // Mismo patrón que UserMenuDropdown: click afuera o Escape cierra.
+  useEffect(() => {
+    if (!mobileOpen) return;
+    function handlePointerDown(e: MouseEvent) {
+      if (mobilePanelRef.current && !mobilePanelRef.current.contains(e.target as Node)) setMobileOpen(false);
+    }
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setMobileOpen(false);
+    }
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [mobileOpen]);
+
+  const navLinks = (variant: "inline" | "stacked") => (
+    <>
+      {visibleLinks.map((l) => {
+        const Icon = l.icon;
+        const isActive = pathname === l.href;
+        return (
+          <Link
+            key={l.href}
+            href={l.href}
+            className={
+              variant === "inline"
+                ? `relative flex items-center gap-2 px-4 py-2.5 text-sm whitespace-nowrap rounded-t-xl transition-colors ${
+                    isActive ? "text-ink font-bold" : "text-white/75 font-medium hover:text-white hover:bg-white/5"
+                  }`
+                : `flex items-center gap-2.5 px-3 py-2.5 text-sm rounded-lg transition-colors ${
+                    isActive ? "text-ink font-bold bg-[#f5fffa]" : "text-white/75 font-medium hover:text-white hover:bg-white/5"
+                  }`
+            }
+          >
+            {variant === "inline" && isActive && (
+              <motion.span
+                layoutId="topnav-active-bg"
+                className="absolute inset-0 rounded-t-xl bg-[#f5fffa]"
+                transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
+              />
+            )}
+            <span className="relative flex items-center gap-2">
+              <Icon />
+              {t(l.labelKey)}
+            </span>
+          </Link>
+        );
+      })}
+    </>
+  );
 
   return (
     <div className="sticky top-0 z-40 bg-[#0b3b2e]/95 backdrop-blur-xl">
@@ -103,36 +180,15 @@ export default function TopNav({
         {/* eslint-disable-next-line @next/next/no-img-element -- SVG de marca, next/image no optimiza SVGs sin habilitar dangerouslyAllowSVG */}
         <img src="/logo/plei-mark.svg" alt="Plei" width={32} height={32} className="pr-4 shrink-0 h-8 w-auto" />
 
-        <nav className="flex items-end self-stretch gap-1 flex-1 min-w-0 overflow-x-auto">
-          {visibleLinks.map((l) => {
-            const Icon = l.icon;
-            const isActive = pathname === l.href;
-            return (
-              <Link
-                key={l.href}
-                href={l.href}
-                className={`relative flex items-center gap-2 px-4 py-2.5 text-sm whitespace-nowrap rounded-t-xl transition-colors ${
-                  isActive ? "text-ink font-bold" : "text-white/75 font-medium hover:text-white hover:bg-white/5"
-                }`}
-              >
-                {isActive && (
-                  <motion.span
-                    layoutId="topnav-active-bg"
-                    className="absolute inset-0 rounded-t-xl bg-[#f5fffa]"
-                    transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
-                  />
-                )}
-                <span className="relative flex items-center gap-2">
-                  <Icon />
-                  {t(l.labelKey)}
-                </span>
-              </Link>
-            );
-          })}
+        {/* lg+ : nav inline completo, como antes. Por debajo, se reemplaza
+            por el botón de menú de más abajo — nunca los dos a la vez. */}
+        <nav className="hidden lg:flex items-end self-stretch gap-1 flex-1 min-w-0 overflow-x-auto">
+          {navLinks("inline")}
         </nav>
+        <div className="flex-1 min-w-0 lg:hidden" />
 
         <div className="flex items-center gap-3 py-2 shrink-0">
-          <div className="w-56 hidden sm:block">
+          <div className="w-56 hidden lg:block">
             <FacilitySearch
               facilities={facilities}
               markets={markets}
@@ -140,9 +196,34 @@ export default function TopNav({
               emptyMessageTemplate={t("facilitySearch.empty", { query: "{query}" })}
             />
           </div>
+
+          {/* <lg : un solo botón abre un panel con la búsqueda y los links
+              apilados — reemplaza tanto el nav como el buscador inline. */}
+          <button
+            type="button"
+            onClick={() => setMobileOpen((v) => !v)}
+            aria-label={mobileOpen ? t("menu.close") : t("menu.open")}
+            aria-expanded={mobileOpen}
+            className="lg:hidden text-white/80 hover:text-white p-1.5 -mr-1"
+          >
+            <MenuIcon open={mobileOpen} />
+          </button>
+
           {userMenu}
         </div>
       </div>
+
+      {mobileOpen && (
+        <div ref={mobilePanelRef} className="lg:hidden border-t border-white/10 px-4 py-3 space-y-3">
+          <FacilitySearch
+            facilities={facilities}
+            markets={markets}
+            placeholder={t("facilitySearch.placeholder")}
+            emptyMessageTemplate={t("facilitySearch.empty", { query: "{query}" })}
+          />
+          <nav className="flex flex-col gap-0.5">{navLinks("stacked")}</nav>
+        </div>
+      )}
     </div>
   );
 }

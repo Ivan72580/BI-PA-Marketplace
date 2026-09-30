@@ -94,8 +94,8 @@ export default function KpiCard({
           </button>
         )}
       </div>
-      <div className="flex items-end justify-between gap-2">
-        <div>
+      <div className="flex items-end justify-between gap-2 flex-wrap">
+        <div className="min-w-0">
           <div className="flex items-baseline gap-2.5 flex-wrap">
             <div className="font-display text-4xl font-bold text-ink tracking-tight">{value}</div>
             {deltaVisible && hasComparison && (
@@ -127,6 +127,11 @@ export default function KpiCard({
   );
 
   const toneRing = tone === "danger" ? "ring-1 ring-danger/15" : tone === "brand" ? "ring-1 ring-brand/15" : "";
+  // Nota: NO se agrega overflow-hidden acá — el popover (más abajo) es
+  // absolute + top-full, escapando a propósito por debajo de la tarjeta;
+  // overflow-hidden en este mismo elemento (que ya es su position:relative)
+  // lo recortaría. El overflow del sparkline se corrige en el layout de
+  // arriba (flex-wrap + min-w-0), no con un recorte a ciegas acá.
   const className = `rounded-2xl bg-surface shadow-sm hover:shadow-lg transition-shadow p-5 ${toneRing} relative group/card`;
 
   const popoverEl = popover && (

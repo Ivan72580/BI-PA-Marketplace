@@ -14,6 +14,10 @@
     "facilitySearch": {
       "placeholder": "Buscar facility...",
       "empty": "Sin resultados para \"{query}\""
+    },
+    "menu": {
+      "open": "Abrir menú",
+      "close": "Cerrar menú"
     }
   },
   "FilterPanel": {
