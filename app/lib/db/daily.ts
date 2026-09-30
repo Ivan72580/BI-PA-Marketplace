@@ -1,7 +1,16 @@
 import { CancellationCategory, GameStatus } from "@prisma/client";
 import { prisma } from "./prisma";
 import { cached } from "./cache";
-import { buildWhere, DAY_ORDER, sortHoursByOperatingDay, labelForCancellationCategory, MIN_GAMES_FOR_CONTRIBUTION, average, linearRegression } from "./shared";
+import {
+  buildWhere,
+  DAY_ORDER,
+  sortHoursByOperatingDay,
+  labelForCancellationCategory,
+  MIN_GAMES_FOR_CONTRIBUTION,
+  average,
+  linearRegression,
+  type OverviewFilters,
+} from "./shared";
 import { combineFormatLabel } from "./format";
 import { weekdayAbbr } from "./weekday";
 import { getDailyTranslator, type DailyTranslator } from "./dailyMessages";
@@ -977,15 +986,23 @@ export type DailyRiskFacility = {
 
 type FacilityCountRow = { facilityId: string; _count: { _all: number } };
 
-async function getDailyRiskFacilitiesImpl(dateISO: string, limit = 8): Promise<DailyRiskFacility[]> {
+async function getDailyRiskFacilitiesImpl(
+  dateISO: string,
+  limit = 8,
+  // Opcional y al final, default {} — el único caller previo (DailyRiskFacilities.tsx
+  // en /daily) sigue viendo la red completa exactamente igual que antes.
+  // Se agrega para que Panel Ejecutivo pueda acotar este mismo radar a la
+  // región/market que tenga filtrada, sin bifurcar la lógica en dos lugares.
+  filters: Omit<OverviewFilters, "dateFrom" | "dateTo"> = {}
+): Promise<DailyRiskFacility[]> {
   const referenceDate = addDaysUTC(parseISODate(dateISO), -1);
   const recentTo = referenceDate;
   const recentFrom = addDaysUTC(recentTo, -(RISK_RECENT_WINDOW_DAYS - 1));
   const baselineTo = addDaysUTC(recentFrom, -1);
   const baselineFrom = addDaysUTC(baselineTo, -(RISK_BASELINE_WINDOW_DAYS - 1));
 
-  const recentWhere = buildWhere({ dateFrom: recentFrom, dateTo: recentTo });
-  const baselineWhere = buildWhere({ dateFrom: baselineFrom, dateTo: baselineTo });
+  const recentWhere = buildWhere({ ...filters, dateFrom: recentFrom, dateTo: recentTo });
+  const baselineWhere = buildWhere({ ...filters, dateFrom: baselineFrom, dateTo: baselineTo });
 
   // Los 4 groupBy van SIN "as Promise<...>" (eso rompía el generic propio de
   // Prisma con un cliente real: "Argument ... missing length, pop, push...").

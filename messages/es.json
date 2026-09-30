@@ -994,21 +994,25 @@
   },
   "Leadership": {
     "pageTitle": "Panel Ejecutivo",
-    "subtitle": "Estado de la red completa — no depende de ningún filtro activo en el resto de la app.",
+    "subtitle": "Monitor de red — filtrable por región, market y período (mes o semana).",
     "viewDetail": "Ver detalle →",
     "marketDetailLink": "Ver detalle por market y facility →",
     "forecastDetailLink": "Ver pronóstico completo →",
     "satisfactionDetailLink": "Ver Player Satisfaction →",
+    "samePeriodLabel": "{from}–{to} {month} (mismo tramo)",
+    "detail": {
+      "toggle": "Ver desglose"
+    },
     "kpis": {
       "confirmedGames": "Partidos confirmados",
       "confirmationRate": "Tasa de confirmación",
       "cancellationRate": "Tasa de cancelación",
       "avgFillRate": "Ocupación promedio",
-      "totalRevenue": "Revenue del mes",
+      "totalRevenue": "Revenue del período",
       "avgRevenuePerGame": "Revenue/partido",
       "rating": "Rating de partidos",
       "ratingSub": "{pct}% con reviews",
-      "compareCaption": "vs. mismo tramo del mes anterior"
+      "compareCaption": "vs. {period}"
     },
     "projection": {
       "title": "Proyección de {month}: {n} partidos",
@@ -1029,6 +1033,7 @@
       "forecastGamesUp": "Partidos esperados (próx. semana): ~{n}, por encima de lo reciente.",
       "regionDrop": "{region}: confirmación cayó {pts} pts vs. mes anterior.",
       "fieldQualityWorst": "Peor calidad de campo: {facility} — {pct}% reviews con problema.",
+      "facilityUnavailable": "\"Cancha no disponible\" representa el {pct}% de las cancelaciones ({count}) — fricción accionable, no estacional.",
       "profileCoverageEmpty": "Perfiles de facility: 0/{total} cargados todavía."
     },
     "forecastMini": {
@@ -1039,16 +1044,17 @@
     },
     "satisfaction": {
       "title": "Player Satisfaction",
-      "gameRating": "Rating de partidos",
       "appRating": "Rating de la app",
-      "complaints": "Reviews con queja"
+      "complaints": "Reviews con queja",
+      "fieldQualityWorst": "Peor calidad de campo",
+      "networkWideNote": "Rating de app y quejas son de toda la red — no distinguen región/market en el dato de origen."
     },
     "profile": {
       "title": "Perfiles cargados"
     },
     "regionTable": {
       "title": "Comparación por región",
-      "subtitle": "Mes en curso vs. mes anterior completo (East/West).",
+      "subtitle": "Mes elegido vs. mes anterior completo (East/West).",
       "headers": {
         "region": "Región",
         "confirmedGames": "Confirmados",

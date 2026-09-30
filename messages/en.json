@@ -994,21 +994,25 @@
   },
   "Leadership": {
     "pageTitle": "Executive Panel",
-    "subtitle": "Full-network status — independent of any filter active elsewhere in the app.",
+    "subtitle": "Network monitor — filterable by region, market and period (month or week).",
     "viewDetail": "View detail →",
     "marketDetailLink": "See market and facility detail →",
     "forecastDetailLink": "See full forecast →",
     "satisfactionDetailLink": "See Player Satisfaction →",
+    "samePeriodLabel": "{from}–{to} {month} (same stretch)",
+    "detail": {
+      "toggle": "See breakdown"
+    },
     "kpis": {
       "confirmedGames": "Confirmed games",
       "confirmationRate": "Confirmation rate",
       "cancellationRate": "Cancellation rate",
       "avgFillRate": "Average fill rate",
-      "totalRevenue": "Revenue this month",
+      "totalRevenue": "Revenue this period",
       "avgRevenuePerGame": "Revenue/game",
       "rating": "Game rating",
       "ratingSub": "{pct}% with reviews",
-      "compareCaption": "vs. same day-range last month"
+      "compareCaption": "vs. {period}"
     },
     "projection": {
       "title": "{month} projection: {n} games",
@@ -1029,6 +1033,7 @@
       "forecastGamesUp": "Expected games (next week): ~{n}, above recent levels.",
       "regionDrop": "{region}: confirmation dropped {pts} pts vs. prior month.",
       "fieldQualityWorst": "Worst field quality: {facility} — {pct}% reviews flagging an issue.",
+      "facilityUnavailable": "\"Facility unavailable\" accounts for {pct}% of cancellations ({count}) — actionable friction, not seasonal.",
       "profileCoverageEmpty": "Facility profiles: 0/{total} loaded so far."
     },
     "forecastMini": {
@@ -1039,16 +1044,17 @@
     },
     "satisfaction": {
       "title": "Player Satisfaction",
-      "gameRating": "Game rating",
       "appRating": "App rating",
-      "complaints": "Reviews with a complaint"
+      "complaints": "Reviews with a complaint",
+      "fieldQualityWorst": "Worst field quality",
+      "networkWideNote": "App rating and complaints are network-wide — the source data has no region/market link."
     },
     "profile": {
       "title": "Profiles loaded"
     },
     "regionTable": {
       "title": "Region comparison",
-      "subtitle": "Current month vs. full prior month (East/West).",
+      "subtitle": "Selected month vs. full prior month (East/West).",
       "headers": {
         "region": "Region",
         "confirmedGames": "Confirmed",

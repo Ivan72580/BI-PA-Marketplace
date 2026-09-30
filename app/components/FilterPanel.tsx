@@ -45,6 +45,7 @@ export default function FilterPanel({
   facilities,
   showTimeControls = true,
   showFacility = true,
+  granularityOptions = GRANULARITY_VALUES,
   hasFilter = false,
   clearHref,
   bare = false,
@@ -54,6 +55,11 @@ export default function FilterPanel({
   facilities: Option[];
   showTimeControls?: boolean;
   showFacility?: boolean;
+  // Subconjunto de granularidades a ofrecer en el dropdown — default: todas
+  // (comportamiento previo, sin cambios para Overview/Market/Trends/Daily).
+  // Panel Ejecutivo pasa solo ["month", "week"]: es un monitor de lo más
+  // reciente, no necesita año/semestre/trimestre/día/custom/all.
+  granularityOptions?: Granularity[];
   hasFilter?: boolean;
   clearHref?: string;
   // Sin el chip "FILTRO", sin borde inferior ni margen — para cuando el
@@ -156,7 +162,7 @@ export default function FilterPanel({
               router.push(`${pathname}?${params.toString()}`, { scroll: false });
             }}
           >
-            {GRANULARITY_VALUES.map((value) => (
+            {granularityOptions.map((value) => (
               <option key={value} value={value}>{t(`granularity.${value}`)}</option>
             ))}
           </select>
