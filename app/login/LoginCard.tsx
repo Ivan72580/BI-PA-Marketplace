@@ -20,8 +20,9 @@ export default function LoginCard({
       transition={{ duration: 0.5, ease: "easeOut" }}
       className="relative z-10 w-full max-w-sm bg-white/80 backdrop-blur-sm border border-white/60 rounded-2xl shadow-xl px-10 py-12 flex flex-col items-center gap-6"
     >
-      <div className="text-center">
-        <div className="font-display text-3xl font-semibold text-ink mb-1">Plei</div>
+      <div className="text-center flex flex-col items-center">
+        {/* eslint-disable-next-line @next/next/no-img-element -- SVG de marca, next/image no optimiza SVGs sin habilitar dangerouslyAllowSVG */}
+        <img src="/logo/plei-mark.svg" alt="Plei" width={56} height={56} className="h-14 w-auto mb-2" />
         <div className="text-sm text-ink-muted">{subtitle}</div>
       </div>
 
