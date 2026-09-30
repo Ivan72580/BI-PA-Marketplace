@@ -21,8 +21,9 @@ import { cached } from "./cache";
 type GameReviewRow = {
   rating: number;
   tags: GameReviewTag[];
-  game: { facilityId: string; facility: { name: string; market: { name: string; region: { name: string } } } };
+  game: { facilityId: string };
 };
+type FacilityNamesRow = { id: string; name: string; market: { name: string; region: { name: string } } };
 type RecentGameReviewRow = {
   id: string;
   date: Date;
@@ -85,13 +86,20 @@ async function getGameReviewSatisfactionImpl(): Promise<{
   facilityFieldQuality: FacilityFieldQualityRow[];
   recentReviews: RecentGameReview[];
 }> {
-  const [reviews, recent, dateAgg] = await Promise.all([
+  // `reviews` es TODO el historial de reviews, sin filtro de fecha (el
+  // resumen y el ranking de calidad de campo son sobre la vida entera del
+  // dataset, no de un período) — por eso el select tiene que ser lo más
+  // chico posible. Antes traía facility/market/region anidados (3 strings
+  // repetidos en CADA fila de review, multiplicados por el join de 4
+  // niveles) — con el dataset creciendo eso terminó siendo el query más
+  // pesado en memoria de toda la app (ver diagnóstico de OOM en Panel
+  // Ejecutivo). Ahora solo viaja facilityId por fila, y los 3 nombres se
+  // resuelven una sola vez por facility con `facilityNames` (mismo patrón
+  // ya usado en getDailyRiskFacilities/getForecastRiskFacilities: una
+  // consulta chica de facilities + Map, en vez de duplicar el join).
+  const [reviews, recent, dateAgg, facilityNames] = await Promise.all([
     prisma.gameReview.findMany({
-      select: {
-        rating: true,
-        tags: true,
-        game: { select: { facilityId: true, facility: { select: { name: true, market: { select: { name: true, region: { select: { name: true } } } } } } } },
-      },
+      select: { rating: true, tags: true, game: { select: { facilityId: true } } },
     }) as unknown as Promise<GameReviewRow[]>,
     prisma.gameReview.findMany({
       orderBy: { date: "desc" },
@@ -99,7 +107,11 @@ async function getGameReviewSatisfactionImpl(): Promise<{
       select: { id: true, date: true, rating: true, tags: true, reviewText: true, game: { select: { facility: { select: { name: true } } } } },
     }) as unknown as Promise<RecentGameReviewRow[]>,
     prisma.gameReview.aggregate({ _min: { date: true }, _max: { date: true } }),
+    prisma.facility.findMany({
+      select: { id: true, name: true, market: { select: { name: true, region: { select: { name: true } } } } },
+    }) as unknown as Promise<FacilityNamesRow[]>,
   ]);
+  const facilityNameById = new Map(facilityNames.map((f): [string, FacilityNamesRow] => [f.id, f]));
 
   // ---------- Resumen general ----------
   const tagTally = new Map<GameReviewTag, number>();
@@ -137,12 +149,13 @@ async function getGameReviewSatisfactionImpl(): Promise<{
   const byFacility = new Map<string, FacilityTally>();
   for (const r of reviews) {
     const key = r.game.facilityId;
+    const names = facilityNameById.get(key);
     const entry =
       byFacility.get(key) ??
       ({
-        facilityName: r.game.facility.name,
-        marketName: r.game.facility.market.name,
-        regionName: r.game.facility.market.region.name,
+        facilityName: names?.name ?? "",
+        marketName: names?.market.name ?? "",
+        regionName: names?.market.region.name ?? "",
         totalReviews: 0,
         ratingSum: 0,
         positive: 0,
@@ -190,13 +203,24 @@ export const getGameReviewSatisfaction = cached("getGameReviewSatisfaction", get
 // sección, para no inflar el alcance de esta primera versión.
 export type PlayerComplaintsSummary = { totalReviewsWithComplaint: number; pctOfReviews: number };
 
-export async function getPlayerComplaintsSummary(): Promise<PlayerComplaintsSummary> {
-  const { summary } = await getGameReviewSatisfaction();
+// Pura (sin DB): separada de getPlayerComplaintsSummary para que un caller
+// que YA tiene el resultado de getGameReviewSatisfaction (Panel Ejecutivo,
+// /panel-ejecutivo/satisfaction) lo derive en memoria en vez de volver a
+// pedirlo — antes ambos disparaban la consulta completa de reviews dos
+// veces en el mismo request (una directa, otra adentro de esta función).
+export function computePlayerComplaintsSummary(summary: GameReviewSummary): PlayerComplaintsSummary {
   const totalReviewsWithComplaint = summary.tagCounts.filter((t) => PLAYER_COMPLAINT_TAGS.has(t.tag)).reduce((sum, t) => sum + t.count, 0);
   return {
     totalReviewsWithComplaint,
     pctOfReviews: summary.totalReviews > 0 ? totalReviewsWithComplaint / summary.totalReviews : 0,
   };
+}
+
+// Wrapper para callers que NO tienen ya un GameReviewSummary a mano — sigue
+// existiendo con la misma firma de siempre para no romper nada.
+export async function getPlayerComplaintsSummary(): Promise<PlayerComplaintsSummary> {
+  const { summary } = await getGameReviewSatisfaction();
+  return computePlayerComplaintsSummary(summary);
 }
 
 // ---------- App Store / Play Store reviews ----------

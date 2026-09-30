@@ -11,7 +11,7 @@ import {
   getNetworkForecast,
   getForecastRiskFacilities,
   getGameReviewSatisfaction,
-  getPlayerComplaintsSummary,
+  computePlayerComplaintsSummary,
   getAppReviewSatisfaction,
   listFacilityProfileStatus,
   getContributionRanking,
@@ -328,7 +328,6 @@ export default async function LeadershipOverview({ sp, locale }: { sp: Leadershi
     networkForecast,
     forecastRisk,
     gameReviews,
-    complaints,
     appReviews,
     profileStatus,
     contribution,
@@ -344,11 +343,16 @@ export default async function LeadershipOverview({ sp, locale }: { sp: Leadershi
     getNetworkForecast(filters, "week", today),
     getForecastRiskFacilities(filters, "week", today),
     getGameReviewSatisfaction(),
-    getPlayerComplaintsSummary(),
     getAppReviewSatisfaction(),
     listFacilityProfileStatus(),
     getContributionRanking(filters, currentRange, priorRange),
   ]);
+  // Derivado en memoria del resumen que ya se pidió arriba — antes era su
+  // propia consulta en el Promise.all (getPlayerComplaintsSummary), que
+  // internamente volvía a llamar a getGameReviewSatisfaction: con caché
+  // fría, la consulta completa de reviews corría dos veces en paralelo en
+  // el mismo request. Ver computePlayerComplaintsSummary en satisfaction.ts.
+  const complaints = computePlayerComplaintsSummary(gameReviews.summary);
 
   const confirmationByRegion = new Map(regionConfirmation.map((r) => [r.regionId, r]));
   const regionRows = regionVolume.map((r) => ({

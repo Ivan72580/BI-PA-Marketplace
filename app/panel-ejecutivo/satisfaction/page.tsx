@@ -1,5 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import { getGameReviewSatisfaction, getPlayerComplaintsSummary, getAppReviewSatisfaction } from "../../lib/db/queries";
+import { getGameReviewSatisfaction, computePlayerComplaintsSummary, getAppReviewSatisfaction } from "../../lib/db/queries";
 import Tabs from "../../components/Tabs";
 import GameReviewsPanel from "../../components/GameReviewsPanel";
 import AppReviewsPanel from "../../components/AppReviewsPanel";
@@ -8,12 +8,14 @@ import AppReviewsPanel from "../../components/AppReviewsPanel";
 // "volver" también se sacó de acá: la barra de pestañas del layout ya cubre
 // esa navegación.
 export default async function PlayerSatisfactionPage() {
-  const [t, gameReviewData, complaints, appReviewData] = await Promise.all([
+  const [t, gameReviewData, appReviewData] = await Promise.all([
     getTranslations("PlayerSatisfaction"),
     getGameReviewSatisfaction(),
-    getPlayerComplaintsSummary(),
     getAppReviewSatisfaction(),
   ]);
+  // Derivado en memoria, sin volver a pedir el historial completo de
+  // reviews — ver computePlayerComplaintsSummary en satisfaction.ts.
+  const complaints = computePlayerComplaintsSummary(gameReviewData.summary);
 
   return (
     <div>
