@@ -1,7 +1,7 @@
 import { CancellationCategory } from "@prisma/client";
 import { getTranslations, getLocale } from "next-intl/server";
 import { resolveFilterNames, getFilterOptions, getMonthProjection, type FacilitySortKey } from "./lib/db/queries";
-import { resolvePeriod, shiftAnchor, todayISO, nowInBusinessTimeZone, type Granularity, type ResolvedPeriod } from "./lib/period";
+import { resolvePeriod, resolveComparisonPeriod, shiftAnchor, todayISO, type Granularity, type ResolvedPeriod } from "./lib/period";
 import type { Locale } from "@/i18n/config";
 import { buildQuery, type SP } from "./lib/searchParams";
 import FilterPanel from "./components/FilterPanel";
@@ -45,36 +45,18 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
   // el filtro es mensual, trimestre anterior si es trimestral, etc.) — no
   // contra el mismo período del año pasado.
   //
-  // Caso especial: si estamos viendo el mes EN CURSO (todavía no cerrado, la
-  // vista por defecto), comparar contra el mes anterior COMPLETO sería
-  // engañoso — un mes a mitad de camino siempre "pierde" contra un mes
-  // entero. Ahí comparamos contra el mismo tramo de días del mes anterior
-  // (si estamos al día 15, contra el 1-15 del mes pasado, no el 1-31).
-  const isDefaultCurrentMonth = granularity === "month" && anchor.slice(0, 7) === todayISO().slice(0, 7);
-
-  function resolvePartialPriorMonth(): ResolvedPeriod {
-    const now = nowInBusinessTimeZone();
-    const dayOfMonth = now.getUTCDate();
-    const prevMonthAnchor = shiftAnchor("month", anchor, -1);
-    const prevMonthStart = resolvePeriod("month", prevMonthAnchor).dateFrom!;
-    const partialEnd = new Date(prevMonthStart);
-    partialEnd.setUTCDate(prevMonthStart.getUTCDate() + dayOfMonth - 1);
-    partialEnd.setUTCHours(23, 59, 59, 999);
-    const monthLabel = prevMonthStart.toLocaleDateString(locale === "en" ? "en-US" : "es-AR", { month: "short", timeZone: "UTC" });
-    return {
-      dateFrom: prevMonthStart,
-      dateTo: partialEnd,
-      label: t("samePeriodLabel", { from: prevMonthStart.getUTCDate(), to: partialEnd.getUTCDate(), month: monthLabel }),
-      priorLabel: null,
-    };
-  }
-
+  // resolveComparisonPeriod ya resuelve el caso especial de un período EN
+  // CURSO (todavía no cerrado, p. ej. el mes o la semana por defecto):
+  // comparar contra el anterior COMPLETO sería engañoso — un período a
+  // mitad de camino siempre "pierde" contra uno entero — así que trunca el
+  // anterior al mismo tramo de días ya transcurridos. Antes esto solo
+  // pasaba para "month" (parche puntual, duplicado en LeadershipOverview);
+  // ahora es agnóstico a la granularidad, así que la vista semanal queda
+  // cubierta también.
   const comparePeriod: ResolvedPeriod | null =
     granularity === "all" || granularity === "custom"
       ? null
-      : isDefaultCurrentMonth
-      ? resolvePartialPriorMonth()
-      : resolvePeriod(granularity, shiftAnchor(granularity, anchor, -1), undefined, undefined, locale);
+      : resolveComparisonPeriod({ dateFrom: period.dateFrom!, dateTo: period.dateTo! }, granularity, shiftAnchor(granularity, anchor, -1), locale);
   const compare = Boolean(comparePeriod?.dateFrom && comparePeriod?.dateTo);
 
   const filters = {

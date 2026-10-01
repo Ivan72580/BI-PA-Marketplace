@@ -2,7 +2,7 @@ import { GameStatus } from "@prisma/client";
 import { prisma } from "./prisma";
 import { cached } from "./cache";
 import { buildWhere, labelForCancellationCategory, MIN_GAMES_FOR_RANKING, MIN_GAMES_FOR_CONTRIBUTION, type OverviewFilters } from "./shared";
-import { resolvePeriod, shiftAnchor } from "../period";
+import { resolvePeriod, resolveComparisonPeriod, shiftAnchor } from "../period";
 import { getOverviewData, type OverviewData } from "./overview";
 import { getRegionComparison, type RegionComparisonRow } from "./region";
 import { getMarketComparison, type MarketComparisonRow } from "./market";
@@ -61,7 +61,13 @@ function resolveReportPeriods(granularity: ReportGranularity, anchorISO: string,
   const dateTo = current.dateTo!;
 
   const priorAnchorISO = shiftAnchor(granularity, anchorISO, -1);
-  const prior = resolvePeriod(granularity, priorAnchorISO, undefined, undefined, locale);
+  // Si "current" es el período EN CURSO (p. ej. mirando el reporte semanal
+  // un jueves, con la semana todavía sin terminar), resolveComparisonPeriod
+  // trunca "prior" a los mismos días ya transcurridos en vez de la
+  // semana/mes anterior completa — si no, cualquier reporte visto antes de
+  // que cierre el período muestra una "Variación" negativa enorme que no
+  // es una caída real, solo el efecto de comparar parcial contra completo.
+  const prior = resolveComparisonPeriod({ dateFrom, dateTo }, granularity, priorAnchorISO, locale);
 
   const priorYearDateFrom = current.priorDateFrom!;
   const priorYearDateTo = current.priorDateTo!;

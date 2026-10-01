@@ -221,6 +221,53 @@ export function resolvePeriod(
   };
 }
 
+function partialPriorLabel(locale: Locale, from: Date, to: Date): string {
+  return locale === "en" ? `${formatDate(from)} – ${formatDate(to)} (partial)` : `${formatDate(from)} – ${formatDate(to)} (parcial)`;
+}
+
+// Ivan (1/10/26): comparar un período EN CURSO (semana/mes/trimestre/etc.
+// que todavía no terminó) contra el período anterior COMPLETO es
+// engañoso — un período a mitad de camino siempre "pierde" en volumen
+// contra uno entero, aunque el ritmo sea igual o mejor (ver el caso real:
+// -59.4% de variación en confirmados mirando la semana en curso un
+// jueves, con tasa de confirmación sana). Esta función generaliza y
+// reemplaza el parche puntual que existía SOLO para "mes" en
+// page.tsx/LeadershipOverview.tsx (resolvePartialPriorMonth, duplicado en
+// los dos archivos, y con un gap conocido en semana) — acá es agnóstica a
+// la granularidad: si el período elegido es el que está en curso AHORA
+// (según el huso del negocio), trunca el período anterior a la misma
+// cantidad de días ya transcurridos; si no (se está mirando un período ya
+// cerrado), devuelve el período anterior completo, sin tocar nada.
+export function resolveComparisonPeriod(
+  current: { dateFrom: Date; dateTo: Date },
+  priorGranularity: Granularity,
+  priorAnchorISO: string,
+  locale: Locale = "es"
+): ResolvedPeriod {
+  const fullPrior = resolvePeriod(priorGranularity, priorAnchorISO, undefined, undefined, locale);
+  if (!fullPrior.dateFrom || !fullPrior.dateTo) return fullPrior; // "all"/"custom" sin rango no truncan
+
+  const now = nowInBusinessTimeZone();
+  const isCurrent = now.getTime() >= current.dateFrom.getTime() && now.getTime() <= current.dateTo.getTime();
+  if (!isCurrent) return fullPrior;
+
+  // "Hoy" cuenta como día transcurrido completo — no hay forma de saber
+  // cuánto llevamos del día de hoy sin hora exacta, y contarlo entero es
+  // el mismo criterio que ya usaba el parche de mes (now.getUTCDate()).
+  const elapsedDays = Math.floor((now.getTime() - current.dateFrom.getTime()) / 86400000) + 1;
+
+  const priorStart = fullPrior.dateFrom;
+  const partialEnd = new Date(priorStart);
+  partialEnd.setUTCDate(priorStart.getUTCDate() + elapsedDays - 1);
+  partialEnd.setUTCHours(23, 59, 59, 999);
+
+  return {
+    ...fullPrior,
+    dateTo: partialEnd,
+    label: partialPriorLabel(locale, priorStart, partialEnd),
+  };
+}
+
 export function shiftAnchor(granularity: Granularity, anchorISO: string, direction: 1 | -1): string {
   const anchor = new Date(`${anchorISO}T00:00:00Z`);
   switch (granularity) {

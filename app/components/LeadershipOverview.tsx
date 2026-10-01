@@ -17,7 +17,7 @@ import {
   getContributionRanking,
   getFilterOptions,
 } from "../lib/db/queries";
-import { resolvePeriod, shiftAnchor, todayISO, nowInBusinessTimeZone, gamesPerPeriodAverage, formatPerPeriod, type Granularity, type ResolvedPeriod } from "../lib/period";
+import { resolvePeriod, resolveComparisonPeriod, shiftAnchor, todayISO, gamesPerPeriodAverage, formatPerPeriod, type Granularity } from "../lib/period";
 import ChangeBadge from "./ChangeBadge";
 import ExpandableKpiTile, { type KpiDetail } from "./ExpandableKpiTile";
 import FilterPanel from "./FilterPanel";
@@ -264,28 +264,6 @@ function buildAlerts(
   return alerts.sort((a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]);
 }
 
-// Mismo criterio que app/page.tsx (Overview) para el mes en curso: compararlo
-// contra el mes anterior COMPLETO sería engañoso (un mes a mitad de camino
-// siempre "pierde"), así que se compara contra el mismo tramo de días. Para
-// "semana" no hay caso especial — mismo comportamiento que Overview (semana
-// en curso vs. semana anterior completa).
-function resolvePartialPriorMonth(anchor: string, locale: Locale, t: Translator): ResolvedPeriod {
-  const now = nowInBusinessTimeZone();
-  const dayOfMonth = now.getUTCDate();
-  const prevMonthAnchor = shiftAnchor("month", anchor, -1);
-  const prevMonthStart = resolvePeriod("month", prevMonthAnchor).dateFrom!;
-  const partialEnd = new Date(prevMonthStart);
-  partialEnd.setUTCDate(prevMonthStart.getUTCDate() + dayOfMonth - 1);
-  partialEnd.setUTCHours(23, 59, 59, 999);
-  const monthLabel = prevMonthStart.toLocaleDateString(locale === "en" ? "en-US" : "es-AR", { month: "short", timeZone: "UTC" });
-  return {
-    dateFrom: prevMonthStart,
-    dateTo: partialEnd,
-    label: t("samePeriodLabel", { from: prevMonthStart.getUTCDate(), to: partialEnd.getUTCDate(), month: monthLabel }),
-    priorLabel: null,
-  };
-}
-
 // Vista de Leadership: red completa por default, con filtro opcional de
 // región/market (nunca facility — para eso está el resto de la app) y
 // período mes/semana con navegación. Es un monitor: números y alertas son
@@ -299,16 +277,17 @@ export default async function LeadershipOverview({ sp, locale }: { sp: Leadershi
 
   const granularity: Granularity = sp.granularity === "week" ? "week" : "month";
   const anchor = sp.period || todayISO();
-  const isCurrentMonth = granularity === "month" && anchor.slice(0, 7) === todayISO().slice(0, 7);
 
   const period = resolvePeriod(granularity, anchor, undefined, undefined, locale);
-  const comparePeriod = isCurrentMonth
-    ? resolvePartialPriorMonth(anchor, locale, t)
-    : resolvePeriod(granularity, shiftAnchor(granularity, anchor, -1), undefined, undefined, locale);
   // granularity acá es siempre "month" o "week" (nunca "all"/"custom"), así
   // que resolvePeriod siempre devuelve dateFrom/dateTo reales — el "!" es
   // seguro, no un supuesto sin verificar.
   const currentRange = { dateFrom: period.dateFrom!, dateTo: period.dateTo! };
+  // resolveComparisonPeriod trunca el período anterior a los mismos días ya
+  // transcurridos cuando "current" está EN CURSO (antes esto solo pasaba
+  // para "month" acá — ver nota en app/lib/period.ts), en vez de comparar
+  // contra la semana/mes anterior completa.
+  const comparePeriod = resolveComparisonPeriod(currentRange, granularity, shiftAnchor(granularity, anchor, -1), locale);
   const priorRange = { dateFrom: comparePeriod.dateFrom!, dateTo: comparePeriod.dateTo! };
 
   const filters = { regionId: sp.regionId, marketId: sp.marketId };
