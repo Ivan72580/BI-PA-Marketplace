@@ -48,11 +48,9 @@ Si vas a compartir la app por un link que no sea `localhost` (por ejemplo, una v
 
 ```bash
 npm install
-npx prisma generate                                    # genera el cliente de Prisma — no depender del postinstall automático
-npx prisma migrate dev --name init                    # crea las tablas en tu base
-npx prisma migrate dev --name add_composite_indexes    # agrega los índices de performance
-npx prisma migrate dev --name add_game_size_and_field_type  # nuevo: columnas gameSize/fieldType
-npm run db:import                                      # sincroniza data/events.csv (upsert real)
+npx prisma generate         # genera el cliente de Prisma — no depender del postinstall automático
+npx prisma migrate deploy   # aplica TODAS las migraciones que ya están en prisma/migrations/ a tu base
+npm run db:import           # sincroniza data/events.csv (upsert real)
 ```
 
 El import es seguro de correr más de una vez (usa upsert): si volvés a exportar
@@ -75,6 +73,8 @@ Entrá a `http://localhost:3000` — te va a pedir login con Google (dominio res
 5. **Google Cloud Console**: volvé a *Credentials → tu OAuth Client ID* y agregá la URL real de Vercel en dos lugares — *Authorized JavaScript origins* (`https://tu-proyecto.vercel.app`) y *Authorized redirect URIs* (`https://tu-proyecto.vercel.app/api/auth/callback/google`, con esa ruta exacta).
 6. **Test users / Internal**: confirmá en *OAuth consent screen* que los emails del equipo estén autorizados (ver sección de login más abajo).
 7. Probá vos primero con tu propio usuario antes de compartir el link.
+
+**Migraciones en cada deploy**: el build (`npm run build`) corre `prisma migrate deploy` antes de compilar — cada vez que pusheás a `main`, Vercel aplica solo las migraciones que todavía no estén en la base real (usando las variables de entorno de Vercel, nunca tu `.env` local), antes de que la nueva versión quede live. No hace falta correr nada a mano contra producción nunca. Si una migración fallara (por ejemplo, un `DIRECT_URL` mal cargado), el deploy entero falla en vez de quedar a mitad de camino — es la base real protegida por el mismo motivo.
 
 **Nota de costos**: el plan Hobby de Vercel es gratuito pero sus términos son
 para uso no comercial. Mientras esto es una iniciativa propia en etapa
