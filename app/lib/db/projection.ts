@@ -1,13 +1,14 @@
 import { prisma } from "./prisma";
 import { cached } from "./cache";
 import { buildWhere, type OverviewFilters } from "./shared";
+import { nowInBusinessTimeZone } from "../period";
 import type { Locale } from "@/i18n/config";
 
 // `locale` con default "es" — mismo criterio que el resto de esta ronda: el
 // único caller de este momento (app/page.tsx, Overview) ya resuelve el
 // locale real vía getLocale() y lo pasa.
 async function getMonthProjectionImpl(filters: Omit<OverviewFilters, "dateFrom" | "dateTo">, locale: Locale = "es") {
-  const now = new Date();
+  const now = nowInBusinessTimeZone();
   const year = now.getUTCFullYear();
   const month = now.getUTCMonth();
   const monthStart = new Date(Date.UTC(year, month, 1));

@@ -1,5 +1,35 @@
 import type { Locale } from "@/i18n/config";
 
+// Huso horario real del negocio: las canchas operan en Florida (South
+// Florida, Orlando), huso Eastern. "Hoy" y los cortes de período (semana,
+// mes, trimestre) tienen que coincidir con el día calendario ahí — no con
+// UTC (que no es el huso de nadie en este negocio) ni con el huso de quien
+// mira la pantalla (que puede estar en otro país). Antes, todayISO() usaba
+// new Date().toISOString(), que siempre da la fecha en UTC: pasadas las
+// ~20/21hs hora Florida (según horario de verano), UTC ya cambió de día,
+// así que la app mostraba "hoy" como el día siguiente mientras en Florida
+// todavía no terminaba el día de negocio.
+const BUSINESS_TIMEZONE = "America/New_York";
+
+// Devuelve el instante actual, pero representado como medianoche UTC del
+// día calendario que ES HOY en el huso del negocio — mismo truco que usa
+// todo este archivo para fechas-sin-hora (medianoche UTC parada de la
+// fecha real), así que el resultado se puede seguir leyendo con
+// getUTCFullYear/getUTCMonth/getUTCDate sin que el resto del código
+// cambie. Intl.DateTimeFormat con timeZone resuelve el cambio de
+// horario de verano (EST/EDT) automáticamente, sin agregar ninguna
+// librería nueva.
+export function nowInBusinessTimeZone(): Date {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: BUSINESS_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const get = (type: "year" | "month" | "day") => Number(parts.find((p) => p.type === type)?.value);
+  return new Date(Date.UTC(get("year"), get("month") - 1, get("day")));
+}
+
 export type Granularity = "all" | "year" | "semester" | "quarter" | "month" | "week" | "day" | "custom";
 
 export type ResolvedPeriod = {
@@ -80,7 +110,7 @@ export function resolvePeriod(
   customTo?: string,
   locale: Locale = "es"
 ): ResolvedPeriod {
-  const anchor = anchorISO ? new Date(`${anchorISO}T00:00:00Z`) : new Date();
+  const anchor = anchorISO ? new Date(`${anchorISO}T00:00:00Z`) : nowInBusinessTimeZone();
 
   if (granularity === "all") {
     return { label: allTimeLabel(locale), priorLabel: null };
@@ -219,7 +249,7 @@ export function shiftAnchor(granularity: Granularity, anchorISO: string, directi
 }
 
 export function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
+  return nowInBusinessTimeZone().toISOString().slice(0, 10);
 }
 
 // ---------- Promedio de partidos por día/semana/mes ----------
@@ -260,7 +290,7 @@ export function resolveEvolutionWindow(
   granularity: Granularity,
   periodDateTo?: Date
 ): { unit: "week" | "month"; windowStart: Date; windowEnd: Date } {
-  const windowEnd = periodDateTo ?? new Date();
+  const windowEnd = periodDateTo ?? nowInBusinessTimeZone();
 
   if (granularity === "all" || granularity === "year") {
     const windowStart = new Date(windowEnd);

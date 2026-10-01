@@ -2,6 +2,7 @@ import { Prisma, GameStatus } from "@prisma/client";
 import { prisma } from "./prisma";
 import { cached } from "./cache";
 import { buildWhere, type OverviewFilters } from "./shared";
+import { nowInBusinessTimeZone } from "../period";
 import type { Locale } from "@/i18n/config";
 
 // ---------- Facilities activas vs. dormidas ----------
@@ -19,7 +20,7 @@ import type { Locale } from "@/i18n/config";
 // período seleccionado.
 export const DORMANT_FACILITY_MONTHS = 6;
 
-export function activeFacilityWhere(now: Date = new Date()) {
+export function activeFacilityWhere(now: Date = nowInBusinessTimeZone()) {
   const cutoff = new Date(now);
   cutoff.setUTCMonth(cutoff.getUTCMonth() - DORMANT_FACILITY_MONTHS);
   return { games: { some: { date: { gte: cutoff } } } };

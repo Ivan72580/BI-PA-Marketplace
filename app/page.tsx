@@ -1,7 +1,7 @@
 import { CancellationCategory } from "@prisma/client";
 import { getTranslations, getLocale } from "next-intl/server";
 import { resolveFilterNames, getFilterOptions, getMonthProjection, type FacilitySortKey } from "./lib/db/queries";
-import { resolvePeriod, shiftAnchor, todayISO, type Granularity, type ResolvedPeriod } from "./lib/period";
+import { resolvePeriod, shiftAnchor, todayISO, nowInBusinessTimeZone, type Granularity, type ResolvedPeriod } from "./lib/period";
 import type { Locale } from "@/i18n/config";
 import { buildQuery, type SP } from "./lib/searchParams";
 import FilterPanel from "./components/FilterPanel";
@@ -53,7 +53,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
   const isDefaultCurrentMonth = granularity === "month" && anchor.slice(0, 7) === todayISO().slice(0, 7);
 
   function resolvePartialPriorMonth(): ResolvedPeriod {
-    const now = new Date();
+    const now = nowInBusinessTimeZone();
     const dayOfMonth = now.getUTCDate();
     const prevMonthAnchor = shiftAnchor("month", anchor, -1);
     const prevMonthStart = resolvePeriod("month", prevMonthAnchor).dateFrom!;

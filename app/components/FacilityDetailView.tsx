@@ -10,7 +10,7 @@ import {
   type OverviewFilters,
 } from "../lib/db/queries";
 import type { Locale } from "@/i18n/config";
-import { resolveEvolutionWindow, type ResolvedPeriod, type Granularity } from "../lib/period";
+import { resolveEvolutionWindow, nowInBusinessTimeZone, type ResolvedPeriod, type Granularity } from "../lib/period";
 import BarChart from "./charts/BarChart";
 import Sparkline from "./Sparkline";
 import KpiCard from "./KpiCard";
@@ -115,7 +115,7 @@ export default async function FacilityDetailView({
 
   // Promedio histórico de esta facility (todo el histórico, mes a mes),
   // excluyendo el mes en curso, que todavía está incompleto.
-  const now = new Date();
+  const now = nowInBusinessTimeZone();
   const currentMonthKey = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
   const veryEarlyDate = new Date(Date.UTC(2000, 0, 1));
   const fullHistory = await getFacilitySeries(facilityId, "month", veryEarlyDate, now, locale);

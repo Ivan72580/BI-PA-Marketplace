@@ -17,7 +17,7 @@ import {
   getContributionRanking,
   getFilterOptions,
 } from "../lib/db/queries";
-import { resolvePeriod, shiftAnchor, todayISO, gamesPerPeriodAverage, formatPerPeriod, type Granularity, type ResolvedPeriod } from "../lib/period";
+import { resolvePeriod, shiftAnchor, todayISO, nowInBusinessTimeZone, gamesPerPeriodAverage, formatPerPeriod, type Granularity, type ResolvedPeriod } from "../lib/period";
 import ChangeBadge from "./ChangeBadge";
 import ExpandableKpiTile, { type KpiDetail } from "./ExpandableKpiTile";
 import FilterPanel from "./FilterPanel";
@@ -270,7 +270,7 @@ function buildAlerts(
 // "semana" no hay caso especial — mismo comportamiento que Overview (semana
 // en curso vs. semana anterior completa).
 function resolvePartialPriorMonth(anchor: string, locale: Locale, t: Translator): ResolvedPeriod {
-  const now = new Date();
+  const now = nowInBusinessTimeZone();
   const dayOfMonth = now.getUTCDate();
   const prevMonthAnchor = shiftAnchor("month", anchor, -1);
   const prevMonthStart = resolvePeriod("month", prevMonthAnchor).dateFrom!;

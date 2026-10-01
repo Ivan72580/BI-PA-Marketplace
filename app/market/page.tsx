@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { resolveFilterNames, getFilterOptions, type OverviewFilters } from "../lib/db/queries";
+import { nowInBusinessTimeZone } from "../lib/period";
 import MarketDashboard from "../components/MarketDashboard";
 import MarketRanking from "../components/MarketRanking";
 
@@ -25,7 +26,7 @@ function buildQuery(current: SP, overrides: Partial<SP>) {
 }
 
 function todayYearMonth() {
-  const now = new Date();
+  const now = nowInBusinessTimeZone();
   return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 

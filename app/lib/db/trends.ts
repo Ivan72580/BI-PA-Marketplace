@@ -5,6 +5,7 @@ import { buildWhere, DAY_ORDER, sortHoursByOperatingDay, type OverviewFilters } 
 import { combineFormatLabel } from "./format";
 import { weekdayAbbr } from "./weekday";
 import { getTrendsTranslator, type TrendsTranslator } from "./trendsMessages";
+import { nowInBusinessTimeZone } from "../period";
 import type { Locale } from "@/i18n/config";
 
 // `locale` se agrega como argumento explícito en cada función cacheada de
@@ -157,7 +158,7 @@ function buildSeriesFromGames(games: SeriesRow[], bucket: TrendBucket, locale: L
 }
 
 async function getMetricSeriesImpl(filters: OverviewFilters, bucket: TrendBucket, locale: Locale): Promise<MetricSeriesPoint[]> {
-  const now = new Date();
+  const now = nowInBusinessTimeZone();
   const windowStart = defaultWindowStart(bucket, now);
   const where = buildWhere({ ...filters, dateFrom: windowStart, dateTo: now });
 
@@ -553,7 +554,7 @@ async function getSlotConsistencyImpl(
   locale: Locale
 ) {
   const where = windowMonths
-    ? buildWhere({ ...filters, dateFrom: (() => { const d = new Date(); d.setUTCMonth(d.getUTCMonth() - windowMonths); return d; })() })
+    ? buildWhere({ ...filters, dateFrom: (() => { const d = nowInBusinessTimeZone(); d.setUTCMonth(d.getUTCMonth() - windowMonths); return d; })() })
     : buildWhere(filters); // todo el histórico disponible por defecto
   const games = (await prisma.game.findMany({
     where,
@@ -738,7 +739,7 @@ export type SlotRecentRow = {
 };
 
 async function getSlotRecentPerformanceImpl(filters: OverviewFilters, weeks: number, locale: Locale): Promise<SlotRecentRow[]> {
-  const now = new Date();
+  const now = nowInBusinessTimeZone();
   const windowStart = new Date(now);
   windowStart.setUTCDate(windowStart.getUTCDate() - weeks * 7);
 
@@ -981,7 +982,7 @@ async function getSeasonalWindowPatternImpl(
   bucketUnit: "month" | "week",
   locale: Locale
 ): Promise<RecentMonthPoint[]> {
-  const now = new Date();
+  const now = nowInBusinessTimeZone();
   const dataEnd = windowEnd < now ? windowEnd : now;
 
   const where = buildWhere({ ...filters, dateFrom: windowStart, dateTo: dataEnd });

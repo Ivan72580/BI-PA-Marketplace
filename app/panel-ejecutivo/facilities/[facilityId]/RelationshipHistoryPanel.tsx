@@ -20,6 +20,16 @@ type EventRow = {
 
 const EVENT_TYPES = ["EVENT", "AGREEMENT", "ACTION_ITEM"] as const;
 
+// Fecha de HOY tal como la ve quien está completando el formulario, en su
+// propio huso horario (esto corre en el navegador) — a propósito NO usamos
+// new Date().toISOString(), que convierte a UTC y puede saltar al día
+// siguiente a la tarde/noche según el huso de quien mira la pantalla.
+function todayLocalISO(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 const inputClass =
   "w-full rounded-md border border-border bg-surface/60 px-3 py-1.5 text-sm text-ink focus:outline-none focus:ring-1 focus:ring-brand/30 hover:border-border-strong transition-colors";
 const labelClass = "block text-xs text-ink-faint mb-1";
@@ -37,7 +47,7 @@ export default function RelationshipHistoryPanel({
   const [error, setError] = useState<string | null>(null);
 
   const [draftType, setDraftType] = useState<RelationshipEventInput["type"]>("EVENT");
-  const [draftDate, setDraftDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [draftDate, setDraftDate] = useState(todayLocalISO);
   const [draftNote, setDraftNote] = useState("");
   const [draftAttachmentUrl, setDraftAttachmentUrl] = useState("");
 
