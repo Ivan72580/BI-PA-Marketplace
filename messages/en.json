@@ -11,6 +11,7 @@
     "daily": "Daily",
     "panelEjecutivo": "Executive Panel",
     "forecast": "Forecast",
+    "seasonality": "Seasonality",
     "facilitySearch": {
       "placeholder": "Search facility...",
       "empty": "No results for \"{query}\""
@@ -1362,6 +1363,61 @@
       "yoyDown": "Expected volume is {pct}% below what actually happened in the same period last year.",
       "riskTop": "{n} facilities show a projected declining trend — the most pronounced is {name}.",
       "revenueCaveat": "Expected revenue is the least reliable number in this forecast: it combines price, players and volume, all three uncertain."
+    }
+  },
+  "Seasonality": {
+    "pageTitle": "Seasonality",
+    "subtitle": "Annual volume and revenue evolution across the whole network (or the selected filter), month by month, compared against the prior year.",
+    "allNetwork": "All network",
+    "year": {
+      "prev": "Previous year",
+      "next": "Next year",
+      "current": "Back to current year"
+    },
+    "compare": {
+      "show": "Compare with prior year",
+      "hide": "Hide prior year"
+    },
+    "chart": {
+      "title": "Monthly volume (confirmed games)",
+      "legend": "{year}",
+      "empty": "No confirmed games in this filter for these two years."
+    },
+    "calendar": {
+      "title": "Month-by-month calendar",
+      "gamesLabel": "Confirmed games",
+      "revenueLabel": "Revenue",
+      "future": "Not yet",
+      "current": "In progress"
+    },
+    "totals": {
+      "games": "Confirmed games (year)",
+      "revenue": "Total revenue (year)"
+    },
+    "glossary": {
+      "yoy": {
+        "term": "Year-over-year (YoY)",
+        "def": "compares each month against the same month of the prior year — not the previous month — to isolate the business's own seasonality."
+      },
+      "revenue": {
+        "term": "Revenue",
+        "def": "simple sum of the revenue logged per confirmed game, with no cost deducted — not profit or margin."
+      },
+      "currentMonth": {
+        "term": "Current month",
+        "def": "still in progress: its value and variation are partial and may rise before the month closes."
+      }
+    },
+    "insights": {
+      "panelTitle": "Seasonality insights",
+      "yearGamesUp": "Confirmed volume in {year} is {pct}% above {priorYear}.",
+      "yearGamesDown": "Confirmed volume in {year} is {pct}% below {priorYear}.",
+      "yearRevenueUp": "Revenue in {year} is {pct}% above {priorYear}.",
+      "yearRevenueDown": "Revenue in {year} is {pct}% below {priorYear}.",
+      "bestMonth": "{month} was the highest-volume month of {year} ({n} games).",
+      "currentMonthCaveat": "{month} is still in progress: its value is partial, not the month's final close.",
+      "noPriorYearData": "No confirmed games in {priorYear} for this filter — no year-over-year baseline yet.",
+      "revenueCaveat": "The revenue shown is the simple sum logged per game, with no cost deducted."
     }
   }
 }

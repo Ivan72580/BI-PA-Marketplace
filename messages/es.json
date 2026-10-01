@@ -11,6 +11,7 @@
     "daily": "Diario",
     "panelEjecutivo": "Panel Ejecutivo",
     "forecast": "Pronóstico",
+    "seasonality": "Estacionalidad",
     "facilitySearch": {
       "placeholder": "Buscar facility...",
       "empty": "Sin resultados para \"{query}\""
@@ -1362,6 +1363,61 @@
       "yoyDown": "El volumen esperado está {pct}% por debajo de lo que pasó real en el mismo período el año pasado.",
       "riskTop": "{n} facilities muestran una tendencia de deterioro proyectada — la más marcada es {name}.",
       "revenueCaveat": "El revenue esperado es el número menos confiable de este pronóstico: combina precio, jugadores y volumen, las tres inciertas."
+    }
+  },
+  "Seasonality": {
+    "pageTitle": "Estacionalidad",
+    "subtitle": "Evolución anual de volumen y revenue de toda la red (o el filtro elegido), mes a mes, comparada contra el año anterior.",
+    "allNetwork": "Toda la red",
+    "year": {
+      "prev": "Año anterior",
+      "next": "Año siguiente",
+      "current": "Volver al año actual"
+    },
+    "compare": {
+      "show": "Comparar con año anterior",
+      "hide": "Ocultar año anterior"
+    },
+    "chart": {
+      "title": "Volumen mensual (partidos confirmados)",
+      "legend": "{year}",
+      "empty": "Sin partidos confirmados en este filtro para estos dos años."
+    },
+    "calendar": {
+      "title": "Calendario por mes",
+      "gamesLabel": "Partidos confirmados",
+      "revenueLabel": "Revenue",
+      "future": "Aún no",
+      "current": "Mes en curso"
+    },
+    "totals": {
+      "games": "Partidos confirmados (año)",
+      "revenue": "Revenue total (año)"
+    },
+    "glossary": {
+      "yoy": {
+        "term": "Variación interanual (YoY)",
+        "def": "compara cada mes contra el mismo mes del año anterior — no contra el mes previo — para aislar la estacionalidad propia del negocio."
+      },
+      "revenue": {
+        "term": "Revenue",
+        "def": "suma simple del revenue cargado por partido confirmado, sin deducir ningún costo — no es ganancia ni margen."
+      },
+      "currentMonth": {
+        "term": "Mes en curso",
+        "def": "todavía no terminó: su valor y su variación son parciales y pueden subir antes de fin de mes."
+      }
+    },
+    "insights": {
+      "panelTitle": "Insights de estacionalidad",
+      "yearGamesUp": "El volumen confirmado de {year} viene {pct}% por encima de {priorYear}.",
+      "yearGamesDown": "El volumen confirmado de {year} viene {pct}% por debajo de {priorYear}.",
+      "yearRevenueUp": "El revenue de {year} viene {pct}% por encima de {priorYear}.",
+      "yearRevenueDown": "El revenue de {year} viene {pct}% por debajo de {priorYear}.",
+      "bestMonth": "{month} fue el mes de mayor volumen confirmado de {year} ({n} partidos).",
+      "currentMonthCaveat": "{month} todavía está en curso: su valor es parcial, no el cierre del mes.",
+      "noPriorYearData": "Sin partidos confirmados en {priorYear} para este filtro — todavía no hay base de comparación interanual.",
+      "revenueCaveat": "El revenue mostrado es la suma simple cargada por partido, sin deducir ningún costo."
     }
   }
 }
