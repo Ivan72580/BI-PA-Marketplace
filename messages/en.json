@@ -738,7 +738,6 @@
       "lowConfirmation": "⚠ Only {pct}% of scheduled games get confirmed — demand isn't reaching the minimum player count in more than half of them.",
       "topReason": "⚠ \"{reason}\" explains {pct}% of cancellations ({count} games) — it's the main issue to tackle.",
       "outlier": "⚠ {facility} cancels {rate}% of its games ({games} in the period), {gap} points above the network average ({networkRate}%).",
-      "highFillRate": "✓ Confirmed games fill up to {pct}% of their average capacity — worth evaluating expanding capacity or adding similar time slots.",
       "noAlerts": "No relevant alerts detected for the selected period.",
       "confirmedUp": "✓ Confirmed games rose {pct}% vs. {period} ({prior} → {current}).",
       "confirmedDown": "⚠ Confirmed games fell {pct}% vs. {period} ({prior} → {current}).",
@@ -1502,6 +1501,27 @@
       "monitorScope": "Monitor {scope}: confirmed games fell {pct}% vs. the prior period.",
       "topReason": "Review the dominant cancellation reason: {reason} ({pct}% of cancellations).",
       "empty": "No specific suggestions for this period."
+    },
+    "facilityFocus": {
+      "title": "This week's focus — by facility",
+      "actionLabel": "Action:",
+      "empty": "No specific facilities to flag this period.",
+      "finding": {
+        "volumeDrop": "Dropped to {confirmedGames} confirmed games this week, {changePct}% fewer than the prior period.",
+        "cancellationHigh": "Cancellation rate of {rate}%, {gap} points above the network average ({networkRate}%).",
+        "paretoShare": "Accounts for {pct}% of all network cancellations this period ({count} games)."
+      },
+      "reason": {
+        "dominant": "{pct}% of its cancellations this week were due to \"{reason}\"."
+      },
+      "action": {
+        "facilityIssue": "Confirm with the facility whether the issue is still ongoing and, if so, get an estimated resolution date.",
+        "demand": "Not an operational issue at the facility — review the demand/marketing strategy for that area.",
+        "weather": "External cause (weather) — no action needed on the facility; confirm it doesn't repeat next week.",
+        "holiday": "Expected dip due to a holiday — no action needed, monitor that it returns to its usual level.",
+        "reviewDemand": "Not explained by cancellations — review whether booking demand dropped at that facility (marketing, competition, seasonality).",
+        "unclear": "Contact the facility manager to find out the specific cause."
+      }
     },
     "evolution": {
       "title": "Evolution — last {count} {granularity, select, week {weeks} month {months} other {periods}}",

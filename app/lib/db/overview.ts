@@ -202,7 +202,6 @@ async function getOverviewDataImpl(filters: OverviewFilters, locale: Locale = "e
   const insights = generateOverviewInsights({
     confirmationRate,
     cancellationRate,
-    avgFillRate,
     cancellationBreakdown,
     totalGames: total,
     worstCancellationRate,
@@ -342,7 +341,6 @@ export const getCancellationReasonRanking = cached("getCancellationReasonRanking
 function generateOverviewInsights(m: {
   confirmationRate: number;
   cancellationRate: number;
-  avgFillRate: number;
   cancellationBreakdown: { category: string; label: string; count: number; pct: number }[];
   totalGames: number;
   worstCancellationRate: { label: string; rate: number; totalGames: number }[];
@@ -381,10 +379,6 @@ function generateOverviewInsights(m: {
         })
       );
     }
-  }
-
-  if (m.avgFillRate > 0.95) {
-    insights.push(t("insights.highFillRate", { pct: (m.avgFillRate * 100).toFixed(1) }));
   }
 
   if (insights.length === 0) {

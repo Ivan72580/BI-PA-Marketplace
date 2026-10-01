@@ -738,7 +738,6 @@
       "lowConfirmation": "⚠ Solo se confirma el {pct}% de los partidos programados — la demanda no está alcanzando el mínimo de jugadores en más de la mitad de los casos.",
       "topReason": "⚠ \"{reason}\" explica el {pct}% de las cancelaciones ({count} partidos) — es el principal punto a atacar.",
       "outlier": "⚠ {facility} cancela el {rate}% de sus partidos ({games} en el período), {gap} puntos por encima del promedio de la red ({networkRate}%).",
-      "highFillRate": "✓ Los partidos confirmados se llenan al {pct}% de su capacidad promedio — hay señal para evaluar ampliar cupo o sumar horarios similares.",
       "noAlerts": "No se detectaron alertas relevantes en el período seleccionado.",
       "confirmedUp": "✓ Los partidos confirmados subieron {pct}% respecto a {period} ({prior} → {current}).",
       "confirmedDown": "⚠ Los partidos confirmados bajaron {pct}% respecto a {period} ({prior} → {current}).",
@@ -1502,6 +1501,27 @@
       "monitorScope": "Monitorear {scope}: los partidos confirmados cayeron {pct}% vs. el período anterior.",
       "topReason": "Revisar el motivo de cancelación dominante: {reason} ({pct}% de las cancelaciones).",
       "empty": "Sin sugerencias puntuales para este período."
+    },
+    "facilityFocus": {
+      "title": "Foco de la semana — por cancha",
+      "actionLabel": "Acción:",
+      "empty": "Sin canchas puntuales para destacar este período.",
+      "finding": {
+        "volumeDrop": "Bajó a {confirmedGames} partidos confirmados esta semana, {changePct}% menos que el período anterior.",
+        "cancellationHigh": "Tasa de cancelación del {rate}%, {gap} puntos por encima del promedio de la red ({networkRate}%).",
+        "paretoShare": "Explica el {pct}% de todas las cancelaciones de la red este período ({count} partidos)."
+      },
+      "reason": {
+        "dominant": "El {pct}% de sus cancelaciones esta semana fueron por \"{reason}\"."
+      },
+      "action": {
+        "facilityIssue": "Confirmar con la cancha si el problema sigue vigente y, de ser así, pedir una fecha estimada de resolución.",
+        "demand": "No es un problema operativo de la cancha — revisar la estrategia de demanda/marketing en esa zona.",
+        "weather": "Causa externa (clima) — no requiere acción sobre la cancha; confirmar que no se repita la semana que viene.",
+        "holiday": "Caída esperable por feriado — sin acción necesaria, monitorear que vuelva a su nivel habitual.",
+        "reviewDemand": "No se explica por cancelaciones — revisar si bajó la demanda de reservas en esa cancha (marketing, competencia, estacionalidad).",
+        "unclear": "Contactar al encargado de la cancha para relevar la causa puntual."
+      }
     },
     "evolution": {
       "title": "Evolución — últimos {count} {granularity, select, week {semanas} month {meses} other {períodos}}",

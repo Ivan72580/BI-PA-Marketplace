@@ -16,7 +16,15 @@ function formatPct(n: number) {
 }
 
 export default function OpsReportDocument({ core, t, scopeLabel }: { core: ReportCore; t: Translator; scopeLabel: string }) {
-  const { current, kpis, periods, breakdown, actions } = core;
+  const { current, kpis, periods, breakdown, actions, facilityFocus } = core;
+
+  // "Foco de la semana" (abajo) ya cubre, con mucho más detalle, la misma
+  // cancha que dispararía actions.worstFacility (mismo umbral, mismo dato:
+  // current.worstCancellationRate[0]) — se saca de la lista general acá
+  // para no decir lo mismo dos veces en el mismo reporte. El Ejecutivo y el
+  // mail siguen mostrando la lista completa, sin este filtro: todavía no
+  // tienen el reemplazo.
+  const generalActions = actions.filter((a) => a.textKey !== "actions.worstFacility");
 
   return (
     <article className="space-y-4 print:space-y-3">
@@ -82,12 +90,33 @@ export default function OpsReportDocument({ core, t, scopeLabel }: { core: Repor
         <ScopeBreakdownTable breakdown={breakdown} t={t} />
       </ReportSection>
 
+      <ReportSection title={t("facilityFocus.title")}>
+        {facilityFocus.length === 0 ? (
+          <div className="text-sm text-ink-faint">{t("facilityFocus.empty")}</div>
+        ) : (
+          <ul className="space-y-3">
+            {facilityFocus.map((item, i) => (
+              <li key={i} className="rounded-xl border border-border bg-surface-sunken/40 p-3 print:rounded-none print:border-0 print:border-b print:pb-2">
+                <div className="font-display text-sm font-semibold text-ink mb-1 print:text-[9.5pt]">{item.entityLabel}</div>
+                <p className="text-sm text-ink-muted print:text-[9pt]">
+                  {t(item.findingTextKey, item.findingValues)}
+                  {item.reasonTextKey ? ` ${t(item.reasonTextKey, item.reasonValues)}` : ""}
+                </p>
+                <p className="text-sm text-ink font-medium mt-1.5 print:text-[9pt]">
+                  <span className="text-brand">{t("facilityFocus.actionLabel")}</span> {t(item.actionTextKey)}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </ReportSection>
+
       <ReportSection title={t("actions.title")}>
-        {actions.length === 0 ? (
+        {generalActions.length === 0 ? (
           <div className="text-sm text-ink-faint">{t("actions.empty")}</div>
         ) : (
           <ol className="space-y-1.5 list-decimal list-inside">
-            {actions.map((a, i) => (
+            {generalActions.map((a, i) => (
               <li key={i} className="text-sm text-ink print:text-[9pt]">
                 {t(a.textKey, a.values)}
               </li>

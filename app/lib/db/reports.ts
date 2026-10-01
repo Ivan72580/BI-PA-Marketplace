@@ -1,7 +1,7 @@
 import { GameStatus } from "@prisma/client";
 import { prisma } from "./prisma";
 import { cached } from "./cache";
-import { buildWhere, type OverviewFilters } from "./shared";
+import { buildWhere, labelForCancellationCategory, MIN_GAMES_FOR_RANKING, type OverviewFilters } from "./shared";
 import { resolvePeriod, shiftAnchor } from "../period";
 import { getOverviewData, type OverviewData } from "./overview";
 import { getRegionComparison, type RegionComparisonRow } from "./region";
@@ -371,6 +371,199 @@ function buildActionSuggestions(
   return suggestions.slice(0, 6);
 }
 
+// ---------- Foco de la semana (detalle accionable por cancha) ----------
+// A diferencia de "Detalle de los puntos no positivos" del mockup original
+// (ver nota arriba de getOpsReportDataImpl) — narrativa especulativa escrita
+// a mano ("sugiere un problema de mantenimiento...") — esto arma la acción
+// recomendada a partir del MOTIVO DE CANCELACIÓN REAL cargado en cada
+// partido (game.cancellationCategory), no de una causa inventada: el motivo
+// decide la acción, mismo criterio que generateOverviewInsights/
+// buildActionSuggestions ("solo lo que los números ya traídos sustentan").
+//
+// Siempre a nivel CANCHA puntual, aunque el reporte esté viendo la red
+// completa o una región — es el nivel sobre el que alguien puede
+// efectivamente actuar ("contactar a la cancha", no "a la región"). Se
+// desactiva cuando el reporte YA está filtrado a una sola cancha
+// (filters.facilityId): ahí no hay nada que destacar sobre sí misma.
+//
+// Elige hasta 3 canchas, en este orden de prioridad (se corta ni bien se
+// llega a 3, y cada cancha entra una sola vez):
+//  1. Mayor caída de partidos confirmados vs. el período anterior.
+//  2. Peor tasa de cancelación con una brecha relevante vs. la red (mismo
+//     umbral que actions.worstFacility — por eso ese ítem se saca de la
+//     lista general en Ops, ver OpsReportDocument: sería la misma cancha
+//     dicha dos veces).
+//  3. La cancha que más explica las cancelaciones de TODA la red este
+//     período (reusa paretoCancellations, ya calculado).
+const FACILITY_FOCUS_DOMINANT_REASON_PCT = 0.35; // mismo umbral que actions.topReason
+
+export type FacilityFocusItem = {
+  entityLabel: string;
+  findingTextKey: string;
+  findingValues: Record<string, string | number>;
+  reasonTextKey: string | null;
+  reasonValues?: Record<string, string | number>;
+  actionTextKey: string;
+};
+
+type FocusTrigger = "volumeDrop" | "cancellationHigh" | "paretoShare";
+type FocusCandidate = { facilityId: string; trigger: FocusTrigger; findingValues: Record<string, string | number> };
+
+// La categoría se trata como string simple, no como el enum de Prisma
+// (CancellationCategory) — mismo criterio que shared.ts (CATEGORY_LABEL,
+// labelForCancellationCategory): alcanza con que coincida con los valores
+// reales que guarda la base, sin acoplar este archivo al tipo del cliente
+// generado.
+function actionKeyForReason(category: string): string {
+  switch (category) {
+    case "MAINTENANCE":
+    case "FACILITY_UNAVAILABLE":
+      return "facilityFocus.action.facilityIssue";
+    case "NOT_ENOUGH_PLAYERS":
+      return "facilityFocus.action.demand";
+    case "WEATHER":
+      return "facilityFocus.action.weather";
+    case "HOLIDAY":
+      return "facilityFocus.action.holiday";
+    default:
+      return "facilityFocus.action.unclear";
+  }
+}
+
+async function buildFacilityFocus(
+  filters: ReportFilters,
+  current: OverviewData,
+  dateFrom: Date,
+  dateTo: Date,
+  priorDateFrom: Date,
+  priorDateTo: Date,
+  locale: Locale
+): Promise<FacilityFocusItem[]> {
+  if (filters.facilityId) return []; // el reporte ya es de una sola cancha
+
+  const facilityRows = await getFacilityComparison(filters, dateFrom, dateTo, priorDateFrom, priorDateTo);
+
+  const candidates: FocusCandidate[] = [];
+  const seen = new Set<string>();
+
+  const worstVolume = [...facilityRows]
+    .filter((r) => r.totalGames >= MIN_GAMES_FOR_RANKING && r.changePct !== null)
+    .sort((a, b) => (a.changePct as number) - (b.changePct as number))[0];
+  if (worstVolume && (worstVolume.changePct as number) <= -BREAKDOWN_ALERT_PCT) {
+    candidates.push({
+      facilityId: worstVolume.facilityId,
+      trigger: "volumeDrop",
+      findingValues: {
+        confirmedGames: worstVolume.confirmedGames,
+        changePct: Math.abs((worstVolume.changePct as number) * 100).toFixed(0),
+      },
+    });
+    seen.add(worstVolume.facilityId);
+  }
+
+  const worstRate = current.worstCancellationRate.find(
+    (f) => f.totalGames >= MIN_GAMES_FOR_RANKING && !seen.has(f.facilityId)
+  );
+  if (worstRate) {
+    const gapPoints = (worstRate.rate - current.cancellationRate) * 100;
+    if (gapPoints >= OUTLIER_GAP_POINTS) {
+      candidates.push({
+        facilityId: worstRate.facilityId,
+        trigger: "cancellationHigh",
+        findingValues: {
+          rate: (worstRate.rate * 100).toFixed(0),
+          gap: gapPoints.toFixed(0),
+          networkRate: (current.cancellationRate * 100).toFixed(0),
+        },
+      });
+      seen.add(worstRate.facilityId);
+    }
+  }
+
+  const topContributor = current.paretoCancellations.find((p) => !seen.has(p.facilityId));
+  if (topContributor && current.cancelledGames > 0) {
+    const sharePct = topContributor.value / current.cancelledGames;
+    if (sharePct >= FACILITY_FOCUS_DOMINANT_REASON_PCT) {
+      candidates.push({
+        facilityId: topContributor.facilityId,
+        trigger: "paretoShare",
+        findingValues: { pct: (sharePct * 100).toFixed(0), count: topContributor.value },
+      });
+      seen.add(topContributor.facilityId);
+    }
+  }
+
+  if (candidates.length === 0) return [];
+
+  const facilityIds = candidates.map((c) => c.facilityId);
+
+  const [facilityInfo, reasonGroups] = await Promise.all([
+    prisma.facility.findMany({
+      where: { id: { in: facilityIds } },
+      select: { id: true, name: true, market: { select: { name: true, region: { select: { name: true } } } } },
+    }),
+    // Motivo de cancelación REAL de cada cancha elegida, SOLO para esas
+    // pocas canchas (no todas las de la red) — una consulta chica y puntual,
+    // no el mismo costo que cancellationBreakdown a nivel red.
+    prisma.game.groupBy({
+      by: ["facilityId", "cancellationCategory"],
+      where: { facilityId: { in: facilityIds }, status: GameStatus.CANCELLED, date: { gte: dateFrom, lte: dateTo } },
+      _count: { _all: true },
+    }),
+  ]);
+
+  type FacilityInfoRow = { id: string; name: string; market: { name: string; region: { name: string } | null } | null };
+  const infoById = new Map((facilityInfo as FacilityInfoRow[]).map((f) => [f.id, f] as const));
+
+  const reasonTotals = new Map<string, Map<string, number>>();
+  for (const g of reasonGroups) {
+    // Mismo fusionado que cancellationBreakdown en overview.ts: null (sin
+    // motivo cargado) y "OTHER" son casos distintos para Prisma pero deben
+    // contar juntos acá.
+    const category = (g.cancellationCategory as string | null) ?? "OTHER";
+    const byCategory = reasonTotals.get(g.facilityId) ?? new Map<string, number>();
+    byCategory.set(category, (byCategory.get(category) ?? 0) + Number(g._count._all));
+    reasonTotals.set(g.facilityId, byCategory);
+  }
+
+  function dominantReason(facilityId: string): { category: string; pct: number } | null {
+    const byCategory = reasonTotals.get(facilityId);
+    if (!byCategory) return null;
+    const total = Array.from(byCategory.values()).reduce((a, b) => a + b, 0);
+    if (total === 0) return null;
+    const [category, count] = Array.from(byCategory.entries()).sort((a, b) => b[1] - a[1])[0];
+    const pct = count / total;
+    return pct >= FACILITY_FOCUS_DOMINANT_REASON_PCT ? { category, pct } : null;
+  }
+
+  const findingTextKeyByTrigger: Record<FocusTrigger, string> = {
+    volumeDrop: "facilityFocus.finding.volumeDrop",
+    cancellationHigh: "facilityFocus.finding.cancellationHigh",
+    paretoShare: "facilityFocus.finding.paretoShare",
+  };
+
+  return candidates.slice(0, 3).map((c) => {
+    const info = infoById.get(c.facilityId);
+    const entityLabel = info ? (info.market?.region ? `${info.name} (${info.market.region.name})` : info.name) : "—";
+    const reason = dominantReason(c.facilityId);
+
+    return {
+      entityLabel,
+      findingTextKey: findingTextKeyByTrigger[c.trigger],
+      findingValues: c.findingValues,
+      reasonTextKey: reason ? "facilityFocus.reason.dominant" : null,
+      reasonValues: reason
+        ? { reason: labelForCancellationCategory(reason.category, locale), pct: (reason.pct * 100).toFixed(0) }
+        : undefined,
+      actionTextKey: reason
+        ? actionKeyForReason(reason.category)
+        : c.trigger === "volumeDrop"
+          ? "facilityFocus.action.reviewDemand"
+          : "facilityFocus.action.unclear",
+    };
+  });
+}
+
 function resolveEvolutionWindow(granularity: ReportGranularity, dateTo: Date): { windowStart: Date; windowEnd: Date } {
   const windowStart = new Date(dateTo);
   if (granularity === "week") windowStart.setUTCDate(windowStart.getUTCDate() - 6 * 7);
@@ -426,6 +619,7 @@ export type ReportCore = {
   seasonal: SeasonalInsight | null;
   actions: ActionSuggestion[];
   evolution: MetricSeriesPoint[];
+  facilityFocus: FacilityFocusItem[];
 };
 
 async function buildReportCore(filters: ReportFilters, granularity: ReportGranularity, anchorISO: string, locale: Locale): Promise<ReportCore> {
@@ -443,6 +637,18 @@ async function buildReportCore(filters: ReportFilters, granularity: ReportGranul
 
   const seasonal = buildSeasonalInsight(priorYear, priorYearNext);
   const actions = buildActionSuggestions(current, breakdown, seasonal, evolution);
+  // Depende de current.worstCancellationRate/paretoCancellations, así que
+  // corre después de que ese fetch ya resolvió — no entra en el Promise.all
+  // de arriba.
+  const facilityFocus = await buildFacilityFocus(
+    filters,
+    current,
+    periods.current.dateFrom,
+    periods.current.dateTo,
+    periods.prior.dateFrom,
+    periods.prior.dateTo,
+    locale
+  );
 
   return {
     granularity,
@@ -454,6 +660,7 @@ async function buildReportCore(filters: ReportFilters, granularity: ReportGranul
     seasonal,
     actions,
     evolution,
+    facilityFocus,
   };
 }
 
