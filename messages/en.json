@@ -12,6 +12,7 @@
     "panelEjecutivo": "Executive Panel",
     "forecast": "Forecast",
     "seasonality": "Seasonality",
+    "reports": "Reports",
     "facilitySearch": {
       "placeholder": "Search facility...",
       "empty": "No results for \"{query}\""
@@ -1090,7 +1091,8 @@
   "PanelEjecutivoNav": {
     "overview": "Overview",
     "facilities": "Facility Profiles",
-    "satisfaction": "Player Satisfaction"
+    "satisfaction": "Player Satisfaction",
+    "reports": "Reports"
   },
   "FacilityProfile": {
     "backToList": "← Back to facility list",
@@ -1444,5 +1446,77 @@
       "basedOn": "Based on {confirmed} confirmed in {elapsed} of {total} days · variation vs. full prior month",
       "notYetAvailable": "{month} projection available from day {day}"
     }
+  },
+  "Reports": {
+    "title": "Reports",
+    "opsTitle": "Internal Ops Report",
+    "execTitle": "Executive Summary",
+    "periodLabel": "{label}",
+    "scopeNetwork": "Whole network",
+    "downloadPdf": "Download PDF",
+    "printHint": "Opens the browser's print dialog — choose \"Save as PDF\" to download it.",
+    "granularity": {
+      "week": "Week",
+      "month": "Month"
+    },
+    "kpi": {
+      "confirmedGames": "Confirmed games",
+      "confirmationRate": "Confirmation rate",
+      "cancellationRate": "Cancellation rate",
+      "avgFillRate": "Avg. occupancy",
+      "totalRevenue": "Revenue",
+      "vsPrior": "vs. {label}"
+    },
+    "criticalPoints": {
+      "title": "Critical points this period",
+      "empty": "No alerts this period."
+    },
+    "breakdown": {
+      "title": "Comparison vs. prior period",
+      "scopeRegion": "Region",
+      "scopeMarket": "Market",
+      "scopeFacility": "Facility",
+      "confirmed": "Confirmed",
+      "prior": "Prior period",
+      "variation": "Change",
+      "confirmationRateCol": "Confirmation rate",
+      "empty": "Not enough data for this comparison."
+    },
+    "seasonal": {
+      "volumeUp": "Based on the same stretch last year, the following period showed a ~{pct}% rise in confirmed volume.",
+      "volumeDown": "Based on the same stretch last year, the following period showed a ~{pct}% drop in confirmed volume."
+    },
+    "actions": {
+      "title": "Suggested actions",
+      "seasonalUp": "Anticipate a possible volume increase (~{pct}%), based on last year's pattern for this same stretch.",
+      "seasonalDown": "Anticipate a possible volume drop (~{pct}%), based on last year's pattern for this same stretch — don't treat it as a new problem if it plays out.",
+      "worstFacility": "Review availability/operations at {facility}, the worst cancellation rate this period ({rate}%).",
+      "monitorScope": "Monitor {scope}: confirmed games fell {pct}% vs. the prior period.",
+      "topReason": "Review the dominant cancellation reason: {reason} ({pct}% of cancellations).",
+      "empty": "No specific suggestions for this period."
+    },
+    "evolution": {
+      "title": "Evolution — last {count} {granularity, select, week {weeks} month {months} other {periods}}",
+      "legend": "Confirmed games"
+    },
+    "marketHighlights": {
+      "title": "{scopeLabel} highlights",
+      "best": "Best performance",
+      "critical": "Needs attention",
+      "empty": "Not enough data to compare."
+    },
+    "facilityRanking": {
+      "title": "Most critical facilities",
+      "subtitle": "Worst cancellation rate this period (minimum {min} games)",
+      "empty": "No facilities below the minimum game threshold this period."
+    },
+    "kpiTable": {
+      "title": "KPIs vs. prior period",
+      "kpi": "KPI",
+      "current": "This period",
+      "prior": "Prior period",
+      "variation": "Change"
+    },
+    "leadershipOnly": "Only available to accounts with Leadership Panel access."
   }
 }

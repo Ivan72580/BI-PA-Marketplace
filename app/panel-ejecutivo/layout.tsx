@@ -14,8 +14,13 @@ export default async function PanelEjecutivoLayout({ children }: { children: Rea
 
   return (
     <div>
-      <PanelEjecutivoNav />
-      <div className="mt-5">{children}</div>
+      {/* print:hidden — igual criterio que el TopNav global en AppChrome.tsx:
+          /panel-ejecutivo/reports imprime su propio contenido vía
+          window.print(), este nav de pestañas no pertenece al PDF. */}
+      <div className="print:hidden">
+        <PanelEjecutivoNav />
+      </div>
+      <div className="mt-5 print:mt-0">{children}</div>
     </div>
   );
 }

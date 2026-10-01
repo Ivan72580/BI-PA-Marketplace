@@ -49,3 +49,26 @@ body {
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
+/* ---------- Impresión (Reports: Internal Ops Report / Executive Summary) ----------
+   La "descarga" de los reportes es window.print() sobre la página normal del
+   navegador (decisión de Ivan: sin Chromium server-side, por las
+   limitaciones de Vercel Hobby) — @page fija el tamaño/margen de hoja, y
+   color-adjust conserva los fondos de color (tarjetas de KPI, heatmap, etc.)
+   que por default el navegador descarta al imprimir para ahorrar tinta. El
+   nav se oculta en AppChrome.tsx (print:hidden); acá solo lo que depende del
+   documento completo (tamaño de página, fondo de <main>). */
+@media print {
+  @page {
+    size: Letter;
+    margin: 0.4in 0.5in;
+  }
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  main {
+    background: white !important;
+    padding: 0 !important;
+  }
+}
+

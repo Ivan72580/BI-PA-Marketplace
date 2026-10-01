@@ -12,6 +12,7 @@
     "panelEjecutivo": "Panel Ejecutivo",
     "forecast": "Pronóstico",
     "seasonality": "Estacionalidad",
+    "reports": "Reportes",
     "facilitySearch": {
       "placeholder": "Buscar facility...",
       "empty": "Sin resultados para \"{query}\""
@@ -1090,7 +1091,8 @@
   "PanelEjecutivoNav": {
     "overview": "Resumen",
     "facilities": "Facility Profiles",
-    "satisfaction": "Player Satisfaction"
+    "satisfaction": "Player Satisfaction",
+    "reports": "Reportes"
   },
   "FacilityProfile": {
     "backToList": "← Volver al listado de facilities",
@@ -1444,5 +1446,77 @@
       "basedOn": "En base a {confirmed} confirmados en {elapsed} de {total} días · variación vs. mes anterior completo",
       "notYetAvailable": "Proyección de {month} disponible desde el día {day}"
     }
+  },
+  "Reports": {
+    "title": "Reportes",
+    "opsTitle": "Internal Ops Report",
+    "execTitle": "Executive Summary",
+    "periodLabel": "{label}",
+    "scopeNetwork": "Toda la red",
+    "downloadPdf": "Descargar PDF",
+    "printHint": "Se abre el diálogo de impresión del navegador — elegí \"Guardar como PDF\" para descargarlo.",
+    "granularity": {
+      "week": "Semana",
+      "month": "Mes"
+    },
+    "kpi": {
+      "confirmedGames": "Partidos confirmados",
+      "confirmationRate": "Tasa de confirmación",
+      "cancellationRate": "Tasa de cancelación",
+      "avgFillRate": "Ocupación promedio",
+      "totalRevenue": "Revenue",
+      "vsPrior": "vs. {label}"
+    },
+    "criticalPoints": {
+      "title": "Puntos críticos del período",
+      "empty": "Sin alertas en este período."
+    },
+    "breakdown": {
+      "title": "Comparación vs. período anterior",
+      "scopeRegion": "Región",
+      "scopeMarket": "Market",
+      "scopeFacility": "Facility",
+      "confirmed": "Confirmados",
+      "prior": "Período anterior",
+      "variation": "Variación",
+      "confirmationRateCol": "Tasa de confirmación",
+      "empty": "No hay datos suficientes para esta comparación."
+    },
+    "seasonal": {
+      "volumeUp": "Según el mismo tramo del año pasado, el período siguiente mostró un alza de ~{pct}% en volumen confirmado.",
+      "volumeDown": "Según el mismo tramo del año pasado, el período siguiente mostró una caída de ~{pct}% en volumen confirmado."
+    },
+    "actions": {
+      "title": "Sugerencias de acción",
+      "seasonalUp": "Anticipar un posible aumento de volumen (~{pct}%), según el patrón del año pasado en este mismo tramo.",
+      "seasonalDown": "Anticipar una posible caída de volumen (~{pct}%), según el patrón del año pasado en este mismo tramo — no tratarla como un problema nuevo si se confirma.",
+      "worstFacility": "Revisar disponibilidad/operación en {facility}, con la peor tasa de cancelación del período ({rate}%).",
+      "monitorScope": "Monitorear {scope}: los partidos confirmados cayeron {pct}% vs. el período anterior.",
+      "topReason": "Revisar el motivo de cancelación dominante: {reason} ({pct}% de las cancelaciones).",
+      "empty": "Sin sugerencias puntuales para este período."
+    },
+    "evolution": {
+      "title": "Evolución — últimos {count} {granularity, select, week {semanas} month {meses} other {períodos}}",
+      "legend": "Partidos confirmados"
+    },
+    "marketHighlights": {
+      "title": "{scopeLabel} más destacados",
+      "best": "Mejor desempeño",
+      "critical": "Requiere atención",
+      "empty": "Sin suficientes datos para comparar."
+    },
+    "facilityRanking": {
+      "title": "Facilities más críticas",
+      "subtitle": "Peor tasa de cancelación del período (mínimo {min} partidos)",
+      "empty": "Sin facilities por debajo del umbral mínimo de partidos en este período."
+    },
+    "kpiTable": {
+      "title": "KPIs vs. período anterior",
+      "kpi": "KPI",
+      "current": "Este período",
+      "prior": "Período anterior",
+      "variation": "Variación"
+    },
+    "leadershipOnly": "Solo disponible para cuentas con acceso a Panel Ejecutivo."
   }
 }

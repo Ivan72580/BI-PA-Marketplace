@@ -592,3 +592,91 @@ async function getMarketConfirmationRankingImpl(
 }
 
 export const getMarketConfirmationRanking = cached("getMarketConfirmationRanking", getMarketConfirmationRankingImpl);
+
+// ---------- Comparación market-vs-market para período arbitrario ----------
+// Contraparte de getRegionComparison (region.ts) un nivel más abajo: ese
+// recibe el rango actual y el anterior YA RESUELTOS (no atado a "mes
+// calendario vs. mes calendario anterior" como getMarketRanking arriba)
+// porque Overview puede filtrar por cualquier período. Los reportes
+// descargables (app/lib/db/reports.ts) son el primer consumidor que necesita
+// lo mismo a nivel market — reusa exactamente ese criterio en vez de forzar
+// el período semanal/mensual del reporte a encajar en getMarketRanking.
+export type MarketComparisonRow = {
+  marketId: string;
+  marketName: string;
+  regionId: string;
+  confirmedGames: number;
+  totalGames: number;
+  changePct: number | null;
+  confirmationRate: number;
+  changePts: number | null;
+};
+
+async function getMarketComparisonImpl(
+  filters: Omit<OverviewFilters, "dateFrom" | "dateTo" | "marketId" | "facilityId">,
+  dateFrom?: Date,
+  dateTo?: Date,
+  priorDateFrom?: Date,
+  priorDateTo?: Date
+): Promise<MarketComparisonRow[]> {
+  const where = buildWhere({ ...filters, dateFrom, dateTo });
+  const priorWhere = priorDateFrom && priorDateTo ? buildWhere({ ...filters, dateFrom: priorDateFrom, dateTo: priorDateTo }) : null;
+
+  type FacilityMarketInfo = { id: string; marketId: string; market: { name: string; regionId: string } };
+  const [currentGroups, priorGroups, facilityInfoRows] = await Promise.all([
+    prisma.game.groupBy({ by: ["facilityId", "status"], where, _count: { _all: true } }),
+    priorWhere
+      ? prisma.game.groupBy({ by: ["facilityId", "status"], where: priorWhere, _count: { _all: true } })
+      : Promise.resolve([]),
+    prisma.facility.findMany({
+      select: { id: true, marketId: true, market: { select: { name: true, regionId: true } } },
+    }) as unknown as Promise<FacilityMarketInfo[]>,
+  ]);
+
+  const facilityMarketMap = new Map(
+    facilityInfoRows.map((f): [string, { marketId: string; marketName: string; regionId: string }] => [
+      f.id,
+      { marketId: f.marketId, marketName: f.market.name, regionId: f.market.regionId },
+    ])
+  );
+
+  function tallyByMarket(groups: { facilityId: string; status: GameStatus; _count: { _all: number } }[]) {
+    const totals = new Map<string, { confirmed: number; total: number }>();
+    for (const g of groups) {
+      const info = facilityMarketMap.get(g.facilityId);
+      if (!info) continue;
+      const entry = totals.get(info.marketId) ?? { confirmed: 0, total: 0 };
+      entry.total += Number(g._count._all);
+      if (g.status === GameStatus.CONFIRMED) entry.confirmed += Number(g._count._all);
+      totals.set(info.marketId, entry);
+    }
+    return totals;
+  }
+
+  const currentByMarket = tallyByMarket(currentGroups as unknown as { facilityId: string; status: GameStatus; _count: { _all: number } }[]);
+  const priorByMarket = tallyByMarket(priorGroups as unknown as { facilityId: string; status: GameStatus; _count: { _all: number } }[]);
+
+  const marketMeta = new Map<string, { name: string; regionId: string }>();
+  for (const f of facilityInfoRows) marketMeta.set(f.marketId, { name: f.market.name, regionId: f.market.regionId });
+
+  const rows: MarketComparisonRow[] = Array.from(currentByMarket.entries()).map(([marketId, cur]) => {
+    const prior = priorByMarket.get(marketId) ?? null;
+    const confirmationRate = cur.total > 0 ? cur.confirmed / cur.total : 0;
+    const priorConfirmationRate = prior && prior.total > 0 ? prior.confirmed / prior.total : null;
+    const meta = marketMeta.get(marketId);
+    return {
+      marketId,
+      marketName: meta?.name ?? "—",
+      regionId: meta?.regionId ?? "",
+      confirmedGames: cur.confirmed,
+      totalGames: cur.total,
+      changePct: prior && prior.confirmed > 0 ? (cur.confirmed - prior.confirmed) / prior.confirmed : null,
+      confirmationRate,
+      changePts: priorConfirmationRate !== null ? confirmationRate - priorConfirmationRate : null,
+    };
+  });
+
+  return rows.sort((a, b) => b.confirmedGames - a.confirmedGames);
+}
+
+export const getMarketComparison = cached("getMarketComparison", getMarketComparisonImpl);
