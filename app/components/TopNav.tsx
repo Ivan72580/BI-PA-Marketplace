@@ -86,20 +86,13 @@ function LeadershipIcon() {
     </svg>
   );
 }
-function ReportsIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M6 2h9l5 5v15H6z" />
-      <path d="M15 2v5h5" />
-      <line x1="9" y1="13" x2="15" y2="13" />
-      <line x1="9" y1="17" x2="15" y2="17" />
-    </svg>
-  );
-}
-
 // Las labels viven en messages/*.json (namespace TopNav) — labelKey referencia
 // esa clave, se traduce en el render porque useTranslations es un hook.
-type NavLink = { href: string; labelKey: "overview" | "trends" | "market" | "daily" | "forecast" | "seasonality" | "panelEjecutivo" | "reports"; icon: () => ReactNode };
+// "reports" salió de acá (ver UserMenuDropdown): con 7 tabs la barra
+// quedaba apretada en pantallas medianas, y Reportes no es una vista que
+// se consulte con la misma frecuencia que el resto — vive ahora como link
+// dentro del menú de usuario, con su propio selector Operativo/Ejecutivo.
+type NavLink = { href: string; labelKey: "overview" | "trends" | "market" | "daily" | "forecast" | "seasonality" | "panelEjecutivo"; icon: () => ReactNode };
 
 const links: NavLink[] = [
   { href: "/", labelKey: "overview", icon: OverviewIcon },
@@ -108,7 +101,6 @@ const links: NavLink[] = [
   { href: "/daily", labelKey: "daily", icon: DailyIcon },
   { href: "/forecast", labelKey: "forecast", icon: ForecastIcon },
   { href: "/seasonality", labelKey: "seasonality", icon: SeasonalityIcon },
-  { href: "/reports", labelKey: "reports", icon: ReportsIcon },
 ];
 
 const panelEjecutivoLink: NavLink = { href: "/panel-ejecutivo", labelKey: "panelEjecutivo", icon: LeadershipIcon };

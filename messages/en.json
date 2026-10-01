@@ -12,7 +12,6 @@
     "panelEjecutivo": "Executive Panel",
     "forecast": "Forecast",
     "seasonality": "Seasonality",
-    "reports": "Reports",
     "facilitySearch": {
       "placeholder": "Search facility...",
       "empty": "No results for \"{query}\""
@@ -44,6 +43,7 @@
     "guest": "Guest",
     "signOut": "Sign out",
     "adminLink": "Admin",
+    "reportsLink": "Reports",
     "language": "Language"
   },
   "Admin": {
@@ -1091,8 +1091,7 @@
   "PanelEjecutivoNav": {
     "overview": "Overview",
     "facilities": "Facility Profiles",
-    "satisfaction": "Player Satisfaction",
-    "reports": "Reports"
+    "satisfaction": "Player Satisfaction"
   },
   "FacilityProfile": {
     "backToList": "← Back to facility list",
@@ -1455,6 +1454,10 @@
     "scopeNetwork": "Whole network",
     "downloadPdf": "Download PDF",
     "printHint": "Opens the browser's print dialog — choose \"Save as PDF\" to download it.",
+    "tabs": {
+      "ops": "Operational",
+      "executive": "Executive"
+    },
     "granularity": {
       "week": "Week",
       "month": "Month"
@@ -1487,9 +1490,13 @@
       "volumeDown": "Based on the same stretch last year, the following period showed a ~{pct}% drop in confirmed volume."
     },
     "actions": {
-      "title": "Suggested actions",
+      "title": "Suggested actions & focus for the next period",
       "seasonalUp": "Anticipate a possible volume increase (~{pct}%), based on last year's pattern for this same stretch.",
       "seasonalDown": "Anticipate a possible volume drop (~{pct}%), based on last year's pattern for this same stretch — don't treat it as a new problem if it plays out.",
+      "cancellationTrendUp": "The cancellation rate has been rising for {periods} consecutive periods (~{pts} points per period) — worth focusing on next period.",
+      "cancellationHistoricalHigh": "This is the highest cancellation rate in the last {periods} periods — worth prioritizing next period.",
+      "volumeTrendDown": "Confirmed games have been declining for {periods} consecutive periods — worth focusing on next period.",
+      "volumeHistoricalLow": "This is the lowest confirmed-games volume in the last {periods} periods.",
       "worstFacility": "Review availability/operations at {facility}, the worst cancellation rate this period ({rate}%).",
       "monitorScope": "Monitor {scope}: confirmed games fell {pct}% vs. the prior period.",
       "topReason": "Review the dominant cancellation reason: {reason} ({pct}% of cancellations).",

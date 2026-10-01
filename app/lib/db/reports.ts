@@ -238,10 +238,85 @@ const BREAKDOWN_ALERT_PCT = 0.08; // -8% o más vs. período anterior se conside
 
 export type ActionSuggestion = { textKey: string; values: Record<string, string | number> };
 
+// ---------- Foco para el período siguiente (tendencia/récord histórico) ----------
+// A diferencia de todo lo anterior (que compara el período actual contra
+// UN solo punto — el anterior inmediato, o el mismo tramo el año pasado),
+// esto mira la ventana completa que ya se trae para el gráfico de
+// evolución (evolution: 6 semanas o 6 meses según granularidad — ver
+// resolveEvolutionWindow) y busca dos patrones que sí justifican poner el
+// foco ahí para el período que viene:
+//  - una racha de >= MIN_STREAK períodos consecutivos moviéndose en la
+//    misma dirección (p. ej. cancelación subiendo 3 semanas seguidas)
+//  - el período actual siendo el peor (o el volumen más bajo) de toda la
+//    ventana, aun sin una racha prolija de un período a otro
+// Ninguna de las dos inventa una causa (ver nota sobre "Detalle de los
+// puntos no positivos" del mockup, arriba en este archivo) — solo
+// describen el patrón numérico y sugieren vigilarlo. Si se da la racha Y
+// el récord a la vez (lo usual), se reporta solo la racha: es la lectura
+// más informativa de las dos, y mostrar ambas sería redundante.
+const MIN_HISTORY_POINTS = 4; // incluyendo el actual: al menos 3 puntos previos para que "histórico" tenga sentido
+const MIN_STREAK = 3;
+const CANCELLATION_STEP_EPSILON = 0.005; // 0.5pt — filtra ruido de punto flotante, no una racha real
+
+function detectStreak(values: number[], epsilon: number): { direction: "up" | "down"; length: number } | null {
+  const diffs: number[] = [];
+  for (let i = 1; i < values.length; i++) diffs.push(values[i] - values[i - 1]);
+
+  let length = 0;
+  let direction: "up" | "down" | null = null;
+  for (let i = diffs.length - 1; i >= 0; i--) {
+    const d = diffs[i];
+    if (Math.abs(d) <= epsilon) break; // un paso plano corta la racha
+    const dir: "up" | "down" = d > 0 ? "up" : "down";
+    if (direction === null) direction = dir;
+    else if (dir !== direction) break;
+    length++;
+  }
+  return direction && length >= MIN_STREAK ? { direction, length } : null;
+}
+
+function buildHistoricalFocus(evolution: MetricSeriesPoint[]): ActionSuggestion[] {
+  if (evolution.length < MIN_HISTORY_POINTS) return [];
+
+  const current = evolution[evolution.length - 1];
+  if (current.totalGames === 0) return [];
+  const history = evolution.slice(0, -1);
+
+  const suggestions: ActionSuggestion[] = [];
+
+  const cancelStreak = detectStreak(evolution.map((p) => p.cancellationRate), CANCELLATION_STEP_EPSILON);
+  if (cancelStreak && cancelStreak.direction === "up") {
+    const startValue = evolution[evolution.length - 1 - cancelStreak.length].cancellationRate;
+    const avgStepPts = ((current.cancellationRate - startValue) / cancelStreak.length) * 100;
+    suggestions.push({
+      textKey: "actions.cancellationTrendUp",
+      values: { periods: cancelStreak.length, pts: avgStepPts.toFixed(1) },
+    });
+  } else {
+    const worstInHistory = Math.max(...history.map((p) => p.cancellationRate));
+    if (current.cancellationRate > 0 && current.cancellationRate >= worstInHistory) {
+      suggestions.push({ textKey: "actions.cancellationHistoricalHigh", values: { periods: history.length } });
+    }
+  }
+
+  const volumeStreak = detectStreak(evolution.map((p) => p.confirmedGames), 0);
+  if (volumeStreak && volumeStreak.direction === "down") {
+    suggestions.push({ textKey: "actions.volumeTrendDown", values: { periods: volumeStreak.length } });
+  } else {
+    const lowestInHistory = Math.min(...history.map((p) => p.confirmedGames));
+    if (current.confirmedGames <= lowestInHistory) {
+      suggestions.push({ textKey: "actions.volumeHistoricalLow", values: { periods: history.length } });
+    }
+  }
+
+  return suggestions;
+}
+
 function buildActionSuggestions(
   current: OverviewData,
   breakdown: ScopeBreakdown,
-  seasonal: SeasonalInsight | null
+  seasonal: SeasonalInsight | null,
+  evolution: MetricSeriesPoint[]
 ): ActionSuggestion[] {
   const suggestions: ActionSuggestion[] = [];
 
@@ -251,6 +326,8 @@ function buildActionSuggestions(
       values: { pct: seasonal.pct.toFixed(0) },
     });
   }
+
+  suggestions.push(...buildHistoricalFocus(evolution));
 
   const worst = current.worstCancellationRate[0];
   if (worst) {
@@ -288,7 +365,10 @@ function buildActionSuggestions(
     });
   }
 
-  return suggestions.slice(0, 4);
+  // Hasta 6 (antes 4): con el foco histórico nuevo puede haber hasta 2
+  // sugerencias más que antes — igual se limita para que la sección no
+  // crezca sin tope, pero ya no recorta las de siempre a mitad de camino.
+  return suggestions.slice(0, 6);
 }
 
 function resolveEvolutionWindow(granularity: ReportGranularity, dateTo: Date): { windowStart: Date; windowEnd: Date } {
@@ -362,7 +442,7 @@ async function buildReportCore(filters: ReportFilters, granularity: ReportGranul
   ]);
 
   const seasonal = buildSeasonalInsight(priorYear, priorYearNext);
-  const actions = buildActionSuggestions(current, breakdown, seasonal);
+  const actions = buildActionSuggestions(current, breakdown, seasonal, evolution);
 
   return {
     granularity,

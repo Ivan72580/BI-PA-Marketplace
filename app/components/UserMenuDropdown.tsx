@@ -70,6 +70,26 @@ export default function UserMenuDropdown({
             <LanguageSwitcher locale={locale} />
           </div>
 
+          {/* Reportes (Internal Ops / Executive Summary) vivía antes como
+              tab en TopNav y en PanelEjecutivoNav — se mudó acá porque no se
+              consulta con la frecuencia del resto de la navegación, y así
+              la barra principal queda con menos pestañas. El gate de
+              Executive Summary (leadership) lo resuelve la propia página
+              /reports, no este link — todas las cuentas ven "Reportes". */}
+          <Link
+            href="/reports"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm text-white/80 hover:bg-white/10 transition-colors"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 2h9l5 5v15H6z" />
+              <path d="M15 2v5h5" />
+              <line x1="9" y1="13" x2="15" y2="13" />
+              <line x1="9" y1="17" x2="15" y2="17" />
+            </svg>
+            {t("reportsLink")}
+          </Link>
+
           {isAdmin && (
             <Link
               href="/admin/users"

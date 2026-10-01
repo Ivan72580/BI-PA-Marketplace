@@ -23,7 +23,7 @@ function formatDelta(pct: number | null) {
 }
 
 export default function ExecutiveReportDocument({ core, t, scopeLabel }: { core: ReportCore; t: Translator; scopeLabel: string }) {
-  const { current, kpis, periods, breakdown, evolution, granularity } = core;
+  const { current, kpis, periods, breakdown, evolution, granularity, actions } = core;
 
   const breakdownRows = normalizeBreakdownRows(breakdown);
   const ranked = [...breakdownRows].sort((a, b) => (b.changePts ?? -Infinity) - (a.changePts ?? -Infinity));
@@ -167,6 +167,20 @@ export default function ExecutiveReportDocument({ core, t, scopeLabel }: { core:
             </tr>
           </tbody>
         </table>
+      </ReportSection>
+
+      <ReportSection title={t("actions.title")}>
+        {actions.length === 0 ? (
+          <div className="text-sm text-ink-faint">{t("actions.empty")}</div>
+        ) : (
+          <ol className="space-y-1.5 list-decimal list-inside">
+            {actions.map((a, i) => (
+              <li key={i} className="text-sm text-ink print:text-[9pt]">
+                {t(a.textKey, a.values)}
+              </li>
+            ))}
+          </ol>
+        )}
       </ReportSection>
 
       <footer className="pt-2 border-t border-border text-[10px] text-ink-faint flex justify-between print:text-[6.8pt]">

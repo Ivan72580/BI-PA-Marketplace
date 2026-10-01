@@ -12,7 +12,6 @@
     "panelEjecutivo": "Panel Ejecutivo",
     "forecast": "Pronóstico",
     "seasonality": "Estacionalidad",
-    "reports": "Reportes",
     "facilitySearch": {
       "placeholder": "Buscar facility...",
       "empty": "Sin resultados para \"{query}\""
@@ -44,6 +43,7 @@
     "guest": "Invitado",
     "signOut": "Salir",
     "adminLink": "Administración",
+    "reportsLink": "Reportes",
     "language": "Idioma"
   },
   "Admin": {
@@ -1091,8 +1091,7 @@
   "PanelEjecutivoNav": {
     "overview": "Resumen",
     "facilities": "Facility Profiles",
-    "satisfaction": "Player Satisfaction",
-    "reports": "Reportes"
+    "satisfaction": "Player Satisfaction"
   },
   "FacilityProfile": {
     "backToList": "← Volver al listado de facilities",
@@ -1455,6 +1454,10 @@
     "scopeNetwork": "Toda la red",
     "downloadPdf": "Descargar PDF",
     "printHint": "Se abre el diálogo de impresión del navegador — elegí \"Guardar como PDF\" para descargarlo.",
+    "tabs": {
+      "ops": "Operativo",
+      "executive": "Ejecutivo"
+    },
     "granularity": {
       "week": "Semana",
       "month": "Mes"
@@ -1487,9 +1490,13 @@
       "volumeDown": "Según el mismo tramo del año pasado, el período siguiente mostró una caída de ~{pct}% en volumen confirmado."
     },
     "actions": {
-      "title": "Sugerencias de acción",
+      "title": "Sugerencias de acción y foco para el período siguiente",
       "seasonalUp": "Anticipar un posible aumento de volumen (~{pct}%), según el patrón del año pasado en este mismo tramo.",
       "seasonalDown": "Anticipar una posible caída de volumen (~{pct}%), según el patrón del año pasado en este mismo tramo — no tratarla como un problema nuevo si se confirma.",
+      "cancellationTrendUp": "La tasa de cancelación viene subiendo hace {periods} períodos consecutivos (~{pts} puntos por período) — vale la pena ponerle foco en el período siguiente.",
+      "cancellationHistoricalHigh": "Es la tasa de cancelación más alta de los últimos {periods} períodos — vale la pena priorizarla en el período siguiente.",
+      "volumeTrendDown": "El volumen de partidos confirmados viene bajando hace {periods} períodos consecutivos — foco sugerido para el período siguiente.",
+      "volumeHistoricalLow": "Es el volumen de partidos confirmados más bajo de los últimos {periods} períodos.",
       "worstFacility": "Revisar disponibilidad/operación en {facility}, con la peor tasa de cancelación del período ({rate}%).",
       "monitorScope": "Monitorear {scope}: los partidos confirmados cayeron {pct}% vs. el período anterior.",
       "topReason": "Revisar el motivo de cancelación dominante: {reason} ({pct}% de las cancelaciones).",

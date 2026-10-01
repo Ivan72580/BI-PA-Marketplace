@@ -9,13 +9,16 @@ import { useTranslations } from "next-intl";
 // satisfaction/*); esto les da un chrome compartido sin dejar de ser rutas
 // reales e independientes (compartibles, se pueden abrir en pestañas del
 // navegador distintas, etc.).
-type Tab = { href: string; labelKey: "overview" | "facilities" | "satisfaction" | "reports" };
+// La pestaña "Reportes" que vivía acá se sacó: el Executive Summary ahora
+// es una de las dos vistas de /reports (ver ReportTypeTabs), reemplazando
+// la ruta /panel-ejecutivo/reports — mismo gate de acceso (requireLeadershipAccess),
+// pero resuelto dentro de /reports en vez de heredado de este layout.
+type Tab = { href: string; labelKey: "overview" | "facilities" | "satisfaction" };
 
 const tabs: Tab[] = [
   { href: "/panel-ejecutivo", labelKey: "overview" },
   { href: "/panel-ejecutivo/facilities", labelKey: "facilities" },
   { href: "/panel-ejecutivo/satisfaction", labelKey: "satisfaction" },
-  { href: "/panel-ejecutivo/reports", labelKey: "reports" },
 ];
 
 export default function PanelEjecutivoNav() {
