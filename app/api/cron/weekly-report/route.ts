@@ -50,13 +50,21 @@ async function sendReportEmails(
   recipients: Recipient[],
   anchorISO: string,
   baseUrl: string
-): Promise<{ sent: number; failed: number }> {
-  if (recipients.length === 0) return { sent: 0, failed: 0 };
+): Promise<{ sent: number; failed: number; errors: string[] }> {
+  if (recipients.length === 0) return { sent: 0, failed: 0, errors: [] };
 
   const resend = getResendClient();
   const from = getReportSenderAddress();
   let sent = 0;
   let failed = 0;
+  // Motivos de fallo (dedupeados): rechazo de Resend — ej. dominio de
+  // origen no verificado, destinatario no permitido en el sandbox
+  // onboarding@resend.dev — o una excepción de red/credenciales. Antes esto
+  // se descartaba en silencio y sólo quedaba el conteo; ahora se loguea
+  // siempre (Vercel Runtime Logs / terminal local) y, además, viaja en la
+  // respuesta JSON solo cuando es una corrida de prueba (?test=) — nunca en
+  // el cron real, por las dudas de que algún día se exponga esa respuesta.
+  const errorMessages = new Set<string>();
 
   // Agrupa por idioma antes de pedir los datos: el texto (insights,
   // sugerencias) sale ya traducido de getOverviewData, y este mail no tiene
@@ -86,12 +94,23 @@ async function sendReportEmails(
       group.map((r) => resend.emails.send({ from, to: r.email, subject, html }))
     );
     for (const result of results) {
-      if (result.status === "fulfilled" && !result.value.error) sent++;
-      else failed++;
+      if (result.status === "fulfilled" && !result.value.error) {
+        sent++;
+        continue;
+      }
+      failed++;
+      const message =
+        result.status === "fulfilled"
+          ? (result.value.error?.message ?? JSON.stringify(result.value.error))
+          : result.reason instanceof Error
+            ? result.reason.message
+            : String(result.reason);
+      console.error(`[weekly-report] fallo enviando (${kind}, ${locale}):`, message);
+      errorMessages.add(message);
     }
   }
 
-  return { sent, failed };
+  return { sent, failed, errors: [...errorMessages].slice(0, 5) };
 }
 
 export async function GET(req: NextRequest) {
@@ -149,11 +168,15 @@ export async function GET(req: NextRequest) {
     sendReportEmails("executive", execRecipients, anchorISO, baseUrl),
   ]);
 
+  function toResponse(result: { sent: number; failed: number; errors: string[] }) {
+    return isTestRun ? result : { sent: result.sent, failed: result.failed };
+  }
+
   return NextResponse.json({
     ok: true,
     period: anchorISO,
     test: isTestRun,
-    ops: opsResult,
-    executive: execResult,
+    ops: toResponse(opsResult),
+    executive: toResponse(execResult),
   });
 }
