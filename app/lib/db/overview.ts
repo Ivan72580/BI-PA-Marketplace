@@ -62,17 +62,27 @@ async function getOverviewDataImpl(filters: OverviewFilters, locale: Locale = "e
   const sumMaxPlayers = fillAgg._sum.maxPlayers ?? 0;
   const avgFillRate = sumMaxPlayers > 0 ? sumFinalPlayers / sumMaxPlayers : 0;
 
-  const cancellationBreakdown = cancellationGroups
-    .map((g) => {
-      const category = g.cancellationCategory ?? CancellationCategory.OTHER;
-      const count = Number(g._count._all);
-      return {
-        category,
-        label: labelForCancellationCategory(category, locale),
-        count,
-        pct: cancelledCount > 0 ? count / cancelledCount : 0,
-      };
-    })
+  // groupBy({ by: ["cancellationCategory"] }) trae un grupo separado para
+  // cancellationCategory=null (partido cancelado sin motivo cargado) y otro
+  // para el valor real CancellationCategory.OTHER — dos grupos DISTINTOS
+  // para Prisma. Antes esto solo renombraba cada uno a "OTHER" sin
+  // fusionarlos, así que podían convivir dos filas con el mismo category
+  // (bug real: dividía el conteo de "Otro" en dos, y en React disparaba
+  // "Encountered two children with the same key" en el breakdown de
+  // NetworkOverview, que usa reason.category como key). Acá se fusionan por
+  // el category YA resuelto, sumando sus conteos, antes de calcular pct.
+  const cancellationCounts = new Map<CancellationCategory, number>();
+  for (const g of cancellationGroups) {
+    const category = g.cancellationCategory ?? CancellationCategory.OTHER;
+    cancellationCounts.set(category, (cancellationCounts.get(category) ?? 0) + Number(g._count._all));
+  }
+  const cancellationBreakdown = Array.from(cancellationCounts.entries())
+    .map(([category, count]) => ({
+      category,
+      label: labelForCancellationCategory(category, locale),
+      count,
+      pct: cancelledCount > 0 ? count / cancelledCount : 0,
+    }))
     .sort((a, b) => b.count - a.count);
 
   // Partidos por hora del día
