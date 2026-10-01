@@ -57,3 +57,24 @@ export async function updateLeadershipAccess(userId: string, value: boolean): Pr
     return { ok: false, errorKey: "generic" };
   }
 }
+
+export type UpdateWeeklyReportOptInResult =
+  | { ok: true }
+  | { ok: false; errorKey: "unauthorized" | "generic" };
+
+// Mismo criterio que updateLeadershipAccess (un solo booleano, sin mínimo
+// que proteger) — opt-out del mail semanal de Reportes. El cron de
+// /api/cron/weekly-report lo lee directo de la fila, no hace falta tocar
+// nada más acá.
+export async function updateWeeklyReportOptIn(userId: string, value: boolean): Promise<UpdateWeeklyReportOptInResult> {
+  const admin = await requireAdmin();
+  if (!admin) return { ok: false, errorKey: "unauthorized" };
+
+  try {
+    await prisma.user.update({ where: { id: userId }, data: { receivesWeeklyReport: value } });
+    revalidatePath("/admin/users");
+    return { ok: true };
+  } catch {
+    return { ok: false, errorKey: "generic" };
+  }
+}

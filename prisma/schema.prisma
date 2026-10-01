@@ -383,6 +383,12 @@ model User {
   // vista /leadership. Se puede combinar con cualquier Role — un Admin no
   // lo tiene automáticamente, y se otorga/revoca desde /admin/users.
   canViewLeadership Boolean @default(false)
+  // Opt-out (default true) del mail semanal de reportes (Ops para
+  // cualquier cuenta activa, Executive Summary además solo para quienes
+  // tienen canViewLeadership) — se administra desde el mismo panel
+  // /admin/users que el flag de arriba, con el mismo criterio de "un solo
+  // booleano por fila, sin paso de confirmar" (ver UserRoleTable).
+  receivesWeeklyReport Boolean @default(true)
   // Reemplaza a la vieja UserPreference: mismo dato (idioma elegido), ahora
   // en la misma fila que el resto de la cuenta en vez de una tabla aparte
   // keyed por el mismo email.

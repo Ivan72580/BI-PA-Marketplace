@@ -11,7 +11,15 @@ export default async function AdminUsersPage() {
   const [users, t] = await Promise.all([
     prisma.user.findMany({
       orderBy: [{ role: "asc" }, { email: "asc" }],
-      select: { id: true, email: true, name: true, role: true, canViewLeadership: true, lastLoginAt: true },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        canViewLeadership: true,
+        receivesWeeklyReport: true,
+        lastLoginAt: true,
+      },
     }),
     getTranslations("Admin"),
   ]);

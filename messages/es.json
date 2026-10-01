@@ -54,6 +54,7 @@
       "email": "Email",
       "role": "Rol",
       "leadership": "Leadership",
+      "weeklyReport": "Mail semanal",
       "lastLogin": "Último acceso",
       "never": "Nunca"
     },

@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import type { Role } from "@prisma/client";
-import { updateUserRole, updateLeadershipAccess } from "../../lib/actions/adminUsers";
+import { updateUserRole, updateLeadershipAccess, updateWeeklyReportOptIn } from "../../lib/actions/adminUsers";
 
 type UserRow = {
   id: string;
@@ -11,15 +11,30 @@ type UserRow = {
   name: string | null;
   role: Role;
   canViewLeadership: boolean;
+  receivesWeeklyReport: boolean;
   lastLoginAt: string | null;
 };
 
 type Feedback = { type: "ok" | "error"; text: string };
 
-// Checkbox de leadership: a diferencia del select de rol (que junta varios
-// cambios y los guarda con un botón), este guarda apenas se togglea — es un
-// solo booleano por fila, sin necesidad de un paso de "confirmar" separado.
-function LeadershipCheckbox({ userId, initialValue }: { userId: string; initialValue: boolean }) {
+type BooleanUpdateResult = { ok: true } | { ok: false; errorKey: "unauthorized" | "generic" };
+
+// Checkbox genérico para los dos booleanos de esta tabla (leadership, opt-out
+// del mail semanal): a diferencia del select de rol (que junta varios
+// cambios y los guarda con un botón), guarda apenas se togglea — un solo
+// booleano por fila, sin paso de "confirmar" separado. Parametrizado por
+// `action` en vez de duplicar el componente para cada flag nuevo.
+function BooleanToggleCheckbox({
+  userId,
+  initialValue,
+  ariaLabel,
+  action,
+}: {
+  userId: string;
+  initialValue: boolean;
+  ariaLabel: string;
+  action: (userId: string, value: boolean) => Promise<BooleanUpdateResult>;
+}) {
   const t = useTranslations("Admin");
   const [checked, setChecked] = useState(initialValue);
   const [isPending, startTransition] = useTransition();
@@ -29,7 +44,7 @@ function LeadershipCheckbox({ userId, initialValue }: { userId: string; initialV
     setChecked(next);
     setError(null);
     startTransition(async () => {
-      const result = await updateLeadershipAccess(userId, next);
+      const result = await action(userId, next);
       if (!result.ok) {
         setChecked(!next);
         setError(t(`errors.${result.errorKey}`));
@@ -44,7 +59,7 @@ function LeadershipCheckbox({ userId, initialValue }: { userId: string; initialV
         checked={checked}
         disabled={isPending}
         onChange={(e) => handleChange(e.target.checked)}
-        aria-label={t("table.leadership")}
+        aria-label={ariaLabel}
         className="w-4 h-4 rounded border-border text-brand cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
       />
       {error && <div className="text-[11px] text-red-600 mt-1">{error}</div>}
@@ -103,6 +118,7 @@ export default function UserRoleTable({
           <th className="text-left px-3 py-2 font-medium">{t("table.email")}</th>
           <th className="text-left px-3 py-2 font-medium">{t("table.role")}</th>
           <th className="text-left px-3 py-2 font-medium">{t("table.leadership")}</th>
+          <th className="text-left px-3 py-2 font-medium">{t("table.weeklyReport")}</th>
           <th className="text-left px-3 py-2 font-medium">{t("table.lastLogin")}</th>
           <th className="px-3 py-2" />
         </tr>
@@ -135,7 +151,20 @@ export default function UserRoleTable({
                 </select>
               </td>
               <td className="px-3 py-2">
-                <LeadershipCheckbox userId={user.id} initialValue={user.canViewLeadership} />
+                <BooleanToggleCheckbox
+                  userId={user.id}
+                  initialValue={user.canViewLeadership}
+                  ariaLabel={t("table.leadership")}
+                  action={updateLeadershipAccess}
+                />
+              </td>
+              <td className="px-3 py-2">
+                <BooleanToggleCheckbox
+                  userId={user.id}
+                  initialValue={user.receivesWeeklyReport}
+                  ariaLabel={t("table.weeklyReport")}
+                  action={updateWeeklyReportOptIn}
+                />
               </td>
               <td className="px-3 py-2 text-ink-muted">
                 {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : t("table.never")}
