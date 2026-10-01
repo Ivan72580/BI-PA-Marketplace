@@ -1528,7 +1528,7 @@
       "title": "Oportunidades a explorar (sin confirmar)",
       "disclaimer": "Hipótesis basadas en patrones indirectos, no verificadas con datos de resultado — conviene confirmarlas antes de invertir en ellas.",
       "peakWindow": {
-        "finding": "Concentra sus partidos confirmados en la franja de las {hour}: {pct}% de sus confirmados de las últimas {periods} semanas cayeron ahí, con {confirmationRate}% de confirmación en ese horario — posible horario de alta demanda, aunque todavía no está cargado como \"peak\" en el perfil de la cancha.",
+        "finding": "En las últimas {periods} semanas, el {pct}% de los partidos confirmados de esta cancha ({confirmedInHour} de {totalConfirmed}) cayeron en el horario de las {hour}, con una tasa de confirmación del {confirmationRate}% en esa franja frente al {facilityAvgRate}% general de la cancha — concentra la mayoría de sus confirmados y además se confirma con más frecuencia que el resto de sus horarios. Posible horario de alta demanda; el dato de peak/off-peak todavía no está cargado en el perfil.",
         "option": {
           "secureSlots": "Intentar reservar/asegurar esos horarios con anticipación.",
           "addSimilarSlots": "Intentar sumar más slots similares (mismo día/horario).",

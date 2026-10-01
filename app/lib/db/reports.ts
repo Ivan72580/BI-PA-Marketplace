@@ -443,15 +443,12 @@ function actionKeyForReason(category: string): string {
 async function buildFacilityFocus(
   filters: ReportFilters,
   current: OverviewData,
+  facilityRows: FacilityComparisonRow[],
   dateFrom: Date,
   dateTo: Date,
-  priorDateFrom: Date,
-  priorDateTo: Date,
   locale: Locale
 ): Promise<FacilityFocusItem[]> {
   if (filters.facilityId) return []; // el reporte ya es de una sola cancha
-
-  const facilityRows = await getFacilityComparison(filters, dateFrom, dateTo, priorDateFrom, priorDateTo);
 
   const candidates: FocusCandidate[] = [];
   const seen = new Set<string>();
@@ -620,15 +617,26 @@ export type OpportunitySignal = {
   optionTextKeys: string[];
 };
 
+// Ivan (1/10/26): la narrativa original solo tiraba dos porcentajes sueltos
+// (% de concentración y % de confirmación de la franja) sin contra qué
+// compararlos, y el menú de 4 acciones aparecía siempre completo sin
+// priorizar ninguna. Fix: 1) se agrega la tasa de confirmación GENERAL de
+// la cancha (ya la tenemos, sumando todas sus franjas) como baseline de
+// comparación; 2) se muestran solo 2 de las 4 opciones, elegidas según si
+// el volumen de partidos confirmados de la cancha viene creciendo o no —
+// mismo changePct ya calculado para "Foco de la semana" (getFacilityComparison),
+// sin queries nuevas.
 async function buildOpportunitySignals(
   filters: ReportFilters,
   current: OverviewData,
+  facilityRows: FacilityComparisonRow[],
   windowStart: Date,
   windowEnd: Date,
   periodsCount: number
 ): Promise<OpportunitySignal[]> {
   if (filters.facilityId) return []; // el reporte ya es de una sola cancha
 
+  const changePctById = new Map(facilityRows.map((r) => [r.facilityId, r.changePct] as const));
   const candidateIds = current.topRevenueFacilities.slice(0, 3).map((f) => f.facilityId);
   if (candidateIds.length === 0) return [];
 
@@ -670,6 +678,8 @@ async function buildOpportunitySignals(
 
     const totalConfirmed = Array.from(byHour.values()).reduce((a, h) => a + h.confirmed, 0);
     if (totalConfirmed === 0) continue;
+    const totalGamesAllHours = Array.from(byHour.values()).reduce((a, h) => a + h.total, 0);
+    const facilityAvgRate = totalGamesAllHours > 0 ? totalConfirmed / totalGamesAllHours : 0;
 
     const best = Array.from(byHour.entries())
       .map(([hour, tally]) => ({ hour, ...tally, confirmationRate: tally.total > 0 ? tally.confirmed / tally.total : 0 }))
@@ -685,6 +695,16 @@ async function buildOpportunitySignals(
     const info = infoById.get(facilityId);
     const entityLabel = info ? (info.market?.region ? `${info.name} (${info.market.region.name})` : info.name) : "—";
 
+    // Volumen creciendo -> capitalizar la franja fuerte (sumar slots
+    // similares / segundo partido). Estable, en baja, o sin período previo
+    // para comparar -> opción más conservadora (asegurar lo que ya
+    // funciona / usarlo como palanca para el resto de la cancha).
+    const changePct = changePctById.get(facilityId) ?? null;
+    const isGrowing = changePct !== null && changePct > 0;
+    const optionTextKeys = isGrowing
+      ? ["opportunity.peakWindow.option.addSimilarSlots", "opportunity.peakWindow.option.secondGame"]
+      : ["opportunity.peakWindow.option.secureSlots", "opportunity.peakWindow.option.offPeakDiscount"];
+
     signals.push({
       entityLabel,
       findingTextKey: "opportunity.peakWindow.finding",
@@ -692,14 +712,12 @@ async function buildOpportunitySignals(
         hour: `${best.hour}h`,
         pct: (shareOfConfirmed * 100).toFixed(0),
         confirmationRate: (best.confirmationRate * 100).toFixed(0),
+        facilityAvgRate: (facilityAvgRate * 100).toFixed(0),
+        confirmedInHour: best.confirmed,
+        totalConfirmed,
         periods: periodsCount,
       },
-      optionTextKeys: [
-        "opportunity.peakWindow.option.secureSlots",
-        "opportunity.peakWindow.option.addSimilarSlots",
-        "opportunity.peakWindow.option.secondGame",
-        "opportunity.peakWindow.option.offPeakDiscount",
-      ],
+      optionTextKeys,
     });
   }
 
@@ -782,18 +800,17 @@ async function buildReportCore(filters: ReportFilters, granularity: ReportGranul
   const actions = buildActionSuggestions(current, breakdown, seasonal, evolution);
   // Depende de current.worstCancellationRate/paretoCancellations, así que
   // corre después de que ese fetch ya resolvió — no entra en el Promise.all
-  // de arriba.
+  // de arriba. facilityRows (comparación facility-vs-facility del período)
+  // se trae UNA sola vez acá y se comparte entre "Foco de la semana" y
+  // "Oportunidades a explorar" (esta última la usa para elegir qué 2
+  // acciones sugerir según la tendencia de volumen de cada cancha).
+  const facilityRows = filters.facilityId
+    ? []
+    : await getFacilityComparison(filters, periods.current.dateFrom, periods.current.dateTo, periods.prior.dateFrom, periods.prior.dateTo);
+
   const [facilityFocus, opportunitySignals] = await Promise.all([
-    buildFacilityFocus(
-      filters,
-      current,
-      periods.current.dateFrom,
-      periods.current.dateTo,
-      periods.prior.dateFrom,
-      periods.prior.dateTo,
-      locale
-    ),
-    buildOpportunitySignals(filters, current, windowStart, windowEnd, evolution.length),
+    buildFacilityFocus(filters, current, facilityRows, periods.current.dateFrom, periods.current.dateTo, locale),
+    buildOpportunitySignals(filters, current, facilityRows, windowStart, windowEnd, evolution.length),
   ]);
 
   return {

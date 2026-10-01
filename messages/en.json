@@ -1528,7 +1528,7 @@
       "title": "Opportunities to explore (unconfirmed)",
       "disclaimer": "Hypotheses based on indirect patterns, not verified with outcome data — worth confirming before investing in them.",
       "peakWindow": {
-        "finding": "Concentrates its confirmed games in the {hour} window: {pct}% of its confirmed games over the last {periods} weeks fell there, with a {confirmationRate}% confirmation rate in that slot — a possible high-demand window, though it isn't loaded as \"peak\" in the facility profile yet.",
+        "finding": "Over the last {periods} weeks, {pct}% of this facility's confirmed games ({confirmedInHour} of {totalConfirmed}) fell in the {hour} window, with a {confirmationRate}% confirmation rate in that slot vs. {facilityAvgRate}% overall for the facility — it concentrates most of its confirmed games and also confirms more often than its other time slots. Possible high-demand window; peak/off-peak isn't loaded in the facility profile yet.",
         "option": {
           "secureSlots": "Try pre-booking/securing those slots in advance.",
           "addSimilarSlots": "Try adding more similar slots (same day/time).",
