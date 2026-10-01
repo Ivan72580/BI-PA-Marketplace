@@ -1521,6 +1521,20 @@
         "holiday": "Expected dip due to a holiday — no action needed, monitor that it returns to its usual level.",
         "reviewDemand": "Not explained by cancellations — review whether booking demand dropped at that facility (marketing, competition, seasonality).",
         "unclear": "Contact the facility manager to find out the specific cause."
+      },
+      "tenureCaveat": "Facility with less than 8 weeks of history in the network — some of this variation may be new-relationship noise rather than a real problem to solve."
+    },
+    "opportunity": {
+      "title": "Opportunities to explore (unconfirmed)",
+      "disclaimer": "Hypotheses based on indirect patterns, not verified with outcome data — worth confirming before investing in them.",
+      "peakWindow": {
+        "finding": "Concentrates its confirmed games in the {hour} window: {pct}% of its confirmed games over the last {periods} weeks fell there, with a {confirmationRate}% confirmation rate in that slot — a possible high-demand window, though it isn't loaded as \"peak\" in the facility profile yet.",
+        "option": {
+          "secureSlots": "Try pre-booking/securing those slots in advance.",
+          "addSimilarSlots": "Try adding more similar slots (same day/time).",
+          "secondGame": "Try a \"second game\" under the same conditions.",
+          "offPeakDiscount": "Try offering a game outside that window at a lower price, to push confirmation/engagement."
+        }
       }
     },
     "evolution": {

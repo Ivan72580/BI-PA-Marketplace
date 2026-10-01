@@ -16,7 +16,7 @@ function formatPct(n: number) {
 }
 
 export default function OpsReportDocument({ core, t, scopeLabel }: { core: ReportCore; t: Translator; scopeLabel: string }) {
-  const { current, kpis, periods, breakdown, actions, facilityFocus } = core;
+  const { current, kpis, periods, breakdown, actions, facilityFocus, opportunitySignals } = core;
 
   // "Foco de la semana" (abajo) ya cubre, con mucho más detalle, la misma
   // cancha que dispararía actions.worstFacility (mismo umbral, mismo dato:
@@ -105,11 +105,35 @@ export default function OpsReportDocument({ core, t, scopeLabel }: { core: Repor
                 <p className="text-sm text-ink font-medium mt-1.5 print:text-[9pt]">
                   <span className="text-brand">{t("facilityFocus.actionLabel")}</span> {t(item.actionTextKey)}
                 </p>
+                {item.tenureCaveatTextKey && (
+                  <p className="text-xs text-ink-faint italic mt-1 print:text-[8pt]">{t(item.tenureCaveatTextKey)}</p>
+                )}
               </li>
             ))}
           </ul>
         )}
       </ReportSection>
+
+      {opportunitySignals.length > 0 && (
+        <ReportSection title={t("opportunity.title")}>
+          <p className="text-xs text-ink-faint italic -mt-1 mb-2 print:text-[8pt]">{t("opportunity.disclaimer")}</p>
+          <ul className="space-y-3">
+            {opportunitySignals.map((item, i) => (
+              <li key={i} className="rounded-xl border border-dashed border-brand/40 bg-surface-sunken/40 p-3 print:rounded-none print:border-0 print:border-b print:pb-2">
+                <div className="font-display text-sm font-semibold text-ink mb-1 print:text-[9.5pt]">{item.entityLabel}</div>
+                <p className="text-sm text-ink-muted print:text-[9pt]">{t(item.findingTextKey, item.findingValues)}</p>
+                <ul className="mt-1.5 space-y-1 list-disc list-inside">
+                  {item.optionTextKeys.map((key) => (
+                    <li key={key} className="text-sm text-ink print:text-[9pt]">
+                      {t(key)}
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ul>
+        </ReportSection>
+      )}
 
       <ReportSection title={t("actions.title")}>
         {generalActions.length === 0 ? (

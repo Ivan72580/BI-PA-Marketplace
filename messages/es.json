@@ -1521,6 +1521,20 @@
         "holiday": "Caída esperable por feriado — sin acción necesaria, monitorear que vuelva a su nivel habitual.",
         "reviewDemand": "No se explica por cancelaciones — revisar si bajó la demanda de reservas en esa cancha (marketing, competencia, estacionalidad).",
         "unclear": "Contactar al encargado de la cancha para relevar la causa puntual."
+      },
+      "tenureCaveat": "Cancha con menos de 8 semanas de historial en la red — parte de esta variación puede ser ruido propio de una relación nueva, no necesariamente un problema a resolver."
+    },
+    "opportunity": {
+      "title": "Oportunidades a explorar (sin confirmar)",
+      "disclaimer": "Hipótesis basadas en patrones indirectos, no verificadas con datos de resultado — conviene confirmarlas antes de invertir en ellas.",
+      "peakWindow": {
+        "finding": "Concentra sus partidos confirmados en la franja de las {hour}: {pct}% de sus confirmados de las últimas {periods} semanas cayeron ahí, con {confirmationRate}% de confirmación en ese horario — posible horario de alta demanda, aunque todavía no está cargado como \"peak\" en el perfil de la cancha.",
+        "option": {
+          "secureSlots": "Intentar reservar/asegurar esos horarios con anticipación.",
+          "addSimilarSlots": "Intentar sumar más slots similares (mismo día/horario).",
+          "secondGame": "Intentar un \"segundo partido\" bajo las mismas condiciones.",
+          "offPeakDiscount": "Intentar ofrecer un partido fuera de ese horario a un precio más bajo, para empujar confirmación/engagement."
+        }
       }
     },
     "evolution": {

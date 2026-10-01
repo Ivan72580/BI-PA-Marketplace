@@ -1,7 +1,7 @@
 import { GameStatus } from "@prisma/client";
 import { prisma } from "./prisma";
 import { cached } from "./cache";
-import { buildWhere, labelForCancellationCategory, MIN_GAMES_FOR_RANKING, type OverviewFilters } from "./shared";
+import { buildWhere, labelForCancellationCategory, MIN_GAMES_FOR_RANKING, MIN_GAMES_FOR_CONTRIBUTION, type OverviewFilters } from "./shared";
 import { resolvePeriod, shiftAnchor } from "../period";
 import { getOverviewData, type OverviewData } from "./overview";
 import { getRegionComparison, type RegionComparisonRow } from "./region";
@@ -404,7 +404,17 @@ export type FacilityFocusItem = {
   reasonTextKey: string | null;
   reasonValues?: Record<string, string | number>;
   actionTextKey: string;
+  tenureCaveatTextKey?: string;
 };
+
+// Antigüedad: no tenemos "Partnership start date" cargado (🔧 en el mapa de
+// campos de Leadership) — se aproxima con el primer partido registrado de
+// la cancha en TODA la base (sin acotar al período del reporte). Es un
+// proxy, no el dato real (puede haber arrancado la relación comercial antes
+// del primer partido jugado), pero alcanza para el único uso que le damos:
+// avisar que una variación puede ser ruido de arranque, no necesariamente
+// un problema. Nunca se usa para OCULTAR un ítem, solo para aclararlo.
+const NEW_FACILITY_TENURE_DAYS = 56; // ~8 semanas
 
 type FocusTrigger = "volumeDrop" | "cancellationHigh" | "paretoShare";
 type FocusCandidate = { facilityId: string; trigger: FocusTrigger; findingValues: Record<string, string | number> };
@@ -497,7 +507,7 @@ async function buildFacilityFocus(
 
   const facilityIds = candidates.map((c) => c.facilityId);
 
-  const [facilityInfo, reasonGroups] = await Promise.all([
+  const [facilityInfo, reasonGroups, tenureGroups] = await Promise.all([
     prisma.facility.findMany({
       where: { id: { in: facilityIds } },
       select: { id: true, name: true, market: { select: { name: true, region: { select: { name: true } } } } },
@@ -509,6 +519,14 @@ async function buildFacilityFocus(
       by: ["facilityId", "cancellationCategory"],
       where: { facilityId: { in: facilityIds }, status: GameStatus.CANCELLED, date: { gte: dateFrom, lte: dateTo } },
       _count: { _all: true },
+    }),
+    // Proxy de antigüedad (ver NEW_FACILITY_TENURE_DAYS) — SIN acotar por
+    // fecha: el primer partido de la cancha en toda la base, no solo en
+    // este período.
+    prisma.game.groupBy({
+      by: ["facilityId"],
+      where: { facilityId: { in: facilityIds } },
+      _min: { date: true },
     }),
   ]);
 
@@ -542,10 +560,19 @@ async function buildFacilityFocus(
     paretoShare: "facilityFocus.finding.paretoShare",
   };
 
+  const firstGameById = new Map(
+    (tenureGroups as { facilityId: string; _min: { date: Date | null } }[])
+      .filter((g) => g._min.date !== null)
+      .map((g) => [g.facilityId, g._min.date as Date] as const)
+  );
+
   return candidates.slice(0, 3).map((c) => {
     const info = infoById.get(c.facilityId);
     const entityLabel = info ? (info.market?.region ? `${info.name} (${info.market.region.name})` : info.name) : "—";
     const reason = dominantReason(c.facilityId);
+
+    const firstGame = firstGameById.get(c.facilityId);
+    const tenureDays = firstGame ? (dateTo.getTime() - firstGame.getTime()) / 86400000 : Infinity;
 
     return {
       entityLabel,
@@ -560,8 +587,123 @@ async function buildFacilityFocus(
         : c.trigger === "volumeDrop"
           ? "facilityFocus.action.reviewDemand"
           : "facilityFocus.action.unclear",
+      tenureCaveatTextKey: tenureDays < NEW_FACILITY_TENURE_DAYS ? "facilityFocus.tenureCaveat" : undefined,
     };
   });
+}
+
+// ---------- Oportunidades a explorar (sin confirmar) ----------
+// A diferencia de "Foco de la semana" (arriba) — que solo afirma lo que los
+// números ya traídos sustentan — esto es deliberadamente EXPLORATORIO:
+// hipótesis construidas sobre un proxy indirecto, sin un dato real que las
+// respalde todavía (ver claude/analisis-conceptual-palancas-de-negocio.md,
+// pedido explícito de Ivan de dejar "indicadores en potencial" presentes
+// aunque no estén 100% verificados). Se renderiza en su propia sección, con
+// su propio disclaimer, para no mezclar "esto es un hecho" con "esto es una
+// hipótesis a confirmar" en la misma lista.
+//
+// Primer caso: horario pico/valle. El perfil de la cancha todavía no tiene
+// "Peak/off-peak hours" cargado (🔧 en el mapa de campos) — se aproxima
+// mirando en qué franja horaria la cancha viene llenando sus partidos de
+// forma consistente en las últimas semanas (mismo ventana de 6 períodos que
+// ya se trae para el gráfico de evolución). Nunca elige UNA sola acción
+// (no hay forma de saber, sin datos, cuál de las opciones funcionaría
+// mejor) — siempre ofrece el mismo menú de opciones a evaluar.
+const OPPORTUNITY_MIN_HOUR_GAMES = MIN_GAMES_FOR_CONTRIBUTION; // mínimo de partidos en esa franja para no ser ruido
+const OPPORTUNITY_MIN_CONFIRMATION_RATE = 0.75;
+const OPPORTUNITY_MIN_SHARE_OF_CONFIRMED = 0.2; // esa franja explica al menos este % de los confirmados de la cancha
+
+export type OpportunitySignal = {
+  entityLabel: string;
+  findingTextKey: string;
+  findingValues: Record<string, string | number>;
+  optionTextKeys: string[];
+};
+
+async function buildOpportunitySignals(
+  filters: ReportFilters,
+  current: OverviewData,
+  windowStart: Date,
+  windowEnd: Date,
+  periodsCount: number
+): Promise<OpportunitySignal[]> {
+  if (filters.facilityId) return []; // el reporte ya es de una sola cancha
+
+  const candidateIds = current.topRevenueFacilities.slice(0, 3).map((f) => f.facilityId);
+  if (candidateIds.length === 0) return [];
+
+  const [facilityInfo, hourGroups] = await Promise.all([
+    prisma.facility.findMany({
+      where: { id: { in: candidateIds } },
+      select: { id: true, name: true, market: { select: { name: true, region: { select: { name: true } } } } },
+    }),
+    // Por hora y estado, SOLO para estas pocas canchas — una consulta chica
+    // y puntual, igual criterio que el resto de este archivo.
+    prisma.game.groupBy({
+      by: ["facilityId", "time", "status"],
+      where: { facilityId: { in: candidateIds }, date: { gte: windowStart, lte: windowEnd } },
+      _count: { _all: true },
+    }),
+  ]);
+
+  type FacilityInfoRow = { id: string; name: string; market: { name: string; region: { name: string } | null } | null };
+  const infoById = new Map((facilityInfo as FacilityInfoRow[]).map((f) => [f.id, f] as const));
+
+  type HourTally = { total: number; confirmed: number };
+  const byFacilityHour = new Map<string, Map<string, HourTally>>();
+  for (const g of hourGroups) {
+    const hour = g.time?.slice(0, 2) ?? "??";
+    if (hour === "??") continue;
+    const byHour = byFacilityHour.get(g.facilityId) ?? new Map<string, HourTally>();
+    const tally = byHour.get(hour) ?? { total: 0, confirmed: 0 };
+    tally.total += Number(g._count._all);
+    if (g.status === GameStatus.CONFIRMED) tally.confirmed += Number(g._count._all);
+    byHour.set(hour, tally);
+    byFacilityHour.set(g.facilityId, byHour);
+  }
+
+  const signals: OpportunitySignal[] = [];
+
+  for (const facilityId of candidateIds) {
+    const byHour = byFacilityHour.get(facilityId);
+    if (!byHour) continue;
+
+    const totalConfirmed = Array.from(byHour.values()).reduce((a, h) => a + h.confirmed, 0);
+    if (totalConfirmed === 0) continue;
+
+    const best = Array.from(byHour.entries())
+      .map(([hour, tally]) => ({ hour, ...tally, confirmationRate: tally.total > 0 ? tally.confirmed / tally.total : 0 }))
+      .filter((h) => h.total >= OPPORTUNITY_MIN_HOUR_GAMES)
+      .sort((a, b) => b.confirmed - a.confirmed)[0];
+
+    if (!best) continue;
+    const shareOfConfirmed = best.confirmed / totalConfirmed;
+    if (best.confirmationRate < OPPORTUNITY_MIN_CONFIRMATION_RATE || shareOfConfirmed < OPPORTUNITY_MIN_SHARE_OF_CONFIRMED) {
+      continue;
+    }
+
+    const info = infoById.get(facilityId);
+    const entityLabel = info ? (info.market?.region ? `${info.name} (${info.market.region.name})` : info.name) : "—";
+
+    signals.push({
+      entityLabel,
+      findingTextKey: "opportunity.peakWindow.finding",
+      findingValues: {
+        hour: `${best.hour}h`,
+        pct: (shareOfConfirmed * 100).toFixed(0),
+        confirmationRate: (best.confirmationRate * 100).toFixed(0),
+        periods: periodsCount,
+      },
+      optionTextKeys: [
+        "opportunity.peakWindow.option.secureSlots",
+        "opportunity.peakWindow.option.addSimilarSlots",
+        "opportunity.peakWindow.option.secondGame",
+        "opportunity.peakWindow.option.offPeakDiscount",
+      ],
+    });
+  }
+
+  return signals.slice(0, 3);
 }
 
 function resolveEvolutionWindow(granularity: ReportGranularity, dateTo: Date): { windowStart: Date; windowEnd: Date } {
@@ -620,6 +762,7 @@ export type ReportCore = {
   actions: ActionSuggestion[];
   evolution: MetricSeriesPoint[];
   facilityFocus: FacilityFocusItem[];
+  opportunitySignals: OpportunitySignal[];
 };
 
 async function buildReportCore(filters: ReportFilters, granularity: ReportGranularity, anchorISO: string, locale: Locale): Promise<ReportCore> {
@@ -640,15 +783,18 @@ async function buildReportCore(filters: ReportFilters, granularity: ReportGranul
   // Depende de current.worstCancellationRate/paretoCancellations, así que
   // corre después de que ese fetch ya resolvió — no entra en el Promise.all
   // de arriba.
-  const facilityFocus = await buildFacilityFocus(
-    filters,
-    current,
-    periods.current.dateFrom,
-    periods.current.dateTo,
-    periods.prior.dateFrom,
-    periods.prior.dateTo,
-    locale
-  );
+  const [facilityFocus, opportunitySignals] = await Promise.all([
+    buildFacilityFocus(
+      filters,
+      current,
+      periods.current.dateFrom,
+      periods.current.dateTo,
+      periods.prior.dateFrom,
+      periods.prior.dateTo,
+      locale
+    ),
+    buildOpportunitySignals(filters, current, windowStart, windowEnd, evolution.length),
+  ]);
 
   return {
     granularity,
@@ -661,6 +807,7 @@ async function buildReportCore(filters: ReportFilters, granularity: ReportGranul
     actions,
     evolution,
     facilityFocus,
+    opportunitySignals,
   };
 }
 
