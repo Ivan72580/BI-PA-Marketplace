@@ -1526,7 +1526,7 @@
     },
     "opportunity": {
       "title": "Opportunities to explore (unconfirmed)",
-      "disclaimer": "Hypotheses based on indirect patterns, not verified with outcome data — worth confirming before investing in them.",
+      "disclaimer": "The pattern behind each finding may be 100% real, but there's no data confirming the suggested action is the most effective one — worth validating before rolling it out at scale.",
       "peakWindow": {
         "finding": "Over the last {periods} weeks, {pct}% of this facility's confirmed games ({confirmedInHour} of {totalConfirmed}) fell in the {hour} window, with a {confirmationRate}% confirmation rate in that slot vs. {facilityAvgRate}% overall for the facility — it concentrates most of its confirmed games and also confirms more often than its other time slots. Possible high-demand window; peak/off-peak isn't loaded in the facility profile yet.",
         "option": {
@@ -1534,6 +1534,18 @@
           "addSimilarSlots": "Try adding more similar slots (same day/time).",
           "secondGame": "Try a \"second game\" under the same conditions.",
           "offPeakDiscount": "Try offering a game outside that window at a lower price, to push confirmation/engagement."
+        }
+      },
+      "unavailableSlot": {
+        "finding": "Over the last {days} days, the {hour} slot at this facility racked up {count} cancellations due to \"Facility unavailable\".",
+        "option": {
+          "secureAdvance": "Consider securing that slot in advance (or relocating it) while confirming whether the availability issue is still ongoing."
+        }
+      },
+      "decliningSlot": {
+        "finding": "The {hour} slot has a {rate}% cancellation rate and has been losing confirmed games for {periods} consecutive periods — on top of cancelling a lot, it's losing traction.",
+        "option": {
+          "discount": "Consider offering a discount or lowering the price per player for that slot, to push confirmation and engagement."
         }
       }
     },

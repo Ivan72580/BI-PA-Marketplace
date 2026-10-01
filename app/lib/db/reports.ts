@@ -606,6 +606,19 @@ async function buildFacilityFocus(
 // ya se trae para el gráfico de evolución). Nunca elige UNA sola acción
 // (no hay forma de saber, sin datos, cuál de las opciones funcionaría
 // mejor) — siempre ofrece el mismo menú de opciones a evaluar.
+//
+// Segundo y tercer caso (Ivan, 1/10/26): a diferencia del horario pico
+// (un proxy indirecto), estos dos SÍ son hallazgos 100% reales —
+// cancelaciones por "Cancha no disponible" que se repiten, y franjas con
+// cancelación alta Y en caída de tracción — solo que a nivel FRANJA
+// HORARIA puntual, un grano más fino que "Foco de la semana" (que opera
+// por cancha completa). Entran en esta misma sección porque lo que no
+// está garantizado es la EFICACIA de la acción sugerida, no el patrón en
+// sí — por eso el disclaimer de la sección ya no habla solo de "proxies
+// indirectos" sino de "la acción sugerida no tiene eficacia verificada".
+// Si no hay facility elegida, se buscan en TODA la red/mercado filtrado
+// (no solo en las top-revenue, a diferencia del horario pico) y se
+// quedan los de mayor impacto: más ocurrencias/cancelaciones primero.
 const OPPORTUNITY_MIN_HOUR_GAMES = MIN_GAMES_FOR_CONTRIBUTION; // mínimo de partidos en esa franja para no ser ruido
 const OPPORTUNITY_MIN_CONFIRMATION_RATE = 0.75;
 const OPPORTUNITY_MIN_SHARE_OF_CONFIRMED = 0.2; // esa franja explica al menos este % de los confirmados de la cancha
@@ -724,6 +737,165 @@ async function buildOpportunitySignals(
   return signals.slice(0, 3);
 }
 
+// ---------- "Cancha no disponible" recurrente por franja ----------
+// Ventana FIJA de 14 días corridos (no la del período elegido en el
+// reporte) — mismo criterio que NEW_FACILITY_TENURE_DAYS: "recurrente
+// últimamente" es una pregunta distinta de "cómo viene el período que
+// elegiste ver". Si no hay facility elegida, escanea TODA la red/mercado
+// filtrado (no solo top-revenue) porque acá el objetivo es encontrar el
+// problema esté donde esté, no limitarlo a las canchas que más facturan.
+const UNAVAILABLE_WINDOW_DAYS = 14;
+const UNAVAILABLE_MIN_OCCURRENCES = 2;
+
+async function buildUnavailableSlotSignals(filters: ReportFilters, dateTo: Date): Promise<OpportunitySignal[]> {
+  const windowEnd = dateTo;
+  const windowStart = new Date(windowEnd);
+  windowStart.setUTCDate(windowStart.getUTCDate() - UNAVAILABLE_WINDOW_DAYS);
+
+  const where = buildWhere({ ...filters, dateFrom: windowStart, dateTo: windowEnd });
+  const groups = await prisma.game.groupBy({
+    by: ["facilityId", "time"],
+    where: { ...where, status: GameStatus.CANCELLED, cancellationCategory: "FACILITY_UNAVAILABLE" },
+    _count: { _all: true },
+  });
+
+  // Varias filas pueden caer en la misma franja con minutos distintos
+  // (ej. "18:00" y "18:30" -> ambas franja "18") — se consolidan antes de
+  // aplicar el piso mínimo de ocurrencias.
+  const byFacilityHour = new Map<string, number>();
+  for (const g of groups) {
+    const hour = g.time?.slice(0, 2);
+    if (!hour) continue;
+    const key = `${g.facilityId}|${hour}`;
+    byFacilityHour.set(key, (byFacilityHour.get(key) ?? 0) + Number(g._count._all));
+  }
+
+  let candidates = Array.from(byFacilityHour.entries())
+    .map(([key, count]) => {
+      const [facilityId, hour] = key.split("|");
+      return { facilityId, hour, count };
+    })
+    .filter((c) => c.count >= UNAVAILABLE_MIN_OCCURRENCES);
+
+  if (candidates.length === 0) return [];
+
+  candidates.sort((a, b) => b.count - a.count);
+  candidates = candidates.slice(0, 3);
+
+  const facilityIds = Array.from(new Set(candidates.map((c) => c.facilityId)));
+  const facilityInfo = await prisma.facility.findMany({
+    where: { id: { in: facilityIds } },
+    select: { id: true, name: true, market: { select: { name: true, region: { select: { name: true } } } } },
+  });
+  type FacilityInfoRow = { id: string; name: string; market: { name: string; region: { name: string } | null } | null };
+  const infoById = new Map((facilityInfo as FacilityInfoRow[]).map((f) => [f.id, f] as const));
+
+  return candidates.map((c) => {
+    const info = infoById.get(c.facilityId);
+    const entityLabel = info ? (info.market?.region ? `${info.name} (${info.market.region.name})` : info.name) : "—";
+    return {
+      entityLabel,
+      findingTextKey: "opportunity.unavailableSlot.finding",
+      findingValues: { hour: `${c.hour}h`, count: c.count, days: UNAVAILABLE_WINDOW_DAYS },
+      optionTextKeys: ["opportunity.unavailableSlot.option.secureAdvance"],
+    };
+  });
+}
+
+// ---------- Franja con cancelación alta y perdiendo tracción ----------
+// Mismo umbral de racha (MIN_STREAK, definido arriba para "Foco para el
+// período siguiente") aplicado a nivel franja en vez de a nivel red — así
+// una franja puntual no se marca por un solo mal período, sino por una
+// caída sostenida de confirmados que, sumada a una cancelación ya alta,
+// sugiere que además de cancelar mucho está perdiendo tracción.
+const SLOT_CANCELLATION_RATE_THRESHOLD = 0.25;
+const MIN_GAMES_FOR_SLOT_SIGNAL = MIN_GAMES_FOR_CONTRIBUTION;
+
+// Mismo ancho de período que resolveEvolutionWindow usó para armar
+// windowStart/windowEnd (exactamente N semanas o N meses) — no hace falta
+// replicar el alineado a lunes de trends.ts: acá los períodos son solo
+// para detectar una racha, no se muestran con fecha/etiqueta al usuario.
+function periodIndexForDate(date: Date, granularity: ReportGranularity, windowStart: Date, periodsCount: number): number {
+  let idx: number;
+  if (granularity === "week") {
+    const days = Math.floor((date.getTime() - windowStart.getTime()) / 86400000);
+    idx = Math.floor(days / 7);
+  } else {
+    idx = (date.getUTCFullYear() - windowStart.getUTCFullYear()) * 12 + (date.getUTCMonth() - windowStart.getUTCMonth());
+  }
+  return Math.min(periodsCount - 1, Math.max(0, idx));
+}
+
+async function buildDecliningCancellationSlotSignals(
+  filters: ReportFilters,
+  granularity: ReportGranularity,
+  windowStart: Date,
+  windowEnd: Date,
+  periodsCount: number
+): Promise<OpportunitySignal[]> {
+  const where = buildWhere({ ...filters, dateFrom: windowStart, dateTo: windowEnd });
+  const games = (await prisma.game.findMany({
+    where,
+    select: { facilityId: true, time: true, status: true, date: true },
+  })) as { facilityId: string; time: string | null; status: GameStatus; date: Date }[];
+
+  type SlotPeriod = { total: number; confirmed: number };
+  const bySlot = new Map<string, SlotPeriod[]>();
+
+  for (const g of games) {
+    const hour = g.time?.slice(0, 2);
+    if (!hour) continue;
+    const idx = periodIndexForDate(g.date, granularity, windowStart, periodsCount);
+    const key = `${g.facilityId}|${hour}`;
+    const arr = bySlot.get(key) ?? Array.from({ length: periodsCount }, () => ({ total: 0, confirmed: 0 }));
+    arr[idx].total += 1;
+    if (g.status === GameStatus.CONFIRMED) arr[idx].confirmed += 1;
+    bySlot.set(key, arr);
+  }
+
+  type SlotCandidate = { facilityId: string; hour: string; cancellationRate: number; cancelledGames: number; streakLength: number };
+  const candidates: SlotCandidate[] = [];
+
+  for (const [key, periodsArr] of bySlot) {
+    const [facilityId, hour] = key.split("|");
+    const totalGames = periodsArr.reduce((a, p) => a + p.total, 0);
+    const confirmedGames = periodsArr.reduce((a, p) => a + p.confirmed, 0);
+    if (totalGames < MIN_GAMES_FOR_SLOT_SIGNAL) continue;
+
+    const cancellationRate = (totalGames - confirmedGames) / totalGames;
+    if (cancellationRate <= SLOT_CANCELLATION_RATE_THRESHOLD) continue;
+
+    const streak = detectStreak(periodsArr.map((p) => p.confirmed), 0);
+    if (!streak || streak.direction !== "down" || streak.length < MIN_STREAK) continue;
+
+    candidates.push({ facilityId, hour, cancellationRate, cancelledGames: totalGames - confirmedGames, streakLength: streak.length });
+  }
+
+  if (candidates.length === 0) return [];
+
+  candidates.sort((a, b) => b.cancelledGames - a.cancelledGames);
+  const capped = candidates.slice(0, 3);
+
+  const facilityIds = Array.from(new Set(capped.map((c) => c.facilityId)));
+  const facilityInfo = await prisma.facility.findMany({
+    where: { id: { in: facilityIds } },
+    select: { id: true, name: true, market: { select: { name: true, region: { select: { name: true } } } } },
+  });
+  type FacilityInfoRow = { id: string; name: string; market: { name: string; region: { name: string } | null } | null };
+  const infoById = new Map((facilityInfo as FacilityInfoRow[]).map((f) => [f.id, f] as const));
+
+  return capped.map((c) => {
+    const info = infoById.get(c.facilityId);
+    const entityLabel = info ? (info.market?.region ? `${info.name} (${info.market.region.name})` : info.name) : "—";
+    return {
+      entityLabel,
+      findingTextKey: "opportunity.decliningSlot.finding",
+      findingValues: { hour: `${c.hour}h`, rate: (c.cancellationRate * 100).toFixed(0), periods: c.streakLength },
+      optionTextKeys: ["opportunity.decliningSlot.option.discount"],
+    };
+  });
+}
+
 function resolveEvolutionWindow(granularity: ReportGranularity, dateTo: Date): { windowStart: Date; windowEnd: Date } {
   const windowStart = new Date(dateTo);
   if (granularity === "week") windowStart.setUTCDate(windowStart.getUTCDate() - 6 * 7);
@@ -808,10 +980,17 @@ async function buildReportCore(filters: ReportFilters, granularity: ReportGranul
     ? []
     : await getFacilityComparison(filters, periods.current.dateFrom, periods.current.dateTo, periods.prior.dateFrom, periods.prior.dateTo);
 
-  const [facilityFocus, opportunitySignals] = await Promise.all([
+  const [facilityFocus, peakWindowSignals, unavailableSlotSignals, decliningSlotSignals] = await Promise.all([
     buildFacilityFocus(filters, current, facilityRows, periods.current.dateFrom, periods.current.dateTo, locale),
     buildOpportunitySignals(filters, current, facilityRows, windowStart, windowEnd, evolution.length),
+    buildUnavailableSlotSignals(filters, periods.current.dateTo),
+    buildDecliningCancellationSlotSignals(filters, granularity, windowStart, windowEnd, evolution.length),
   ]);
+  // Mismo orden en que se definieron arriba: horario pico (proxy) primero,
+  // después los dos hallazgos reales de cancelación — más urgente/concreto
+  // ("cancha no disponible" ya confirmada) antes que el más interpretativo
+  // (cancelación alta + tendencia).
+  const opportunitySignals = [...peakWindowSignals, ...unavailableSlotSignals, ...decliningSlotSignals];
 
   return {
     granularity,

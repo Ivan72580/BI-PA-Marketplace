@@ -1526,7 +1526,7 @@
     },
     "opportunity": {
       "title": "Oportunidades a explorar (sin confirmar)",
-      "disclaimer": "Hipótesis basadas en patrones indirectos, no verificadas con datos de resultado — conviene confirmarlas antes de invertir en ellas.",
+      "disclaimer": "El patrón detrás de cada hallazgo puede ser 100% real, pero no hay datos que confirmen que la acción sugerida sea la más efectiva — conviene validarla antes de aplicarla a gran escala.",
       "peakWindow": {
         "finding": "En las últimas {periods} semanas, el {pct}% de los partidos confirmados de esta cancha ({confirmedInHour} de {totalConfirmed}) cayeron en el horario de las {hour}, con una tasa de confirmación del {confirmationRate}% en esa franja frente al {facilityAvgRate}% general de la cancha — concentra la mayoría de sus confirmados y además se confirma con más frecuencia que el resto de sus horarios. Posible horario de alta demanda; el dato de peak/off-peak todavía no está cargado en el perfil.",
         "option": {
@@ -1534,6 +1534,18 @@
           "addSimilarSlots": "Intentar sumar más slots similares (mismo día/horario).",
           "secondGame": "Intentar un \"segundo partido\" bajo las mismas condiciones.",
           "offPeakDiscount": "Intentar ofrecer un partido fuera de ese horario a un precio más bajo, para empujar confirmación/engagement."
+        }
+      },
+      "unavailableSlot": {
+        "finding": "En los últimos {days} días, el horario de las {hour} acumuló {count} cancelaciones por \"Cancha no disponible\" en esta cancha.",
+        "option": {
+          "secureAdvance": "Evaluar si conviene asegurar ese slot con anticipación (o reubicarlo) mientras se confirma si el problema de disponibilidad sigue vigente."
+        }
+      },
+      "decliningSlot": {
+        "finding": "El horario de las {hour} tiene una tasa de cancelación del {rate}% y viene perdiendo partidos confirmados en los últimos {periods} períodos consecutivos — además de cancelar mucho, pierde tracción.",
+        "option": {
+          "discount": "Evaluar ofrecer un descuento o reducir el price per player en ese horario, para empujar confirmación y engagement."
         }
       }
     },
