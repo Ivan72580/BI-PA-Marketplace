@@ -1379,16 +1379,28 @@
       "hide": "Ocultar año anterior"
     },
     "chart": {
-      "title": "Volumen mensual (partidos confirmados)",
       "legend": "{year}",
-      "empty": "Sin partidos confirmados en este filtro para estos dos años."
+      "empty": "Sin partidos confirmados en este filtro para estos dos años.",
+      "sectionTitle": "Evolución mensual",
+      "metric": {
+        "confirmedGames": "Partidos confirmados",
+        "revenue": "Revenue",
+        "cumulativeGames": "Acumulado de partidos",
+        "cumulativeRevenue": "Acumulado de revenue"
+      }
     },
     "calendar": {
       "title": "Calendario por mes",
       "gamesLabel": "Partidos confirmados",
       "revenueLabel": "Revenue",
       "future": "Aún no",
-      "current": "Mes en curso"
+      "current": "Mes en curso",
+      "cardCompare": {
+        "show": "Contrastar valores con año anterior",
+        "hide": "Ocultar valores del año anterior"
+      },
+      "priorValue": "{year}: {value}",
+      "clickHint": "Ver el detalle de este mes"
     },
     "totals": {
       "games": "Partidos confirmados (año)",
@@ -1417,7 +1429,20 @@
       "bestMonth": "{month} fue el mes de mayor volumen confirmado de {year} ({n} partidos).",
       "currentMonthCaveat": "{month} todavía está en curso: su valor es parcial, no el cierre del mes.",
       "noPriorYearData": "Sin partidos confirmados en {priorYear} para este filtro — todavía no hay base de comparación interanual.",
-      "revenueCaveat": "El revenue mostrado es la suma simple cargada por partido, sin deducir ningún costo."
+      "revenueCaveat": "El revenue mostrado es la suma simple cargada por partido, sin deducir ningún costo.",
+      "nextMonthVolumeUp": "Según el mismo tramo del año pasado, {month} suele mostrar un volumen ~{pct}% mayor que el mes en curso.",
+      "nextMonthVolumeDown": "Según el mismo tramo del año pasado, {month} suele mostrar una caída de ~{pct}% en volumen respecto al mes en curso.",
+      "nextMonthGamesLow": "{month} registró, el año pasado, el volumen de partidos confirmados más bajo de todo el año — vale la pena anticiparlo.",
+      "nextMonthGamesHigh": "{month} registró, el año pasado, el volumen de partidos confirmados más alto de todo el año.",
+      "nextMonthRevenueLow": "{month} registró, el año pasado, el nivel de revenue más bajo de todo el año.",
+      "nextMonthRevenueHigh": "{month} registró, el año pasado, el nivel de revenue más alto de todo el año."
+    },
+    "projection": {
+      "title": "Proyección de {month}",
+      "gamesLabel": "Partidos confirmados (proy.)",
+      "revenueLabel": "Revenue (proy.)",
+      "basedOn": "En base a {confirmed} confirmados en {elapsed} de {total} días · variación vs. mes anterior completo",
+      "notYetAvailable": "Proyección de {month} disponible desde el día {day}"
     }
   }
 }

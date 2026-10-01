@@ -1379,16 +1379,28 @@
       "hide": "Hide prior year"
     },
     "chart": {
-      "title": "Monthly volume (confirmed games)",
       "legend": "{year}",
-      "empty": "No confirmed games in this filter for these two years."
+      "empty": "No confirmed games in this filter for these two years.",
+      "sectionTitle": "Monthly evolution",
+      "metric": {
+        "confirmedGames": "Confirmed games",
+        "revenue": "Revenue",
+        "cumulativeGames": "Cumulative games",
+        "cumulativeRevenue": "Cumulative revenue"
+      }
     },
     "calendar": {
       "title": "Month-by-month calendar",
       "gamesLabel": "Confirmed games",
       "revenueLabel": "Revenue",
       "future": "Not yet",
-      "current": "In progress"
+      "current": "In progress",
+      "cardCompare": {
+        "show": "Contrast values with prior year",
+        "hide": "Hide prior year values"
+      },
+      "priorValue": "{year}: {value}",
+      "clickHint": "See this month's detail"
     },
     "totals": {
       "games": "Confirmed games (year)",
@@ -1417,7 +1429,20 @@
       "bestMonth": "{month} was the highest-volume month of {year} ({n} games).",
       "currentMonthCaveat": "{month} is still in progress: its value is partial, not the month's final close.",
       "noPriorYearData": "No confirmed games in {priorYear} for this filter — no year-over-year baseline yet.",
-      "revenueCaveat": "The revenue shown is the simple sum logged per game, with no cost deducted."
+      "revenueCaveat": "The revenue shown is the simple sum logged per game, with no cost deducted.",
+      "nextMonthVolumeUp": "Based on the same stretch last year, {month} tends to run ~{pct}% higher in volume than the current month.",
+      "nextMonthVolumeDown": "Based on the same stretch last year, {month} tends to run ~{pct}% lower in volume than the current month.",
+      "nextMonthGamesLow": "Last year, {month} had the lowest confirmed-game volume of the whole year — worth anticipating.",
+      "nextMonthGamesHigh": "Last year, {month} had the highest confirmed-game volume of the whole year.",
+      "nextMonthRevenueLow": "Last year, {month} had the lowest revenue level of the whole year.",
+      "nextMonthRevenueHigh": "Last year, {month} had the highest revenue level of the whole year."
+    },
+    "projection": {
+      "title": "{month} projection",
+      "gamesLabel": "Confirmed games (proj.)",
+      "revenueLabel": "Revenue (proj.)",
+      "basedOn": "Based on {confirmed} confirmed in {elapsed} of {total} days · variation vs. full prior month",
+      "notYetAvailable": "{month} projection available from day {day}"
     }
   }
 }
