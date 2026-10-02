@@ -1522,11 +1522,26 @@
         "reviewDemand": "Not explained by cancellations — review whether booking demand dropped at that facility (marketing, competition, seasonality).",
         "unclear": "Contact the facility manager to find out the specific cause."
       },
-      "tenureCaveat": "Facility with less than 8 weeks of history in the network — some of this variation may be new-relationship noise rather than a real problem to solve."
+      "tenureCaveat": "Facility with less than 8 weeks of history in the network — some of this variation may be new-relationship noise rather than a real problem to solve.",
+      "compare": {
+        "prior": "Prior period",
+        "current": "This period",
+        "facility": "This facility",
+        "network": "Network average",
+        "facilityShare": "This facility",
+        "restOfNetwork": "Rest of the network"
+      }
     },
     "opportunity": {
       "title": "Opportunities to explore (unconfirmed)",
       "disclaimer": "The pattern behind each finding may be 100% real, but there's no data confirming the suggested action is the most effective one — worth validating before rolling it out at scale.",
+      "compare": {
+        "hour": "This time slot",
+        "facilityAvg": "Facility average"
+      },
+      "trend": {
+        "label": "Confirmed games per period"
+      },
       "peakWindow": {
         "finding": "Over the last {periods} weeks, {pct}% of this facility's confirmed games ({confirmedInHour} of {totalConfirmed}) fell in the {hour} window, with a {confirmationRate}% confirmation rate in that slot vs. {facilityAvgRate}% overall for the facility — it concentrates most of its confirmed games and also confirms more often than its other time slots. Possible high-demand window; peak/off-peak isn't loaded in the facility profile yet.",
         "option": {

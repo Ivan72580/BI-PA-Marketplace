@@ -1522,11 +1522,26 @@
         "reviewDemand": "No se explica por cancelaciones — revisar si bajó la demanda de reservas en esa cancha (marketing, competencia, estacionalidad).",
         "unclear": "Contactar al encargado de la cancha para relevar la causa puntual."
       },
-      "tenureCaveat": "Cancha con menos de 8 semanas de historial en la red — parte de esta variación puede ser ruido propio de una relación nueva, no necesariamente un problema a resolver."
+      "tenureCaveat": "Cancha con menos de 8 semanas de historial en la red — parte de esta variación puede ser ruido propio de una relación nueva, no necesariamente un problema a resolver.",
+      "compare": {
+        "prior": "Período anterior",
+        "current": "Este período",
+        "facility": "Esta cancha",
+        "network": "Promedio de la red",
+        "facilityShare": "Esta cancha",
+        "restOfNetwork": "Resto de la red"
+      }
     },
     "opportunity": {
       "title": "Oportunidades a explorar (sin confirmar)",
       "disclaimer": "El patrón detrás de cada hallazgo puede ser 100% real, pero no hay datos que confirmen que la acción sugerida sea la más efectiva — conviene validarla antes de aplicarla a gran escala.",
+      "compare": {
+        "hour": "Esta franja",
+        "facilityAvg": "Promedio de la cancha"
+      },
+      "trend": {
+        "label": "Partidos confirmados por período"
+      },
       "peakWindow": {
         "finding": "En las últimas {periods} semanas, el {pct}% de los partidos confirmados de esta cancha ({confirmedInHour} de {totalConfirmed}) cayeron en el horario de las {hour}, con una tasa de confirmación del {confirmationRate}% en esa franja frente al {facilityAvgRate}% general de la cancha — concentra la mayoría de sus confirmados y además se confirma con más frecuencia que el resto de sus horarios. Posible horario de alta demanda; el dato de peak/off-peak todavía no está cargado en el perfil.",
         "option": {

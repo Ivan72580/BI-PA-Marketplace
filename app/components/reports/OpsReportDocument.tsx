@@ -1,7 +1,11 @@
 import type { ReportCore } from "../../lib/db/reports";
 import ReportSection from "./ReportSection";
 import ReportKpiStrip from "./ReportKpiStrip";
-import ScopeBreakdownTable from "./ScopeBreakdownTable";
+import ScopeBreakdownTable, { normalizeBreakdownRows } from "./ScopeBreakdownTable";
+import BreakdownBars from "./BreakdownBars";
+import MiniCompareBars from "../charts/MiniCompareBars";
+import Sparkline from "../charts/Sparkline";
+import { rowsForComparison } from "./comparisonRows";
 
 type Translator = (key: string, values?: Record<string, string | number>) => string;
 
@@ -15,8 +19,23 @@ function formatPct(n: number) {
   return `${(n * 100).toFixed(1)}%`;
 }
 
+// Etiquetas de cada comparativa (MiniComparison) según de dónde viene —
+// mismo "kind" significa pares distintos en Foco de la semana que en
+// Oportunidades (ver comparisonRows.ts), así que las etiquetas se arman acá,
+// no en el tipo de datos.
+function focusCompareLabels(trigger: "volumeDrop" | "cancellationHigh" | "paretoShare", t: Translator): { first: string; second: string } {
+  switch (trigger) {
+    case "volumeDrop":
+      return { first: t("facilityFocus.compare.prior"), second: t("facilityFocus.compare.current") };
+    case "cancellationHigh":
+      return { first: t("facilityFocus.compare.facility"), second: t("facilityFocus.compare.network") };
+    case "paretoShare":
+      return { first: t("facilityFocus.compare.facilityShare"), second: t("facilityFocus.compare.restOfNetwork") };
+  }
+}
+
 export default function OpsReportDocument({ core, t, scopeLabel }: { core: ReportCore; t: Translator; scopeLabel: string }) {
-  const { current, kpis, periods, breakdown, actions, facilityFocus, opportunitySignals } = core;
+  const { current, kpis, periods, breakdown, actions, facilityFocus, opportunitySignals, evolution } = core;
 
   // "Foco de la semana" (abajo) ya cubre, con mucho más detalle, la misma
   // cancha que dispararía actions.worstFacility (mismo umbral, mismo dato:
@@ -25,6 +44,17 @@ export default function OpsReportDocument({ core, t, scopeLabel }: { core: Repor
   // mail siguen mostrando la lista completa, sin este filtro: todavía no
   // tienen el reemplazo.
   const generalActions = actions.filter((a) => a.textKey !== "actions.worstFacility");
+
+  const breakdownRows = normalizeBreakdownRows(breakdown);
+
+  // Soporte visual de los KPIs (Ivan, 2/10/26): mismos 6 períodos que ya se
+  // traen para "evolution" (hasta ahora sin usar en este reporte), uno por
+  // tile. totalRevenue se queda sin sparkline: MetricSeriesPoint no trackea
+  // revenue por período, y no vale la pena una query nueva solo para esto.
+  const confirmedSeries = evolution.map((p) => p.confirmedGames);
+  const confirmationRateSeries = evolution.map((p) => p.confirmationRate);
+  const cancellationRateSeries = evolution.map((p) => p.cancellationRate);
+  const fillRateSeries = evolution.map((p) => p.occupancyRate);
 
   return (
     <article className="space-y-4 print:space-y-3">
@@ -43,12 +73,14 @@ export default function OpsReportDocument({ core, t, scopeLabel }: { core: Repor
             formattedValue: formatNum(kpis.confirmedGames.value),
             changeValue: kpis.confirmedGames.changePct,
             priorLabel: t("kpi.vsPrior", { label: periods.prior.label }),
+            sparkline: confirmedSeries,
           },
           {
             label: t("kpi.confirmationRate"),
             formattedValue: formatPct(kpis.confirmationRate.value),
             changeValue: kpis.confirmationRate.changePts,
             unit: "pts",
+            sparkline: confirmationRateSeries,
           },
           {
             label: t("kpi.cancellationRate"),
@@ -56,12 +88,14 @@ export default function OpsReportDocument({ core, t, scopeLabel }: { core: Repor
             changeValue: kpis.cancellationRate.changePts,
             unit: "pts",
             invert: true,
+            sparkline: cancellationRateSeries,
           },
           {
             label: t("kpi.avgFillRate"),
             formattedValue: formatPct(kpis.avgFillRate.value),
             changeValue: kpis.avgFillRate.changePts,
             unit: "pts",
+            sparkline: fillRateSeries,
           },
           {
             label: t("kpi.totalRevenue"),
@@ -87,6 +121,7 @@ export default function OpsReportDocument({ core, t, scopeLabel }: { core: Repor
       </ReportSection>
 
       <ReportSection title={t("breakdown.title")}>
+        <BreakdownBars rows={breakdownRows} />
         <ScopeBreakdownTable breakdown={breakdown} t={t} />
       </ReportSection>
 
@@ -95,21 +130,27 @@ export default function OpsReportDocument({ core, t, scopeLabel }: { core: Repor
           <div className="text-sm text-ink-faint">{t("facilityFocus.empty")}</div>
         ) : (
           <ul className="space-y-3">
-            {facilityFocus.map((item, i) => (
-              <li key={i} className="rounded-xl border border-border bg-surface-sunken/40 p-3 print:rounded-none print:border-0 print:border-b print:pb-2">
-                <div className="font-display text-sm font-semibold text-ink mb-1 print:text-[9.5pt]">{item.entityLabel}</div>
-                <p className="text-sm text-ink-muted print:text-[9pt]">
-                  {t(item.findingTextKey, item.findingValues)}
-                  {item.reasonTextKey ? ` ${t(item.reasonTextKey, item.reasonValues)}` : ""}
-                </p>
-                <p className="text-sm text-ink font-medium mt-1.5 print:text-[9pt]">
-                  <span className="text-brand">{t("facilityFocus.actionLabel")}</span> {t(item.actionTextKey)}
-                </p>
-                {item.tenureCaveatTextKey && (
-                  <p className="text-xs text-ink-faint italic mt-1 print:text-[8pt]">{t(item.tenureCaveatTextKey)}</p>
-                )}
-              </li>
-            ))}
+            {facilityFocus.map((item, i) => {
+              const compare = item.comparison ? rowsForComparison(item.comparison, focusCompareLabels(item.trigger, t)) : null;
+              return (
+                <li key={i} className="rounded-xl border border-border bg-surface-sunken/40 p-3 print:rounded-none print:border-0 print:border-b print:pb-2">
+                  <div className="font-display text-sm font-semibold text-ink mb-1 print:text-[9.5pt]">{item.entityLabel}</div>
+                  <p className="text-sm text-ink-muted print:text-[9pt]">
+                    {t(item.findingTextKey, item.findingValues)}
+                    {item.reasonTextKey ? ` ${t(item.reasonTextKey, item.reasonValues)}` : ""}
+                  </p>
+                  {compare && (
+                    <MiniCompareBars rows={compare.rows} formatValue={compare.isPct ? formatPct : formatNum} />
+                  )}
+                  <p className="text-sm text-ink font-medium mt-1.5 print:text-[9pt]">
+                    <span className="text-brand">{t("facilityFocus.actionLabel")}</span> {t(item.actionTextKey)}
+                  </p>
+                  {item.tenureCaveatTextKey && (
+                    <p className="text-xs text-ink-faint italic mt-1 print:text-[8pt]">{t(item.tenureCaveatTextKey)}</p>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
       </ReportSection>
@@ -118,19 +159,32 @@ export default function OpsReportDocument({ core, t, scopeLabel }: { core: Repor
         <ReportSection title={t("opportunity.title")}>
           <p className="text-xs text-ink-faint italic -mt-1 mb-2 print:text-[8pt]">{t("opportunity.disclaimer")}</p>
           <ul className="space-y-3">
-            {opportunitySignals.map((item, i) => (
-              <li key={i} className="rounded-xl border border-dashed border-brand/40 bg-surface-sunken/40 p-3 print:rounded-none print:border-0 print:border-b print:pb-2">
-                <div className="font-display text-sm font-semibold text-ink mb-1 print:text-[9.5pt]">{item.entityLabel}</div>
-                <p className="text-sm text-ink-muted print:text-[9pt]">{t(item.findingTextKey, item.findingValues)}</p>
-                <ul className="mt-1.5 space-y-1 list-disc list-inside">
-                  {item.optionTextKeys.map((key) => (
-                    <li key={key} className="text-sm text-ink print:text-[9pt]">
-                      {t(key)}
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            ))}
+            {opportunitySignals.map((item, i) => {
+              const compare =
+                item.kind === "peakWindow" && item.comparison
+                  ? rowsForComparison(item.comparison, { first: t("opportunity.compare.hour"), second: t("opportunity.compare.facilityAvg") })
+                  : null;
+              return (
+                <li key={i} className="rounded-xl border border-dashed border-brand/40 bg-surface-sunken/40 p-3 print:rounded-none print:border-0 print:border-b print:pb-2">
+                  <div className="font-display text-sm font-semibold text-ink mb-1 print:text-[9.5pt]">{item.entityLabel}</div>
+                  <p className="text-sm text-ink-muted print:text-[9pt]">{t(item.findingTextKey, item.findingValues)}</p>
+                  {compare && <MiniCompareBars rows={compare.rows} formatValue={formatPct} />}
+                  {item.kind === "decliningSlot" && item.trendSeries && item.trendSeries.length >= 2 && (
+                    <div className="mt-2">
+                      <div className="text-[10px] text-ink-faint mb-0.5 print:text-[7pt]">{t("opportunity.trend.label")}</div>
+                      <Sparkline values={item.trendSeries} height={32} color="#cc3c29" fill={false} />
+                    </div>
+                  )}
+                  <ul className="mt-1.5 space-y-1 list-disc list-inside">
+                    {item.optionTextKeys.map((key) => (
+                      <li key={key} className="text-sm text-ink print:text-[9pt]">
+                        {t(key)}
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              );
+            })}
           </ul>
         </ReportSection>
       )}

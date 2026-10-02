@@ -128,6 +128,12 @@ export type FacilityComparisonRow = {
   changePct: number | null;
   confirmationRate: number;
   changePts: number | null;
+  // Confirmados del período anterior, sin procesar — se agrega para el
+  // soporte visual de "Foco de la semana" (comparativa antes/ahora), que
+  // necesita el valor real, no uno reconstruido a partir de changePct (ese
+  // camino se rompe en el caso borde cur=0 -> changePct=-1 -> división 0/0).
+  // Mismo tally `prior` ya calculado acá abajo, sin query nueva.
+  priorConfirmedGames: number | null;
 };
 
 async function getFacilityComparisonImpl(
@@ -178,6 +184,7 @@ async function getFacilityComparisonImpl(
       changePct: p && p.confirmed > 0 ? (cur.confirmed - p.confirmed) / p.confirmed : null,
       confirmationRate,
       changePts: priorConfirmationRate !== null ? confirmationRate - priorConfirmationRate : null,
+      priorConfirmedGames: p ? p.confirmed : null,
     };
   });
 
@@ -403,6 +410,26 @@ function buildActionSuggestions(
 //     período (reusa paretoCancellations, ya calculado).
 const FACILITY_FOCUS_DOMINANT_REASON_PCT = 0.35; // mismo umbral que actions.topReason
 
+// ---------- Soporte visual: comparativas compactas (2 barras) ----------
+// Un único tipo, reusado por "Foco de la semana" y "Oportunidades a
+// explorar" (Ivan, 2/10/26 — pidió soporte visual por sección sin repetir
+// los gráficos que ya están en la web): cada hallazgo ya trae, en
+// findingValues, los números que lo sustentan — esto solo los expone en una
+// forma que el componente de UI puede dibujar como 2 barras, sin volver a
+// calcular nada. "kind" decide qué par de barras mostrar:
+//  - beforeAfter: mismo valor (conteo) antes vs. ahora (p.ej. partidos
+//    confirmados período anterior vs. actual).
+//  - vsBaseline: el valor puntual (de la cancha/franja) vs. un promedio de
+//    referencia (red, o la cancha completa).
+//  - shareOfTotal: qué % de un total le corresponde a este caso puntual
+//    (la barra complementaria es "resto").
+// Todos los valores van en su unidad natural (conteos tal cual, tasas como
+// ratio 0–1) — el componente de UI decide el formato de texto.
+export type MiniComparison =
+  | { kind: "beforeAfter"; before: number; after: number }
+  | { kind: "vsBaseline"; value: number; baseline: number }
+  | { kind: "shareOfTotal"; share: number };
+
 export type FacilityFocusItem = {
   entityLabel: string;
   findingTextKey: string;
@@ -411,6 +438,8 @@ export type FacilityFocusItem = {
   reasonValues?: Record<string, string | number>;
   actionTextKey: string;
   tenureCaveatTextKey?: string;
+  trigger: FocusTrigger;
+  comparison?: MiniComparison;
 };
 
 // Antigüedad: no tenemos "Partnership start date" cargado (🔧 en el mapa de
@@ -422,8 +451,13 @@ export type FacilityFocusItem = {
 // un problema. Nunca se usa para OCULTAR un ítem, solo para aclararlo.
 const NEW_FACILITY_TENURE_DAYS = 56; // ~8 semanas
 
-type FocusTrigger = "volumeDrop" | "cancellationHigh" | "paretoShare";
-type FocusCandidate = { facilityId: string; trigger: FocusTrigger; findingValues: Record<string, string | number> };
+export type FocusTrigger = "volumeDrop" | "cancellationHigh" | "paretoShare";
+type FocusCandidate = {
+  facilityId: string;
+  trigger: FocusTrigger;
+  findingValues: Record<string, string | number>;
+  comparison?: MiniComparison;
+};
 
 // La categoría se trata como string simple, no como el enum de Prisma
 // (CancellationCategory) — mismo criterio que shared.ts (CATEGORY_LABEL,
@@ -470,6 +504,10 @@ async function buildFacilityFocus(
         confirmedGames: worstVolume.confirmedGames,
         changePct: Math.abs((worstVolume.changePct as number) * 100).toFixed(0),
       },
+      comparison:
+        worstVolume.priorConfirmedGames !== null
+          ? { kind: "beforeAfter", before: worstVolume.priorConfirmedGames, after: worstVolume.confirmedGames }
+          : undefined,
     });
     seen.add(worstVolume.facilityId);
   }
@@ -488,6 +526,7 @@ async function buildFacilityFocus(
           gap: gapPoints.toFixed(0),
           networkRate: (current.cancellationRate * 100).toFixed(0),
         },
+        comparison: { kind: "vsBaseline", value: worstRate.rate, baseline: current.cancellationRate },
       });
       seen.add(worstRate.facilityId);
     }
@@ -501,6 +540,7 @@ async function buildFacilityFocus(
         facilityId: topContributor.facilityId,
         trigger: "paretoShare",
         findingValues: { pct: (sharePct * 100).toFixed(0), count: topContributor.value },
+        comparison: { kind: "shareOfTotal", share: sharePct },
       });
       seen.add(topContributor.facilityId);
     }
@@ -591,6 +631,8 @@ async function buildFacilityFocus(
           ? "facilityFocus.action.reviewDemand"
           : "facilityFocus.action.unclear",
       tenureCaveatTextKey: tenureDays < NEW_FACILITY_TENURE_DAYS ? "facilityFocus.tenureCaveat" : undefined,
+      trigger: c.trigger,
+      comparison: c.comparison,
     };
   });
 }
@@ -634,6 +676,13 @@ export type OpportunitySignal = {
   findingTextKey: string;
   findingValues: Record<string, string | number>;
   optionTextKeys: string[];
+  kind: "peakWindow" | "unavailableSlot" | "decliningSlot";
+  comparison?: MiniComparison;
+  // Solo decliningSlot: confirmados por período de la ventana de evolución
+  // (mismos períodos que bySlot ya agrupó para detectar la racha) — se
+  // expone para poder dibujar el sparkline de la caída, sin volver a traer
+  // nada de la base.
+  trendSeries?: number[];
 };
 
 // Ivan (1/10/26): la narrativa original solo tiraba dos porcentajes sueltos
@@ -737,6 +786,8 @@ async function buildOpportunitySignals(
         periods: periodsCount,
       },
       optionTextKeys,
+      kind: "peakWindow",
+      comparison: { kind: "vsBaseline", value: best.confirmationRate, baseline: facilityAvgRate },
     });
   }
 
@@ -804,6 +855,7 @@ async function buildUnavailableSlotSignals(filters: ReportFilters, dateTo: Date)
       findingTextKey: "opportunity.unavailableSlot.finding",
       findingValues: { hour: `${c.hour}h`, count: c.count, days: UNAVAILABLE_WINDOW_DAYS },
       optionTextKeys: ["opportunity.unavailableSlot.option.secureAdvance"],
+      kind: "unavailableSlot",
     };
   });
 }
@@ -859,7 +911,14 @@ async function buildDecliningCancellationSlotSignals(
     bySlot.set(key, arr);
   }
 
-  type SlotCandidate = { facilityId: string; hour: string; cancellationRate: number; cancelledGames: number; streakLength: number };
+  type SlotCandidate = {
+    facilityId: string;
+    hour: string;
+    cancellationRate: number;
+    cancelledGames: number;
+    streakLength: number;
+    confirmedSeries: number[];
+  };
   const candidates: SlotCandidate[] = [];
 
   for (const [key, periodsArr] of bySlot) {
@@ -871,10 +930,11 @@ async function buildDecliningCancellationSlotSignals(
     const cancellationRate = (totalGames - confirmedGames) / totalGames;
     if (cancellationRate <= SLOT_CANCELLATION_RATE_THRESHOLD) continue;
 
-    const streak = detectStreak(periodsArr.map((p) => p.confirmed), 0);
+    const confirmedSeries = periodsArr.map((p) => p.confirmed);
+    const streak = detectStreak(confirmedSeries, 0);
     if (!streak || streak.direction !== "down" || streak.length < MIN_STREAK) continue;
 
-    candidates.push({ facilityId, hour, cancellationRate, cancelledGames: totalGames - confirmedGames, streakLength: streak.length });
+    candidates.push({ facilityId, hour, cancellationRate, cancelledGames: totalGames - confirmedGames, streakLength: streak.length, confirmedSeries });
   }
 
   if (candidates.length === 0) return [];
@@ -898,6 +958,8 @@ async function buildDecliningCancellationSlotSignals(
       findingTextKey: "opportunity.decliningSlot.finding",
       findingValues: { hour: `${c.hour}h`, rate: (c.cancellationRate * 100).toFixed(0), periods: c.streakLength },
       optionTextKeys: ["opportunity.decliningSlot.option.discount"],
+      kind: "decliningSlot",
+      trendSeries: c.confirmedSeries,
     };
   });
 }
