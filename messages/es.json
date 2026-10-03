@@ -689,8 +689,9 @@
       "title": "Proyección de {month}",
       "gamesLabel": "Partidos confirmados (proy.)",
       "revenueLabel": "Revenue (proy.)",
-      "basedOn": "En base a {confirmed} confirmados en {elapsed} de {total} días · variación vs. mes anterior completo",
-      "notYetAvailable": "Proyección de {month} disponible desde el día {day}"
+      "basedOn": "En base a {total} partidos jugados hasta hoy — {confirmed} confirmados ({confirmedRate}) y {cancelled} cancelados ({cancelledRate}) — en {elapsed} de {daysInMonth} días, con {revenue} de revenue acumulado.",
+      "notYetAvailable": "Proyección de {month} disponible desde el día {day}",
+      "priorBasis": "Mes anterior completo: {priorConfirmed} partidos confirmados y {priorRevenue} de revenue — la base de la variación de arriba."
     },
     "tabs": {
       "summary": "Resumen",

@@ -18,6 +18,12 @@ function formatUSD(n: number) {
   return n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 }
 
+// null = sin partidos jugados todavía en lo que va del mes (getMonthProjection
+// solo divide si totalSoFar > 0) — no hay tasa que mostrar, a propósito no es "0%".
+function formatRate(n: number | null): string {
+  return n === null ? "—" : `${(n * 100).toFixed(0)}%`;
+}
+
 export default async function OverviewPage({ searchParams }: { searchParams: Promise<SP> }) {
   const [sp, rawLocale, t] = await Promise.all([searchParams, getLocale(), getTranslations("Overview")]);
   const locale = rawLocale as Locale;
@@ -109,8 +115,32 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
                   <div className="text-[11px] text-ink-faint mt-0.5">{t("projection.revenueLabel")}</div>
                 </div>
               </div>
-              <div className="text-[11px] text-ink-faint mt-2 pt-2 border-t border-brand/15">
-                {t("projection.basedOn", { confirmed: monthProjection.confirmedSoFar.toLocaleString("en-US"), elapsed: monthProjection.daysElapsed, total: monthProjection.daysInMonth })}
+              <div className="text-[11px] text-ink-faint mt-2 pt-2 border-t border-brand/15 space-y-0.5">
+                {/* Detalle real detrás de la proyección (hallazgo 2 del mapeo
+                    de lógica no expuesta, 3/10/26): getMonthProjection ya
+                    calculaba totalSoFar/cancelledSoFar/confirmationRateSoFar/
+                    cancellationRateSoFar/revenueSoFar/priorConfirmedGames/
+                    priorRevenue y ninguna pantalla los leía — acá se muestra
+                    de qué acumulado real sale la proyección y contra qué
+                    base concreta (no solo el %) se compara. */}
+                <div>
+                  {t("projection.basedOn", {
+                    total: monthProjection.totalSoFar.toLocaleString("en-US"),
+                    confirmed: monthProjection.confirmedSoFar.toLocaleString("en-US"),
+                    confirmedRate: formatRate(monthProjection.confirmationRateSoFar),
+                    cancelled: monthProjection.cancelledSoFar.toLocaleString("en-US"),
+                    cancelledRate: formatRate(monthProjection.cancellationRateSoFar),
+                    revenue: formatUSD(monthProjection.revenueSoFar),
+                    elapsed: monthProjection.daysElapsed,
+                    daysInMonth: monthProjection.daysInMonth,
+                  })}
+                </div>
+                <div>
+                  {t("projection.priorBasis", {
+                    priorConfirmed: monthProjection.priorConfirmedGames.toLocaleString("en-US"),
+                    priorRevenue: formatUSD(monthProjection.priorRevenue),
+                  })}
+                </div>
               </div>
             </>
           ) : (

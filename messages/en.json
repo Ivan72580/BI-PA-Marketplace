@@ -689,8 +689,9 @@
       "title": "{month} projection",
       "gamesLabel": "Confirmed games (proj.)",
       "revenueLabel": "Revenue (proj.)",
-      "basedOn": "Based on {confirmed} confirmed in {elapsed} of {total} days · variation vs. full prior month",
-      "notYetAvailable": "{month} projection available from day {day}"
+      "basedOn": "Based on {total} games played so far — {confirmed} confirmed ({confirmedRate}) and {cancelled} cancelled ({cancelledRate}) — over {elapsed} of {daysInMonth} days, with {revenue} in revenue accrued.",
+      "notYetAvailable": "{month} projection available from day {day}",
+      "priorBasis": "Prior full month: {priorConfirmed} confirmed games and {priorRevenue} in revenue — the basis for the variation above."
     },
     "tabs": {
       "summary": "Summary",
