@@ -118,9 +118,26 @@ const MIN_SAMPLE_FOR_RATE_BAR = 10;
 function RateBarList({
   rows,
   emptyLabel,
+  occupancyLabel,
+  conversionLabel,
 }: {
-  rows: { key: string; label: string; confirmationRate: number; cancellationRate: number; totalGames: number }[];
+  rows: {
+    key: string;
+    label: string;
+    confirmationRate: number;
+    cancellationRate: number;
+    totalGames: number;
+    // Ocupación/conversión (hallazgo 5 del mapeo de lógica no expuesta,
+    // 3/10/26): getDayOfWeekPattern/getHourPattern ya las calculan por fila
+    // junto con confirmación/cancelación, pero el landing solo graficaba las
+    // dos primeras — opcionales acá porque getNetworkFormatLeaderboard (el
+    // tercer uso de esta lista, "formatos más consistentes") no las calcula.
+    occupancyRate?: number;
+    conversionRate?: number;
+  }[];
   emptyLabel: string;
+  occupancyLabel?: string;
+  conversionLabel?: string;
 }) {
   if (rows.length === 0) return <div className="text-sm text-ink-faint">{emptyLabel}</div>;
   return (
@@ -137,6 +154,21 @@ function RateBarList({
             <div className="h-1.5 bg-brand" style={{ width: `${r.confirmationRate * 100}%` }} />
             <div className="h-1.5 bg-danger" style={{ width: `${r.cancellationRate * 100}%` }} />
           </div>
+          {(r.occupancyRate !== undefined || r.conversionRate !== undefined) && (
+            <div className="text-[10px] text-ink-faint/80 mt-0.5">
+              {r.occupancyRate !== undefined && occupancyLabel && (
+                <>
+                  {occupancyLabel} {formatPct(r.occupancyRate)}
+                </>
+              )}
+              {r.occupancyRate !== undefined && r.conversionRate !== undefined && occupancyLabel && conversionLabel && " · "}
+              {r.conversionRate !== undefined && conversionLabel && (
+                <>
+                  {conversionLabel} {formatPct(r.conversionRate)}
+                </>
+              )}
+            </div>
+          )}
         </div>
       ))}
     </div>
@@ -205,36 +237,137 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
     year: t("granularity.year"), semester: t("granularity.semester"), quarter: t("granularity.quarter"), month: t("granularity.month"),
   };
 
-  // ---------- Pantalla de selección obligatoria ----------
-  if (!sp.regionId || !sp.marketId) {
-    const landingMonth = todayISO().slice(0, 7);
-    const [marketMovers, networkClimate, networkDayPattern, networkHourPattern, networkFormatLeaderboard] = await Promise.all([
-      getMarketConfirmationRanking({}, landingMonth),
-      getQuarterClimate({}, locale),
-      getDayOfWeekPattern({}, locale),
-      getHourPattern({}),
-      getNetworkFormatLeaderboard(),
-    ]);
-    type MarketMeta = { id: string; name: string; regionId: string };
-    const marketMeta = new Map<string, MarketMeta>(
-      filterOptions.markets.map((m: MarketMeta): [string, MarketMeta] => [m.id, m])
-    );
-    type RegionMeta = { id: string; name: string };
-    const regionMeta = new Map<string, RegionMeta>(
-      filterOptions.regions.map((r: RegionMeta): [string, RegionMeta] => [r.id, r])
-    );
-    const topMovers = marketMovers.filter((m: { marketId: string }) => marketMeta.has(m.marketId)).slice(0, 10);
-    const hourRows = [...networkHourPattern]
-      .filter((h) => h.totalGames >= MIN_SAMPLE_FOR_RATE_BAR)
-      .sort((a, b) => b.confirmationRate - a.confirmationRate)
-      .slice(0, 10);
-    const formatRows = [...networkFormatLeaderboard]
-      .filter((f) => f.totalGames >= MIN_SAMPLE_FOR_RATE_BAR)
-      .sort((a, b) => b.confirmationRate - a.confirmationRate)
-      .slice(0, 10)
-      .map((f) => ({ ...f, label: f.facilityName ? `${f.label} · ${f.facilityName}` : f.label }));
-    const quarterInsights = buildQuarterInsights(networkClimate, t);
+  // ---------- Resumen de alcance (red/región/market) ----------
+  // Antes esto era una pantalla única que desaparecía apenas se elegían
+  // región+market (y mientras tanto, ignoraba la región ya elegida: siempre
+  // consultaba toda la red). Ahora persiste y se re-escopea con el filtro
+  // (Ivan, 3/10/26): red completa sin filtro, la región si solo esa está
+  // elegida, el market si los dos están elegidos — y se oculta solo cuando
+  // se busca una facility puntual desde la search bar (ahí entra de lleno
+  // al detalle de esa facility, ver más abajo).
+  const hasMarket = Boolean(sp.regionId && sp.marketId);
+  const hasFacility = Boolean(sp.facilityId);
+  const scopeFilters: Omit<OverviewFilters, "dateFrom" | "dateTo"> = sp.regionId
+    ? sp.marketId
+      ? { regionId: sp.regionId, marketId: sp.marketId }
+      : { regionId: sp.regionId }
+    : {};
+  const scopeRegionName = sp.regionId ? filterOptions.regions.find((r: { id: string }) => r.id === sp.regionId)?.name : undefined;
+  const scopeMarketName = sp.marketId ? filterOptions.markets.find((m: { id: string }) => m.id === sp.marketId)?.name : undefined;
+  const scopeLabel = scopeMarketName ?? scopeRegionName ?? t("landing.scopeNetwork");
 
+  const scopeSummarySection = hasFacility
+    ? null
+    : await (async () => {
+        const landingMonth = todayISO().slice(0, 7);
+        const [marketMovers, climatePoints, dayPattern, hourPattern, formatLeaderboard] = await Promise.all([
+          // Rankear markets entre sí no tiene sentido una vez que ya se
+          // eligió uno puntual (hasMarket) — ahí abajo solo quedan los
+          // patrones de día/hora/formato, re-escopeados a ese market.
+          hasMarket ? Promise.resolve([]) : getMarketConfirmationRanking(scopeFilters, landingMonth),
+          getQuarterClimate(scopeFilters, locale),
+          getDayOfWeekPattern(scopeFilters, locale),
+          getHourPattern(scopeFilters),
+          getNetworkFormatLeaderboard(scopeFilters),
+        ]);
+        type MarketMeta = { id: string; name: string; regionId: string };
+        const marketMeta = new Map<string, MarketMeta>(
+          filterOptions.markets.map((m: MarketMeta): [string, MarketMeta] => [m.id, m])
+        );
+        type RegionMeta = { id: string; name: string };
+        const regionMeta = new Map<string, RegionMeta>(
+          filterOptions.regions.map((r: RegionMeta): [string, RegionMeta] => [r.id, r])
+        );
+        const topMovers = marketMovers.filter((m: { marketId: string }) => marketMeta.has(m.marketId)).slice(0, 10);
+        const hourRows = [...hourPattern]
+          .filter((h) => h.totalGames >= MIN_SAMPLE_FOR_RATE_BAR)
+          .sort((a, b) => b.confirmationRate - a.confirmationRate)
+          .slice(0, 10);
+        const formatRows = [...formatLeaderboard]
+          .filter((f) => f.totalGames >= MIN_SAMPLE_FOR_RATE_BAR)
+          .sort((a, b) => b.confirmationRate - a.confirmationRate)
+          .slice(0, 10)
+          .map((f) => ({ ...f, label: f.facilityName ? `${f.label} · ${f.facilityName}` : f.label }));
+        const quarterInsights = buildQuarterInsights(climatePoints, t);
+
+        return (
+          <GroupSection title={t("landing.networkSectionTitle", { scope: scopeLabel })}>
+            <p className="text-xs text-ink-faint -mt-1">{t("landing.networkSectionHint")}</p>
+
+            {/* Ranking entre markets + clima trimestral: solo tienen sentido
+                mirando más de un market a la vez (red completa o región) —
+                una vez que ya se eligió un market puntual, Panorama ya
+                muestra su propio QuarterClimate en el header de abajo, así
+                que acá no se repite. */}
+            {!hasMarket && (
+              <div className="grid grid-cols-1 lg:grid-cols-[1.6fr_1fr] gap-5">
+                <SectionCard title={t("landing.topMoversTitle")} subtitle={t("landing.topMoversSubtitle")}>
+                  {topMovers.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+                      {topMovers.map((m) => {
+                        const market = marketMeta.get(m.marketId)!;
+                        const region = regionMeta.get(market.regionId);
+                        const href = buildTrendsQuery(sp, { regionId: market.regionId, marketId: m.marketId });
+                        return (
+                          <Link
+                            key={m.marketId}
+                            href={href}
+                            className="flex items-center justify-between gap-3 rounded-xl px-2 py-2.5 -mx-2 hover:bg-surface-sunken transition-colors"
+                          >
+                            <div className="min-w-0">
+                              <div className="text-sm font-medium text-ink truncate">
+                                {market.name} {region && <span className="text-ink-faint font-normal">· {region.name}</span>}
+                              </div>
+                              <div className="text-xs text-ink-faint">
+                                {t("landing.confirmationOf", { pct: formatPct(m.confirmationRate), n: m.totalGames.toLocaleString("en-US") })}
+                              </div>
+                            </div>
+                            <ChangeBadge
+                              value={m.changePts}
+                              unit="pts"
+                              secondary={m.priorConfirmationRate !== null ? t("landing.vsPriorRate", { pct: formatPct(m.priorConfirmationRate) }) : undefined}
+                            />
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-ink-faint">{t("landing.topMoversEmpty")}</div>
+                  )}
+                </SectionCard>
+
+                <div className="space-y-3">
+                  <div className="flex justify-center">
+                    <QuarterClimate points={climatePoints} />
+                  </div>
+                  {quarterInsights.length > 0 && (
+                    <ul className="text-[11px] text-ink-faint space-y-1 max-w-[220px] mx-auto list-disc pl-4">
+                      {quarterInsights.map((line) => (
+                        <li key={line}>{line}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+              <SectionCard title={t("landing.bestDayTitle")} subtitle={t("landing.bestDaySubtitle", { scope: scopeLabel })}>
+                <RateBarList rows={dayPattern} emptyLabel={t("rateBarEmpty")} occupancyLabel={t("landing.occupancyShort")} conversionLabel={t("landing.conversionShort")} />
+              </SectionCard>
+              <SectionCard title={t("landing.bestHourTitle")} subtitle={t("landing.bestHourSubtitle", { scope: scopeLabel, n: MIN_SAMPLE_FOR_RATE_BAR })}>
+                <RateBarList rows={hourRows} emptyLabel={t("rateBarEmpty")} occupancyLabel={t("landing.occupancyShort")} conversionLabel={t("landing.conversionShort")} />
+              </SectionCard>
+              <SectionCard title={t("landing.bestFormatTitle")} subtitle={t("landing.bestFormatSubtitle", { scope: scopeLabel, n: MIN_SAMPLE_FOR_RATE_BAR })}>
+                <RateBarList rows={formatRows} emptyLabel={t("rateBarEmpty")} />
+              </SectionCard>
+            </div>
+          </GroupSection>
+        );
+      })();
+
+  // ---------- Pantalla de selección (todavía sin región+market) ----------
+  if (!hasMarket) {
     return (
       <div>
         <h1 className="font-display text-3xl font-bold text-ink mb-1">{t("title")}</h1>
@@ -248,76 +381,7 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
           <FilterPanel regions={filterOptions.regions} markets={filterOptions.markets} facilities={filterOptions.facilities} showTimeControls={false} showFacility={false} bare />
         </div>
 
-        <div className="mt-6">
-          <GroupSection title={t("landing.networkSectionTitle")}>
-            <p className="text-xs text-ink-faint -mt-1">{t("landing.networkSectionHint")}</p>
-
-            <div className="grid grid-cols-1 lg:grid-cols-[1.6fr_1fr] gap-5">
-              <SectionCard
-                title={t("landing.topMoversTitle")}
-                subtitle={t("landing.topMoversSubtitle")}
-              >
-                {topMovers.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
-                    {topMovers.map((m) => {
-                      const market = marketMeta.get(m.marketId)!;
-                      const region = regionMeta.get(market.regionId);
-                      const href = buildTrendsQuery(sp, { regionId: market.regionId, marketId: m.marketId });
-                      return (
-                        <Link
-                          key={m.marketId}
-                          href={href}
-                          className="flex items-center justify-between gap-3 rounded-xl px-2 py-2.5 -mx-2 hover:bg-surface-sunken transition-colors"
-                        >
-                          <div className="min-w-0">
-                            <div className="text-sm font-medium text-ink truncate">
-                              {market.name} {region && <span className="text-ink-faint font-normal">· {region.name}</span>}
-                            </div>
-                            <div className="text-xs text-ink-faint">
-                              {t("landing.confirmationOf", { pct: formatPct(m.confirmationRate), n: m.totalGames.toLocaleString("en-US") })}
-                            </div>
-                          </div>
-                          <ChangeBadge
-                            value={m.changePts}
-                            unit="pts"
-                            secondary={m.priorConfirmationRate !== null ? t("landing.vsPriorRate", { pct: formatPct(m.priorConfirmationRate) }) : undefined}
-                          />
-                        </Link>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-sm text-ink-faint">{t("landing.topMoversEmpty")}</div>
-                )}
-              </SectionCard>
-
-              <div className="space-y-3">
-                <div className="flex justify-center">
-                  <QuarterClimate points={networkClimate} />
-                </div>
-                {quarterInsights.length > 0 && (
-                  <ul className="text-[11px] text-ink-faint space-y-1 max-w-[220px] mx-auto list-disc pl-4">
-                    {quarterInsights.map((line) => (
-                      <li key={line}>{line}</li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-              <SectionCard title={t("landing.bestDayTitle")} subtitle={t("landing.bestDaySubtitle")}>
-                <RateBarList rows={networkDayPattern} emptyLabel={t("rateBarEmpty")} />
-              </SectionCard>
-              <SectionCard title={t("landing.bestHourTitle")} subtitle={t("landing.bestHourSubtitle", { n: MIN_SAMPLE_FOR_RATE_BAR })}>
-                <RateBarList rows={hourRows} emptyLabel={t("rateBarEmpty")} />
-              </SectionCard>
-              <SectionCard title={t("landing.bestFormatTitle")} subtitle={t("landing.bestFormatSubtitle", { n: MIN_SAMPLE_FOR_RATE_BAR })}>
-                <RateBarList rows={formatRows} emptyLabel={t("rateBarEmpty")} />
-              </SectionCard>
-            </div>
-          </GroupSection>
-        </div>
+        <div className="mt-6">{scopeSummarySection}</div>
       </div>
     );
   }
@@ -836,6 +900,12 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
         </div>
         <QuarterClimate points={quarterClimate} />
       </div>
+
+      {/* Resumen de alcance (hallazgo 5 del mapeo de lógica no expuesta,
+          3/10/26): mismo contenido que la pantalla de selección de arriba,
+          re-escopeado a este market — se oculta solo al entrar a una
+          facility puntual (scopeSummarySection ya es null en ese caso). */}
+      {scopeSummarySection && <div className="mb-5">{scopeSummarySection}</div>}
 
       <Tabs
         defaultActiveId={sp.facilityId ? "facility" : "panorama"}

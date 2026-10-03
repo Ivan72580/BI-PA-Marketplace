@@ -325,19 +325,22 @@
     "landing": {
       "pickPrompt": "Pick a region and a market to see the detail",
       "pickHint": "Mixing very different markets together doesn't give you actionable information.",
-      "networkSectionTitle": "While you pick: how the network is doing overall",
-      "networkSectionHint": "Doesn't replace the per-market detail — it's full-network context to help you decide where to look first.",
+      "networkSectionTitle": "How {scope} is doing",
+      "networkSectionHint": "A quick summary of this scope — it doesn't replace the detail below, it's context to help decide where to look first.",
       "topMoversTitle": "Markets that moved the most this month",
       "topMoversSubtitle": "Change in confirmation rate vs. last month — click to see the detail",
       "topMoversEmpty": "Not enough data this month.",
       "confirmationOf": "{pct} confirmation · {n} games",
       "bestDayTitle": "Best day to confirm",
-      "bestDaySubtitle": "Whole network, all-time",
+      "bestDaySubtitle": "{scope} · all-time",
       "bestHourTitle": "Best time slot to confirm",
-      "bestHourSubtitle": "Whole network · minimum {n} games per time slot",
+      "bestHourSubtitle": "{scope} · at least {n} games per time slot",
       "bestFormatTitle": "Most consistent formats",
-      "bestFormatSubtitle": "Whole network · minimum {n} games per format",
-      "vsPriorRate": "vs. {pct} last month"
+      "bestFormatSubtitle": "{scope} · at least {n} games per format",
+      "vsPriorRate": "vs. {pct} last month",
+      "scopeNetwork": "The whole network",
+      "occupancyShort": "Occ.",
+      "conversionShort": "Conv."
     },
     "quarterInsight": {
       "noVariation": "{label}: no meaningful variation between quarters.",

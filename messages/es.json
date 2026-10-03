@@ -325,19 +325,22 @@
     "landing": {
       "pickPrompt": "Elegí una región y un market para ver el detalle",
       "pickHint": "Mezclar mercados muy distintos entre sí no aporta información accionable.",
-      "networkSectionTitle": "Mientras elegís: así viene la red en general",
-      "networkSectionHint": "No reemplaza el detalle por market — es contexto de red completa para ayudarte a decidir dónde mirar primero.",
+      "networkSectionTitle": "Así viene {scope} en general",
+      "networkSectionHint": "Resumen rápido de este alcance — no reemplaza el detalle de abajo, es contexto para decidir dónde mirar primero.",
       "topMoversTitle": "Markets que más se movieron este mes",
       "topMoversSubtitle": "Variación de tasa de confirmación vs. mes anterior — hacé clic para ver el detalle",
       "topMoversEmpty": "Sin datos suficientes este mes.",
       "confirmationOf": "{pct} de confirmación · {n} partidos",
       "bestDayTitle": "Mejor día para confirmar",
-      "bestDaySubtitle": "Toda la red, todo el histórico",
+      "bestDaySubtitle": "{scope} · todo el histórico",
       "bestHourTitle": "Mejor horario para confirmar",
-      "bestHourSubtitle": "Toda la red · mínimo {n} partidos por horario",
+      "bestHourSubtitle": "{scope} · mínimo {n} partidos por horario",
       "bestFormatTitle": "Formatos más consistentes",
-      "bestFormatSubtitle": "Toda la red · mínimo {n} partidos por formato",
-      "vsPriorRate": "vs. {pct} el mes pasado"
+      "bestFormatSubtitle": "{scope} · mínimo {n} partidos por formato",
+      "vsPriorRate": "vs. {pct} el mes pasado",
+      "scopeNetwork": "Toda la red",
+      "occupancyShort": "Ocup.",
+      "conversionShort": "Conv."
     },
     "quarterInsight": {
       "noVariation": "{label}: sin variación relevante entre trimestres.",
