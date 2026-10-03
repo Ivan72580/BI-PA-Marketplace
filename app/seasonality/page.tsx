@@ -1,6 +1,14 @@
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
-import { getFilterOptions, resolveFilterNames, getSeasonalityData, getMonthProjection, type SeasonalityMonthPoint } from "../lib/db/queries";
+import {
+  getFilterOptions,
+  resolveFilterNames,
+  getSeasonalityData,
+  getMonthProjection,
+  getSeasonalPattern,
+  type SeasonalityMonthPoint,
+  type SeasonalMonthPoint,
+} from "../lib/db/queries";
 import { nowInBusinessTimeZone } from "../lib/period";
 import type { Locale } from "@/i18n/config";
 import FilterPanel from "../components/FilterPanel";
@@ -17,7 +25,96 @@ function isMetricKey(value: string | undefined): value is MetricKey {
   return !!value && (METRIC_KEYS as string[]).includes(value);
 }
 
-type SP = { regionId?: string; marketId?: string; facilityId?: string; year?: string; compare?: string; metric?: string; cardCompare?: string };
+type SP = {
+  regionId?: string;
+  marketId?: string;
+  facilityId?: string;
+  year?: string;
+  compare?: string;
+  metric?: string;
+  cardCompare?: string;
+  histMetric?: string;
+};
+
+// Las 8 variables que ya devuelve getSeasonalPattern (agregado cross-año,
+// sin importar el año elegido arriba) — hasta ahora calculadas y
+// descartadas (Ivan, 3/10/26: "mapeo de lógica no expuesta", hallazgo 1).
+type HistMetricKey =
+  | "confirmedGames"
+  | "cancelledGames"
+  | "confirmationRate"
+  | "cancellationRate"
+  | "occupancyRate"
+  | "conversionRate"
+  | "avgWaitlist"
+  | "medianLeadTime";
+const HIST_METRIC_KEYS: HistMetricKey[] = [
+  "confirmedGames",
+  "cancelledGames",
+  "confirmationRate",
+  "cancellationRate",
+  "occupancyRate",
+  "conversionRate",
+  "avgWaitlist",
+  "medianLeadTime",
+];
+function isHistMetricKey(value: string | undefined): value is HistMetricKey {
+  return !!value && (HIST_METRIC_KEYS as string[]).includes(value);
+}
+
+// Reutiliza los mismos colores que ya identifican a cada métrica en el
+// resto de la app (Trends: METRIC_COLORS; ReportKpiStrip: brand/danger) en
+// vez de inventar una paleta nueva de 8 colores sin validar — este sistema
+// de diseño no tiene 8 tonos categóricos distintos, así que cada métrica
+// se mira de a una (tabs), no las 8 superpuestas en un mismo gráfico.
+const HIST_METRIC_COLORS: Record<HistMetricKey, string> = {
+  confirmedGames: "#16755c",
+  cancelledGames: "#ff4b33",
+  confirmationRate: "#16755c",
+  cancellationRate: "#ff4b33",
+  occupancyRate: "#4ade80",
+  conversionRate: "#0b3b2e",
+  avgWaitlist: "#b45309",
+  medianLeadTime: "#0b3b2e",
+};
+
+function histMetricValue(p: SeasonalMonthPoint, key: HistMetricKey): number | null {
+  return p[key];
+}
+
+function formatHistValue(key: HistMetricKey, v: number | null): string {
+  if (v === null) return "—";
+  switch (key) {
+    case "confirmedGames":
+    case "cancelledGames":
+      return formatNum(v);
+    case "confirmationRate":
+    case "cancellationRate":
+    case "occupancyRate":
+    case "conversionRate":
+      return `${(v * 100).toFixed(1)}%`;
+    case "avgWaitlist":
+      return v.toFixed(1);
+    case "medianLeadTime":
+      return `${Math.round(v)} min`;
+  }
+}
+
+// Mayor/menor mes real para una métrica, ignorando meses sin dato (ej.
+// medianLeadTime puede ser null en un mes sin partidos confirmados con lead
+// time registrado) — a diferencia de historicalExtreme (que asume un
+// array completo de números), acá puede haber huecos.
+function bestWorstMonth(points: SeasonalMonthPoint[], key: HistMetricKey): { bestIdx: number | null; worstIdx: number | null } {
+  let bestIdx: number | null = null;
+  let worstIdx: number | null = null;
+  for (let i = 0; i < points.length; i++) {
+    const v = histMetricValue(points[i], key);
+    if (v === null) continue;
+    if (bestIdx === null || v > (histMetricValue(points[bestIdx], key) as number)) bestIdx = i;
+    if (worstIdx === null || v < (histMetricValue(points[worstIdx], key) as number)) worstIdx = i;
+  }
+  return { bestIdx, worstIdx };
+}
 
 // Tipo mínimo del traductor — mismo criterio que Daily/Trends/Market/Forecast.
 type Translator = (key: string, values?: Record<string, string | number>) => string;
@@ -201,9 +298,10 @@ export default async function SeasonalityPage({ searchParams }: { searchParams: 
   const showCompare = sp.compare !== "0";
   const cardCompare = sp.cardCompare === "1";
   const metric: MetricKey = isMetricKey(sp.metric) ? sp.metric : "confirmedGames";
+  const histMetric: HistMetricKey = isHistMetricKey(sp.histMetric) ? sp.histMetric : "confirmedGames";
   const filters = { regionId: sp.regionId, marketId: sp.marketId, facilityId: sp.facilityId };
 
-  const [names, filterOptions, data, monthProjection] = await Promise.all([
+  const [names, filterOptions, data, monthProjection, seasonalPattern] = await Promise.all([
     resolveFilterNames(sp),
     getFilterOptions(),
     getSeasonalityData(filters, year),
@@ -211,6 +309,11 @@ export default async function SeasonalityPage({ searchParams }: { searchParams: 
     // solo tiene sentido traerla cuando el año elegido es el actual — en
     // cualquier otro año no hay "mes en curso" que proyectar.
     year === currentYear ? getMonthProjection(filters, locale) : Promise.resolve(null),
+    // getSeasonalPattern agrega TODO el histórico disponible por mes
+    // calendario — a propósito, no depende de `year` (no es "cómo viene
+    // este año", es "qué mes es estructuralmente más fuerte/flojo en toda
+    // la historia registrada").
+    getSeasonalPattern(filters, locale),
   ]);
 
   const hasFilter = Boolean(sp.regionId || sp.marketId || sp.facilityId);
@@ -289,6 +392,18 @@ export default async function SeasonalityPage({ searchParams }: { searchParams: 
     ),
     ...buildForwardLookingInsights(data.priorMonths, monthLabels, year, currentYear, currentMonthIndex, t),
   ];
+
+  // Las propias etiquetas de mes de getSeasonalPattern (locale-aware, mismo
+  // criterio que monthLabels arriba) — se usan en vez de monthLabels porque
+  // vienen ya resueltas del lado del backend para esta función puntual.
+  const histMonthLabels = seasonalPattern.points.map((p) => p.monthLabel);
+  const histValues = seasonalPattern.points.map((p) => histMetricValue(p, histMetric));
+  const { bestIdx: histBestIdx, worstIdx: histWorstIdx } = bestWorstMonth(seasonalPattern.points, histMetric);
+
+  const histChartData = {
+    labels: histMonthLabels,
+    datasets: [{ label: t(`historicalPattern.metric.${histMetric}`), data: histValues, borderColor: HIST_METRIC_COLORS[histMetric] }],
+  };
 
   return (
     <div className="space-y-5">
@@ -415,11 +530,72 @@ export default async function SeasonalityPage({ searchParams }: { searchParams: 
         cardCompareHref={buildSeasonalityQuery(sp, { cardCompare: cardCompare ? undefined : "1" })}
       />
 
+      <GroupSection title={t("historicalPattern.title")} defaultOpen={false}>
+        <div className="text-xs text-ink-faint -mt-1 max-w-2xl">{t("historicalPattern.subtitle")}</div>
+
+        {/* Resumen de un vistazo: mejor/peor mes de TODA la historia para
+            cada una de las 8 variables, sin tener que pasar por los tabs
+            de abajo uno por uno. */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          {HIST_METRIC_KEYS.map((key) => {
+            const { bestIdx, worstIdx } = bestWorstMonth(seasonalPattern.points, key);
+            return (
+              <div key={key} className="rounded-xl bg-surface-sunken/40 p-2.5">
+                <div className="text-[11px] text-ink-faint mb-1 leading-tight">{t(`historicalPattern.metric.${key}`)}</div>
+                {bestIdx !== null ? (
+                  <div className="text-[11px] text-ink">
+                    <span className="text-brand font-semibold">{seasonalPattern.points[bestIdx].monthLabel}</span>{" "}
+                    {formatHistValue(key, histMetricValue(seasonalPattern.points[bestIdx], key))}
+                  </div>
+                ) : (
+                  <div className="text-[11px] text-ink-faint">{t("historicalPattern.noData")}</div>
+                )}
+                {worstIdx !== null && worstIdx !== bestIdx && (
+                  <div className="text-[11px] text-ink-faint">
+                    <span className="font-medium">{seasonalPattern.points[worstIdx].monthLabel}</span>{" "}
+                    {formatHistValue(key, histMetricValue(seasonalPattern.points[worstIdx], key))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          {HIST_METRIC_KEYS.map((key) => (
+            <Link
+              key={key}
+              href={buildSeasonalityQuery(sp, { histMetric: key === "confirmedGames" ? undefined : key })}
+              className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                histMetric === key ? "bg-brand text-white" : "bg-surface-sunken text-ink-muted hover:bg-brand-soft"
+              }`}
+            >
+              {t(`historicalPattern.metric.${key}`)}
+            </Link>
+          ))}
+        </div>
+
+        <LineChart data={histChartData} />
+
+        {histBestIdx !== null && histWorstIdx !== null && histBestIdx !== histWorstIdx && (
+          <div className="text-xs text-ink-faint">
+            {t("historicalPattern.bestWorst", {
+              metric: t(`historicalPattern.metric.${histMetric}`).toLowerCase(),
+              bestMonth: seasonalPattern.points[histBestIdx].monthLabel,
+              bestValue: formatHistValue(histMetric, histMetricValue(seasonalPattern.points[histBestIdx], histMetric)),
+              worstMonth: seasonalPattern.points[histWorstIdx].monthLabel,
+              worstValue: formatHistValue(histMetric, histMetricValue(seasonalPattern.points[histWorstIdx], histMetric)),
+            })}
+          </div>
+        )}
+      </GroupSection>
+
       <Glossary
         items={[
           { term: t("glossary.yoy.term"), def: t("glossary.yoy.def") },
           { term: t("glossary.revenue.term"), def: t("glossary.revenue.def") },
           { term: t("glossary.currentMonth.term"), def: t("glossary.currentMonth.def") },
+          { term: t("glossary.historicalPattern.term"), def: t("glossary.historicalPattern.def") },
         ]}
       />
 

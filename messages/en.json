@@ -1419,6 +1419,10 @@
       "currentMonth": {
         "term": "Current month",
         "def": "still in progress: its value and variation are partial and may rise before the month closes."
+      },
+      "historicalPattern": {
+        "term": "Historical pattern",
+        "def": "unlike the rest of this page (which looks at one year at a time), this aggregates all available history by calendar month — useful for seeing which months are structurally stronger or weaker, beyond any single year."
       }
     },
     "insights": {
@@ -1444,6 +1448,22 @@
       "revenueLabel": "Revenue (proj.)",
       "basedOn": "Based on {confirmed} confirmed in {elapsed} of {total} days · variation vs. full prior month",
       "notYetAvailable": "{month} projection available from day {day}"
+    },
+    "historicalPattern": {
+      "title": "Historical pattern by month (all years)",
+      "subtitle": "Aggregates ALL available history by calendar month, across every year — answers \"is January always slower, regardless of the year?\", unlike the chart above, which compares one specific year against the previous one.",
+      "noData": "No data",
+      "bestWorst": "{bestMonth} is historically the month with the highest {metric} ({bestValue}); {worstMonth} has the lowest ({worstValue}).",
+      "metric": {
+        "confirmedGames": "Confirmed games",
+        "cancelledGames": "Cancelled games",
+        "confirmationRate": "Confirmation rate",
+        "cancellationRate": "Cancellation rate",
+        "occupancyRate": "Occupancy",
+        "conversionRate": "Conversion",
+        "avgWaitlist": "Avg. waitlist",
+        "medianLeadTime": "Median lead time"
+      }
     }
   },
   "Reports": {

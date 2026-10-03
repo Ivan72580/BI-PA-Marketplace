@@ -468,17 +468,33 @@ export type NetworkFormatRow = {
   facilityName: string | null;
 };
 
-async function getNetworkFormatLeaderboardImpl(): Promise<NetworkFormatRow[]> {
+// `filters` (region/market/facility, sin fecha) — opcional, default red
+// completa — agregado (Ivan, 3/10/26) para que el landing de Trends pueda
+// mostrar "formatos más consistentes" de la región/market elegido en vez de
+// siempre toda la red, igual que ya hacían getDayOfWeekPattern/getHourPattern/
+// getQuarterClimate. Reusa buildWhere (mismo criterio relacional
+// facility->market->region que el resto del archivo) tanto para los partidos
+// como para el universo de facilities que resuelve el nombre "solo esta
+// cancha" de cada formato.
+async function getNetworkFormatLeaderboardImpl(filters: Omit<OverviewFilters, "dateFrom" | "dateTo"> = {}): Promise<NetworkFormatRow[]> {
   const groupKeys = ["facilityId", "gameSize", "fieldType", "maxPlayers"];
   type FormatFacilityGroup = { facilityId: string; gameSize: string | null; fieldType: string | null; maxPlayers: number; _count: { _all: number } };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const groupBy = prisma.game.groupBy as any;
+  const where = buildWhere(filters);
 
   type FacilityNameRow = { id: string; name: string };
+  const facilityWhere = filters.facilityId
+    ? { id: filters.facilityId }
+    : filters.marketId
+      ? { marketId: filters.marketId }
+      : filters.regionId
+        ? { market: { regionId: filters.regionId } }
+        : {};
   const [totals, cancelledGroups, facilities] = await Promise.all([
-    groupBy({ by: groupKeys, _count: { _all: true } }) as Promise<FormatFacilityGroup[]>,
-    groupBy({ by: groupKeys, where: { status: GameStatus.CANCELLED }, _count: { _all: true } }) as Promise<FormatFacilityGroup[]>,
-    prisma.facility.findMany({ select: { id: true, name: true } }) as unknown as Promise<FacilityNameRow[]>,
+    groupBy({ by: groupKeys, where, _count: { _all: true } }) as Promise<FormatFacilityGroup[]>,
+    groupBy({ by: groupKeys, where: { ...where, status: GameStatus.CANCELLED }, _count: { _all: true } }) as Promise<FormatFacilityGroup[]>,
+    prisma.facility.findMany({ where: facilityWhere, select: { id: true, name: true } }) as unknown as Promise<FacilityNameRow[]>,
   ]);
 
   const facilityNames = new Map(facilities.map((f): [string, string] => [f.id, f.name]));
@@ -791,10 +807,10 @@ export const getSlotRecentPerformance = cached("getSlotRecentPerformance", getSl
 // versión normalizada 0-100 (relativa al propio máximo de cada variable)
 // para poder graficarlas juntas y comparar CUÁNDO pican, no cuánto pican.
 
-// getSeasonalPattern (a diferencia de getSeasonalWindowPattern) no lo
-// consume ninguna página hoy — queda igual de locale-aware que el resto
-// del archivo por consistencia, no porque haya un caller actual que lo
-// ejercite.
+// getSeasonalPattern (a diferencia de getSeasonalWindowPattern, que sigue el
+// calendario real de los últimos 12 meses) alimenta la sección "Patrón
+// histórico por mes" de Seasonality (Ivan, 3/10/26) — antes se calculaba y
+// no se exponía en ninguna pantalla.
 const MONTH_LABELS_SHORT: Record<Locale, string[]> = {
   es: ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"],
   en: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
@@ -809,6 +825,13 @@ export type SeasonalMonthPoint = {
   avgWaitlist: number;
   medianLeadTime: number | null;
   conversionRate: number;
+  // Conteos crudos (Ivan, 3/10/26 — "qué se calcula y no se expone"): el
+  // bucket interno ya los acumula para poder sacar confirmationRate/
+  // cancellationRate, simplemente no se devolvían. Hacen falta para un
+  // ranking de volumen cross-año (qué mes es más fuerte en partidos, no solo
+  // en tasa) — sin esto, Seasonality solo podía comparar tasas por mes.
+  confirmedGames: number;
+  cancelledGames: number;
 };
 
 export type SeasonalNormalizedPoint = {
@@ -884,6 +907,8 @@ async function getSeasonalPatternImpl(filters: OverviewFilters, locale: Locale):
       avgWaitlist: b.gameCount > 0 ? b.sumWaitlist / b.gameCount : 0,
       medianLeadTime: medianOf(b.leadTimes),
       conversionRate: computeConversionRate(b.sumFinal, b.sumDropped),
+      confirmedGames: b.confirmed,
+      cancelledGames: b.cancelled,
     });
   }
 

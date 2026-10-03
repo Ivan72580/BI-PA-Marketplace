@@ -1419,6 +1419,10 @@
       "currentMonth": {
         "term": "Mes en curso",
         "def": "todavía no terminó: su valor y su variación son parciales y pueden subir antes de fin de mes."
+      },
+      "historicalPattern": {
+        "term": "Patrón histórico",
+        "def": "a diferencia del resto de esta página (que mira un año a la vez), agrega todo el historial disponible por mes calendario — útil para ver qué meses son estructuralmente más fuertes o flojos, más allá de un año puntual."
       }
     },
     "insights": {
@@ -1444,6 +1448,22 @@
       "revenueLabel": "Revenue (proy.)",
       "basedOn": "En base a {confirmed} confirmados en {elapsed} de {total} días · variación vs. mes anterior completo",
       "notYetAvailable": "Proyección de {month} disponible desde el día {day}"
+    },
+    "historicalPattern": {
+      "title": "Patrón histórico por mes (todos los años)",
+      "subtitle": "Agrupa TODO el historial disponible por mes calendario, sumando todos los años — responde \"¿enero siempre es más flojo, sin importar el año?\", a diferencia del gráfico de arriba que compara un año puntual contra el anterior.",
+      "noData": "Sin datos",
+      "bestWorst": "{bestMonth} es históricamente el mes con mayor {metric} ({bestValue}); {worstMonth}, el de menor ({worstValue}).",
+      "metric": {
+        "confirmedGames": "Partidos confirmados",
+        "cancelledGames": "Partidos cancelados",
+        "confirmationRate": "Tasa de confirmación",
+        "cancellationRate": "Tasa de cancelación",
+        "occupancyRate": "Ocupación",
+        "conversionRate": "Conversión",
+        "avgWaitlist": "Lista de espera promedio",
+        "medianLeadTime": "Lead time mediano"
+      }
     }
   },
   "Reports": {
