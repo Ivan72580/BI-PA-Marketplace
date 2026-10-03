@@ -4,6 +4,9 @@ import ReportSection from "./ReportSection";
 import ReportKpiStrip from "./ReportKpiStrip";
 import { normalizeBreakdownRows } from "./ScopeBreakdownTable";
 import LineChart from "../charts/LineChart";
+import MiniCompareBars from "../charts/MiniCompareBars";
+import Sparkline from "../charts/Sparkline";
+import { rowsForComparison, focusCompareLabels } from "./comparisonRows";
 
 type Translator = (key: string, values?: Record<string, string | number>) => string;
 
@@ -23,7 +26,7 @@ function formatDelta(pct: number | null) {
 }
 
 export default function ExecutiveReportDocument({ core, t, scopeLabel }: { core: ReportCore; t: Translator; scopeLabel: string }) {
-  const { current, kpis, periods, breakdown, evolution, granularity, actions } = core;
+  const { current, kpis, periods, breakdown, evolution, granularity, actions, facilityFocus, opportunitySignals } = core;
 
   const breakdownRows = normalizeBreakdownRows(breakdown);
   const ranked = [...breakdownRows].sort((a, b) => (b.changePts ?? -Infinity) - (a.changePts ?? -Infinity));
@@ -129,6 +132,74 @@ export default function ExecutiveReportDocument({ core, t, scopeLabel }: { core:
           </ul>
         )}
       </ReportSection>
+
+      {/* Foco de la semana + Oportunidades a explorar (hallazgo 3 del mapeo
+          de lógica no expuesta, 3/10/26): buildReportCore ya calcula
+          facilityFocus/opportunitySignals para los dos reportes por igual
+          (una sola vez, sin query adicional) — hasta ahora solo el Ops
+          Report los leía. Mismo render que ahí, reusando los mismos
+          componentes/labels compartidos vía comparisonRows.ts. */}
+      <ReportSection title={t("facilityFocus.title")}>
+        {facilityFocus.length === 0 ? (
+          <div className="text-sm text-ink-faint">{t("facilityFocus.empty")}</div>
+        ) : (
+          <ul className="space-y-3">
+            {facilityFocus.map((item, i) => {
+              const compare = item.comparison ? rowsForComparison(item.comparison, focusCompareLabels(item.trigger, t)) : null;
+              return (
+                <li key={i} className="rounded-xl border border-border bg-surface-sunken/40 p-3 print:rounded-none print:border-0 print:border-b print:pb-2">
+                  <div className="font-display text-sm font-semibold text-ink mb-1 print:text-[9.5pt]">{item.entityLabel}</div>
+                  <p className="text-sm text-ink-muted print:text-[9pt]">
+                    {t(item.findingTextKey, item.findingValues)}
+                    {item.reasonTextKey ? ` ${t(item.reasonTextKey, item.reasonValues)}` : ""}
+                  </p>
+                  {compare && <MiniCompareBars rows={compare.rows} formatValue={compare.isPct ? formatPct : formatNum} />}
+                  <p className="text-sm text-ink font-medium mt-1.5 print:text-[9pt]">
+                    <span className="text-brand">{t("facilityFocus.actionLabel")}</span> {t(item.actionTextKey)}
+                  </p>
+                  {item.tenureCaveatTextKey && (
+                    <p className="text-xs text-ink-faint italic mt-1 print:text-[8pt]">{t(item.tenureCaveatTextKey)}</p>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </ReportSection>
+
+      {opportunitySignals.length > 0 && (
+        <ReportSection title={t("opportunity.title")}>
+          <p className="text-xs text-ink-faint italic -mt-1 mb-2 print:text-[8pt]">{t("opportunity.disclaimer")}</p>
+          <ul className="space-y-3">
+            {opportunitySignals.map((item, i) => {
+              const compare =
+                item.kind === "peakWindow" && item.comparison
+                  ? rowsForComparison(item.comparison, { first: t("opportunity.compare.hour"), second: t("opportunity.compare.facilityAvg") })
+                  : null;
+              return (
+                <li key={i} className="rounded-xl border border-dashed border-brand/40 bg-surface-sunken/40 p-3 print:rounded-none print:border-0 print:border-b print:pb-2">
+                  <div className="font-display text-sm font-semibold text-ink mb-1 print:text-[9.5pt]">{item.entityLabel}</div>
+                  <p className="text-sm text-ink-muted print:text-[9pt]">{t(item.findingTextKey, item.findingValues)}</p>
+                  {compare && <MiniCompareBars rows={compare.rows} formatValue={formatPct} />}
+                  {item.kind === "decliningSlot" && item.trendSeries && item.trendSeries.length >= 2 && (
+                    <div className="mt-2">
+                      <div className="text-[10px] text-ink-faint mb-0.5 print:text-[7pt]">{t("opportunity.trend.label")}</div>
+                      <Sparkline values={item.trendSeries} height={32} color="#cc3c29" fill={false} />
+                    </div>
+                  )}
+                  <ul className="mt-1.5 space-y-1 list-disc list-inside">
+                    {item.optionTextKeys.map((key) => (
+                      <li key={key} className="text-sm text-ink print:text-[9pt]">
+                        {t(key)}
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              );
+            })}
+          </ul>
+        </ReportSection>
+      )}
 
       <ReportSection title={t("kpiTable.title")}>
         <table className="w-full text-sm print:text-[8.5pt]">

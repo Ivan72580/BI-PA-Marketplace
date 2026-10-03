@@ -1,5 +1,7 @@
-import type { MiniComparison } from "../../lib/db/reports";
+import type { MiniComparison, FocusTrigger } from "../../lib/db/reports";
 import type { CompareRow } from "../charts/MiniCompareBars";
+
+type Translator = (key: string, values?: Record<string, string | number>) => string;
 
 // Adaptador entre MiniComparison (app/lib/db/reports.ts — números crudos,
 // sin saber nada de i18n ni de qué tarjeta los usa) y MiniCompareBars (solo
@@ -36,5 +38,22 @@ export function rowsForComparison(
         ],
         isPct: true,
       };
+  }
+}
+
+// Etiquetas de cada comparativa de Foco de la semana según de dónde viene
+// el hallazgo — mismo "kind" (ver MiniComparison) significa pares distintos
+// según el trigger, así que las etiquetas se arman acá, no en el tipo de
+// datos. Compartido entre Ops y Executive (hallazgo 3 del mapeo de lógica
+// no expuesta, 3/10/26): antes vivía solo adentro de OpsReportDocument.tsx,
+// el único de los dos reportes que leía facilityFocus/opportunitySignals.
+export function focusCompareLabels(trigger: FocusTrigger, t: Translator): { first: string; second: string } {
+  switch (trigger) {
+    case "volumeDrop":
+      return { first: t("facilityFocus.compare.prior"), second: t("facilityFocus.compare.current") };
+    case "cancellationHigh":
+      return { first: t("facilityFocus.compare.facility"), second: t("facilityFocus.compare.network") };
+    case "paretoShare":
+      return { first: t("facilityFocus.compare.facilityShare"), second: t("facilityFocus.compare.restOfNetwork") };
   }
 }

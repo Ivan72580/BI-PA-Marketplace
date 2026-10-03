@@ -5,7 +5,7 @@ import ScopeBreakdownTable, { normalizeBreakdownRows } from "./ScopeBreakdownTab
 import BreakdownBars from "./BreakdownBars";
 import MiniCompareBars from "../charts/MiniCompareBars";
 import Sparkline from "../charts/Sparkline";
-import { rowsForComparison } from "./comparisonRows";
+import { rowsForComparison, focusCompareLabels } from "./comparisonRows";
 
 type Translator = (key: string, values?: Record<string, string | number>) => string;
 
@@ -17,21 +17,6 @@ function formatUSD(n: number) {
 }
 function formatPct(n: number) {
   return `${(n * 100).toFixed(1)}%`;
-}
-
-// Etiquetas de cada comparativa (MiniComparison) según de dónde viene —
-// mismo "kind" significa pares distintos en Foco de la semana que en
-// Oportunidades (ver comparisonRows.ts), así que las etiquetas se arman acá,
-// no en el tipo de datos.
-function focusCompareLabels(trigger: "volumeDrop" | "cancellationHigh" | "paretoShare", t: Translator): { first: string; second: string } {
-  switch (trigger) {
-    case "volumeDrop":
-      return { first: t("facilityFocus.compare.prior"), second: t("facilityFocus.compare.current") };
-    case "cancellationHigh":
-      return { first: t("facilityFocus.compare.facility"), second: t("facilityFocus.compare.network") };
-    case "paretoShare":
-      return { first: t("facilityFocus.compare.facilityShare"), second: t("facilityFocus.compare.restOfNetwork") };
-  }
 }
 
 export default function OpsReportDocument({ core, t, scopeLabel }: { core: ReportCore; t: Translator; scopeLabel: string }) {
