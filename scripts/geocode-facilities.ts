@@ -42,10 +42,14 @@ async function main() {
   const limit = li >= 0 ? parseInt(args[li + 1], 10) : undefined;
 
   const profiles = await prisma.facilityProfile.findMany({
+    // OJO: en SQL, `geoPrecision <> 'MANUAL'` descarta las filas con NULL, y casi todas
+    // tienen NULL todavía — por eso se pide explícitamente "null o distinto de MANUAL".
     where: {
-      OR: [{ address: { not: null } }, { postalCode: { not: null } }],
-      NOT: { geoPrecision: "MANUAL" },
-      ...(force ? {} : { latitude: null }),
+      AND: [
+        { OR: [{ address: { not: null } }, { postalCode: { not: null } }] },
+        { OR: [{ geoPrecision: null }, { geoPrecision: { not: "MANUAL" } }] },
+        ...(force ? [] : [{ latitude: null }]),
+      ],
     },
     select: { id: true, address: true, postalCode: true, state: true, city: true, facility: { select: { name: true, market: { select: { name: true } } } } },
     orderBy: { id: "asc" },
