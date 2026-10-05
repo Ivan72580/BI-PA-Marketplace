@@ -19,6 +19,20 @@
     "menu": {
       "open": "Abrir menú",
       "close": "Cerrar menú"
+    },
+    "map": "Mapa",
+    "desc": {
+      "overview": "Números generales del período elegido.",
+      "trends": "Tendencia del market y qué horarios son confiables.",
+      "daily": "Qué pasó o va a pasar en un día puntual.",
+      "seasonality": "Cómo varía cada mes, este año y en el histórico.",
+      "forecast": "Proyección de la semana o el mes que viene.",
+      "market": "Concentración, reputación, precio y engagement.",
+      "map": "Dónde opera Plei y qué zonas tienen más volumen."
+    },
+    "groups": {
+      "performance": "Rendimiento",
+      "market": "Mercado"
     }
   },
   "FilterPanel": {
@@ -1630,5 +1644,71 @@
       "variation": "Variación"
     },
     "leadershipOnly": "Solo disponible para cuentas con acceso a Panel Ejecutivo."
+  },
+  "Map": {
+    "title": "Mapa de zonas",
+    "subtitle": "Dónde opera Plei en {scope} · {period}",
+    "customRangeLabel": "Rango personalizado",
+    "allNetwork": "toda la red",
+    "metricGames": "Partidos confirmados",
+    "metricPerField": "Partidos por cancha",
+    "metricHint": "Tamaño de la burbuja = volumen de la zona. Muestra dónde opera Plei, no la demanda potencial.",
+    "zonesTitle": "Zonas por volumen",
+    "clickHint": "Tocá una zona (en el mapa o acá) para ver sus facilities.",
+    "confirmed": "Confirmados",
+    "scheduled": "Publicados",
+    "confirmationRate": "% confirmación",
+    "revenue": "Revenue",
+    "gamesPerField": "Partidos por cancha",
+    "noFields": "sin canchas identificadas",
+    "approximateNote": "Borde punteado / «~»: ubicación aproximada (centro del ZIP o ciudad, la dirección exacta no se pudo resolver).",
+    "facilitiesIn": "Facilities en {zone}",
+    "seeDetail": "Tocá una facility para ver sus partidos por cancha, día y hora.",
+    "empty": "No hay facilities con ubicación y partidos en este filtro/período.",
+    "unmapped": "{facilities} facilities con partidos ({games} confirmados) no aparecen en el mapa por no tener ubicación",
+    "unmappedFix": "Completar dirección en Panel Ejecutivo →"
+  },
+  "MapFacility": {
+    "customRangeLabel": "Rango personalizado",
+    "back": "← Volver al mapa",
+    "published": "Publicados",
+    "confirmed": "Confirmados",
+    "confirmationRate": "% confirmación",
+    "revenue": "Revenue",
+    "rateUnit": {
+      "PER_HOUR": "hora",
+      "PER_PLAYER": "jugador",
+      "FLAT_FEE": "monto fijo"
+    },
+    "pricingModel": {
+      "FIXED_RATE": "Tarifa fija",
+      "REVENUE_SHARE": "Revenue share",
+      "HYBRID": "Híbrido"
+    },
+    "terms": {
+      "title": "Tarifas y condiciones",
+      "verifiedOn": "Verificado el {date}",
+      "unverified": "Sin verificar (dato del Sheet, puede estar desactualizado)",
+      "model": "Modelo",
+      "rate": "Tarifa",
+      "share": "Revenue share (Plei)",
+      "original": "Ver texto original del Sheet",
+      "none": "Todavía no hay tarifas cargadas para esta facility.",
+      "edit": "Editar perfil →"
+    },
+    "inventory": {
+      "title": "Partidos publicados por cancha, día y hora",
+      "subtitle": "Inventario = oferta publicada (confirmados + cancelados) · {period}",
+      "empty": "No hay partidos en este período.",
+      "field": "Cancha",
+      "day": "Día",
+      "time": "Hora",
+      "format": "Formato",
+      "cancelled": "Cancelados",
+      "avgPrice": "Precio prom.",
+      "avgPlayers": "Jugadores prom.",
+      "noField": "Sin identificar",
+      "note": "Un partido es único por cancha + día + hora + formato: Cancha 1 6v6 y Cancha 3 6v6 a la misma hora cuentan por separado. «Sin identificar» = el origen no trae nombre de cancha."
+    }
   }
 }

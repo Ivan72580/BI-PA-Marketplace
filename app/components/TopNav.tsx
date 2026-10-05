@@ -45,6 +45,21 @@ function MarketIcon() {
     </svg>
   );
 }
+function MapIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11Z" />
+      <circle cx="12" cy="10" r="2.3" />
+    </svg>
+  );
+}
+function ChevronIcon({ open }: { open: boolean }) {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${open ? "rotate-180" : ""}`}>
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
 function DailyIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -92,18 +107,37 @@ function LeadershipIcon() {
 // quedaba apretada en pantallas medianas, y Reportes no es una vista que
 // se consulte con la misma frecuencia que el resto — vive ahora como link
 // dentro del menú de usuario, con su propio selector Operativo/Ejecutivo.
-type NavLink = { href: string; labelKey: "overview" | "trends" | "market" | "daily" | "forecast" | "seasonality" | "panelEjecutivo"; icon: () => ReactNode };
+type NavKey = "overview" | "trends" | "market" | "map" | "daily" | "forecast" | "seasonality" | "panelEjecutivo";
+type NavLink = { href: string; labelKey: NavKey; icon: () => ReactNode };
+type GroupKey = "performance" | "market";
 
-const links: NavLink[] = [
-  { href: "/", labelKey: "overview", icon: OverviewIcon },
-  { href: "/trends", labelKey: "trends", icon: TrendsIcon },
-  { href: "/market", labelKey: "market", icon: MarketIcon },
-  { href: "/daily", labelKey: "daily", icon: DailyIcon },
-  { href: "/forecast", labelKey: "forecast", icon: ForecastIcon },
-  { href: "/seasonality", labelKey: "seasonality", icon: SeasonalityIcon },
+// Navegación agrupada (aprobada por Ivan): RESUMEN / RENDIMIENTO / MERCADO.
+// Resumen es una página sola, así que va como link directo; los otros dos
+// grupos se despliegan. Cada ítem lleva una línea de "qué responde" (TopNav.desc.*).
+const overviewLink: NavLink = { href: "/", labelKey: "overview", icon: OverviewIcon };
+const groups: { key: GroupKey; children: NavLink[] }[] = [
+  {
+    key: "performance",
+    children: [
+      { href: "/trends", labelKey: "trends", icon: TrendsIcon },
+      { href: "/daily", labelKey: "daily", icon: DailyIcon },
+      { href: "/seasonality", labelKey: "seasonality", icon: SeasonalityIcon },
+      { href: "/forecast", labelKey: "forecast", icon: ForecastIcon },
+    ],
+  },
+  {
+    key: "market",
+    children: [
+      { href: "/market", labelKey: "market", icon: MarketIcon },
+      { href: "/map", labelKey: "map", icon: MapIcon },
+    ],
+  },
 ];
 
 const panelEjecutivoLink: NavLink = { href: "/panel-ejecutivo", labelKey: "panelEjecutivo", icon: LeadershipIcon };
+
+// "/" solo es activo en "/" exacto; el resto también en sus subrutas (/map/[id]).
+const isLinkActive = (pathname: string, href: string) => (href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`));
 
 export default function TopNav({
   userMenu,
@@ -134,7 +168,30 @@ export default function TopNav({
   // "default" en el sentido de ser la primera que ve, sin necesidad de un
   // redirect automático post-login — ver nota de entrega sobre por qué no
   // se implementó ese redirect todavía.
-  const visibleLinks = showLeadershipLink ? [panelEjecutivoLink, ...links] : links;
+  const directLinks = showLeadershipLink ? [panelEjecutivoLink, overviewLink] : [overviewLink];
+  const [openGroup, setOpenGroup] = useState<GroupKey | null>(null);
+  const navRef = useRef<HTMLElement>(null);
+  // Cerrar el desplegable al navegar (mismo patrón de ajuste durante el render que el menú mobile).
+  const [groupPathname, setGroupPathname] = useState(pathname);
+  if (pathname !== groupPathname) {
+    setGroupPathname(pathname);
+    setOpenGroup(null);
+  }
+  useEffect(() => {
+    if (!openGroup) return;
+    function down(e: MouseEvent) {
+      if (navRef.current && !navRef.current.contains(e.target as Node)) setOpenGroup(null);
+    }
+    function key(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpenGroup(null);
+    }
+    document.addEventListener("mousedown", down);
+    document.addEventListener("keydown", key);
+    return () => {
+      document.removeEventListener("mousedown", down);
+      document.removeEventListener("keydown", key);
+    };
+  }, [openGroup]);
 
   // Mismo patrón que UserMenuDropdown: click afuera o Escape cierra.
   useEffect(() => {
@@ -153,37 +210,86 @@ export default function TopNav({
     };
   }, [mobileOpen]);
 
+  const inlineClass = (active: boolean) =>
+    `relative flex items-center gap-2 px-4 py-2.5 text-sm whitespace-nowrap rounded-t-xl transition-colors ${
+      active ? "text-ink font-bold" : "text-white/75 font-medium hover:text-white hover:bg-white/5"
+    }`;
+  const stackedClass = (active: boolean) =>
+    `flex items-center gap-2.5 px-3 py-2.5 text-sm rounded-lg transition-colors ${
+      active ? "text-ink font-bold bg-[#f5fffa]" : "text-white/75 font-medium hover:text-white hover:bg-white/5"
+    }`;
+  const activeBg = (
+    <motion.span
+      layoutId="topnav-active-bg"
+      className="absolute inset-0 rounded-t-xl bg-[#f5fffa]"
+      transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
+    />
+  );
+
+  const linkItem = (l: NavLink, variant: "inline" | "stacked") => {
+    const Icon = l.icon;
+    const active = isLinkActive(pathname, l.href);
+    return (
+      <Link key={l.href} href={l.href} className={variant === "inline" ? inlineClass(active) : stackedClass(active)}>
+        {variant === "inline" && active && activeBg}
+        <span className="relative flex items-center gap-2">
+          <Icon />
+          {t(l.labelKey)}
+        </span>
+      </Link>
+    );
+  };
+
   const navLinks = (variant: "inline" | "stacked") => (
     <>
-      {visibleLinks.map((l) => {
-        const Icon = l.icon;
-        const isActive = pathname === l.href;
+      {directLinks.map((l) => linkItem(l, variant))}
+      {groups.map((g) => {
+        const active = g.children.some((c) => isLinkActive(pathname, c.href));
+        if (variant === "stacked") {
+          return (
+            <div key={g.key} className="pt-2">
+              <div className="px-3 pb-1 text-[10px] uppercase tracking-wide text-white/40">{t(`groups.${g.key}`)}</div>
+              {g.children.map((c) => linkItem(c, "stacked"))}
+            </div>
+          );
+        }
+        const open = openGroup === g.key;
         return (
-          <Link
-            key={l.href}
-            href={l.href}
-            className={
-              variant === "inline"
-                ? `relative flex items-center gap-2 px-4 py-2.5 text-sm whitespace-nowrap rounded-t-xl transition-colors ${
-                    isActive ? "text-ink font-bold" : "text-white/75 font-medium hover:text-white hover:bg-white/5"
-                  }`
-                : `flex items-center gap-2.5 px-3 py-2.5 text-sm rounded-lg transition-colors ${
-                    isActive ? "text-ink font-bold bg-[#f5fffa]" : "text-white/75 font-medium hover:text-white hover:bg-white/5"
-                  }`
-            }
-          >
-            {variant === "inline" && isActive && (
-              <motion.span
-                layoutId="topnav-active-bg"
-                className="absolute inset-0 rounded-t-xl bg-[#f5fffa]"
-                transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
-              />
+          <div key={g.key} className="relative flex items-end self-stretch">
+            <button
+              type="button"
+              aria-expanded={open}
+              onClick={() => setOpenGroup(open ? null : g.key)}
+              className={inlineClass(active)}
+            >
+              {active && activeBg}
+              <span className="relative flex items-center gap-2">
+                {t(`groups.${g.key}`)}
+                <ChevronIcon open={open} />
+              </span>
+            </button>
+            {open && (
+              <div className="absolute left-0 top-full mt-0 w-72 rounded-xl bg-[#0b3b2e] border border-white/10 shadow-xl p-1.5 z-50">
+                {g.children.map((c) => {
+                  const Icon = c.icon;
+                  const childActive = isLinkActive(pathname, c.href);
+                  return (
+                    <Link
+                      key={c.href}
+                      href={c.href}
+                      className={`flex items-start gap-3 rounded-lg px-3 py-2 transition-colors ${childActive ? "bg-white/10" : "hover:bg-white/5"}`}
+                    >
+                      <span className="mt-0.5 text-white/80"><Icon /></span>
+                      <span>
+                        <span className={`block text-sm ${childActive ? "text-white font-bold" : "text-white/90 font-medium"}`}>{t(c.labelKey)}</span>
+                        <span className="block text-[11px] leading-snug text-white/55">{t(`desc.${c.labelKey}`)}</span>
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
             )}
-            <span className="relative flex items-center gap-2">
-              <Icon />
-              {t(l.labelKey)}
-            </span>
-          </Link>
+          </div>
         );
       })}
     </>
@@ -197,7 +303,7 @@ export default function TopNav({
 
         {/* lg+ : nav inline completo, como antes. Por debajo, se reemplaza
             por el botón de menú de más abajo — nunca los dos a la vez. */}
-        <nav className="hidden lg:flex items-end self-stretch gap-1 flex-1 min-w-0 overflow-x-auto">
+        <nav ref={navRef} className="hidden lg:flex items-end self-stretch gap-1 flex-1 min-w-0">
           {navLinks("inline")}
         </nav>
         <div className="flex-1 min-w-0 lg:hidden" />

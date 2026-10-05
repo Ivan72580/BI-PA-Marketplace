@@ -19,6 +19,20 @@
     "menu": {
       "open": "Open menu",
       "close": "Close menu"
+    },
+    "map": "Map",
+    "desc": {
+      "overview": "Headline numbers for the chosen period.",
+      "trends": "Market trend and which time slots are reliable.",
+      "daily": "What happened or will happen on a specific day.",
+      "seasonality": "How each month varies, this year and historically.",
+      "forecast": "Projection for next week or month.",
+      "market": "Concentration, reputation, price and engagement.",
+      "map": "Where Plei operates and which zones have the most volume."
+    },
+    "groups": {
+      "performance": "Performance",
+      "market": "Markets"
     }
   },
   "FilterPanel": {
@@ -1630,5 +1644,71 @@
       "variation": "Change"
     },
     "leadershipOnly": "Only available to accounts with Leadership Panel access."
+  },
+  "Map": {
+    "title": "Zone map",
+    "subtitle": "Where Plei operates in {scope} · {period}",
+    "customRangeLabel": "Custom range",
+    "allNetwork": "the whole network",
+    "metricGames": "Confirmed games",
+    "metricPerField": "Games per field",
+    "metricHint": "Bubble size = zone volume. Shows where Plei operates, not potential demand.",
+    "zonesTitle": "Zones by volume",
+    "clickHint": "Click a zone (on the map or here) to see its facilities.",
+    "confirmed": "Confirmed",
+    "scheduled": "Published",
+    "confirmationRate": "Confirmation rate",
+    "revenue": "Revenue",
+    "gamesPerField": "Games per field",
+    "noFields": "no fields identified",
+    "approximateNote": "Dashed border / “~”: approximate location (ZIP or city center; the exact address could not be resolved).",
+    "facilitiesIn": "Facilities in {zone}",
+    "seeDetail": "Click a facility to see its games by field, day and time.",
+    "empty": "No facilities with a location and games for this filter/period.",
+    "unmapped": "{facilities} facilities with games ({games} confirmed) are not on the map because they have no location",
+    "unmappedFix": "Complete the address in Executive Panel →"
+  },
+  "MapFacility": {
+    "customRangeLabel": "Custom range",
+    "back": "← Back to map",
+    "published": "Published",
+    "confirmed": "Confirmed",
+    "confirmationRate": "Confirmation rate",
+    "revenue": "Revenue",
+    "rateUnit": {
+      "PER_HOUR": "hour",
+      "PER_PLAYER": "player",
+      "FLAT_FEE": "flat fee"
+    },
+    "pricingModel": {
+      "FIXED_RATE": "Fixed rate",
+      "REVENUE_SHARE": "Revenue share",
+      "HYBRID": "Hybrid"
+    },
+    "terms": {
+      "title": "Rates and terms",
+      "verifiedOn": "Verified on {date}",
+      "unverified": "Unverified (Sheet data, may be outdated)",
+      "model": "Model",
+      "rate": "Rate",
+      "share": "Revenue share (Plei)",
+      "original": "See original Sheet text",
+      "none": "No rates loaded for this facility yet.",
+      "edit": "Edit profile →"
+    },
+    "inventory": {
+      "title": "Published games by field, day and time",
+      "subtitle": "Inventory = published offer (confirmed + cancelled) · {period}",
+      "empty": "No games in this period.",
+      "field": "Field",
+      "day": "Day",
+      "time": "Time",
+      "format": "Format",
+      "cancelled": "Cancelled",
+      "avgPrice": "Avg. price",
+      "avgPlayers": "Avg. players",
+      "noField": "Unidentified",
+      "note": "A game is unique by field + day + time + format: Field 1 6v6 and Field 3 6v6 at the same time count separately. “Unidentified” = the source has no field name."
+    }
   }
 }

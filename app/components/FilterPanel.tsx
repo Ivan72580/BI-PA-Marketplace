@@ -61,6 +61,7 @@ export default function FilterPanel({
   facilities,
   showTimeControls = true,
   showFacility = true,
+  showGeo = true,
   granularityOptions = GRANULARITY_VALUES,
   hasFilter = false,
   clearHref,
@@ -71,6 +72,8 @@ export default function FilterPanel({
   facilities: Option[];
   showTimeControls?: boolean;
   showFacility?: boolean;
+  // false = sin selectores de región/market (ej. el detalle de una facility ya fija su ubicación).
+  showGeo?: boolean;
   // Subconjunto de granularidades a ofrecer en el dropdown — default: todas
   // (comportamiento previo, sin cambios para Overview/Market/Trends/Daily).
   // Panel Ejecutivo pasa solo ["month", "week"]: es un monitor de lo más
@@ -133,27 +136,31 @@ export default function FilterPanel({
     <>
       {!bare && <span className="hidden lg:inline text-[10px] text-ink-faint mr-0.5 uppercase tracking-wide">{t("filterLabel")}</span>}
 
-      <select
-        className={selectClass}
-        value={regionId}
-        onChange={(e) => update({ regionId: e.target.value, marketId: undefined, facilityId: undefined })}
-      >
-        <option value="All">{t("allRegions")}</option>
-        {regions.map((r) => (
-          <option key={r.id} value={r.id}>{r.name}</option>
-        ))}
-      </select>
+      {showGeo && (
+        <>
+        <select
+          className={selectClass}
+          value={regionId}
+          onChange={(e) => update({ regionId: e.target.value, marketId: undefined, facilityId: undefined })}
+        >
+          <option value="All">{t("allRegions")}</option>
+          {regions.map((r) => (
+            <option key={r.id} value={r.id}>{r.name}</option>
+          ))}
+        </select>
 
-      <select
-        className={selectClass}
-        value={marketId}
-        onChange={(e) => update({ marketId: e.target.value, facilityId: undefined })}
-      >
-        <option value="All">{t("allMarkets")}</option>
-        {filteredMarkets.map((m) => (
-          <option key={m.id} value={m.id}>{m.name}</option>
-        ))}
-      </select>
+        <select
+          className={selectClass}
+          value={marketId}
+          onChange={(e) => update({ marketId: e.target.value, facilityId: undefined })}
+        >
+          <option value="All">{t("allMarkets")}</option>
+          {filteredMarkets.map((m) => (
+            <option key={m.id} value={m.id}>{m.name}</option>
+          ))}
+        </select>
+        </>
+      )}
 
       {showFacility && (
         <select
