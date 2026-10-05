@@ -281,6 +281,16 @@ enum PricingModel {
 
 // Unidad en la que se expresa FacilityProfile.fixedRate (antes era un número
 // sin unidad: $100 la hora y $8 por jugador no son comparables).
+// Qué tan precisa es la coordenada de un facility: ADDRESS = a nivel calle/
+// número, POSTAL_CODE = centro aproximado del ZIP/ciudad (dirección no
+// resoluble, ej. plus-codes), MANUAL = cargada a mano (el script de
+// geocodificación no la pisa).
+enum GeoPrecision {
+  ADDRESS
+  POSTAL_CODE
+  MANUAL
+}
+
 enum RateUnit {
   PER_HOUR
   PER_PLAYER
@@ -350,6 +360,12 @@ model FacilityProfile {
   // "Active facility" del Sheet (checked = true). Es el estado comercial
   // declarado a mano; no se confunde con activeFacilityWhere (actividad real).
   isActive          Boolean?
+
+  // --- Ubicación (scripts/geocode-facilities.ts) ---
+  latitude          Float?
+  longitude         Float?
+  geoPrecision      GeoPrecision?
+  geocodedAt        DateTime?
 
   peakWindows FacilityPeakWindow[]
   events      FacilityRelationshipEvent[]
