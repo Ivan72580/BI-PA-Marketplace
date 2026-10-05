@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import type { Amenity, IndoorOutdoor, PricingModel, RelationshipEventStatus, RelationshipEventType } from "@prisma/client";
+import type { Amenity, IndoorOutdoor, PricingModel, RateUnit, RelationshipEventStatus, RelationshipEventType } from "@prisma/client";
 import { prisma } from "../db/prisma";
 import { requireLeadershipAccess } from "../db/users";
 
@@ -42,20 +42,36 @@ export type FacilityProfileInput = {
   discountAmount: number | null;
   discountPct: number | null;
   freeHoursPerMonth: number | null;
+  rateUnit: RateUnit | null;
+  // Texto de tarifas tal como vino del Sheet (con notas); se edita a mano.
+  pricingRawText: string | null;
+  address: string | null;
+  postalCode: string | null;
+  website: string | null;
+  facilityTypes: string[];
+  isActive: boolean | null;
+  // No se persiste: tildarlo marca las tarifas como verificadas hoy aunque
+  // no haya cambiado ningún valor (el Sheet puede estar bien, solo viejo).
+  confirmRates: boolean;
 };
+
+// Cambiar cualquiera de estos campos cuenta como "revisé las tarifas".
+const RATE_FIELDS = ["marketRate", "pricingModel", "fixedRate", "rateUnit", "revenueSharePct", "discountAmount", "discountPct", "freeHoursPerMonth"] as const;
 
 export async function saveFacilityProfile(facilityId: string, input: FacilityProfileInput): Promise<ActionResult> {
   const access = await requireLeadershipAccess();
   if (!access) return { ok: false, errorKey: "unauthorized" };
 
   try {
-    await ensureFacilityProfile(facilityId);
-    const { partnershipStartDate, ...rest } = input;
+    const before = (await ensureFacilityProfile(facilityId)) as unknown as Record<string, unknown>;
+    const { partnershipStartDate, confirmRates, ...rest } = input;
+    const ratesChanged = RATE_FIELDS.some((k) => (before[k] ?? null) !== (rest[k] ?? null));
     await prisma.facilityProfile.update({
       where: { facilityId },
       data: {
         ...rest,
         partnershipStartDate: partnershipStartDate ? new Date(partnershipStartDate) : null,
+        ...(confirmRates || ratesChanged ? { ratesVerifiedAt: new Date() } : {}),
       },
     });
     revalidatePath(`/panel-ejecutivo/facilities/${facilityId}`);

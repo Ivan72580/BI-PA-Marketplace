@@ -13,6 +13,7 @@ type Props = {
   facilityId: string;
   initial: FacilityProfileInput;
   initialPeakWindows: PeakWindowInput[];
+  ratesVerifiedAt: string | null; // YYYY-MM-DD, null = dato del Sheet sin verificar
 };
 
 const AMENITIES = [
@@ -30,17 +31,19 @@ const AMENITIES = [
 ] as const;
 const INDOOR_OUTDOOR = ["INDOOR", "OUTDOOR", "MIXED"] as const;
 const PRICING_MODELS = ["FIXED_RATE", "REVENUE_SHARE", "HYBRID"] as const;
+const RATE_UNITS = ["PER_HOUR", "PER_PLAYER", "FLAT_FEE"] as const;
 const DAYS = [0, 1, 2, 3, 4, 5, 6] as const;
 
 const inputClass =
   "w-full rounded-md border border-border bg-surface/60 px-3 py-1.5 text-sm text-ink focus:outline-none focus:ring-1 focus:ring-brand/30 hover:border-border-strong transition-colors";
 const labelClass = "block text-xs text-ink-faint mb-1";
 
-export default function FacilityProfileForm({ facilityId, initial, initialPeakWindows }: Props) {
+export default function FacilityProfileForm({ facilityId, initial, initialPeakWindows, ratesVerifiedAt }: Props) {
   const t = useTranslations("FacilityProfile");
   const [form, setForm] = useState<FacilityProfileInput>(initial);
   const [peakWindows, setPeakWindows] = useState<PeakWindowInput[]>(initialPeakWindows);
   const [newFormat, setNewFormat] = useState("");
+  const [typesText, setTypesText] = useState(initial.facilityTypes.join(", "));
   const [isPending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<{ type: "ok" | "error"; text: string } | null>(null);
 
@@ -83,7 +86,7 @@ export default function FacilityProfileForm({ facilityId, initial, initialPeakWi
     setFeedback(null);
     startTransition(async () => {
       const [profileResult, windowsResult] = await Promise.all([
-        saveFacilityProfile(facilityId, form),
+        saveFacilityProfile(facilityId, { ...form, facilityTypes: typesText.split(",").map((x) => x.trim()).filter(Boolean) }),
         savePeakWindows(facilityId, peakWindows),
       ]);
       if (profileResult.ok && windowsResult.ok) {
@@ -118,6 +121,35 @@ export default function FacilityProfileForm({ facilityId, initial, initialPeakWi
               value={form.fieldCount ?? ""}
               onChange={(e) => set("fieldCount", e.target.value === "" ? null : Number(e.target.value))}
             />
+          </div>
+          <div className="col-span-2 md:col-span-3">
+            <label className={labelClass}>{t("fields.address")}</label>
+            <input className={inputClass} value={form.address ?? ""} onChange={(e) => set("address", e.target.value || null)} />
+          </div>
+          <div>
+            <label className={labelClass}>{t("fields.postalCode")}</label>
+            <input className={inputClass} value={form.postalCode ?? ""} onChange={(e) => set("postalCode", e.target.value || null)} />
+          </div>
+          <div>
+            <label className={labelClass}>{t("fields.website")}</label>
+            <input className={inputClass} value={form.website ?? ""} onChange={(e) => set("website", e.target.value || null)} />
+          </div>
+          <div>
+            <label className={labelClass}>{t("fields.facilityTypes")}</label>
+            <input className={inputClass} value={typesText} onChange={(e) => setTypesText(e.target.value)} />
+            <p className="text-[11px] text-ink-faint mt-1">{t("fields.facilityTypesHint")}</p>
+          </div>
+          <div>
+            <label className={labelClass}>{t("fields.isActive")}</label>
+            <select
+              className={inputClass}
+              value={form.isActive === null ? "" : form.isActive ? "yes" : "no"}
+              onChange={(e) => set("isActive", e.target.value === "" ? null : e.target.value === "yes")}
+            >
+              <option value="">—</option>
+              <option value="yes">{t("fields.isActiveYes")}</option>
+              <option value="no">{t("fields.isActiveNo")}</option>
+            </select>
           </div>
           <div>
             <label className={labelClass}>{t("fields.indoorOutdoor")}</label>
@@ -275,6 +307,25 @@ export default function FacilityProfileForm({ facilityId, initial, initialPeakWi
       <section className="rounded-2xl bg-surface shadow-sm p-5">
         <h2 className="font-display text-base font-semibold text-ink mb-1">{t("sections.commercial")}</h2>
         <p className="text-[11px] text-ink-faint mb-4">{t("sections.commercialHint")}</p>
+        <div className="mb-4 rounded-lg border border-border bg-surface/60 p-3">
+          <div className="flex items-center justify-between gap-3 mb-1">
+            <label className={labelClass + " mb-0"}>{t("fields.pricingRawText")}</label>
+            <span className={`text-[11px] ${ratesVerifiedAt ? "text-ink-faint" : "text-amber-600"}`}>
+              {ratesVerifiedAt ? t("fields.ratesVerifiedOn", { date: ratesVerifiedAt }) : t("fields.ratesUnverified")}
+            </span>
+          </div>
+          <textarea
+            rows={3}
+            className={inputClass}
+            value={form.pricingRawText ?? ""}
+            onChange={(e) => set("pricingRawText", e.target.value || null)}
+          />
+          <p className="text-[11px] text-ink-faint mt-1">{t("fields.pricingRawTextHint")}</p>
+          <label className="mt-2 flex items-center gap-2 text-xs text-ink">
+            <input type="checkbox" checked={form.confirmRates} onChange={(e) => set("confirmRates", e.target.checked)} />
+            {t("fields.confirmRates")}
+          </label>
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <div>
             <label className={labelClass}>{t("fields.pricingModel")}</label>
@@ -300,6 +351,21 @@ export default function FacilityProfileForm({ facilityId, initial, initialPeakWi
                 value={form.fixedRate ?? ""}
                 onChange={(e) => set("fixedRate", e.target.value === "" ? null : Number(e.target.value))}
               />
+            </div>
+          )}
+          {(form.pricingModel === "FIXED_RATE" || form.pricingModel === "HYBRID") && (
+            <div>
+              <label className={labelClass}>{t("fields.rateUnit")}</label>
+              <select
+                className={inputClass}
+                value={form.rateUnit ?? ""}
+                onChange={(e) => set("rateUnit", (e.target.value || null) as FacilityProfileInput["rateUnit"])}
+              >
+                <option value="">—</option>
+                {RATE_UNITS.map((v) => (
+                  <option key={v} value={v}>{t(`rateUnit.${v}`)}</option>
+                ))}
+              </select>
             </div>
           )}
           {(form.pricingModel === "REVENUE_SHARE" || form.pricingModel === "HYBRID") && (

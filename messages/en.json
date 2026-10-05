@@ -1144,7 +1144,21 @@
       "revenueSharePct": "Revenue share (%)",
       "discountAmount": "Discount ($)",
       "discountPct": "Discount (%)",
-      "freeHoursPerMonth": "Free hours / month"
+      "freeHoursPerMonth": "Free hours / month",
+      "address": "Address",
+      "postalCode": "ZIP / postal code",
+      "website": "Website",
+      "facilityTypes": "Facility type",
+      "facilityTypesHint": "Comma-separated (e.g. Private Soccer Facility, Organizer/Host). Not the same as the Market.",
+      "isActive": "Active (per the Sheet)",
+      "isActiveYes": "Yes",
+      "isActiveNo": "No",
+      "rateUnit": "Rate unit",
+      "pricingRawText": "Rates and conditions (original text)",
+      "pricingRawTextHint": "Comes from the Sheet and may be outdated. Use it as a reference to fill the fields below; the typed fields are what the app uses.",
+      "ratesUnverified": "Unverified (Sheet data)",
+      "ratesVerifiedOn": "Verified on {date}",
+      "confirmRates": "I confirm the rates are current (marks them as verified on save)"
     },
     "indoorOutdoor": {
       "INDOOR": "Indoor",
@@ -1216,6 +1230,11 @@
     "errors": {
       "unauthorized": "You don't have permission to edit this profile.",
       "generic": "Something went wrong. Please try again."
+    },
+    "rateUnit": {
+      "PER_HOUR": "Per hour",
+      "PER_PLAYER": "Per player",
+      "FLAT_FEE": "Flat fee"
     }
   },
   "PlayerSatisfaction": {

@@ -13,6 +13,7 @@
 
 import { PrismaClient, CancellationCategory, GameStatus } from "@prisma/client";
 import { parse } from "csv-parse/sync";
+import { extractFieldName } from "./lib/fieldName";
 import fs from "fs";
 
 const prisma = new PrismaClient();
@@ -159,6 +160,7 @@ async function main() {
     maxPlayers: number;
     gameSize: string | null;
     fieldType: string | null;
+    fieldName: string | null;
     finalPlayers: number;
     waitlistPlayers: number;
     droppedPlayers: number;
@@ -310,6 +312,7 @@ async function main() {
       maxPlayers: toIntOrNull(row["Max Players"]) ?? 0,
       gameSize: row["Game Size"]?.trim() || null,
       fieldType: extractFieldType(row["Field"]),
+      fieldName: extractFieldName(row["Field"]),
       finalPlayers: toIntOrNull(row["Final Players"]) ?? 0,
       waitlistPlayers: toIntOrNull(row["Waitlist Players"]) ?? 0,
       droppedPlayers: toIntOrNull(row["Dropped Players"]) ?? 0,

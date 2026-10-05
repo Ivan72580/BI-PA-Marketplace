@@ -50,7 +50,16 @@ export default async function FacilityProfileDetailPage({
     discountAmount: profile?.discountAmount ?? null,
     discountPct: profile?.discountPct ?? null,
     freeHoursPerMonth: profile?.freeHoursPerMonth ?? null,
+    rateUnit: profile?.rateUnit ?? null,
+    pricingRawText: profile?.pricingRawText ?? null,
+    address: profile?.address ?? null,
+    postalCode: profile?.postalCode ?? null,
+    website: profile?.website ?? null,
+    facilityTypes: profile?.facilityTypes ?? [],
+    isActive: profile?.isActive ?? null,
+    confirmRates: false,
   };
+  const ratesVerifiedAt = profile?.ratesVerifiedAt ? profile.ratesVerifiedAt.toISOString().slice(0, 10) : null;
 
   const initialPeakWindows: PeakWindowInput[] =
     profile?.peakWindows.map((w) => ({ dayOfWeek: w.dayOfWeek, startHour: w.startHour, endHour: w.endHour })) ?? [];
@@ -91,7 +100,7 @@ export default async function FacilityProfileDetailPage({
         </div>
       </div>
 
-      <FacilityProfileForm facilityId={facilityId} initial={initial} initialPeakWindows={initialPeakWindows} />
+      <FacilityProfileForm facilityId={facilityId} initial={initial} initialPeakWindows={initialPeakWindows} ratesVerifiedAt={ratesVerifiedAt} />
 
       <div className="mt-6">
         <RelationshipHistoryPanel facilityId={facilityId} initialEvents={events} />

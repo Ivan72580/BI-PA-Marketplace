@@ -1,4 +1,4 @@
-import { GameStatus, type Amenity, type IndoorOutdoor, type PricingModel, type RelationshipEventStatus, type RelationshipEventType } from "@prisma/client";
+import { GameStatus, type Amenity, type IndoorOutdoor, type PricingModel, type RateUnit, type RelationshipEventStatus, type RelationshipEventType } from "@prisma/client";
 import { prisma } from "./prisma";
 import { activeFacilityWhere } from "./facility";
 
@@ -125,6 +125,14 @@ type FacilityProfileFullRow = CoreProfileFields & {
   discountAmount: number | null;
   discountPct: number | null;
   freeHoursPerMonth: number | null;
+  rateUnit: RateUnit | null;
+  pricingRawText: string | null;
+  ratesVerifiedAt: Date | null;
+  address: string | null;
+  postalCode: string | null;
+  website: string | null;
+  facilityTypes: string[];
+  isActive: boolean | null;
   peakWindows: PeakWindowRow[];
   events: RelationshipEventRow[];
 };

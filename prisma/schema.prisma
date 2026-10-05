@@ -83,6 +83,14 @@ model Game {
   maxPlayers            Int
   gameSize              String?               // "Game Size" del CSV — dato directo (ej "7v7"), reemplaza la inferencia por Max Players
   fieldType             String?               // extraído de "Field" — solo cuando el dato tiene especificidad real (tipo o nombre), null si es solo un identificador (ej "Field #1")
+  // Identidad de la cancha dentro del facility ("Field 1", "Turf Field 2",
+  // "Old Trafford"), extraída de la misma columna "Field" pero conservando el
+  // identificador y sin el formato (el formato vive en gameSize). Con esto un
+  // partido se identifica por facility + día + hora + fieldName + gameSize:
+  // Cancha 1 6v6 y Cancha 3 6v6 a la misma hora son dos partidos distintos.
+  // null cuando el CSV no trae identificador (~21% vacío, más filas que solo
+  // dicen "6v6"). Ver scripts/lib/fieldName.ts.
+  fieldName             String?
   finalPlayers          Int
   waitlistPlayers       Int
   droppedPlayers        Int
@@ -112,6 +120,7 @@ model Game {
   @@index([date, status])
   @@index([facilityId, status])
   @@index([facilityId, date])
+  @@index([facilityId, fieldName])
   @@map("games")
 }
 
@@ -270,6 +279,14 @@ enum PricingModel {
   HYBRID
 }
 
+// Unidad en la que se expresa FacilityProfile.fixedRate (antes era un número
+// sin unidad: $100 la hora y $8 por jugador no son comparables).
+enum RateUnit {
+  PER_HOUR
+  PER_PLAYER
+  FLAT_FEE
+}
+
 model FacilityProfile {
   id         String   @id @default(cuid())
   facilityId String   @unique
@@ -313,6 +330,26 @@ model FacilityProfile {
   discountAmount    Float?
   discountPct       Float?
   freeHoursPerMonth Float?
+  rateUnit          RateUnit? // unidad de fixedRate
+
+  // --- Origen Sheet (Airtable) ---
+  // Texto de tarifas tal como vino del Sheet, sin tocar: puede traer notas,
+  // varias tarifas (peak/off-peak, por cancha) o estar desactualizado. Los
+  // campos tipados de arriba se completan solo cuando el texto es
+  // inequívoco; lo demás se corrige a mano desde la UI.
+  pricingRawText    String?
+  // Se completa cuando alguien con permiso edita/confirma las tarifas en la
+  // UI: distingue "dato del Sheet, posiblemente viejo" de "dato verificado".
+  ratesVerifiedAt   DateTime?
+  address           String?
+  postalCode        String?
+  website           String?
+  // Tipos del Sheet ("Private Soccer Facility", "Organizer/Host"...), puede
+  // haber más de uno por facility. Distinto del Market (que es geográfico).
+  facilityTypes     String[]
+  // "Active facility" del Sheet (checked = true). Es el estado comercial
+  // declarado a mano; no se confunde con activeFacilityWhere (actividad real).
+  isActive          Boolean?
 
   peakWindows FacilityPeakWindow[]
   events      FacilityRelationshipEvent[]

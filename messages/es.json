@@ -1144,7 +1144,21 @@
       "revenueSharePct": "Revenue share (%)",
       "discountAmount": "Descuento ($)",
       "discountPct": "Descuento (%)",
-      "freeHoursPerMonth": "Horas gratis / mes"
+      "freeHoursPerMonth": "Horas gratis / mes",
+      "address": "Dirección",
+      "postalCode": "ZIP / código postal",
+      "website": "Sitio web",
+      "facilityTypes": "Tipo de facility",
+      "facilityTypesHint": "Separados por coma (ej. Private Soccer Facility, Organizer/Host). No es lo mismo que el Market.",
+      "isActive": "Activo (según el Sheet)",
+      "isActiveYes": "Sí",
+      "isActiveNo": "No",
+      "rateUnit": "Unidad de la tarifa",
+      "pricingRawText": "Tarifas y condiciones (texto original)",
+      "pricingRawTextHint": "Viene del Sheet y puede estar desactualizado. Usalo de referencia para completar los campos de abajo; los campos tipados son los que usa la app.",
+      "ratesUnverified": "Sin verificar (dato del Sheet)",
+      "ratesVerifiedOn": "Verificado el {date}",
+      "confirmRates": "Confirmo que las tarifas están vigentes (marca como verificadas al guardar)"
     },
     "indoorOutdoor": {
       "INDOOR": "Indoor",
@@ -1216,6 +1230,11 @@
     "errors": {
       "unauthorized": "No tenés permiso para editar este perfil.",
       "generic": "Ocurrió un error. Probá de nuevo."
+    },
+    "rateUnit": {
+      "PER_HOUR": "Por hora",
+      "PER_PLAYER": "Por jugador",
+      "FLAT_FEE": "Monto fijo"
     }
   },
   "PlayerSatisfaction": {
