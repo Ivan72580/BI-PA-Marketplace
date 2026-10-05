@@ -5,6 +5,7 @@
  *   npx tsx scripts/geocode-facilities.ts                 # solo los que todavía no tienen coordenadas
  *   npx tsx scripts/geocode-facilities.ts --limit 10      # prueba con 10
  *   npx tsx scripts/geocode-facilities.ts --dry-run       # consulta y muestra, no escribe en la DB
+ *   npx tsx scripts/geocode-facilities.ts --retry-approx  # reintenta solo los aproximados (POSTAL_CODE); solo los reemplaza si mejoran a ADDRESS
  *   npx tsx scripts/geocode-facilities.ts --force         # reintenta también los ya resueltos (nunca los MANUAL)
  *
  * - Respeta el límite de Nominatim: 1 consulta por segundo (~10 min para ~480 facilities).
@@ -16,7 +17,7 @@
  */
 import { writeFileSync } from "fs";
 import { PrismaClient } from "@prisma/client";
-import { buildQueries, pickResult, type NominatimHit } from "./lib/geocode";
+import { buildQueries, locationHints, pickResult, type NominatimHit } from "./lib/geocode";
 
 const prisma = new PrismaClient();
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -38,6 +39,7 @@ async function main() {
   const args = process.argv.slice(2);
   const dryRun = args.includes("--dry-run");
   const force = args.includes("--force");
+  const retryApprox = args.includes("--retry-approx");
   const li = args.indexOf("--limit");
   const limit = li >= 0 ? parseInt(args[li + 1], 10) : undefined;
 
@@ -48,10 +50,10 @@ async function main() {
       AND: [
         { OR: [{ address: { not: null } }, { postalCode: { not: null } }] },
         { OR: [{ geoPrecision: null }, { geoPrecision: { not: "MANUAL" } }] },
-        ...(force ? [] : [{ latitude: null }]),
+        ...(retryApprox ? [{ geoPrecision: "POSTAL_CODE" as const }] : force ? [] : [{ latitude: null }]),
       ],
     },
-    select: { id: true, address: true, postalCode: true, state: true, city: true, facility: { select: { name: true, market: { select: { name: true } } } } },
+    select: { id: true, geoPrecision: true, address: true, postalCode: true, state: true, city: true, facility: { select: { name: true, market: { select: { name: true } } } } },
     orderBy: { id: "asc" },
     ...(limit ? { take: limit } : {}),
   });
@@ -67,13 +69,19 @@ async function main() {
     for (const query of buildQueries(p)) {
       const hits = await search(query.q);
       await sleep(1100);
-      result = pickResult(hits, query, p.state);
+      result = pickResult(hits, query, p.state ?? locationHints(p.address ?? "").state);
       if (result) break;
     }
     if (!result) {
       failed++;
       failures.push([p.facility.name, p.facility.market.name, p.address ?? "", "sin resultado válido"].map(csv).join(","));
       console.log(`[${i + 1}/${profiles.length}] ✗ ${label}`);
+      continue;
+    }
+    // En --retry-approx solo se reemplaza si el punto mejora; si sigue aproximado, se deja como está.
+    if (retryApprox && result.precision !== "ADDRESS") {
+      console.log(`[${i + 1}/${profiles.length}] = ${label} sigue aproximado`);
+      approx++;
       continue;
     }
     if (result.precision === "ADDRESS") ok++;
