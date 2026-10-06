@@ -317,7 +317,7 @@
     "title": "Trends",
     "landingSubtitle": "Trends, schedule consistency and seasonal patterns — built to answer \"what to expect\" for every market and facility, not just \"what happened\".",
     "mainSubtitle": "Trends, schedule consistency and seasonal patterns — \"what to expect\", not just \"what happened\".",
-    "changeRegion": "change region",
+    "changeRegion": "view entire network",
     "tabs": {
       "panorama": "Overview",
       "byFacility": "By facility"
@@ -517,7 +517,8 @@
         "noChangesWordConfirmed": "reliable",
         "noChangesWordCancelled": "problem"
       }
-    }
+    },
+    "headerAllFacilities": "All facilities"
   },
   "ChangeBadge": {
     "noPriorData": "no data for the prior period",

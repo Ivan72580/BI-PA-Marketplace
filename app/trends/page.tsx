@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getTranslations, getLocale } from "next-intl/server";
+import { redirect } from "next/navigation";
 import type { Locale } from "@/i18n/config";
 import {
   getFilterOptions,
@@ -231,6 +232,14 @@ function buildQuarterInsights(
 export default async function TrendsPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
   const filterOptions = await getFilterOptions();
+
+  // Facility elegida sin región/market (ej. desde el selector de la pantalla de
+  // entrada): completamos región y market a partir de la facility y reentramos.
+  if (sp.facilityId && (!sp.regionId || !sp.marketId)) {
+    const fac = filterOptions.facilities.find((f: { id: string }) => f.id === sp.facilityId);
+    const mkt = fac ? filterOptions.markets.find((m: { id: string }) => m.id === fac.marketId) : undefined;
+    if (fac && mkt) redirect(buildTrendsQuery(sp, { regionId: mkt.regionId, marketId: mkt.id, facilityId: fac.id }));
+  }
   const locale = (await getLocale()) as Locale;
   const t = await getTranslations("Trends");
   const GRANULARITY_LABEL: Record<string, string> = {
@@ -378,7 +387,7 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
             <div className="text-sm font-semibold text-ink">{t("landing.pickPrompt")}</div>
             <div className="text-xs text-ink-muted">{t("landing.pickHint")}</div>
           </div>
-          <FilterPanel regions={filterOptions.regions} markets={filterOptions.markets} facilities={filterOptions.facilities} showTimeControls={false} showFacility={false} bare />
+          <FilterPanel regions={filterOptions.regions} markets={filterOptions.markets} facilities={filterOptions.facilities} showTimeControls={false} bare />
         </div>
 
         <div className="mt-6">{scopeSummarySection}</div>
@@ -892,9 +901,15 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
           <h1 className="font-display text-3xl font-bold text-ink mb-1">{t("title")}</h1>
           <div className="text-sm text-ink-faint mb-2 max-w-xl">{t("mainSubtitle")}</div>
           <div className="flex items-center gap-1.5 text-sm">
-            <span className="text-ink-faint">{filterOptions.regions.find((r) => r.id === sp.regionId)?.name}</span>
+            <LinkSelect paramName="regionId" value={sp.regionId ?? ""} clear={["marketId", "facilityId"]} options={filterOptions.regions.map((r) => ({ value: r.id, label: r.name }))} />
             <span className="text-ink-faint">›</span>
-            <LinkSelect paramName="marketId" value={sp.marketId ?? ""} options={marketsInRegion.map((m) => ({ value: m.id, label: m.name }))} />
+            <LinkSelect paramName="marketId" value={sp.marketId ?? ""} clear={["facilityId"]} options={marketsInRegion.map((m) => ({ value: m.id, label: m.name }))} />
+            <span className="text-ink-faint">›</span>
+            <LinkSelect
+              paramName="facilityId"
+              value={sp.facilityId ?? ""}
+              options={[{ value: "", label: t("headerAllFacilities") }, ...filterOptions.facilities.filter((f) => f.marketId === sp.marketId).map((f) => ({ value: f.id, label: f.name }))]}
+            />
             <Link href="/trends" className="text-xs text-ink-faint hover:text-ink ml-2">{t("changeRegion")}</Link>
           </div>
         </div>
@@ -908,6 +923,9 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
       {scopeSummarySection && <div className="mb-5">{scopeSummarySection}</div>}
 
       <Tabs
+        // key: al ir de Panorama a una facility (búsqueda o selector) la ruta es la
+        // misma y React conserva el estado del Tabs; sin key quedaba en "Panorama".
+        key={sp.facilityId ?? "market"}
         defaultActiveId={sp.facilityId ? "facility" : "panorama"}
         tabs={[
           { id: "panorama", label: t("tabs.panorama"), content: panoramaContent },

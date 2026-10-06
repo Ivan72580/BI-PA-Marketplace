@@ -317,7 +317,7 @@
     "title": "Tendencias",
     "landingSubtitle": "Tendencias, consistencia de horarios y patrones estacionales — pensado para responder \"¿qué esperar?\" en cada market y cada facility, no solo \"qué pasó\".",
     "mainSubtitle": "Tendencias, consistencia de horarios y patrones estacionales — \"¿qué esperar?\", no solo \"qué pasó\".",
-    "changeRegion": "cambiar región",
+    "changeRegion": "ver toda la red",
     "tabs": {
       "panorama": "Panorama",
       "byFacility": "Por facility"
@@ -517,7 +517,8 @@
         "noChangesWordConfirmed": "confiables",
         "noChangesWordCancelled": "problemáticos"
       }
-    }
+    },
+    "headerAllFacilities": "Todas las facilities"
   },
   "ChangeBadge": {
     "noPriorData": "sin dato del período anterior",
