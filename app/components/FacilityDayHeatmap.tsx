@@ -17,6 +17,9 @@ export type FacilityDayHeatmapRow = {
   facilityId: string;
   facilityName: string;
   totalGames: number;
+  // Link ya resuelto en el servidor: una función no se puede pasar de un Server
+  // Component a este Client Component (rompe el render al filtrar por Market).
+  href: string;
   cells: Partial<Record<string, FacilityDayHeatmapCell>>;
 };
 
@@ -41,12 +44,10 @@ function formatPct(n: number) {
 export default function FacilityDayHeatmap({
   rows,
   columns,
-  facilityHref,
 }: {
   rows: FacilityDayHeatmapRow[];
   // Orden de columnas (Lunes -> Domingo) con su label ya traducido/abreviado.
   columns: { key: string; label: string }[];
-  facilityHref: (facilityId: string) => string;
 }) {
   const t = useTranslations("Trends.facilityHeatmap");
   const [mode, setMode] = useState<"confirmed" | "cancelled">("confirmed");
@@ -92,7 +93,7 @@ export default function FacilityDayHeatmap({
             {rows.map((r) => (
               <tr key={r.facilityId}>
                 <td className="pr-2 pl-1 whitespace-nowrap">
-                  <Link href={facilityHref(r.facilityId)} className="text-ink hover:text-brand font-medium truncate block max-w-[160px]">
+                  <Link href={r.href} className="text-ink hover:text-brand font-medium truncate block max-w-[160px]">
                     {r.facilityName}
                   </Link>
                 </td>

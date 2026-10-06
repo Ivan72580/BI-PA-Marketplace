@@ -529,7 +529,7 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
       // join), así que se resuelve acá con filterOptions, ya cargado para el
       // selector de abajo.
       const facilityNameById = new Map<string, string>(filterOptions.facilities.map((f) => [f.id, f.name]));
-      const heatmapRows = facilityDowRows.map((r) => ({ ...r, facilityName: facilityNameById.get(r.facilityId) ?? r.facilityId }));
+      const heatmapRows = facilityDowRows.map((r) => ({ ...r, facilityName: facilityNameById.get(r.facilityId) ?? r.facilityId, href: buildTrendsQuery(sp, { facilityId: r.facilityId }) }));
       const dayColumns = DAY_ORDER.map((key) => ({ key, label: weekdayAbbr(key, locale) }));
 
       const marketInsights: PanelInsight[] = !marketPriorTotals
@@ -565,7 +565,7 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
             </SectionCard>
 
             <SectionCard title={t("facility.dayMatrixTitle")} subtitle={t("facility.dayMatrixSubtitle", { period: period.label })}>
-              <FacilityDayHeatmap rows={heatmapRows} columns={dayColumns} facilityHref={(facilityId) => buildTrendsQuery(sp, { facilityId })} />
+              <FacilityDayHeatmap rows={heatmapRows} columns={dayColumns} />
             </SectionCard>
 
             <div className="rounded-2xl bg-surface-panel p-8 text-center shadow-sm">
