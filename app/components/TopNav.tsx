@@ -45,6 +45,16 @@ function MarketIcon() {
     </svg>
   );
 }
+function InventoryIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="4" width="7" height="7" rx="1.5" />
+      <rect x="14" y="4" width="7" height="7" rx="1.5" />
+      <rect x="3" y="14" width="7" height="7" rx="1.5" />
+      <rect x="14" y="14" width="7" height="7" rx="1.5" />
+    </svg>
+  );
+}
 function MapIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -107,7 +117,7 @@ function LeadershipIcon() {
 // quedaba apretada en pantallas medianas, y Reportes no es una vista que
 // se consulte con la misma frecuencia que el resto — vive ahora como link
 // dentro del menú de usuario, con su propio selector Operativo/Ejecutivo.
-type NavKey = "overview" | "trends" | "market" | "map" | "daily" | "forecast" | "seasonality" | "panelEjecutivo";
+type NavKey = "overview" | "trends" | "market" | "map" | "inventory" | "daily" | "forecast" | "seasonality" | "panelEjecutivo";
 type NavLink = { href: string; labelKey: NavKey; icon: () => ReactNode };
 type GroupKey = "performance" | "market";
 
@@ -130,6 +140,7 @@ const groups: { key: GroupKey; children: NavLink[] }[] = [
     children: [
       { href: "/market", labelKey: "market", icon: MarketIcon },
       { href: "/map", labelKey: "map", icon: MapIcon },
+      { href: "/inventory", labelKey: "inventory", icon: InventoryIcon },
     ],
   },
 ];

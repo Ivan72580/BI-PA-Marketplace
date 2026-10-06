@@ -28,12 +28,14 @@
       "seasonality": "Cómo varía cada mes, este año y en el histórico.",
       "forecast": "Proyección de la semana o el mes que viene.",
       "market": "Concentración, reputación, precio y engagement.",
-      "map": "Dónde opera Plei y qué zonas tienen más volumen."
+      "map": "Dónde opera Plei y qué zonas tienen más volumen.",
+      "inventory": "Qué partidos publica cada facility y cómo rinde cada uno."
     },
     "groups": {
       "performance": "Rendimiento",
       "market": "Mercado"
-    }
+    },
+    "inventory": "Inventario"
   },
   "FilterPanel": {
     "filterLabel": "Filtro",
@@ -1710,5 +1712,41 @@
       "noField": "Sin identificar",
       "note": "Un partido es único por cancha + día + hora + formato: Cancha 1 6v6 y Cancha 3 6v6 a la misma hora cuentan por separado. «Sin identificar» = el origen no trae nombre de cancha."
     }
+  },
+  "Inventory": {
+    "title": "Inventario de partidos",
+    "subtitle": "Oferta publicada en {scope} · {period}",
+    "customRangeLabel": "Rango personalizado",
+    "allNetwork": "toda la red",
+    "sortLabel": "Ordenar:",
+    "sort": {
+      "volume": "Más publicados",
+      "rateAsc": "Menor confirmación",
+      "rateDesc": "Mayor confirmación",
+      "fillAsc": "Menor llenado",
+      "revenue": "Más ingresos"
+    },
+    "dayLabel": "Día:",
+    "allDays": "Todos",
+    "count": "Mostrando {shown} de {total} partidos recurrentes ({games} publicados) · {day}",
+    "showMore": "Ver más",
+    "empty": "No hay partidos publicados con estos filtros.",
+    "emptyRated": "Ningún partido recurrente tiene al menos {min} publicaciones en este período; ampliá el rango para ordenar por tasa.",
+    "fieldUnknown": "Cancha sin identificar",
+    "card": {
+      "confirmation": "Confirmación",
+      "fill": "Llenado",
+      "revenue": "Ingresos",
+      "recent": "Últimas ocurrencias",
+      "confirmedShort": "confirmado, {n} jugadores",
+      "cancelledShort": "cancelado",
+      "lastSeen": "último {date}",
+      "summary": "{scheduled} publicados ({confirmed} conf. / {cancelled} canc.) · {players} de {capacity} jugadores · precio prom. {price}",
+      "lowSample": "Muestra chica (<{min}): la tasa no es confiable.",
+      "unknownFieldNote": "Sin identificador de cancha: puede mezclar canchas distintas del mismo día, hora y formato."
+    },
+    "truncated": "Se alcanzó el tope de partidos leídos: faltan los más antiguos del rango. Acotá el período o el filtro.",
+    "unknownFieldFootnote": "{n} partidos recurrentes no traen identificador de cancha en el dato original.",
+    "definition": "Un partido recurrente = facility + día + hora + cancha + formato. Inventario = oferta publicada (confirmados + cancelados). Llenado = jugadores confirmados / capacidad, solo en partidos confirmados."
   }
 }

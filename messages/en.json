@@ -28,12 +28,14 @@
       "seasonality": "How each month varies, this year and historically.",
       "forecast": "Projection for next week or month.",
       "market": "Concentration, reputation, price and engagement.",
-      "map": "Where Plei operates and which zones have the most volume."
+      "map": "Where Plei operates and which zones have the most volume.",
+      "inventory": "Which games each facility publishes and how each performs."
     },
     "groups": {
       "performance": "Performance",
       "market": "Markets"
-    }
+    },
+    "inventory": "Inventory"
   },
   "FilterPanel": {
     "filterLabel": "Filter",
@@ -1710,5 +1712,41 @@
       "noField": "Unidentified",
       "note": "A game is unique by field + day + time + format: Field 1 6v6 and Field 3 6v6 at the same time count separately. “Unidentified” = the source has no field name."
     }
+  },
+  "Inventory": {
+    "title": "Game inventory",
+    "subtitle": "Published supply in {scope} · {period}",
+    "customRangeLabel": "Custom range",
+    "allNetwork": "entire network",
+    "sortLabel": "Sort:",
+    "sort": {
+      "volume": "Most published",
+      "rateAsc": "Lowest confirmation",
+      "rateDesc": "Highest confirmation",
+      "fillAsc": "Lowest fill",
+      "revenue": "Most revenue"
+    },
+    "dayLabel": "Day:",
+    "allDays": "All",
+    "count": "Showing {shown} of {total} recurring games ({games} published) · {day}",
+    "showMore": "Show more",
+    "empty": "No published games match these filters.",
+    "emptyRated": "No recurring game has at least {min} listings in this period; widen the range to sort by rate.",
+    "fieldUnknown": "Unidentified field",
+    "card": {
+      "confirmation": "Confirmation",
+      "fill": "Fill",
+      "revenue": "Revenue",
+      "recent": "Latest occurrences",
+      "confirmedShort": "confirmed, {n} players",
+      "cancelledShort": "cancelled",
+      "lastSeen": "last {date}",
+      "summary": "{scheduled} published ({confirmed} conf. / {cancelled} canc.) · {players} of {capacity} players · avg price {price}",
+      "lowSample": "Small sample (<{min}): the rate is not reliable.",
+      "unknownFieldNote": "No field identifier: may mix different fields at the same day, time and format."
+    },
+    "truncated": "The read cap was reached: older games in the range are missing. Narrow the period or filter.",
+    "unknownFieldFootnote": "{n} recurring games have no field identifier in the source data.",
+    "definition": "A recurring game = facility + day + time + field + format. Inventory = published supply (confirmed + cancelled). Fill = confirmed players / capacity, confirmed games only."
   }
 }
