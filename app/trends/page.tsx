@@ -425,8 +425,10 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
   ]);
 
   let priorSummary: { confirmationRate: number; cancellationRate: number; occupancyRate: number; conversionRate: number } | null = null;
+  let priorSeriesPoints: Awaited<ReturnType<typeof getMetricSeriesInWindow>> = [];
   if (comparePeriod.dateFrom && comparePeriod.dateTo) {
     const priorSeries = await getMetricSeriesInWindow(marketFilters, unit, comparePeriod.dateFrom, comparePeriod.dateTo, locale);
+    priorSeriesPoints = priorSeries;
     if (priorSeries.length > 0) {
       const avg = (f: (p: (typeof priorSeries)[number]) => number) => priorSeries.reduce((s, p) => s + f(p), 0) / priorSeries.length;
       priorSummary = {
@@ -449,6 +451,12 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
     labels: series.map((p) => p.label),
     datasets: [{ label: "", data: series.map((p) => Math.round(p[field] * 1000) / 10), borderColor: color, backgroundColor: `${color}22`, tension: 0.3 }],
   });
+
+  // Período anterior superpuesto: se alinea por posición (1.er bucket vs 1.er bucket).
+  const priorSeriesFor = (field: "confirmationRate" | "cancellationRate" | "occupancyRate" | "conversionRate") =>
+    priorSeriesPoints.length > 0
+      ? { labels: priorSeriesPoints.map((p) => p.label), data: priorSeriesPoints.map((p) => Math.round(p[field] * 1000) / 10) as (number | null)[] }
+      : null;
 
   const seasonalLabels = seasonal.map((p) => p.monthLabel);
   const singleLineChart = (data: number[], color: string) => ({
@@ -493,10 +501,10 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
 
       <GroupSection title={t("panorama.trendTitle")}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <MetricTrendCard title={t("metric.confirmation")} chartData={seriesChart("confirmationRate", METRIC_COLORS.confirmation)} currentValue={currentSummary.confirmationRate} priorValue={priorSummary?.confirmationRate ?? null} comparePeriodLabel={comparePeriod.label} />
-          <MetricTrendCard title={t("metric.cancellation")} chartData={seriesChart("cancellationRate", METRIC_COLORS.cancellation)} currentValue={currentSummary.cancellationRate} priorValue={priorSummary?.cancellationRate ?? null} comparePeriodLabel={comparePeriod.label} />
-          <MetricTrendCard title={t("metric.occupancy")} chartData={seriesChart("occupancyRate", METRIC_COLORS.occupancy)} currentValue={currentSummary.occupancyRate} priorValue={priorSummary?.occupancyRate ?? null} comparePeriodLabel={comparePeriod.label} />
-          <MetricTrendCard title={t("metric.conversion")} chartData={seriesChart("conversionRate", METRIC_COLORS.conversion)} currentValue={currentSummary.conversionRate} priorValue={priorSummary?.conversionRate ?? null} comparePeriodLabel={comparePeriod.label} />
+          <MetricTrendCard title={t("metric.confirmation")} chartData={seriesChart("confirmationRate", METRIC_COLORS.confirmation)} currentValue={currentSummary.confirmationRate} priorValue={priorSummary?.confirmationRate ?? null} comparePeriodLabel={comparePeriod.label} currentPeriodLabel={period.label} priorSeries={priorSeriesFor("confirmationRate")} />
+          <MetricTrendCard title={t("metric.cancellation")} chartData={seriesChart("cancellationRate", METRIC_COLORS.cancellation)} currentValue={currentSummary.cancellationRate} priorValue={priorSummary?.cancellationRate ?? null} comparePeriodLabel={comparePeriod.label} currentPeriodLabel={period.label} priorSeries={priorSeriesFor("cancellationRate")} />
+          <MetricTrendCard title={t("metric.occupancy")} chartData={seriesChart("occupancyRate", METRIC_COLORS.occupancy)} currentValue={currentSummary.occupancyRate} priorValue={priorSummary?.occupancyRate ?? null} comparePeriodLabel={comparePeriod.label} currentPeriodLabel={period.label} priorSeries={priorSeriesFor("occupancyRate")} />
+          <MetricTrendCard title={t("metric.conversion")} chartData={seriesChart("conversionRate", METRIC_COLORS.conversion)} currentValue={currentSummary.conversionRate} priorValue={priorSummary?.conversionRate ?? null} comparePeriodLabel={comparePeriod.label} currentPeriodLabel={period.label} priorSeries={priorSeriesFor("conversionRate")} />
         </div>
         {series.length <= 1 && <div className="text-sm text-ink-faint px-1">{t("panorama.notEnoughHistory")}</div>}
       </GroupSection>
