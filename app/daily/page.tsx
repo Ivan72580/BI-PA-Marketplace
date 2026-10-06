@@ -518,6 +518,8 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
   // Mismo patrón que FacilityDetailView para saltar a Trends con el
   // contexto de facility ya puesto — "detalle real" del pedido del usuario
   // para el calendario semanal de abajo, sin re-derivar filtros nuevos.
+  // Inventario ya filtrado a esta facility y al mes del día elegido (mismo criterio de período que usa /inventory).
+  const inventoryHref = `/inventory?regionId=${sp.regionId}&marketId=${sp.marketId}&facilityId=${sp.facilityId}&period=${dateISO}`;
   const trendsHref = `/trends?regionId=${sp.regionId}&marketId=${sp.marketId}&facilityId=${sp.facilityId}`;
 
   const insights = buildDayInsights(summary, baseline, evolution, t, locale as Locale);
@@ -706,6 +708,7 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
         </div>
         <h1 className="font-display text-3xl font-bold text-ink mb-1">{t("title")}</h1>
         <div className="text-sm text-ink-faint">{summary.dayLabel} {dateISO} — {summary.facilityName}</div>
+        <Link href={inventoryHref} className="inline-block mt-2 text-xs font-medium text-brand hover:underline">{t("viewInventory")}</Link>
       </div>
 
       <div className="rounded-2xl bg-surface shadow-sm p-4 flex flex-wrap items-center gap-3">

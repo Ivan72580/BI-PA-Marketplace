@@ -19,6 +19,8 @@ export type ZoneMapLabels = {
   metricGames: string;
   metricPerField: string;
   metricHint: string;
+  legendLow: string;
+  legendHigh: string;
   zonesTitle: string;
   confirmed: string; // "Confirmados"
   confirmationRate: string;
@@ -36,6 +38,33 @@ const fmt = (n: number) => n.toLocaleString("en-US");
 const fmt1 = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 1 });
 const usd = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 const pct = (n: number | null) => (n === null ? "—" : `${(n * 100).toFixed(0)}%`);
+
+// Escala fría → naranja (sin llegar al rojo, reservado para negativo/cancelación).
+// Pocos partidos = azul/verde azulado; mucha concentración = naranja fuerte.
+// Azul vs naranja también se distingue en daltonismo rojo-verde.
+const HEAT_STOPS: [number, [number, number, number]][] = [
+  [0, [110, 168, 220]],   // azul frío
+  [0.35, [78, 190, 178]], // verde azulado
+  [0.62, [240, 208, 75]], // amarillo
+  [0.82, [244, 160, 58]], // naranja claro
+  [1, [232, 106, 18]],    // naranja fuerte
+];
+export function heatColor(t: number): string {
+  const x = Math.min(1, Math.max(0, t));
+  for (let i = 1; i < HEAT_STOPS.length; i++) {
+    const [t1, c1] = HEAT_STOPS[i];
+    const [t0, c0] = HEAT_STOPS[i - 1];
+    if (x <= t1) {
+      const k = (x - t0) / (t1 - t0);
+      const c = c0.map((v, j) => Math.round(v + (c1[j] - v) * k));
+      return `rgb(${c[0]},${c[1]},${c[2]})`;
+    }
+  }
+  return "rgb(232,106,18)";
+}
+// Raíz cuadrada: el volumen es muy desparejo (pocas zonas concentran casi todo)
+// y con escala lineal casi todo quedaría frío.
+const heatT = (v: number, max: number) => Math.sqrt(Math.max(0, v) / Math.max(1, max));
 
 function valueOf(z: MapZone, metric: Metric): number {
   return metric === "games" ? z.confirmedGames : (z.gamesPerField ?? 0);
@@ -91,14 +120,15 @@ export default function ZoneMap({ zones, labels, detailQuery }: { zones: MapZone
       const v = valueOf(z, metric);
       const radius = 7 + Math.sqrt(v / max) * 30;
       const isSel = z.key === selectedKey;
+      const heat = heatColor(heatT(v, max));
       const marker = L.circleMarker([z.latitude, z.longitude], {
         radius,
-        color: isSel ? "#0b3b2e" : "#16755c",
+        color: isSel ? "#1f2937" : heat,
         weight: isSel ? 3 : 1.5,
         // Zona con puntos aproximados (centro de ZIP/ciudad): borde punteado.
         dashArray: z.approximateShare > 0.5 ? "4 4" : undefined,
-        fillColor: "#16755c",
-        fillOpacity: isSel ? 0.7 : 0.45,
+        fillColor: heat,
+        fillOpacity: isSel ? 0.85 : 0.65,
       });
       const tip =
         `<strong>${z.label}</strong><br/>${labels.confirmed}: ${fmt(z.confirmedGames)}` +
@@ -138,7 +168,12 @@ export default function ZoneMap({ zones, labels, detailQuery }: { zones: MapZone
           <span className="text-[11px] text-ink-faint">{labels.metricHint}</span>
         </div>
         <div ref={containerRef} className="h-[520px] w-full rounded-xl overflow-hidden z-0" />
-        <p className="text-[11px] text-ink-faint mt-2">{labels.approximate}</p>
+        <div className="flex items-center gap-2 mt-2 text-[11px] text-ink-faint">
+          <span>{labels.legendLow}</span>
+          <span className="h-2 w-40 rounded-full" style={{ background: `linear-gradient(to right, ${[0, 0.2, 0.4, 0.6, 0.8, 1].map((t) => heatColor(t)).join(",")})` }} aria-hidden="true" />
+          <span>{labels.legendHigh}</span>
+        </div>
+        <p className="text-[11px] text-ink-faint mt-1">{labels.approximate}</p>
       </div>
 
       <div className="rounded-2xl bg-surface shadow-sm p-4 max-h-[600px] overflow-y-auto">
@@ -186,7 +221,7 @@ export default function ZoneMap({ zones, labels, detailQuery }: { zones: MapZone
                         <span className="text-sm font-medium text-ink shrink-0">{metric === "games" ? fmt(v) : z.gamesPerField === null ? "—" : fmt1(v)}</span>
                       </div>
                       <div className="h-1 rounded bg-surface-sunken mt-1">
-                        <div className="h-1 rounded bg-brand" style={{ width: `${(v / top) * 100}%` }} />
+                        <div className="h-1 rounded" style={{ width: `${(v / top) * 100}%`, backgroundColor: heatColor(heatT(v, top)) }} />
                       </div>
                     </button>
                   </li>

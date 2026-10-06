@@ -310,7 +310,8 @@
           "def": "high: confirmation dropped 15+ points, or 10+ recent cancelled games. Medium: made this list on some sign of decline, without reaching those thresholds."
         }
       }
-    }
+    },
+    "viewInventory": "See this facility's inventory →"
   },
   "Trends": {
     "title": "Trends",
@@ -1654,7 +1655,7 @@
     "allNetwork": "the whole network",
     "metricGames": "Confirmed games",
     "metricPerField": "Games per field",
-    "metricHint": "Bubble size = zone volume. Shows where Plei operates, not potential demand.",
+    "metricHint": "Size and color = zone volume (blue: few games, orange: high concentration). Shows where Plei operates, not potential demand.",
     "zonesTitle": "Zones by volume",
     "clickHint": "Click a zone (on the map or here) to see its facilities.",
     "confirmed": "Confirmed",
@@ -1668,7 +1669,9 @@
     "seeDetail": "Click a facility to see its games by field, day and time.",
     "empty": "No facilities with a location and games for this filter/period.",
     "unmapped": "{facilities} facilities with games ({games} confirmed) are not on the map because they have no location",
-    "unmappedFix": "Complete the address in Executive Panel →"
+    "unmappedFix": "Complete the address in Executive Panel →",
+    "legendLow": "Few games",
+    "legendHigh": "High concentration"
   },
   "MapFacility": {
     "customRangeLabel": "Custom range",

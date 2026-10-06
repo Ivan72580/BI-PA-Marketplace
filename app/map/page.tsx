@@ -40,6 +40,8 @@ export default async function MapPage({ searchParams }: { searchParams: Promise<
     metricGames: t("metricGames"),
     metricPerField: t("metricPerField"),
     metricHint: t("metricHint"),
+    legendLow: t("legendLow"),
+    legendHigh: t("legendHigh"),
     zonesTitle: t("zonesTitle"),
     confirmed: t("confirmed"),
     confirmationRate: t("confirmationRate"),

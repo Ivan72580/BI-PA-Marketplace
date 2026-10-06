@@ -310,7 +310,8 @@
           "def": "alto: cayó 15 puntos o más de confirmación, o canceló 10 o más partidos recientes. Medio: entró en esta lista por alguna señal de deterioro, pero sin llegar a esos umbrales."
         }
       }
-    }
+    },
+    "viewInventory": "Ver inventario de esta facility →"
   },
   "Trends": {
     "title": "Tendencias",
@@ -1654,7 +1655,7 @@
     "allNetwork": "toda la red",
     "metricGames": "Partidos confirmados",
     "metricPerField": "Partidos por cancha",
-    "metricHint": "Tamaño de la burbuja = volumen de la zona. Muestra dónde opera Plei, no la demanda potencial.",
+    "metricHint": "Tamaño y color = volumen de la zona (azul: pocos partidos, naranja: mucha concentración). Muestra dónde opera Plei, no la demanda potencial.",
     "zonesTitle": "Zonas por volumen",
     "clickHint": "Tocá una zona (en el mapa o acá) para ver sus facilities.",
     "confirmed": "Confirmados",
@@ -1668,7 +1669,9 @@
     "seeDetail": "Tocá una facility para ver sus partidos por cancha, día y hora.",
     "empty": "No hay facilities con ubicación y partidos en este filtro/período.",
     "unmapped": "{facilities} facilities con partidos ({games} confirmados) no aparecen en el mapa por no tener ubicación",
-    "unmappedFix": "Completar dirección en Panel Ejecutivo →"
+    "unmappedFix": "Completar dirección en Panel Ejecutivo →",
+    "legendLow": "Pocos partidos",
+    "legendHigh": "Mucha concentración"
   },
   "MapFacility": {
     "customRangeLabel": "Rango personalizado",
