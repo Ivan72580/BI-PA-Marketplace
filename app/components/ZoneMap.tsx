@@ -7,6 +7,14 @@ import type { MapZone } from "../lib/mapZones";
 
 type Metric = "games" | "perField";
 
+// Mapa base. Por defecto, el servidor estándar de OpenStreetMap (sin API key; su política de uso
+// pide tráfico moderado y atribución, suficiente para una herramienta interna). Si más adelante
+// hace falta otro estilo o más volumen (MapTiler, Stadia, Mapbox...), se cambia con estas variables
+// de entorno sin tocar código. Ojo: son NEXT_PUBLIC_*, se leen al compilar.
+const TILE_URL = process.env.NEXT_PUBLIC_MAP_TILE_URL || "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+const TILE_ATTRIBUTION =
+  process.env.NEXT_PUBLIC_MAP_ATTRIBUTION || '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+
 export type ZoneMapLabels = {
   metricGames: string;
   metricPerField: string;
@@ -57,10 +65,7 @@ export default function ZoneMap({ zones, labels, detailQuery }: { zones: MapZone
       if (cancelled || !containerRef.current || mapRef.current) return;
       leafletRef.current = L;
       const map = L.map(containerRef.current, { zoomControl: true, scrollWheelZoom: true }).setView([37.5, -96], 4);
-      L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-        maxZoom: 18,
-      }).addTo(map);
+      L.tileLayer(TILE_URL, { attribution: TILE_ATTRIBUTION, maxZoom: 19 }).addTo(map);
       layerRef.current = L.layerGroup().addTo(map);
       mapRef.current = map;
       setMapReady(true); // dispara el primer dibujo de burbujas
