@@ -1747,6 +1747,10 @@
     },
     "truncated": "The read cap was reached: older games in the range are missing. Narrow the period or filter.",
     "unknownFieldFootnote": "{n} recurring games have no field identifier in the source data.",
-    "definition": "A recurring game = facility + day + time + field + format. Inventory = published supply (confirmed + cancelled). Fill = confirmed players / capacity, confirmed games only."
+    "definition": "A recurring game = facility + day + time + field + format. Inventory = published supply (confirmed + cancelled). Fill = confirmed players / capacity, confirmed games only.",
+    "legend": {
+      "confirmed": "Confirmed",
+      "cancelled": "Cancelled"
+    }
   }
 }

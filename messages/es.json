@@ -1747,6 +1747,10 @@
     },
     "truncated": "Se alcanzó el tope de partidos leídos: faltan los más antiguos del rango. Acotá el período o el filtro.",
     "unknownFieldFootnote": "{n} partidos recurrentes no traen identificador de cancha en el dato original.",
-    "definition": "Un partido recurrente = facility + día + hora + cancha + formato. Inventario = oferta publicada (confirmados + cancelados). Llenado = jugadores confirmados / capacidad, solo en partidos confirmados."
+    "definition": "Un partido recurrente = facility + día + hora + cancha + formato. Inventario = oferta publicada (confirmados + cancelados). Llenado = jugadores confirmados / capacidad, solo en partidos confirmados.",
+    "legend": {
+      "confirmed": "Confirmado",
+      "cancelled": "Cancelado"
+    }
   }
 }

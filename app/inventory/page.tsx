@@ -39,7 +39,7 @@ const usd = (n: number | null) => (n === null ? "—" : n.toLocaleString("en-US"
 
 function rateTone(s: Slot): string {
   if (s.lowSample || s.confirmationRate === null) return "text-ink-faint";
-  if (s.confirmationRate >= 0.8) return "text-success";
+  if (s.confirmationRate >= 0.8) return "text-brand";
   if (s.confirmationRate >= 0.5) return "text-warning";
   return "text-danger";
 }
@@ -83,7 +83,7 @@ function SlotCard({ s, t, locale }: { s: Slot; t: T; locale: Locale }) {
           <span
             key={o.date}
             title={`${o.date} · ${o.status === "CONFIRMED" ? t("card.confirmedShort", { n: o.players }) : t("card.cancelledShort")}`}
-            className={`h-2.5 w-2.5 rounded-full ${o.status === "CONFIRMED" ? "bg-success" : "bg-danger"}`}
+            className={`h-2.5 w-2.5 rounded-full ${o.status === "CONFIRMED" ? "bg-accent" : "bg-danger"}`}
           />
         ))}
         <span className="ml-auto text-[10px] text-ink-faint">{t("card.lastSeen", { date: s.lastDate })}</span>
@@ -181,6 +181,10 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
 
       {inv.truncated && <p className="mt-4 text-xs text-warning">{t("truncated")}</p>}
       {inv.unknownFieldSlots > 0 && <p className="mt-2 text-xs text-ink-faint">{t("unknownFieldFootnote", { n: inv.unknownFieldSlots })}</p>}
+      <p className="mt-2 text-xs text-ink-faint flex flex-wrap items-center gap-x-3">
+        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-accent" aria-hidden="true" />{t("legend.confirmed")}</span>
+        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-danger" aria-hidden="true" />{t("legend.cancelled")}</span>
+      </p>
       <p className="mt-2 text-xs text-ink-faint">{t("definition")}</p>
     </div>
   );
