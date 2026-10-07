@@ -1,13 +1,24 @@
 import { prisma } from "./prisma";
 import { cached } from "./cache";
 import { bucketOf } from "../metrics";
-import { buildWhere, type OverviewFilters } from "./shared";
+import { average, buildWhere, stdDev, type OverviewFilters } from "./shared";
 import { nowInBusinessTimeZone } from "../period";
 import type { Locale } from "@/i18n/config";
 
 // `locale` con default "es" — mismo criterio que el resto de esta ronda: el
 // único caller de este momento (app/page.tsx, Overview) ya resuelve el
 // locale real vía getLocale() y lo pasa.
+// Ritmo por día de la semana: en vez de repartir lo acumulado parejo entre todos los días del mes
+// (regla de 3, que ignora qué días de la semana faltan), se proyecta lo ya confirmado MÁS lo
+// esperado en cada día restante, según el promedio de ese mismo día de la semana en las últimas
+// HISTORY_WEEKS semanas. La banda (±1σ) suma las varianzas diarias de los días que faltan.
+// Con menos de MIN_HISTORY_DAYS de historia se cae a la regla de 3 y se rotula como tal.
+const HISTORY_WEEKS = 8;
+const MIN_HISTORY_DAYS = 28;
+const DAY_MS = 86400000;
+
+export type ProjectionMethod = "weekday" | "ruleOf3";
+
 async function getMonthProjectionImpl(filters: Omit<OverviewFilters, "dateFrom" | "dateTo">, locale: Locale = "es") {
   const now = nowInBusinessTimeZone();
   const year = now.getUTCFullYear();
@@ -42,8 +53,55 @@ async function getMonthProjectionImpl(filters: Omit<OverviewFilters, "dateFrom" 
   // demasiado ruido para que la regla de 3 signifique algo.
   const available = daysElapsed > 7;
 
-  const projectedGames = available ? Math.round((confirmedSoFar / daysElapsed) * daysInMonth) : null;
-  const projectedRevenue = available ? (revenueSoFar / daysElapsed) * daysInMonth : null;
+  let projectedGames: number | null = available ? Math.round((confirmedSoFar / daysElapsed) * daysInMonth) : null;
+  let projectedRevenue: number | null = available ? (revenueSoFar / daysElapsed) * daysInMonth : null;
+  let projectedGamesLow: number | null = null;
+  let projectedGamesHigh: number | null = null;
+  let projectedRevenueLow: number | null = null;
+  let projectedRevenueHigh: number | null = null;
+  let method: ProjectionMethod = "ruleOf3";
+
+  if (available) {
+    const lastDay = new Date(Date.UTC(year, month, daysElapsed));
+    const histFrom = new Date(lastDay.getTime() - (HISTORY_WEEKS * 7 - 1) * DAY_MS);
+    const histRows = (await prisma.game.groupBy({
+      by: ["date"],
+      where: { ...buildWhere({ ...filters, dateFrom: histFrom, dateTo: lastDay }), status: "CONFIRMED" },
+      _count: { _all: true },
+    })) as unknown as { date: Date; _count: { _all: number } }[];
+
+    if (histRows.length > 0) {
+      const byISO = new Map(histRows.map((r) => [r.date.toISOString().slice(0, 10), Number(r._count._all)]));
+      const firstSeen = histRows.reduce((mn, r) => Math.min(mn, r.date.getTime()), Infinity);
+      const start = Math.max(histFrom.getTime(), firstSeen);
+      const spanDays = Math.floor((lastDay.getTime() - start) / DAY_MS) + 1;
+      if (spanDays >= MIN_HISTORY_DAYS) {
+        // Un día sin ninguna fila confirmada cuenta como 0 (la facility no operó o no se confirmó nada).
+        const byWeekday: number[][] = Array.from({ length: 7 }, () => []);
+        for (let t = start; t <= lastDay.getTime(); t += DAY_MS) {
+          const d = new Date(t);
+          byWeekday[d.getUTCDay()].push(byISO.get(d.toISOString().slice(0, 10)) ?? 0);
+        }
+        let expectedRemaining = 0;
+        let varianceRemaining = 0;
+        for (let day = daysElapsed + 1; day <= daysInMonth; day++) {
+          const vals = byWeekday[new Date(Date.UTC(year, month, day)).getUTCDay()];
+          expectedRemaining += average(vals);
+          varianceRemaining += stdDev(vals) ** 2;
+        }
+        const sd = Math.sqrt(varianceRemaining);
+        const perConfirmed = confirmedSoFar > 0 ? revenueSoFar / confirmedSoFar : 0;
+        const point = confirmedSoFar + expectedRemaining;
+        projectedGames = Math.round(point);
+        projectedGamesLow = Math.max(confirmedSoFar, Math.round(point - sd));
+        projectedGamesHigh = Math.round(point + sd);
+        projectedRevenue = revenueSoFar + expectedRemaining * perConfirmed;
+        projectedRevenueLow = revenueSoFar + Math.max(0, expectedRemaining - sd) * perConfirmed;
+        projectedRevenueHigh = revenueSoFar + (expectedRemaining + sd) * perConfirmed;
+        method = "weekday";
+      }
+    }
+  }
 
   // Mes anterior COMPLETO (no proyectado, ya cerrado) — la base de
   // comparación para la variación %. Mismos filtros, sin fecha, un mes
@@ -77,6 +135,11 @@ async function getMonthProjectionImpl(filters: Omit<OverviewFilters, "dateFrom" 
     revenueSoFar,
     projectedGames,
     projectedRevenue,
+    projectedGamesLow,
+    projectedGamesHigh,
+    projectedRevenueLow,
+    projectedRevenueHigh,
+    method,
     priorConfirmedGames,
     priorRevenue,
     changePctGames,

@@ -438,6 +438,9 @@ export default async function LeadershipOverview({ sp, locale }: { sp: Leadershi
               </div>
               <div className="text-[11px] text-ink-faint mt-0.5">
                 {t("projection.detail", { revenue: formatUSD(projection.projectedRevenue!), elapsed: projection.daysElapsed, total: projection.daysInMonth })}
+                {projection.projectedGamesLow !== null && projection.projectedGamesHigh !== null &&
+                  ` · ${t("projection.range", { low: projection.projectedGamesLow.toLocaleString("en-US"), high: projection.projectedGamesHigh.toLocaleString("en-US") })}`}
+                {` · ${projection.method === "weekday" ? t("projection.methodWeekday") : t("projection.methodRuleOf3")}`}
               </div>
             </>
           ) : (

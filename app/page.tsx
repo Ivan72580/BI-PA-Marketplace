@@ -105,6 +105,14 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
                     {monthProjection.changePctGames !== null && <ChangeBadge value={monthProjection.changePctGames} />}
                   </div>
                   <div className="text-[11px] text-ink-faint mt-0.5">{t("projection.gamesLabel")}</div>
+                  {monthProjection.projectedGamesLow !== null && monthProjection.projectedGamesHigh !== null && (
+                    <div className="text-[11px] text-ink-faint">
+                      {t("projection.range", {
+                        low: monthProjection.projectedGamesLow.toLocaleString("en-US"),
+                        high: monthProjection.projectedGamesHigh.toLocaleString("en-US"),
+                      })}
+                    </div>
+                  )}
                 </div>
                 <div className="w-px bg-brand/20" />
                 <div>
@@ -116,6 +124,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
                 </div>
               </div>
               <div className="text-[11px] text-ink-faint mt-2 pt-2 border-t border-brand/15 space-y-0.5">
+                <div>{monthProjection.method === "weekday" ? t("projection.methodWeekday") : t("projection.methodRuleOf3")}</div>
                 {/* Detalle real detrás de la proyección (hallazgo 2 del mapeo
                     de lógica no expuesta, 3/10/26): getMonthProjection ya
                     calculaba totalSoFar/cancelledSoFar/confirmationRateSoFar/

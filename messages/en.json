@@ -708,6 +708,9 @@
     "comparePeriodAvailable": "Prior period available for comparison: {period}",
     "projection": {
       "title": "{month} projection",
+      "range": "Expected range: {low}–{high} (±1 std dev)",
+      "methodWeekday": "Method: day-of-week pace, last 8 weeks",
+      "methodRuleOf3": "Method: rule of three (not enough history yet for the weekly pace)",
       "gamesLabel": "Confirmed games (proj.)",
       "revenueLabel": "Revenue (proj.)",
       "basedOn": "Based on {total} games played so far — {confirmed} confirmed ({confirmedRate}) and {cancelled} cancelled ({cancelledRate}) — over {elapsed} of {daysInMonth} days, with {revenue} in revenue accrued.",
@@ -1065,6 +1068,9 @@
     },
     "projection": {
       "title": "{month} projection: {n} confirmed games",
+      "range": "range {low}–{high}",
+      "methodWeekday": "day-of-week pace",
+      "methodRuleOf3": "rule of three",
       "detail": "{elapsed}/{total} days with data · projected revenue {revenue}",
       "notYetAvailable": "No projection yet for {month} — available from day {day}"
     },

@@ -708,6 +708,9 @@
     "comparePeriodAvailable": "Período anterior disponible para comparar: {period}",
     "projection": {
       "title": "Proyección de {month}",
+      "range": "Rango esperado: {low}–{high} (±1 desvío)",
+      "methodWeekday": "Método: ritmo por día de la semana, últimas 8 semanas",
+      "methodRuleOf3": "Método: regla de 3 (todavía hay poca historia para usar el ritmo semanal)",
       "gamesLabel": "Partidos confirmados (proy.)",
       "revenueLabel": "Revenue (proy.)",
       "basedOn": "En base a {total} partidos jugados hasta hoy — {confirmed} confirmados ({confirmedRate}) y {cancelled} cancelados ({cancelledRate}) — en {elapsed} de {daysInMonth} días, con {revenue} de revenue acumulado.",
@@ -1065,6 +1068,9 @@
     },
     "projection": {
       "title": "Proyección de {month}: {n} partidos confirmados",
+      "range": "rango {low}–{high}",
+      "methodWeekday": "ritmo por día de la semana",
+      "methodRuleOf3": "regla de 3",
       "detail": "{elapsed}/{total} días con datos · revenue proyectado {revenue}",
       "notYetAvailable": "Sin proyección todavía para {month} — disponible desde el día {day}"
     },
