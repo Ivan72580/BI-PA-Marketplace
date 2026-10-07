@@ -1,5 +1,6 @@
 import { prisma } from "./prisma";
 import { cached } from "./cache";
+import { bucketOf } from "../metrics";
 import { buildWhere, type OverviewFilters } from "./shared";
 import { nowInBusinessTimeZone } from "../period";
 import type { Locale } from "@/i18n/config";
@@ -16,7 +17,7 @@ async function getMonthProjectionImpl(filters: Omit<OverviewFilters, "dateFrom" 
   const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
 
   const where = buildWhere({ ...filters, dateFrom: monthStart, dateTo: now });
-  const games = await prisma.game.findMany({ where, select: { status: true, eventRevenue: true, date: true } });
+  const games = await prisma.game.findMany({ where, select: { status: true, cancellationCategory: true, eventRevenue: true, date: true } });
 
   // Días con datos reales: hasta el último partido registrado del mes (el export no
   // trae partidos de hoy). Dividir por el día calendario de hoy contaba un día
@@ -27,8 +28,12 @@ async function getMonthProjectionImpl(filters: Omit<OverviewFilters, "dateFrom" 
   const confirmedSoFar = games.filter((g) => g.status === "CONFIRMED").length;
   const cancelledSoFar = games.filter((g) => g.status === "CANCELLED").length;
   const totalSoFar = confirmedSoFar + cancelledSoFar;
-  const confirmationRateSoFar = totalSoFar > 0 ? confirmedSoFar / totalSoFar : null;
-  const cancellationRateSoFar = totalSoFar > 0 ? cancelledSoFar / totalSoFar : null;
+  // Tasa de DEMANDA (definición única, ver metrics.ts): las cancelaciones por cancha no disponible,
+  // operativas y plugin no entran al denominador. totalSoFar sigue siendo lo publicado.
+  const demandCancelledSoFar = games.filter((g) => g.status === "CANCELLED" && bucketOf(g.cancellationCategory) === "demand").length;
+  const demandBaseSoFar = confirmedSoFar + demandCancelledSoFar;
+  const confirmationRateSoFar = demandBaseSoFar > 0 ? confirmedSoFar / demandBaseSoFar : null;
+  const cancellationRateSoFar = demandBaseSoFar > 0 ? demandCancelledSoFar / demandBaseSoFar : null;
   const revenueSoFar = games
     .filter((g) => g.status === "CONFIRMED")
     .reduce((s, g) => s + (g.eventRevenue ?? 0), 0);
