@@ -324,7 +324,7 @@
     },
     "rateBarEmpty": "Sin datos suficientes.",
     "metric": {
-      "confirmation": "Tasa de confirmación",
+      "confirmation": "Tasa de confirmación (demanda)",
       "cancellation": "Tasa de cancelación",
       "occupancy": "Ocupación",
       "conversion": "Conversión"
@@ -1031,7 +1031,7 @@
     "samePeriodLabel": "{from}–{to} {month} (mismo tramo)",
     "regionComparison": {
       "confirmedGames": "Confirmados",
-      "confirmationRate": "Tasa de confirmación"
+      "confirmationRate": "Tasa de confirmación (demanda)"
     }
   },
   "Login": {
@@ -1052,7 +1052,7 @@
     },
     "kpis": {
       "confirmedGames": "Partidos confirmados",
-      "confirmationRate": "Tasa de confirmación",
+      "confirmationRate": "Tasa de confirmación (demanda)",
       "cancellationRate": "Tasa de cancelación",
       "avgFillRate": "Ocupación promedio",
       "totalRevenue": "Revenue del período",
@@ -1106,7 +1106,7 @@
         "region": "Región",
         "confirmedGames": "Confirmados",
         "changeVsPriorMonth": "vs. mes anterior",
-        "confirmationRate": "Tasa de confirmación",
+        "confirmationRate": "Tasa de confirmación (demanda)",
         "changePts": "Variación"
       },
       "empty": "Todavía no hay datos suficientes para comparar regiones este mes."
@@ -1500,7 +1500,7 @@
       "metric": {
         "confirmedGames": "Partidos confirmados",
         "cancelledGames": "Partidos cancelados",
-        "confirmationRate": "Tasa de confirmación",
+        "confirmationRate": "Tasa de confirmación (demanda)",
         "cancellationRate": "Tasa de cancelación",
         "occupancyRate": "Ocupación",
         "conversionRate": "Conversión",
@@ -1527,7 +1527,7 @@
     },
     "kpi": {
       "confirmedGames": "Partidos confirmados",
-      "confirmationRate": "Tasa de confirmación",
+      "confirmationRate": "Tasa de confirmación (demanda)",
       "cancellationRate": "Tasa de cancelación",
       "avgFillRate": "Ocupación promedio",
       "totalRevenue": "Revenue",
@@ -1545,7 +1545,7 @@
       "confirmed": "Confirmados",
       "prior": "Período anterior",
       "variation": "Variación",
-      "confirmationRateCol": "Tasa de confirmación",
+      "confirmationRateCol": "Tasa de confirmación (demanda)",
       "empty": "No hay datos suficientes para esta comparación."
     },
     "seasonal": {

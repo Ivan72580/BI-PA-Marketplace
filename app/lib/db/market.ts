@@ -1,6 +1,7 @@
 import { GameStatus } from "@prisma/client";
 import { prisma } from "./prisma";
 import { cached } from "./cache";
+import { bucketOf, countsForDemand, demandRate, rawRate } from "../metrics";
 import { buildWhere, MIN_GAMES_FOR_RANKING, MAX_NAMED_SEGMENTS, type OverviewFilters } from "./shared";
 
 // ---------- Resumen completo por facility ----------
@@ -32,8 +33,10 @@ export type MarketFacilityRow = {
   totalGames: number;
   confirmedGames: number;
   cancelledGames: number;
-  confirmationRate: number;
+  demandCancelledGames: number; // cancelados que hablan de demanda (base de confirmationRate)
+  confirmationRate: number; // % de demanda: excluye cancha no disponible, operativas y plugin
   cancellationRate: number;
+  rawConfirmationRate: number; // % crudo: confirmados / publicados
   occupancyRate: number;
   conversionRate: number;
   abandonmentRate: number;
@@ -75,7 +78,7 @@ async function getMarketFacilitySummaryImpl(filters: OverviewFilters): Promise<M
     cancelledDetailRows,
   ] = await Promise.all([
     prisma.game.groupBy({ by: ["facilityId"], where, _count: { _all: true } }),
-    prisma.game.groupBy({ by: ["facilityId"], where: cancelledWhere, _count: { _all: true } }),
+    prisma.game.groupBy({ by: ["facilityId", "cancellationCategory"], where: cancelledWhere, _count: { _all: true } }),
     prisma.game.groupBy({ by: ["facilityId"], where: confirmedWhere, _sum: { finalPlayers: true, maxPlayers: true } }),
     prisma.game.groupBy({ by: ["facilityId"], where, _sum: { finalPlayers: true, droppedPlayers: true, waitlistPlayers: true } }),
     prisma.game.groupBy({ by: ["facilityId"], where: { ...where, gamePrice: { not: null } }, _avg: { gamePrice: true } }),
@@ -98,7 +101,13 @@ async function getMarketFacilitySummaryImpl(filters: OverviewFilters): Promise<M
   })) as FacilityInfo[];
   const facilityInfoMap = new Map(facilityInfoRows.map((f): [string, typeof f] => [f.id, f]));
 
-  const cancelledMap = new Map<string, number>(cancelledGroups.map((g) => [g.facilityId, Number(g._count._all)]));
+  const cancelledMap = new Map<string, number>();
+  const demandCancelledMap = new Map<string, number>();
+  for (const g of cancelledGroups) {
+    const n = Number(g._count._all);
+    cancelledMap.set(g.facilityId, (cancelledMap.get(g.facilityId) ?? 0) + n);
+    if (bucketOf(g.cancellationCategory) === "demand") demandCancelledMap.set(g.facilityId, (demandCancelledMap.get(g.facilityId) ?? 0) + n);
+  }
   const occMap = new Map<string, { final: number; max: number }>(
     occupancyGroups.map((g) => [g.facilityId, { final: g._sum.finalPlayers ?? 0, max: g._sum.maxPlayers ?? 0 }])
   );
@@ -140,6 +149,7 @@ async function getMarketFacilitySummaryImpl(filters: OverviewFilters): Promise<M
       const total = Number(t._count._all);
       const cancelled = cancelledMap.get(t.facilityId) ?? 0;
       const confirmed = total - cancelled;
+      const demandCancelled = demandCancelledMap.get(t.facilityId) ?? 0;
       const occ = occMap.get(t.facilityId) ?? { final: 0, max: 0 };
       const eng = engMap.get(t.facilityId) ?? { final: 0, dropped: 0, waitlist: 0 };
       const nearMiss = nearMissByFacility.get(t.facilityId) ?? 0;
@@ -159,8 +169,10 @@ async function getMarketFacilitySummaryImpl(filters: OverviewFilters): Promise<M
         totalGames: total,
         confirmedGames: confirmed,
         cancelledGames: cancelled,
-        confirmationRate: total > 0 ? confirmed / total : 0,
-        cancellationRate: total > 0 ? cancelled / total : 0,
+        demandCancelledGames: demandCancelled,
+        confirmationRate: demandRate(confirmed, demandCancelled),
+        cancellationRate: confirmed + demandCancelled > 0 ? demandCancelled / (confirmed + demandCancelled) : 0,
+        rawConfirmationRate: rawRate(confirmed, cancelled),
         occupancyRate: occ.max > 0 ? occ.final / occ.max : 0,
         conversionRate: eng.final + eng.dropped > 0 ? eng.final / (eng.final + eng.dropped) : 0,
         abandonmentRate: eng.final + eng.dropped > 0 ? eng.dropped / (eng.final + eng.dropped) : 0,
@@ -538,38 +550,39 @@ async function getMarketConfirmationRankingImpl(
 
   type FacilityMarketInfo = { id: string; marketId: string; market: { name: string } };
   const [currentGroups, priorGroups, facilityInfoRows] = await Promise.all([
-    prisma.game.groupBy({ by: ["facilityId", "status"], where, _count: { _all: true } }),
-    prisma.game.groupBy({ by: ["facilityId", "status"], where: priorWhere, _count: { _all: true } }),
+    prisma.game.groupBy({ by: ["facilityId", "status", "cancellationCategory"], where, _count: { _all: true } }),
+    prisma.game.groupBy({ by: ["facilityId", "status", "cancellationCategory"], where: priorWhere, _count: { _all: true } }),
     prisma.facility.findMany({ select: { id: true, marketId: true, market: { select: { name: true } } } }) as unknown as Promise<FacilityMarketInfo[]>,
   ]);
 
   const facilityMarketMap = new Map(facilityInfoRows.map((f): [string, { marketId: string; marketName: string }] => [f.id, { marketId: f.marketId, marketName: f.market.name }]));
 
-  function tallyByMarket(groups: { facilityId: string; status: GameStatus; _count: { _all: number } }[]) {
-    const totals = new Map<string, { confirmed: number; total: number }>();
+  function tallyByMarket(groups: { facilityId: string; status: GameStatus; cancellationCategory: string | null; _count: { _all: number } }[]) {
+    const totals = new Map<string, { confirmed: number; total: number; demandBase: number }>();
     for (const g of groups) {
       const info = facilityMarketMap.get(g.facilityId);
       if (!info) continue;
-      const entry = totals.get(info.marketId) ?? { confirmed: 0, total: 0 };
+      const entry = totals.get(info.marketId) ?? { confirmed: 0, total: 0, demandBase: 0 };
       entry.total += Number(g._count._all);
+      if (countsForDemand(g.status, g.cancellationCategory)) entry.demandBase += Number(g._count._all);
       if (g.status === GameStatus.CONFIRMED) entry.confirmed += Number(g._count._all);
       totals.set(info.marketId, entry);
     }
     return totals;
   }
 
-  const currentByMarket = tallyByMarket(currentGroups as unknown as { facilityId: string; status: GameStatus; _count: { _all: number } }[]);
-  const priorByMarket = tallyByMarket(priorGroups as unknown as { facilityId: string; status: GameStatus; _count: { _all: number } }[]);
+  const currentByMarket = tallyByMarket(currentGroups as unknown as { facilityId: string; status: GameStatus; cancellationCategory: string | null; _count: { _all: number } }[]);
+  const priorByMarket = tallyByMarket(priorGroups as unknown as { facilityId: string; status: GameStatus; cancellationCategory: string | null; _count: { _all: number } }[]);
 
   const marketNames = new Map<string, string>();
   for (const f of facilityInfoRows) marketNames.set(f.marketId, f.market.name);
 
   const rows: MarketConfirmationRankingRow[] = Array.from(currentByMarket.entries())
-    .filter(([, cur]) => cur.total >= MIN_GAMES_FOR_RANKING)
+    .filter(([, cur]) => cur.demandBase >= MIN_GAMES_FOR_RANKING)
     .map(([marketId, cur]) => {
       const prior = priorByMarket.get(marketId);
-      const confirmationRate = cur.total > 0 ? cur.confirmed / cur.total : 0;
-      const priorConfirmationRate = prior && prior.total >= MIN_GAMES_FOR_RANKING ? prior.confirmed / prior.total : null;
+      const confirmationRate = cur.demandBase > 0 ? cur.confirmed / cur.demandBase : 0;
+      const priorConfirmationRate = prior && prior.demandBase >= MIN_GAMES_FOR_RANKING ? prior.confirmed / prior.demandBase : null;
       return {
         marketId,
         marketName: marketNames.get(marketId) ?? "—",
@@ -608,7 +621,8 @@ export type MarketComparisonRow = {
   confirmedGames: number;
   totalGames: number;
   changePct: number | null;
-  confirmationRate: number;
+  confirmationRate: number; // % de demanda
+  rawConfirmationRate: number; // % crudo
   changePts: number | null;
 };
 
@@ -624,9 +638,9 @@ async function getMarketComparisonImpl(
 
   type FacilityMarketInfo = { id: string; marketId: string; market: { name: string; regionId: string } };
   const [currentGroups, priorGroups, facilityInfoRows] = await Promise.all([
-    prisma.game.groupBy({ by: ["facilityId", "status"], where, _count: { _all: true } }),
+    prisma.game.groupBy({ by: ["facilityId", "status", "cancellationCategory"], where, _count: { _all: true } }),
     priorWhere
-      ? prisma.game.groupBy({ by: ["facilityId", "status"], where: priorWhere, _count: { _all: true } })
+      ? prisma.game.groupBy({ by: ["facilityId", "status", "cancellationCategory"], where: priorWhere, _count: { _all: true } })
       : Promise.resolve([]),
     prisma.facility.findMany({
       select: { id: true, marketId: true, market: { select: { name: true, regionId: true } } },
@@ -640,29 +654,30 @@ async function getMarketComparisonImpl(
     ])
   );
 
-  function tallyByMarket(groups: { facilityId: string; status: GameStatus; _count: { _all: number } }[]) {
-    const totals = new Map<string, { confirmed: number; total: number }>();
+  function tallyByMarket(groups: { facilityId: string; status: GameStatus; cancellationCategory: string | null; _count: { _all: number } }[]) {
+    const totals = new Map<string, { confirmed: number; total: number; demandBase: number }>();
     for (const g of groups) {
       const info = facilityMarketMap.get(g.facilityId);
       if (!info) continue;
-      const entry = totals.get(info.marketId) ?? { confirmed: 0, total: 0 };
+      const entry = totals.get(info.marketId) ?? { confirmed: 0, total: 0, demandBase: 0 };
       entry.total += Number(g._count._all);
+      if (countsForDemand(g.status, g.cancellationCategory)) entry.demandBase += Number(g._count._all);
       if (g.status === GameStatus.CONFIRMED) entry.confirmed += Number(g._count._all);
       totals.set(info.marketId, entry);
     }
     return totals;
   }
 
-  const currentByMarket = tallyByMarket(currentGroups as unknown as { facilityId: string; status: GameStatus; _count: { _all: number } }[]);
-  const priorByMarket = tallyByMarket(priorGroups as unknown as { facilityId: string; status: GameStatus; _count: { _all: number } }[]);
+  const currentByMarket = tallyByMarket(currentGroups as unknown as { facilityId: string; status: GameStatus; cancellationCategory: string | null; _count: { _all: number } }[]);
+  const priorByMarket = tallyByMarket(priorGroups as unknown as { facilityId: string; status: GameStatus; cancellationCategory: string | null; _count: { _all: number } }[]);
 
   const marketMeta = new Map<string, { name: string; regionId: string }>();
   for (const f of facilityInfoRows) marketMeta.set(f.marketId, { name: f.market.name, regionId: f.market.regionId });
 
   const rows: MarketComparisonRow[] = Array.from(currentByMarket.entries()).map(([marketId, cur]) => {
     const prior = priorByMarket.get(marketId) ?? null;
-    const confirmationRate = cur.total > 0 ? cur.confirmed / cur.total : 0;
-    const priorConfirmationRate = prior && prior.total > 0 ? prior.confirmed / prior.total : null;
+    const confirmationRate = cur.demandBase > 0 ? cur.confirmed / cur.demandBase : 0;
+    const priorConfirmationRate = prior && prior.demandBase > 0 ? prior.confirmed / prior.demandBase : null;
     const meta = marketMeta.get(marketId);
     return {
       marketId,
@@ -672,6 +687,7 @@ async function getMarketComparisonImpl(
       totalGames: cur.total,
       changePct: prior && prior.confirmed > 0 ? (cur.confirmed - prior.confirmed) / prior.confirmed : null,
       confirmationRate,
+      rawConfirmationRate: rawRate(cur.confirmed, cur.total - cur.confirmed),
       changePts: priorConfirmationRate !== null ? confirmationRate - priorConfirmationRate : null,
     };
   });

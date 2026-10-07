@@ -1,5 +1,6 @@
 import { prisma } from "./prisma";
 import { cached } from "./cache";
+import { withDemandOnly } from "../metrics";
 import { buildWhere, average, stdDev, linearRegression, type OverviewFilters } from "./shared";
 
 // ---------- Pronóstico de red: próxima semana / próximo mes ----------
@@ -69,7 +70,8 @@ function buildMetric(historicalValues: number[], n: number, method: ForecastMeth
 }
 
 type BlockTotals = {
-  totalGames: number;
+  totalGames: number; // publicados (volumen de oferta)
+  demandBase: number; // confirmados + cancelados por demanda: denominador de la tasa de demanda
   confirmedGames: number;
   sumFinalConfirmed: number;
   sumMaxConfirmed: number;
@@ -77,7 +79,7 @@ type BlockTotals = {
 };
 
 function emptyBlock(): BlockTotals {
-  return { totalGames: 0, confirmedGames: 0, sumFinalConfirmed: 0, sumMaxConfirmed: 0, revenue: 0 };
+  return { totalGames: 0, demandBase: 0, confirmedGames: 0, sumFinalConfirmed: 0, sumMaxConfirmed: 0, revenue: 0 };
 }
 
 export type NetworkForecast = {
@@ -125,8 +127,9 @@ async function getNetworkForecastImpl(
   const blocks: BlockTotals[] = await Promise.all(
     blockRanges.map(async ({ blockDateFrom, blockDateTo }) => {
       const blockWhere = buildWhere({ ...filters, dateFrom: blockDateFrom, dateTo: blockDateTo });
-      const [totalAgg, confirmedAgg] = await Promise.all([
+      const [totalAgg, demandBaseCount, confirmedAgg] = await Promise.all([
         prisma.game.aggregate({ where: blockWhere, _count: { _all: true } }),
+        prisma.game.count({ where: withDemandOnly(blockWhere) }),
         prisma.game.aggregate({
           where: { ...blockWhere, status: "CONFIRMED" },
           _count: { _all: true },
@@ -135,6 +138,7 @@ async function getNetworkForecastImpl(
       ]);
       return {
         totalGames: totalAgg._count._all,
+        demandBase: demandBaseCount,
         confirmedGames: confirmedAgg._count._all,
         sumFinalConfirmed: confirmedAgg._sum.finalPlayers ?? 0,
         sumMaxConfirmed: confirmedAgg._sum.maxPlayers ?? 0,
@@ -152,8 +156,16 @@ async function getNetworkForecastImpl(
   const method: ForecastMethod = n >= MIN_BLOCKS_FOR_TREND ? "regression" : n >= MIN_BLOCKS_FOR_PREDICTION ? "average" : "insufficient";
 
   const gamesMetric = buildMetric(withData.map((b) => b.totalGames), n, method, null);
-  const confirmationSeries = withData.map((b) => (b.totalGames > 0 ? b.confirmedGames / b.totalGames : 0));
-  const confirmationMetric = buildMetric(confirmationSeries, n, method, [0, 1]);
+  // % de DEMANDA: confirmados / (confirmados + cancelados por demanda). Se regresiona sobre
+  // los bloques que tienen base de demanda (un bloque sin base no dice nada de la tasa).
+  const withDemand = withData.filter((b) => b.demandBase > 0);
+  const confirmationSeries = withDemand.map((b) => b.confirmedGames / b.demandBase);
+  const confirmationMetric = buildMetric(confirmationSeries, withDemand.length, method, [0, 1]);
+  // Parte de lo publicado que es "demanda" (el resto son cancelaciones de cancha no disponible,
+  // operativas o plugin). Se usa para pasar de partidos agendados a confirmados esperados sin
+  // sobreestimar: confirmados = agendados × parte de demanda × tasa de demanda.
+  const sumTotal = withData.reduce((a, b) => a + b.totalGames, 0);
+  const demandShare = sumTotal > 0 ? withData.reduce((a, b) => a + b.demandBase, 0) / sumTotal : 1;
   const occupancySeries = withData.map((b) => (b.sumMaxConfirmed > 0 ? b.sumFinalConfirmed / b.sumMaxConfirmed : 0));
   const occupancyMetric = buildMetric(occupancySeries, n, method, [0, 1]);
   const revenueMetric = buildMetric(withData.map((b) => b.revenue), n, method, null);
@@ -166,7 +178,7 @@ async function getNetworkForecastImpl(
   let predictedCancelledGames: number | null = null;
   if (gamesMetric.predicted !== null && confirmationMetric.predicted !== null) {
     const totalRounded = Math.round(gamesMetric.predicted);
-    predictedConfirmedGames = Math.round(gamesMetric.predicted * confirmationMetric.predicted);
+    predictedConfirmedGames = Math.round(gamesMetric.predicted * demandShare * confirmationMetric.predicted);
     predictedCancelledGames = totalRounded - predictedConfirmedGames;
   }
 
@@ -181,11 +193,12 @@ async function getNetworkForecastImpl(
   // en JS. Ahora dos count() — uno total, uno filtrado — mismo patrón que
   // el resto de este archivo: solo viajan dos números.
   const yoyWhere = buildWhere({ ...filters, dateFrom: yoyStart, dateTo: yoyEnd });
-  const [yoyTotal, yoyConfirmed] = await Promise.all([
+  const [yoyTotal, yoyDemandBase, yoyConfirmed] = await Promise.all([
     prisma.game.count({ where: yoyWhere }),
+    prisma.game.count({ where: withDemandOnly(yoyWhere) }),
     prisma.game.count({ where: { ...yoyWhere, status: "CONFIRMED" } }),
   ]);
-  const sameWindowLastYear = yoyTotal > 0 ? { totalGames: yoyTotal, confirmationRate: yoyConfirmed / yoyTotal } : null;
+  const sameWindowLastYear = yoyTotal > 0 && yoyDemandBase > 0 ? { totalGames: yoyTotal, confirmationRate: yoyConfirmed / yoyDemandBase } : null;
 
   return {
     range,
@@ -257,11 +270,12 @@ async function getForecastRiskFacilitiesImpl(
     Promise.all(
       blockRanges.map(async ({ blockDateFrom, blockDateTo }) => {
         const blockWhere = buildWhere({ ...filters, dateFrom: blockDateFrom, dateTo: blockDateTo });
-        const [totals, confirmed] = (await Promise.all([
+        const [totals, confirmed, demand] = (await Promise.all([
           prisma.game.groupBy({ by: ["facilityId"], where: blockWhere, _count: { _all: true } }),
           prisma.game.groupBy({ by: ["facilityId"], where: { ...blockWhere, status: "CONFIRMED" }, _count: { _all: true } }),
-        ])) as [FacilityBlockCountRow[], FacilityBlockCountRow[]];
-        return { totals, confirmed };
+          prisma.game.groupBy({ by: ["facilityId"], where: withDemandOnly(blockWhere), _count: { _all: true } }),
+        ])) as [FacilityBlockCountRow[], FacilityBlockCountRow[], FacilityBlockCountRow[]];
+        return { totals, confirmed, demand };
       })
     ),
     prisma.facility.findMany({ select: { id: true, name: true } }) as Promise<{ id: string; name: string }[]>,
@@ -269,12 +283,14 @@ async function getForecastRiskFacilitiesImpl(
   const nameById = new Map(facilityRows.map((f): [string, string] => [f.id, f.name]));
 
   const byFacility = new Map<string, BlockTotals[]>();
-  blockGroups.forEach(({ totals, confirmed }, idx) => {
+  blockGroups.forEach(({ totals, confirmed, demand }, idx) => {
     const confirmedByFacility = new Map(confirmed.map((g): [string, number] => [g.facilityId, Number(g._count._all)]));
+    const demandByFacility = new Map(demand.map((g): [string, number] => [g.facilityId, Number(g._count._all)]));
     for (const g of totals) {
       const blocks = byFacility.get(g.facilityId) ?? Array.from({ length: LOOKBACK_BLOCKS }, emptyBlock);
       blocks[idx].totalGames = Number(g._count._all);
       blocks[idx].confirmedGames = confirmedByFacility.get(g.facilityId) ?? 0;
+      blocks[idx].demandBase = demandByFacility.get(g.facilityId) ?? 0;
       byFacility.set(g.facilityId, blocks);
     }
   });
@@ -295,12 +311,16 @@ async function getForecastRiskFacilitiesImpl(
     if (n < MIN_BLOCKS_FOR_TREND) continue; // sin suficiente historial propio, no entra al ranking (mismo piso que el resto)
 
     const gamesSeries = withData.map((b) => b.totalGames);
-    const rateSeries = withData.map((b) => b.confirmedGames / b.totalGames);
+    const withDemand = withData.filter((b) => b.demandBase > 0);
+    if (withDemand.length < MIN_BLOCKS_FOR_TREND) continue;
+    const rateSeries = withDemand.map((b) => b.confirmedGames / b.demandBase); // tasa de demanda
+    const sumTotal = withData.reduce((a, b) => a + b.totalGames, 0);
+    const demandShare = sumTotal > 0 ? withData.reduce((a, b) => a + b.demandBase, 0) / sumTotal : 1;
     const gamesMetric = buildMetric(gamesSeries, n, "regression", null);
-    const rateMetric = buildMetric(rateSeries, n, "regression", [0, 1]);
+    const rateMetric = buildMetric(rateSeries, withDemand.length, "regression", [0, 1]);
     if (gamesMetric.predicted === null || rateMetric.predicted === null || gamesMetric.avg === null || rateMetric.avg === null) continue;
 
-    const predictedConfirmed = Math.round(gamesMetric.predicted * rateMetric.predicted);
+    const predictedConfirmed = Math.round(gamesMetric.predicted * demandShare * rateMetric.predicted);
     candidates.push({
       facilityId,
       facilityName: nameById.get(facilityId) ?? "",

@@ -3,6 +3,7 @@ import { prisma } from "./prisma";
 import { cached } from "./cache";
 import { buildWhere, DAY_ORDER, sortHoursByOperatingDay, type OverviewFilters } from "./shared";
 import { combineFormatLabel } from "./format";
+import { bucketOf, countsForDemand, demandRate, rawRate } from "../metrics";
 import { weekdayAbbr } from "./weekday";
 import { getTrendsTranslator, type TrendsTranslator } from "./trendsMessages";
 import { nowInBusinessTimeZone } from "../period";
@@ -33,8 +34,13 @@ export type MetricSeriesPoint = {
   totalGames: number;
   confirmedGames: number;
   cancelledGames: number;
+  /** Cancelados que hablan de demanda (falta de jugadores / sin motivo). Base de confirmationRate. */
+  demandCancelledGames: number;
+  /** % de confirmación de DEMANDA (excluye cancha no disponible, operativas y plugin). */
   confirmationRate: number;
   cancellationRate: number;
+  /** % crudo: confirmados / publicados, todas las cancelaciones cuentan. */
+  rawConfirmationRate: number;
   occupancyRate: number;
   conversionRate: number;
 };
@@ -47,8 +53,13 @@ export type PatternRow = {
   totalGames: number;
   confirmedGames: number;
   cancelledGames: number;
+  /** Cancelados que hablan de demanda (falta de jugadores / sin motivo). Base de confirmationRate. */
+  demandCancelledGames: number;
+  /** % de confirmación de DEMANDA (excluye cancha no disponible, operativas y plugin). */
   confirmationRate: number;
   cancellationRate: number;
+  /** % crudo: confirmados / publicados, todas las cancelaciones cuentan. */
+  rawConfirmationRate: number;
   occupancyRate: number;
   conversionRate: number;
 };
@@ -120,19 +131,31 @@ function defaultWindowStart(bucket: TrendBucket, end: Date): Date {
   return start;
 }
 
-type SeriesRow = { date: Date; status: "CONFIRMED" | "CANCELLED"; finalPlayers: number; maxPlayers: number; droppedPlayers: number; waitlistPlayers: number };
+// Campos de tasa comunes a todas las filas: % de demanda (principal), complemento y tasa cruda.
+function rateFields(confirmed: number, cancelled: number, demandCancelled: number) {
+  const base = confirmed + demandCancelled;
+  return {
+    demandCancelledGames: demandCancelled,
+    confirmationRate: demandRate(confirmed, demandCancelled),
+    cancellationRate: base > 0 ? demandCancelled / base : 0,
+    rawConfirmationRate: rawRate(confirmed, cancelled),
+  };
+}
+
+type SeriesRow = { date: Date; status: "CONFIRMED" | "CANCELLED"; cancellationCategory?: string | null; finalPlayers: number; maxPlayers: number; droppedPlayers: number; waitlistPlayers: number };
 
 function buildSeriesFromGames(games: SeriesRow[], bucket: TrendBucket, locale: Locale): MetricSeriesPoint[] {
-  const map = new Map<string, { label: string; confirmed: number; cancelled: number; sumFinal: number; sumMax: number; sumDropped: number; sumWaitlist: number }>();
+  const map = new Map<string, { label: string; confirmed: number; cancelled: number; demandCancelled: number; sumFinal: number; sumMax: number; sumDropped: number; sumWaitlist: number }>();
   for (const g of games) {
     const { key, label } = bucketKeyAndLabel(g.date, bucket, locale);
-    const entry = map.get(key) ?? { label, confirmed: 0, cancelled: 0, sumFinal: 0, sumMax: 0, sumDropped: 0, sumWaitlist: 0 };
+    const entry = map.get(key) ?? { label, confirmed: 0, cancelled: 0, demandCancelled: 0, sumFinal: 0, sumMax: 0, sumDropped: 0, sumWaitlist: 0 };
     if (g.status === "CONFIRMED") {
       entry.confirmed += 1;
       entry.sumFinal += g.finalPlayers;
       entry.sumMax += g.maxPlayers;
     } else {
       entry.cancelled += 1;
+      if (bucketOf(g.cancellationCategory) === "demand") entry.demandCancelled += 1;
     }
     entry.sumDropped += g.droppedPlayers ?? 0;
     entry.sumWaitlist += g.waitlistPlayers ?? 0;
@@ -149,8 +172,10 @@ function buildSeriesFromGames(games: SeriesRow[], bucket: TrendBucket, locale: L
         totalGames: total,
         confirmedGames: v.confirmed,
         cancelledGames: v.cancelled,
-        confirmationRate: total > 0 ? v.confirmed / total : 0,
-        cancellationRate: total > 0 ? v.cancelled / total : 0,
+        demandCancelledGames: v.demandCancelled,
+        confirmationRate: demandRate(v.confirmed, v.demandCancelled),
+        cancellationRate: v.confirmed + v.demandCancelled > 0 ? v.demandCancelled / (v.confirmed + v.demandCancelled) : 0,
+        rawConfirmationRate: rawRate(v.confirmed, v.cancelled),
         occupancyRate: v.sumMax > 0 ? v.sumFinal / v.sumMax : 0,
         conversionRate: computeConversionRate(v.sumFinal, v.sumDropped),
       };
@@ -167,7 +192,7 @@ async function getMetricSeriesImpl(filters: OverviewFilters, bucket: TrendBucket
   // las columnas que hacen falta.
   const games = (await prisma.game.findMany({
     where,
-    select: { date: true, status: true, finalPlayers: true, maxPlayers: true, droppedPlayers: true, waitlistPlayers: true },
+    select: { date: true, status: true, cancellationCategory: true, finalPlayers: true, maxPlayers: true, droppedPlayers: true, waitlistPlayers: true },
   })) as SeriesRow[];
 
   return buildSeriesFromGames(games, bucket, locale);
@@ -186,7 +211,7 @@ async function getMetricSeriesInWindowImpl(
   const where = buildWhere({ ...filters, dateFrom: windowStart, dateTo: windowEnd });
   const games = (await prisma.game.findMany({
     where,
-    select: { date: true, status: true, finalPlayers: true, maxPlayers: true, droppedPlayers: true, waitlistPlayers: true },
+    select: { date: true, status: true, cancellationCategory: true, finalPlayers: true, maxPlayers: true, droppedPlayers: true, waitlistPlayers: true },
   })) as SeriesRow[];
 
   return buildSeriesFromGames(games, bucket, locale);
@@ -204,12 +229,18 @@ async function getDayOfWeekPatternImpl(filters: OverviewFilters, locale: Locale)
 
   const [totals, cancelledGroups, occupancyGroups, engagementGroups] = await Promise.all([
     prisma.game.groupBy({ by: ["dayOfWeek"], where, _count: { _all: true } }),
-    prisma.game.groupBy({ by: ["dayOfWeek"], where: cancelledWhere, _count: { _all: true } }),
+    prisma.game.groupBy({ by: ["dayOfWeek", "cancellationCategory"], where: cancelledWhere, _count: { _all: true } }),
     prisma.game.groupBy({ by: ["dayOfWeek"], where: confirmedWhere, _sum: { finalPlayers: true, maxPlayers: true } }),
     prisma.game.groupBy({ by: ["dayOfWeek"], where, _sum: { droppedPlayers: true, waitlistPlayers: true } }),
   ]);
 
-  const cancelledMap = new Map<string, number>(cancelledGroups.map((c) => [c.dayOfWeek, Number(c._count._all)]));
+  const cancelledMap = new Map<string, number>();
+  const demandCancelledMap = new Map<string, number>();
+  for (const c of cancelledGroups) {
+    const n = Number(c._count._all);
+    cancelledMap.set(c.dayOfWeek, (cancelledMap.get(c.dayOfWeek) ?? 0) + n);
+    if (bucketOf(c.cancellationCategory) === "demand") demandCancelledMap.set(c.dayOfWeek, (demandCancelledMap.get(c.dayOfWeek) ?? 0) + n);
+  }
   const occMap = new Map<string, { final: number; max: number }>(
     occupancyGroups.map((o) => [o.dayOfWeek, { final: o._sum.finalPlayers ?? 0, max: o._sum.maxPlayers ?? 0 }])
   );
@@ -220,16 +251,20 @@ async function getDayOfWeekPatternImpl(filters: OverviewFilters, locale: Locale)
   const rows: PatternRow[] = totals.map((t) => {
     const total = Number(t._count._all);
     const cancelledCount = cancelledMap.get(t.dayOfWeek) ?? 0;
+    const demandCancelled = demandCancelledMap.get(t.dayOfWeek) ?? 0;
+    const confirmedCount = total - cancelledCount;
     const occ = occMap.get(t.dayOfWeek) ?? { final: 0, max: 0 };
     const eng = engagementMap.get(t.dayOfWeek) ?? { dropped: 0, waitlist: 0 };
     return {
       key: t.dayOfWeek,
       label: weekdayAbbr(t.dayOfWeek, locale),
       totalGames: total,
-      confirmedGames: total - cancelledCount,
+      confirmedGames: confirmedCount,
       cancelledGames: cancelledCount,
-      confirmationRate: total > 0 ? (total - cancelledCount) / total : 0,
-      cancellationRate: total > 0 ? cancelledCount / total : 0,
+      demandCancelledGames: demandCancelled,
+      confirmationRate: demandRate(confirmedCount, demandCancelled),
+      cancellationRate: confirmedCount + demandCancelled > 0 ? demandCancelled / (confirmedCount + demandCancelled) : 0,
+      rawConfirmationRate: rawRate(confirmedCount, cancelledCount),
       occupancyRate: occ.max > 0 ? occ.final / occ.max : 0,
       conversionRate: computeConversionRate(occ.final, eng.dropped),
     };
@@ -267,27 +302,30 @@ export type FacilityDayOfWeekRow = {
   cells: Partial<Record<string, FacilityDayCell>>; // key = "Monday".."Sunday", ausente si esa facility nunca jugó ese día
 };
 
-type FacilityDowRawRow = { facilityId: string; date: Date; dayOfWeek: string; status: "CONFIRMED" | "CANCELLED" };
+type FacilityDowRawRow = { facilityId: string; date: Date; dayOfWeek: string; status: "CONFIRMED" | "CANCELLED"; cancellationCategory: string | null };
 
 async function getDayOfWeekPatternByFacilityImpl(filters: OverviewFilters): Promise<FacilityDayOfWeekRow[]> {
   const where = buildWhere(filters);
   const rows = (await prisma.game.findMany({
     where,
-    select: { facilityId: true, date: true, dayOfWeek: true, status: true },
+    select: { facilityId: true, date: true, dayOfWeek: true, status: true, cancellationCategory: true },
   })) as FacilityDowRawRow[];
 
   // facilityId -> dayOfWeek -> fecha ISO -> conteos de ese día puntual (el
   // nivel más fino, para poder contar OCURRENCIAS distintas antes de
   // promediar, igual que getDayBaselineImpl).
-  const byFacility = new Map<string, Map<string, Map<string, { total: number; confirmed: number; cancelled: number }>>>();
+  const byFacility = new Map<string, Map<string, Map<string, { total: number; confirmed: number; cancelled: number; demandCancelled: number }>>>();
   for (const g of rows) {
     const dateKey = g.date.toISOString().slice(0, 10);
-    const byDay = byFacility.get(g.facilityId) ?? new Map<string, Map<string, { total: number; confirmed: number; cancelled: number }>>();
-    const byDate = byDay.get(g.dayOfWeek) ?? new Map<string, { total: number; confirmed: number; cancelled: number }>();
-    const e = byDate.get(dateKey) ?? { total: 0, confirmed: 0, cancelled: 0 };
+    const byDay = byFacility.get(g.facilityId) ?? new Map<string, Map<string, { total: number; confirmed: number; cancelled: number; demandCancelled: number }>>();
+    const byDate = byDay.get(g.dayOfWeek) ?? new Map<string, { total: number; confirmed: number; cancelled: number; demandCancelled: number }>();
+    const e = byDate.get(dateKey) ?? { total: 0, confirmed: 0, cancelled: 0, demandCancelled: 0 };
     e.total += 1;
     if (g.status === "CONFIRMED") e.confirmed += 1;
-    else e.cancelled += 1;
+    else {
+      e.cancelled += 1;
+      if (bucketOf(g.cancellationCategory) === "demand") e.demandCancelled += 1;
+    }
     byDate.set(dateKey, e);
     byDay.set(g.dayOfWeek, byDate);
     byFacility.set(g.facilityId, byDay);
@@ -298,11 +336,12 @@ async function getDayOfWeekPatternByFacilityImpl(filters: OverviewFilters): Prom
     const cells: Partial<Record<string, FacilityDayCell>> = {};
     let totalGames = 0;
     for (const [dayOfWeek, byDate] of byDay) {
-      let sumTotal = 0, sumConfirmed = 0, sumCancelled = 0;
+      let sumTotal = 0, sumConfirmed = 0, sumCancelled = 0, sumDemandCancelled = 0;
       for (const e of byDate.values()) {
         sumTotal += e.total;
         sumConfirmed += e.confirmed;
         sumCancelled += e.cancelled;
+        sumDemandCancelled += e.demandCancelled;
       }
       const occurrences = byDate.size;
       cells[dayOfWeek] = {
@@ -310,8 +349,8 @@ async function getDayOfWeekPatternByFacilityImpl(filters: OverviewFilters): Prom
         avgGames: occurrences > 0 ? sumTotal / occurrences : 0,
         avgConfirmed: occurrences > 0 ? sumConfirmed / occurrences : 0,
         avgCancelled: occurrences > 0 ? sumCancelled / occurrences : 0,
-        confirmationRate: sumTotal > 0 ? sumConfirmed / sumTotal : 0,
-        cancellationRate: sumTotal > 0 ? sumCancelled / sumTotal : 0,
+        confirmationRate: demandRate(sumConfirmed, sumDemandCancelled),
+        cancellationRate: sumConfirmed + sumDemandCancelled > 0 ? sumDemandCancelled / (sumConfirmed + sumDemandCancelled) : 0,
       };
       totalGames += sumTotal;
     }
@@ -327,26 +366,27 @@ export const getDayOfWeekPatternByFacility = cached("getDayOfWeekPatternByFacili
 
 // ---------- Patrón por horario (fila por fila: la hora sale de un substring) ----------
 
-type HourRow = { time: string; status: "CONFIRMED" | "CANCELLED"; finalPlayers: number; maxPlayers: number; droppedPlayers: number; waitlistPlayers: number };
+type HourRow = { time: string; status: "CONFIRMED" | "CANCELLED"; cancellationCategory: string | null; finalPlayers: number; maxPlayers: number; droppedPlayers: number; waitlistPlayers: number };
 
 async function getHourPatternImpl(filters: OverviewFilters): Promise<PatternRow[]> {
   const where = buildWhere(filters);
   const games = (await prisma.game.findMany({
     where,
-    select: { time: true, status: true, finalPlayers: true, maxPlayers: true, droppedPlayers: true, waitlistPlayers: true },
+    select: { time: true, status: true, cancellationCategory: true, finalPlayers: true, maxPlayers: true, droppedPlayers: true, waitlistPlayers: true },
   })) as HourRow[];
 
-  const map = new Map<string, { confirmed: number; cancelled: number; sumFinal: number; sumMax: number; sumDropped: number; sumWaitlist: number }>();
+  const map = new Map<string, { confirmed: number; cancelled: number; demandCancelled: number; sumFinal: number; sumMax: number; sumDropped: number; sumWaitlist: number }>();
   for (const g of games) {
     const hour = g.time?.slice(0, 2);
     if (!hour) continue;
-    const entry = map.get(hour) ?? { confirmed: 0, cancelled: 0, sumFinal: 0, sumMax: 0, sumDropped: 0, sumWaitlist: 0 };
+    const entry = map.get(hour) ?? { confirmed: 0, cancelled: 0, demandCancelled: 0, sumFinal: 0, sumMax: 0, sumDropped: 0, sumWaitlist: 0 };
     if (g.status === "CONFIRMED") {
       entry.confirmed += 1;
       entry.sumFinal += g.finalPlayers;
       entry.sumMax += g.maxPlayers;
     } else {
       entry.cancelled += 1;
+      if (bucketOf(g.cancellationCategory) === "demand") entry.demandCancelled += 1;
     }
     entry.sumDropped += g.droppedPlayers ?? 0;
     entry.sumWaitlist += g.waitlistPlayers ?? 0;
@@ -362,8 +402,7 @@ async function getHourPatternImpl(filters: OverviewFilters): Promise<PatternRow[
       totalGames: total,
       confirmedGames: v.confirmed,
       cancelledGames: v.cancelled,
-      confirmationRate: total > 0 ? v.confirmed / total : 0,
-      cancellationRate: total > 0 ? v.cancelled / total : 0,
+      ...rateFields(v.confirmed, v.cancelled, v.demandCancelled),
       occupancyRate: v.sumMax > 0 ? v.sumFinal / v.sumMax : 0,
       conversionRate: computeConversionRate(v.sumFinal, v.sumDropped),
     };
@@ -383,7 +422,7 @@ async function getFormatPatternImpl(filters: OverviewFilters): Promise<PatternRo
   const cancelledWhere = { ...where, status: GameStatus.CANCELLED };
 
   const groupKeys = ["gameSize", "fieldType", "maxPlayers"];
-  type FormatGroupTotal = { gameSize: string | null; fieldType: string | null; maxPlayers: number; _count: { _all: number } };
+  type FormatGroupTotal = { gameSize: string | null; fieldType: string | null; maxPlayers: number; cancellationCategory?: string | null; _count: { _all: number } };
   type FormatGroupOcc = { gameSize: string | null; fieldType: string | null; maxPlayers: number; _sum: { finalPlayers: number | null; maxPlayers: number | null } };
   type FormatGroupEng = { gameSize: string | null; fieldType: string | null; maxPlayers: number; _sum: { finalPlayers: number | null; droppedPlayers: number | null } };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -391,7 +430,7 @@ async function getFormatPatternImpl(filters: OverviewFilters): Promise<PatternRo
 
   const [totals, cancelledGroups, occupancyGroups, engagementGroups] = (await Promise.all([
     groupBy({ by: groupKeys, where, _count: { _all: true } }),
-    groupBy({ by: groupKeys, where: cancelledWhere, _count: { _all: true } }),
+    groupBy({ by: [...groupKeys, "cancellationCategory"], where: cancelledWhere, _count: { _all: true } }),
     groupBy({ by: groupKeys, where: confirmedWhere, _sum: { finalPlayers: true, maxPlayers: true } }),
     groupBy({ by: groupKeys, where, _sum: { finalPlayers: true, droppedPlayers: true } }),
   ])) as [FormatGroupTotal[], FormatGroupTotal[], FormatGroupOcc[], FormatGroupEng[]];
@@ -402,7 +441,14 @@ async function getFormatPatternImpl(filters: OverviewFilters): Promise<PatternRo
   // dan la misma etiqueta combinada).
   const keyOf = (g: { gameSize: string | null; fieldType: string | null; maxPlayers: number }) => `${g.gameSize ?? ""}|${g.fieldType ?? ""}|${g.maxPlayers}`;
 
-  const cancelledMap = new Map<string, number>(cancelledGroups.map((g) => [keyOf(g), Number(g._count._all)]));
+  const cancelledMap = new Map<string, number>();
+  const demandCancelledMap = new Map<string, number>();
+  for (const g of cancelledGroups) {
+    const k = keyOf(g);
+    const n = Number(g._count._all);
+    cancelledMap.set(k, (cancelledMap.get(k) ?? 0) + n);
+    if (bucketOf(g.cancellationCategory) === "demand") demandCancelledMap.set(k, (demandCancelledMap.get(k) ?? 0) + n);
+  }
   const occMap = new Map<string, { final: number; max: number }>(
     occupancyGroups.map((g) => [keyOf(g), { final: g._sum.finalPlayers ?? 0, max: g._sum.maxPlayers ?? 0 }])
   );
@@ -410,17 +456,19 @@ async function getFormatPatternImpl(filters: OverviewFilters): Promise<PatternRo
     engagementGroups.map((g) => [keyOf(g), { final: g._sum.finalPlayers ?? 0, dropped: g._sum.droppedPlayers ?? 0 }])
   );
 
-  const map = new Map<string, { confirmed: number; cancelled: number; sumFinal: number; sumMax: number; sumDropped: number }>();
+  const map = new Map<string, { confirmed: number; cancelled: number; demandCancelled: number; sumFinal: number; sumMax: number; sumDropped: number }>();
   for (const t of totals) {
     const label = combineFormatLabel(t.gameSize, t.fieldType, t.maxPlayers);
     const k = keyOf(t);
     const total = Number(t._count._all);
     const cancelled = cancelledMap.get(k) ?? 0;
+    const demandCancelled = demandCancelledMap.get(k) ?? 0;
     const occ = occMap.get(k) ?? { final: 0, max: 0 };
     const eng = engMap.get(k) ?? { final: 0, dropped: 0 };
-    const entry = map.get(label) ?? { confirmed: 0, cancelled: 0, sumFinal: 0, sumMax: 0, sumDropped: 0 };
+    const entry = map.get(label) ?? { confirmed: 0, cancelled: 0, demandCancelled: 0, sumFinal: 0, sumMax: 0, sumDropped: 0 };
     entry.confirmed += total - cancelled;
     entry.cancelled += cancelled;
+    entry.demandCancelled += demandCancelled;
     entry.sumFinal += occ.final;
     entry.sumMax += occ.max;
     entry.sumDropped += eng.dropped;
@@ -436,8 +484,7 @@ async function getFormatPatternImpl(filters: OverviewFilters): Promise<PatternRo
         totalGames: total,
         confirmedGames: v.confirmed,
         cancelledGames: v.cancelled,
-        confirmationRate: total > 0 ? v.confirmed / total : 0,
-        cancellationRate: total > 0 ? v.cancelled / total : 0,
+        ...rateFields(v.confirmed, v.cancelled, v.demandCancelled),
         occupancyRate: v.sumMax > 0 ? v.sumFinal / v.sumMax : 0,
         conversionRate: computeConversionRate(v.sumFinal, v.sumDropped),
       };
@@ -478,7 +525,7 @@ export type NetworkFormatRow = {
 // cancha" de cada formato.
 async function getNetworkFormatLeaderboardImpl(filters: Omit<OverviewFilters, "dateFrom" | "dateTo"> = {}): Promise<NetworkFormatRow[]> {
   const groupKeys = ["facilityId", "gameSize", "fieldType", "maxPlayers"];
-  type FormatFacilityGroup = { facilityId: string; gameSize: string | null; fieldType: string | null; maxPlayers: number; _count: { _all: number } };
+  type FormatFacilityGroup = { facilityId: string; gameSize: string | null; fieldType: string | null; maxPlayers: number; cancellationCategory?: string | null; _count: { _all: number } };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const groupBy = prisma.game.groupBy as any;
   const where = buildWhere(filters);
@@ -493,22 +540,30 @@ async function getNetworkFormatLeaderboardImpl(filters: Omit<OverviewFilters, "d
         : {};
   const [totals, cancelledGroups, facilities] = await Promise.all([
     groupBy({ by: groupKeys, where, _count: { _all: true } }) as Promise<FormatFacilityGroup[]>,
-    groupBy({ by: groupKeys, where: { ...where, status: GameStatus.CANCELLED }, _count: { _all: true } }) as Promise<FormatFacilityGroup[]>,
+    groupBy({ by: [...groupKeys, "cancellationCategory"], where: { ...where, status: GameStatus.CANCELLED }, _count: { _all: true } }) as Promise<FormatFacilityGroup[]>,
     prisma.facility.findMany({ where: facilityWhere, select: { id: true, name: true } }) as unknown as Promise<FacilityNameRow[]>,
   ]);
 
   const facilityNames = new Map(facilities.map((f): [string, string] => [f.id, f.name]));
   const groupKey = (g: FormatFacilityGroup) => `${g.facilityId}|${g.gameSize ?? ""}|${g.fieldType ?? ""}|${g.maxPlayers}`;
-  const cancelledMap = new Map(cancelledGroups.map((g) => [groupKey(g), Number(g._count._all)]));
+  const cancelledMap = new Map<string, number>();
+  const demandCancelledMap = new Map<string, number>();
+  for (const g of cancelledGroups) {
+    const k = groupKey(g);
+    const n = Number(g._count._all);
+    cancelledMap.set(k, (cancelledMap.get(k) ?? 0) + n);
+    if (bucketOf(g.cancellationCategory) === "demand") demandCancelledMap.set(k, (demandCancelledMap.get(k) ?? 0) + n);
+  }
 
-  const byLabel = new Map<string, { confirmed: number; total: number; facilityIds: Set<string> }>();
+  const byLabel = new Map<string, { confirmed: number; demandCancelled: number; total: number; facilityIds: Set<string> }>();
   for (const t of totals) {
     const label = combineFormatLabel(t.gameSize, t.fieldType, t.maxPlayers);
     const total = Number(t._count._all);
     const cancelled = cancelledMap.get(groupKey(t)) ?? 0;
-    const entry = byLabel.get(label) ?? { confirmed: 0, total: 0, facilityIds: new Set<string>() };
+    const entry = byLabel.get(label) ?? { confirmed: 0, demandCancelled: 0, total: 0, facilityIds: new Set<string>() };
     entry.total += total;
     entry.confirmed += total - cancelled;
+    entry.demandCancelled += demandCancelledMap.get(groupKey(t)) ?? 0;
     entry.facilityIds.add(t.facilityId);
     byLabel.set(label, entry);
   }
@@ -519,8 +574,8 @@ async function getNetworkFormatLeaderboardImpl(filters: Omit<OverviewFilters, "d
       key: label,
       label,
       totalGames: v.total,
-      confirmationRate: v.total > 0 ? v.confirmed / v.total : 0,
-      cancellationRate: v.total > 0 ? (v.total - v.confirmed) / v.total : 0,
+      confirmationRate: demandRate(v.confirmed, v.demandCancelled),
+      cancellationRate: v.confirmed + v.demandCancelled > 0 ? v.demandCancelled / (v.confirmed + v.demandCancelled) : 0,
       facilityName: onlyFacilityId ? facilityNames.get(onlyFacilityId) ?? null : null,
     };
   });
@@ -750,8 +805,10 @@ export type SlotRecentRow = {
   confirmedCount: number;
   cancelledCount: number;
   totalGames: number;
+  demandCancelledGames: number;
   confirmationRate: number;
   cancellationRate: number;
+  rawConfirmationRate: number;
 };
 
 async function getSlotRecentPerformanceImpl(filters: OverviewFilters, weeks: number, locale: Locale): Promise<SlotRecentRow[]> {
@@ -762,19 +819,22 @@ async function getSlotRecentPerformanceImpl(filters: OverviewFilters, weeks: num
   const where = buildWhere({ ...filters, dateFrom: windowStart, dateTo: now });
   const games = (await prisma.game.findMany({
     where,
-    select: { dayOfWeek: true, time: true, status: true, gameSize: true, fieldType: true, maxPlayers: true },
+    select: { dayOfWeek: true, time: true, status: true, cancellationCategory: true, gameSize: true, fieldType: true, maxPlayers: true },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any)) as unknown as { dayOfWeek: string; time: string; status: "CONFIRMED" | "CANCELLED"; gameSize: string | null; fieldType: string | null; maxPlayers: number }[];
+  } as any)) as unknown as { dayOfWeek: string; time: string; status: "CONFIRMED" | "CANCELLED"; cancellationCategory: string | null; gameSize: string | null; fieldType: string | null; maxPlayers: number }[];
 
-  const map = new Map<string, { confirmed: number; cancelled: number }>();
+  const map = new Map<string, { confirmed: number; cancelled: number; demandCancelled: number }>();
   for (const g of games) {
     const hour = g.time?.slice(0, 2);
     if (!hour || !g.dayOfWeek) continue;
     const formatLabel = combineFormatLabel(g.gameSize, g.fieldType, g.maxPlayers);
     const key = `${g.dayOfWeek}|${hour}|${formatLabel}`;
-    const entry = map.get(key) ?? { confirmed: 0, cancelled: 0 };
+    const entry = map.get(key) ?? { confirmed: 0, cancelled: 0, demandCancelled: 0 };
     if (g.status === "CONFIRMED") entry.confirmed += 1;
-    else entry.cancelled += 1;
+    else {
+      entry.cancelled += 1;
+      if (bucketOf(g.cancellationCategory) === "demand") entry.demandCancelled += 1;
+    }
     map.set(key, entry);
   }
 
@@ -789,8 +849,7 @@ async function getSlotRecentPerformanceImpl(filters: OverviewFilters, weeks: num
       confirmedCount: v.confirmed,
       cancelledCount: v.cancelled,
       totalGames: total,
-      confirmationRate: total > 0 ? v.confirmed / total : 0,
-      cancellationRate: total > 0 ? v.cancelled / total : 0,
+      ...rateFields(v.confirmed, v.cancelled, v.demandCancelled),
     };
   });
 }
@@ -855,6 +914,7 @@ function medianOf(values: number[]): number | null {
 type SeasonalRow = {
   date: Date;
   status: "CONFIRMED" | "CANCELLED";
+  cancellationCategory: string | null;
   finalPlayers: number;
   maxPlayers: number;
   droppedPlayers: number;
@@ -869,14 +929,14 @@ async function getSeasonalPatternImpl(filters: OverviewFilters, locale: Locale):
   const games = (await prisma.game.findMany({
     where,
     select: {
-      date: true, status: true, finalPlayers: true, maxPlayers: true,
+      date: true, status: true, cancellationCategory: true, finalPlayers: true, maxPlayers: true,
       droppedPlayers: true, waitlistPlayers: true, confirmationLeadTime: true,
     },
   })) as SeasonalRow[];
 
-  type Bucket = { confirmed: number; cancelled: number; sumFinal: number; sumMax: number; sumDropped: number; sumWaitlist: number; gameCount: number; leadTimes: number[] };
+  type Bucket = { confirmed: number; cancelled: number; demandCancelled: number; sumFinal: number; sumMax: number; sumDropped: number; sumWaitlist: number; gameCount: number; leadTimes: number[] };
   const buckets = new Map<number, Bucket>();
-  for (let m = 1; m <= 12; m++) buckets.set(m, { confirmed: 0, cancelled: 0, sumFinal: 0, sumMax: 0, sumDropped: 0, sumWaitlist: 0, gameCount: 0, leadTimes: [] });
+  for (let m = 1; m <= 12; m++) buckets.set(m, { confirmed: 0, cancelled: 0, demandCancelled: 0, sumFinal: 0, sumMax: 0, sumDropped: 0, sumWaitlist: 0, gameCount: 0, leadTimes: [] });
 
   for (const g of games) {
     const m = g.date.getUTCMonth() + 1;
@@ -887,6 +947,7 @@ async function getSeasonalPatternImpl(filters: OverviewFilters, locale: Locale):
       b.sumMax += g.maxPlayers;
     } else {
       b.cancelled += 1;
+      if (bucketOf(g.cancellationCategory) === "demand") b.demandCancelled += 1;
     }
     b.sumDropped += g.droppedPlayers ?? 0;
     b.sumWaitlist += g.waitlistPlayers ?? 0;
@@ -897,12 +958,11 @@ async function getSeasonalPatternImpl(filters: OverviewFilters, locale: Locale):
   const points: SeasonalMonthPoint[] = [];
   for (let m = 1; m <= 12; m++) {
     const b = buckets.get(m)!;
-    const total = b.confirmed + b.cancelled;
     points.push({
       month: m,
       monthLabel: MONTH_LABELS_SHORT[locale][m - 1],
-      confirmationRate: total > 0 ? b.confirmed / total : 0,
-      cancellationRate: total > 0 ? b.cancelled / total : 0,
+      confirmationRate: demandRate(b.confirmed, b.demandCancelled),
+      cancellationRate: b.confirmed + b.demandCancelled > 0 ? b.demandCancelled / (b.confirmed + b.demandCancelled) : 0,
       occupancyRate: b.sumMax > 0 ? b.sumFinal / b.sumMax : 0,
       avgWaitlist: b.gameCount > 0 ? b.sumWaitlist / b.gameCount : 0,
       medianLeadTime: medianOf(b.leadTimes),
@@ -1016,13 +1076,13 @@ async function getSeasonalWindowPatternImpl(
       ? ((await prisma.game.findMany({
           where,
           select: {
-            date: true, status: true, finalPlayers: true, maxPlayers: true,
+            date: true, status: true, cancellationCategory: true, finalPlayers: true, maxPlayers: true,
             droppedPlayers: true, waitlistPlayers: true, confirmationLeadTime: true,
           },
         })) as SeasonalRow[])
       : [];
 
-  type Bucket = { confirmed: number; cancelled: number; sumFinal: number; sumMax: number; sumDropped: number; sumWaitlist: number; gameCount: number; leadTimes: number[] };
+  type Bucket = { confirmed: number; cancelled: number; demandCancelled: number; sumFinal: number; sumMax: number; sumDropped: number; sumWaitlist: number; gameCount: number; leadTimes: number[] };
   const buckets = new Map<string, Bucket>();
 
   for (const g of games) {
@@ -1030,13 +1090,14 @@ async function getSeasonalWindowPatternImpl(
       bucketUnit === "month"
         ? `${g.date.getUTCFullYear()}-${String(g.date.getUTCMonth() + 1).padStart(2, "0")}`
         : mondayOf(g.date).toISOString().slice(0, 10);
-    const b = buckets.get(key) ?? { confirmed: 0, cancelled: 0, sumFinal: 0, sumMax: 0, sumDropped: 0, sumWaitlist: 0, gameCount: 0, leadTimes: [] };
+    const b = buckets.get(key) ?? { confirmed: 0, cancelled: 0, demandCancelled: 0, sumFinal: 0, sumMax: 0, sumDropped: 0, sumWaitlist: 0, gameCount: 0, leadTimes: [] };
     if (g.status === "CONFIRMED") {
       b.confirmed += 1;
       b.sumFinal += g.finalPlayers;
       b.sumMax += g.maxPlayers;
     } else {
       b.cancelled += 1;
+      if (bucketOf(g.cancellationCategory) === "demand") b.demandCancelled += 1;
     }
     b.sumDropped += g.droppedPlayers ?? 0;
     b.sumWaitlist += g.waitlistPlayers ?? 0;
@@ -1059,8 +1120,8 @@ async function getSeasonalWindowPatternImpl(
     return {
       monthKey: key,
       monthLabel: label,
-      confirmationRate: total > 0 ? b.confirmed / total : 0,
-      cancellationRate: total > 0 ? b.cancelled / total : 0,
+      confirmationRate: demandRate(b.confirmed, b.demandCancelled),
+      cancellationRate: b.confirmed + b.demandCancelled > 0 ? b.demandCancelled / (b.confirmed + b.demandCancelled) : 0,
       occupancyRate: b.sumMax > 0 ? b.sumFinal / b.sumMax : 0,
       avgWaitlist: b.gameCount > 0 ? b.sumWaitlist / b.gameCount : 0,
       medianLeadTime: medianOf(b.leadTimes),
@@ -1081,16 +1142,18 @@ export type QuarterClimatePoint = { quarter: number; label: string; confirmation
 
 async function getQuarterClimateImpl(filters: OverviewFilters, locale: Locale): Promise<QuarterClimatePoint[]> {
   const where = buildWhere(filters);
-  const games = (await prisma.game.findMany({ where, select: { date: true, status: true } })) as { date: Date; status: "CONFIRMED" | "CANCELLED" }[];
+  const games = (await prisma.game.findMany({ where, select: { date: true, status: true, cancellationCategory: true } })) as { date: Date; status: "CONFIRMED" | "CANCELLED"; cancellationCategory: string | null }[];
 
-  const buckets = new Map<number, { confirmed: number; total: number }>();
-  for (let q = 1; q <= 4; q++) buckets.set(q, { confirmed: 0, total: 0 });
+  // Base = partidos que cuentan para demanda (confirmados + cancelados por demanda); totalGames queda como publicados.
+  const buckets = new Map<number, { confirmed: number; demandBase: number; total: number }>();
+  for (let q = 1; q <= 4; q++) buckets.set(q, { confirmed: 0, demandBase: 0, total: 0 });
 
   for (const g of games) {
     const q = Math.floor(g.date.getUTCMonth() / 3) + 1;
     const b = buckets.get(q)!;
     b.total += 1;
     if (g.status === "CONFIRMED") b.confirmed += 1;
+    if (countsForDemand(g.status, g.cancellationCategory)) b.demandBase += 1;
   }
 
   // "T" (Trimestre) / "Q" (Quarter) — solo la letra abreviatura cambia por
@@ -1098,7 +1161,7 @@ async function getQuarterClimateImpl(filters: OverviewFilters, locale: Locale): 
   const quarterLetter = locale === "en" ? "Q" : "T";
   return [1, 2, 3, 4].map((q) => {
     const b = buckets.get(q)!;
-    return { quarter: q, label: `${quarterLetter}${q}`, confirmationRate: b.total > 0 ? b.confirmed / b.total : 0, totalGames: b.total };
+    return { quarter: q, label: `${quarterLetter}${q}`, confirmationRate: b.demandBase > 0 ? b.confirmed / b.demandBase : 0, totalGames: b.total };
   });
 }
 

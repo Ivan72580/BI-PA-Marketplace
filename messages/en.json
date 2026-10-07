@@ -324,7 +324,7 @@
     },
     "rateBarEmpty": "Not enough data.",
     "metric": {
-      "confirmation": "Confirmation rate",
+      "confirmation": "Confirmation rate (demand)",
       "cancellation": "Cancellation rate",
       "occupancy": "Occupancy",
       "conversion": "Conversion"
@@ -1031,7 +1031,7 @@
     "samePeriodLabel": "{from}–{to} {month} (same stretch)",
     "regionComparison": {
       "confirmedGames": "Confirmed",
-      "confirmationRate": "Confirmation rate"
+      "confirmationRate": "Confirmation rate (demand)"
     }
   },
   "Login": {
@@ -1052,7 +1052,7 @@
     },
     "kpis": {
       "confirmedGames": "Confirmed games",
-      "confirmationRate": "Confirmation rate",
+      "confirmationRate": "Confirmation rate (demand)",
       "cancellationRate": "Cancellation rate",
       "avgFillRate": "Average fill rate",
       "totalRevenue": "Revenue this period",
@@ -1106,7 +1106,7 @@
         "region": "Region",
         "confirmedGames": "Confirmed",
         "changeVsPriorMonth": "vs. prior month",
-        "confirmationRate": "Confirmation rate",
+        "confirmationRate": "Confirmation rate (demand)",
         "changePts": "Change"
       },
       "empty": "Not enough data to compare regions this month yet."
@@ -1500,7 +1500,7 @@
       "metric": {
         "confirmedGames": "Confirmed games",
         "cancelledGames": "Cancelled games",
-        "confirmationRate": "Confirmation rate",
+        "confirmationRate": "Confirmation rate (demand)",
         "cancellationRate": "Cancellation rate",
         "occupancyRate": "Occupancy",
         "conversionRate": "Conversion",
@@ -1527,7 +1527,7 @@
     },
     "kpi": {
       "confirmedGames": "Confirmed games",
-      "confirmationRate": "Confirmation rate",
+      "confirmationRate": "Confirmation rate (demand)",
       "cancellationRate": "Cancellation rate",
       "avgFillRate": "Avg. occupancy",
       "totalRevenue": "Revenue",
@@ -1545,7 +1545,7 @@
       "confirmed": "Confirmed",
       "prior": "Prior period",
       "variation": "Change",
-      "confirmationRateCol": "Confirmation rate",
+      "confirmationRateCol": "Confirmation rate (demand)",
       "empty": "Not enough data for this comparison."
     },
     "seasonal": {
@@ -1663,7 +1663,7 @@
     "clickHint": "Click a zone (on the map or here) to see its facilities.",
     "confirmed": "Confirmed",
     "scheduled": "Published",
-    "confirmationRate": "Confirmation rate",
+    "confirmationRate": "Confirmation rate (demand)",
     "revenue": "Revenue",
     "gamesPerField": "Games per field",
     "noFields": "no fields identified",
@@ -1681,7 +1681,7 @@
     "back": "← Back to map",
     "published": "Published",
     "confirmed": "Confirmed",
-    "confirmationRate": "Confirmation rate",
+    "confirmationRate": "Confirmation rate (demand)",
     "revenue": "Revenue",
     "rateUnit": {
       "PER_HOUR": "hour",
