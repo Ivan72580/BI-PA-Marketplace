@@ -11,7 +11,7 @@ import {
   linearRegression,
   type OverviewFilters,
 } from "./shared";
-import { countsForDemand } from "../metrics";
+import { bucketOf, countsForDemand, rawRate, withDemandOnly } from "../metrics";
 import { combineFormatLabel } from "./format";
 import { weekdayAbbr } from "./weekday";
 import { getDailyTranslator, type DailyTranslator } from "./dailyMessages";
@@ -95,8 +95,11 @@ export type DaySummary = {
   totalGames: number;
   confirmedGames: number;
   cancelledGames: number;
-  confirmationRate: number;
-  cancellationRate: number;
+  demandCancelledGames: number; // cancelados que hablan de demanda
+  fieldUnavailableGames: number; // cancelados por cancha no disponible
+  confirmationRate: number; // % de demanda
+  cancellationRate: number; // cancelación por demanda
+  rawConfirmationRate: number; // % crudo
   occupancyRate: number;
   conversionRate: number;
   totalRevenue: number;
@@ -149,7 +152,7 @@ async function getDaySnapshotImpl(facilityId: string, dateISO: string, locale: L
     }) as Promise<DayRow[]>,
   ]);
 
-  let confirmed = 0, cancelled = 0, sumFinal = 0, sumMax = 0, sumDropped = 0, revenue = 0;
+  let confirmed = 0, cancelled = 0, demandCancelled = 0, fieldUnavailable = 0, sumFinal = 0, sumMax = 0, sumDropped = 0, revenue = 0;
   let ratingSum = 0, ratingCount = 0, priceSum = 0, priceCount = 0, revPerPlayerSum = 0, revPerPlayerCount = 0;
   const cancelCounts = new Map<string, number>();
 
@@ -160,6 +163,9 @@ async function getDaySnapshotImpl(facilityId: string, dateISO: string, locale: L
       sumMax += g.maxPlayers;
     } else {
       cancelled += 1;
+      const bk = bucketOf(g.cancellationCategory);
+      if (bk === "demand") demandCancelled += 1;
+      else if (bk === "fieldUnavailable") fieldUnavailable += 1;
       const cat = g.cancellationCategory ?? "OTHER";
       cancelCounts.set(cat, (cancelCounts.get(cat) ?? 0) + 1);
     }
@@ -204,8 +210,11 @@ async function getDaySnapshotImpl(facilityId: string, dateISO: string, locale: L
     totalGames: total,
     confirmedGames: confirmed,
     cancelledGames: cancelled,
-    confirmationRate: total > 0 ? confirmed / total : 0,
-    cancellationRate: total > 0 ? cancelled / total : 0,
+    demandCancelledGames: demandCancelled,
+    fieldUnavailableGames: fieldUnavailable,
+    confirmationRate: confirmed + demandCancelled > 0 ? confirmed / (confirmed + demandCancelled) : 0,
+    cancellationRate: confirmed + demandCancelled > 0 ? demandCancelled / (confirmed + demandCancelled) : 0,
+    rawConfirmationRate: rawRate(confirmed, cancelled),
     occupancyRate: sumMax > 0 ? sumFinal / sumMax : 0,
     conversionRate: sumFinal + sumDropped > 0 ? sumFinal / (sumFinal + sumDropped) : 0,
     totalRevenue: revenue,
@@ -234,7 +243,7 @@ export type DayBaseline = {
   avgGamesPerOccurrence: number;
 };
 
-type BaselineRow = { date: Date; status: "CONFIRMED" | "CANCELLED"; finalPlayers: number; maxPlayers: number; droppedPlayers: number };
+type BaselineRow = { date: Date; status: "CONFIRMED" | "CANCELLED"; cancellationCategory: string | null; finalPlayers: number; maxPlayers: number; droppedPlayers: number };
 
 async function getDayBaselineImpl(facilityId: string, dateISO: string, lookback = 8): Promise<DayBaseline> {
   const date = parseISODate(dateISO);
@@ -243,31 +252,31 @@ async function getDayBaselineImpl(facilityId: string, dateISO: string, lookback 
 
   const rows = (await prisma.game.findMany({
     where,
-    select: { date: true, status: true, finalPlayers: true, maxPlayers: true, droppedPlayers: true },
+    select: { date: true, status: true, cancellationCategory: true, finalPlayers: true, maxPlayers: true, droppedPlayers: true },
   })) as BaselineRow[];
 
-  const byDate = new Map<string, { confirmed: number; cancelled: number; sumFinal: number; sumMax: number; sumDropped: number }>();
+  const byDate = new Map<string, { confirmed: number; cancelled: number; demandCancelled: number; sumFinal: number; sumMax: number; sumDropped: number }>();
   for (const g of rows) {
     const key = isoOf(g.date);
-    const e = byDate.get(key) ?? { confirmed: 0, cancelled: 0, sumFinal: 0, sumMax: 0, sumDropped: 0 };
+    const e = byDate.get(key) ?? { confirmed: 0, cancelled: 0, demandCancelled: 0, sumFinal: 0, sumMax: 0, sumDropped: 0 };
     if (g.status === "CONFIRMED") { e.confirmed += 1; e.sumFinal += g.finalPlayers; e.sumMax += g.maxPlayers; }
-    else e.cancelled += 1;
+    else { e.cancelled += 1; if (bucketOf(g.cancellationCategory) === "demand") e.demandCancelled += 1; }
     e.sumDropped += g.droppedPlayers ?? 0;
     byDate.set(key, e);
   }
 
   const dates = Array.from(byDate.keys()).sort((a, b) => b.localeCompare(a)).slice(0, lookback);
-  let confirmed = 0, cancelled = 0, sumMax = 0, sumFinal = 0;
+  let confirmed = 0, cancelled = 0, demandCancelled = 0, sumMax = 0, sumFinal = 0;
   for (const d of dates) {
     const e = byDate.get(d)!;
-    confirmed += e.confirmed; cancelled += e.cancelled; sumMax += e.sumMax; sumFinal += e.sumFinal;
+    confirmed += e.confirmed; cancelled += e.cancelled; demandCancelled += e.demandCancelled; sumMax += e.sumMax; sumFinal += e.sumFinal;
   }
   const total = confirmed + cancelled;
 
   return {
     occurrences: dates.length,
-    avgConfirmationRate: total > 0 ? confirmed / total : 0,
-    avgCancellationRate: total > 0 ? cancelled / total : 0,
+    avgConfirmationRate: confirmed + demandCancelled > 0 ? confirmed / (confirmed + demandCancelled) : 0,
+    avgCancellationRate: confirmed + demandCancelled > 0 ? demandCancelled / (confirmed + demandCancelled) : 0,
     avgOccupancyRate: sumMax > 0 ? sumFinal / sumMax : 0,
     avgGamesPerOccurrence: dates.length > 0 ? total / dates.length : 0,
   };
@@ -286,27 +295,32 @@ async function getDayEvolutionImpl(facilityId: string, dateISO: string, locale: 
 
   const rows = (await prisma.game.findMany({
     where,
-    select: { date: true, status: true },
-  })) as { date: Date; status: "CONFIRMED" | "CANCELLED" }[];
+    select: { date: true, status: true, cancellationCategory: true },
+  })) as { date: Date; status: "CONFIRMED" | "CANCELLED"; cancellationCategory: string | null }[];
 
-  const byDate = new Map<string, { confirmed: number; cancelled: number }>();
+  const byDate = new Map<string, { confirmed: number; cancelled: number; demandCancelled: number }>();
   for (const g of rows) {
     const key = isoOf(g.date);
-    const e = byDate.get(key) ?? { confirmed: 0, cancelled: 0 };
-    if (g.status === "CONFIRMED") e.confirmed += 1; else e.cancelled += 1;
+    const e = byDate.get(key) ?? { confirmed: 0, cancelled: 0, demandCancelled: 0 };
+    if (g.status === "CONFIRMED") e.confirmed += 1;
+    else {
+      e.cancelled += 1;
+      if (bucketOf(g.cancellationCategory) === "demand") e.demandCancelled += 1;
+    }
     byDate.set(key, e);
   }
 
   const dateLocale = locale === "en" ? "en-US" : "es-AR";
-  const dates = Array.from(byDate.keys()).sort((a, b) => b.localeCompare(a)).slice(0, occurrences).reverse();
+  const dates = Array.from(byDate.keys()).filter((k) => byDate.get(k)!.confirmed + byDate.get(k)!.demandCancelled > 0).sort((a, b) => b.localeCompare(a)).slice(0, occurrences).reverse();
   return dates.map((key) => {
     const e = byDate.get(key)!;
     const total = e.confirmed + e.cancelled;
+    const base = e.confirmed + e.demandCancelled;
     const d = parseISODate(key);
     return {
       dateISO: key,
       label: d.toLocaleDateString(dateLocale, { day: "2-digit", month: "short", timeZone: "UTC" }),
-      confirmationRate: total > 0 ? e.confirmed / total : 0,
+      confirmationRate: base > 0 ? e.confirmed / base : 0,
       totalGames: total,
     };
   });
@@ -327,12 +341,16 @@ async function getWeekStripImpl(facilityId: string, dateISO: string, locale: Loc
   const sunday = addDaysUTC(monday, 6);
   const where = buildWhere({ facilityId, dateFrom: monday, dateTo: sunday });
 
-  const rows = (await prisma.game.findMany({ where, select: { date: true, status: true } })) as { date: Date; status: "CONFIRMED" | "CANCELLED" }[];
-  const byDate = new Map<string, { confirmed: number; cancelled: number }>();
+  const rows = (await prisma.game.findMany({ where, select: { date: true, status: true, cancellationCategory: true } })) as { date: Date; status: "CONFIRMED" | "CANCELLED"; cancellationCategory: string | null }[];
+  const byDate = new Map<string, { confirmed: number; cancelled: number; demandCancelled: number }>();
   for (const g of rows) {
     const key = isoOf(g.date);
-    const e = byDate.get(key) ?? { confirmed: 0, cancelled: 0 };
-    if (g.status === "CONFIRMED") e.confirmed += 1; else e.cancelled += 1;
+    const e = byDate.get(key) ?? { confirmed: 0, cancelled: 0, demandCancelled: 0 };
+    if (g.status === "CONFIRMED") e.confirmed += 1;
+    else {
+      e.cancelled += 1;
+      if (bucketOf(g.cancellationCategory) === "demand") e.demandCancelled += 1;
+    }
     byDate.set(key, e);
   }
 
@@ -342,12 +360,13 @@ async function getWeekStripImpl(facilityId: string, dateISO: string, locale: Loc
     const key = isoOf(d);
     const e = byDate.get(key);
     const total = e ? e.confirmed + e.cancelled : 0;
+    const base = e ? e.confirmed + e.demandCancelled : 0;
     days.push({
       dateISO: key,
       dayLabel: weekdayAbbr(dayOfWeekName(d), locale),
       totalGames: total,
-      confirmationRate: total > 0 ? e!.confirmed / total : 0,
-      hasData: total > 0,
+      confirmationRate: base > 0 ? e!.confirmed / base : 0,
+      hasData: base > 0, // un día con solo cancelaciones ajenas a la demanda no tiene lectura de tasa
     });
   }
   return days;
@@ -372,12 +391,16 @@ async function getRecentDailyTrendImpl(facilityId: string, dateISO: string, days
   const windowStart = addDaysUTC(date, -(days - 1));
   const where = buildWhere({ facilityId, dateFrom: windowStart, dateTo: date });
 
-  const rows = (await prisma.game.findMany({ where, select: { date: true, status: true } })) as { date: Date; status: "CONFIRMED" | "CANCELLED" }[];
-  const byDate = new Map<string, { confirmed: number; cancelled: number }>();
+  const rows = (await prisma.game.findMany({ where, select: { date: true, status: true, cancellationCategory: true } })) as { date: Date; status: "CONFIRMED" | "CANCELLED"; cancellationCategory: string | null }[];
+  const byDate = new Map<string, { confirmed: number; cancelled: number; demandCancelled: number }>();
   for (const g of rows) {
     const key = isoOf(g.date);
-    const e = byDate.get(key) ?? { confirmed: 0, cancelled: 0 };
-    if (g.status === "CONFIRMED") e.confirmed += 1; else e.cancelled += 1;
+    const e = byDate.get(key) ?? { confirmed: 0, cancelled: 0, demandCancelled: 0 };
+    if (g.status === "CONFIRMED") e.confirmed += 1;
+    else {
+      e.cancelled += 1;
+      if (bucketOf(g.cancellationCategory) === "demand") e.demandCancelled += 1;
+    }
     byDate.set(key, e);
   }
 
@@ -387,7 +410,9 @@ async function getRecentDailyTrendImpl(facilityId: string, dateISO: string, days
     const e = byDate.get(key);
     if (!e) continue;
     const total = e.confirmed + e.cancelled;
-    points.push({ dateISO: key, confirmationRate: total > 0 ? e.confirmed / total : 0, totalGames: total });
+    const base = e.confirmed + e.demandCancelled;
+    if (base === 0) continue;
+    points.push({ dateISO: key, confirmationRate: e.confirmed / base, totalGames: total });
   }
   return points;
 }
@@ -449,17 +474,21 @@ async function getDailyForecastImpl(facilityId: string, todayISOStr: string, loc
   const windowEnd = addDaysUTC(today, -1);
   const where = buildWhere({ facilityId, dateFrom: windowStart, dateTo: windowEnd });
 
-  const rows = (await prisma.game.findMany({ where, select: { date: true, status: true } })) as {
+  const rows = (await prisma.game.findMany({ where, select: { date: true, status: true, cancellationCategory: true } })) as {
     date: Date;
     status: "CONFIRMED" | "CANCELLED";
+    cancellationCategory: string | null;
   }[];
 
-  const byDate = new Map<string, { confirmed: number; cancelled: number }>();
+  const byDate = new Map<string, { confirmed: number; cancelled: number; demandCancelled: number }>();
   for (const g of rows) {
     const key = isoOf(g.date);
-    const e = byDate.get(key) ?? { confirmed: 0, cancelled: 0 };
+    const e = byDate.get(key) ?? { confirmed: 0, cancelled: 0, demandCancelled: 0 };
     if (g.status === "CONFIRMED") e.confirmed += 1;
-    else e.cancelled += 1;
+    else {
+      e.cancelled += 1;
+      if (bucketOf(g.cancellationCategory) === "demand") e.demandCancelled += 1;
+    }
     byDate.set(key, e);
   }
 
@@ -479,7 +508,8 @@ async function getDailyForecastImpl(facilityId: string, todayISOStr: string, loc
       const e = byDate.get(key);
       if (!e) continue;
       const total = e.confirmed + e.cancelled;
-      if (total > 0) occurrences.push({ totalGames: total, confirmationRate: e.confirmed / total });
+      const base = e.confirmed + e.demandCancelled; // tasa de demanda: sin cancha no disponible / operativas / plugin
+      if (total > 0 && base > 0) occurrences.push({ totalGames: total, confirmationRate: e.confirmed / base });
     }
 
     const n = occurrences.length;
@@ -1219,9 +1249,11 @@ async function getDailyRiskFacilitiesImpl(
   // generado, donde el resultado cae a "any") le da a todo lo de abajo un
   // tipo concreto en vez de dejar que el "any" se propague sin control.
   const results = await Promise.all([
-    prisma.game.groupBy({ by: ["facilityId"], where: recentWhere, _count: { _all: true } }),
+    // Totales sobre la base de DEMANDA (confirmados + cancelados por falta de jugadores): las cancelaciones
+    // por cancha no disponible / operativas / plugin no hablan de demanda y se siguen aparte.
+    prisma.game.groupBy({ by: ["facilityId"], where: withDemandOnly(recentWhere), _count: { _all: true } }),
     prisma.game.groupBy({ by: ["facilityId"], where: { ...recentWhere, status: GameStatus.CONFIRMED }, _count: { _all: true } }),
-    prisma.game.groupBy({ by: ["facilityId"], where: baselineWhere, _count: { _all: true } }),
+    prisma.game.groupBy({ by: ["facilityId"], where: withDemandOnly(baselineWhere), _count: { _all: true } }),
     prisma.game.groupBy({ by: ["facilityId"], where: { ...baselineWhere, status: GameStatus.CONFIRMED }, _count: { _all: true } }),
     prisma.facility.findMany({ select: { id: true, name: true } }),
   ]);

@@ -14,8 +14,9 @@ export type MapFacility = {
   postalCode: string | null;
   confirmedGames: number;
   cancelledGames: number;
+  demandCancelledGames: number; // cancelados que hablan de demanda (base de confirmationRate)
   scheduledGames: number; // publicados = confirmados + cancelados
-  confirmationRate: number | null;
+  confirmationRate: number | null; // % de demanda
   revenue: number;
   fields: number | null; // canchas distintas con partidos en el período
   gamesPerField: number | null; // confirmados / canchas
@@ -29,6 +30,7 @@ export type MapZone = {
   facilities: MapFacility[]; // ordenadas por confirmados desc
   confirmedGames: number;
   cancelledGames: number;
+  demandCancelledGames: number;
   scheduledGames: number;
   confirmationRate: number | null;
   revenue: number;
@@ -67,6 +69,7 @@ export function buildZones(facilities: MapFacility[]): MapZone[] {
     items.sort((a, b) => b.confirmedGames - a.confirmedGames || a.name.localeCompare(b.name));
     const confirmed = items.reduce((s, f) => s + f.confirmedGames, 0);
     const cancelled = items.reduce((s, f) => s + f.cancelledGames, 0);
+    const demandCancelled = items.reduce((s, f) => s + f.demandCancelledGames, 0);
     const weight = (f: MapFacility) => (confirmed > 0 ? f.confirmedGames : 1);
     const wSum = items.reduce((s, f) => s + weight(f), 0) || 1;
     const latitude = items.reduce((s, f) => s + f.latitude * weight(f), 0) / wSum;
@@ -78,8 +81,8 @@ export function buildZones(facilities: MapFacility[]): MapZone[] {
     const gamesPerField = fields ? withFields.reduce((s, f) => s + f.confirmedGames, 0) / fields : null;
     zones.push({
       key, label, latitude, longitude, facilities: items,
-      confirmedGames: confirmed, cancelledGames: cancelled, scheduledGames: confirmed + cancelled,
-      confirmationRate: ratio(confirmed, confirmed + cancelled),
+      confirmedGames: confirmed, cancelledGames: cancelled, demandCancelledGames: demandCancelled, scheduledGames: confirmed + cancelled,
+      confirmationRate: ratio(confirmed, confirmed + demandCancelled),
       revenue: items.reduce((s, f) => s + f.revenue, 0),
       fields, gamesPerField,
       approximateShare: items.filter((f) => f.approximate).length / items.length,

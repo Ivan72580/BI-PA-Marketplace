@@ -1,6 +1,7 @@
 import { Prisma, GameStatus } from "@prisma/client";
 import { prisma } from "./prisma";
 import { cached } from "./cache";
+import { bucketOf, demandRate, rawRate } from "../metrics";
 import { buildWhere, type OverviewFilters } from "./shared";
 import { nowInBusinessTimeZone } from "../period";
 import type { Locale } from "@/i18n/config";
@@ -60,8 +61,10 @@ export type FacilitySeriesPoint = {
   label: string; // etiqueta corta para el eje del gráfico
   confirmedGames: number;
   cancelledGames: number;
-  confirmationRate: number;
+  demandCancelledGames: number;
+  confirmationRate: number; // % de demanda
   cancellationRate: number;
+  rawConfirmationRate: number; // % crudo
 };
 
 function startOfWeekUTC(d: Date): Date {
@@ -86,10 +89,10 @@ async function getFacilitySeriesImpl(
 ): Promise<FacilitySeriesPoint[]> {
   const games = await prisma.game.findMany({
     where: { facilityId, date: { gte: windowStart, lte: windowEnd } },
-    select: { date: true, status: true },
+    select: { date: true, status: true, cancellationCategory: true },
   });
 
-  const map = new Map<string, { confirmed: number; cancelled: number; label: string }>();
+  const map = new Map<string, { confirmed: number; cancelled: number; demandCancelled: number; label: string }>();
   for (const g of games) {
     let key: string;
     let label: string;
@@ -103,23 +106,28 @@ async function getFacilitySeriesImpl(
       key = weekStart.toISOString().slice(0, 10);
       label = weekStart.toLocaleDateString(locale === "en" ? "en-US" : "es-AR", { day: "2-digit", month: "2-digit", timeZone: "UTC" });
     }
-    const entry = map.get(key) ?? { confirmed: 0, cancelled: 0, label };
+    const entry = map.get(key) ?? { confirmed: 0, cancelled: 0, demandCancelled: 0, label };
     if (g.status === "CONFIRMED") entry.confirmed += 1;
-    else entry.cancelled += 1;
+    else {
+      entry.cancelled += 1;
+      if (bucketOf(g.cancellationCategory) === "demand") entry.demandCancelled += 1;
+    }
     map.set(key, entry);
   }
 
   return Array.from(map.entries())
     .sort((a, b) => a[0].localeCompare(b[0]))
     .map(([bucket, v]) => {
-      const total = v.confirmed + v.cancelled;
+      const base = v.confirmed + v.demandCancelled;
       return {
         bucket,
         label: v.label,
         confirmedGames: v.confirmed,
         cancelledGames: v.cancelled,
-        confirmationRate: total > 0 ? v.confirmed / total : 0,
-        cancellationRate: total > 0 ? v.cancelled / total : 0,
+        demandCancelledGames: v.demandCancelled,
+        confirmationRate: demandRate(v.confirmed, v.demandCancelled),
+        cancellationRate: base > 0 ? v.demandCancelled / base : 0,
+        rawConfirmationRate: rawRate(v.confirmed, v.cancelled),
       };
     });
 }
@@ -137,8 +145,11 @@ export type FacilityTableRow = {
   name: string;
   totalGames: number;
   confirmedGames: number;
-  confirmationRate: number;
-  cancellationRate: number;
+  confirmationRate: number; // % de demanda
+  cancellationRate: number; // cancelación por demanda
+  rawConfirmationRate: number;
+  fieldUnavailableGames: number; // cancelados por cancha no disponible (indicador operativo)
+  fieldUnavailableRate: number; // sobre lo publicado
   avgRating: number | null;
   ratingCount: number;
   avgPrice: number | null;
@@ -151,7 +162,7 @@ async function getFacilityTableImpl(filters: OverviewFilters, sortBy: FacilitySo
 
   const [totals, cancelledGroups, priceGroups, ratingRows, leadTimeRows] = await Promise.all([
     prisma.game.groupBy({ by: ["facilityId"], where, _count: { _all: true } }),
-    prisma.game.groupBy({ by: ["facilityId"], where: cancelledWhere, _count: { _all: true } }),
+    prisma.game.groupBy({ by: ["facilityId", "cancellationCategory"], where: cancelledWhere, _count: { _all: true } }),
     prisma.game.groupBy({ by: ["facilityId"], where: { ...where, gamePrice: { not: null } }, _avg: { gamePrice: true } }),
     // Rating ponderado y mediana de lead time necesitan fila por fila, pero
     // filtramos a solo los partidos con ese dato cargado (fracción chica).
@@ -171,7 +182,16 @@ async function getFacilityTableImpl(filters: OverviewFilters, sortBy: FacilitySo
   })) as FacilityInfo[];
 
   const facilityInfoMap = new Map(facilityInfoRows.map((f): [string, typeof f] => [f.id, f]));
-  const cancelledMap = new Map<string, number>(cancelledGroups.map((g) => [g.facilityId, Number(g._count._all)]));
+  const cancelledMap = new Map<string, number>();
+  const demandCancelledMap = new Map<string, number>();
+  const fieldUnavailableMap = new Map<string, number>();
+  for (const g of cancelledGroups) {
+    const n = Number(g._count._all);
+    cancelledMap.set(g.facilityId, (cancelledMap.get(g.facilityId) ?? 0) + n);
+    const b = bucketOf(g.cancellationCategory);
+    if (b === "demand") demandCancelledMap.set(g.facilityId, (demandCancelledMap.get(g.facilityId) ?? 0) + n);
+    if (b === "fieldUnavailable") fieldUnavailableMap.set(g.facilityId, (fieldUnavailableMap.get(g.facilityId) ?? 0) + n);
+  }
   const priceMap = new Map<string, number | null>(priceGroups.map((g) => [g.facilityId, g._avg.gamePrice ?? null]));
 
   type RatingAgg = { sum: number; count: number };
@@ -205,6 +225,9 @@ async function getFacilityTableImpl(filters: OverviewFilters, sortBy: FacilitySo
       if (!info) return null;
       const total = Number(t._count._all);
       const cancelled = cancelledMap.get(t.facilityId) ?? 0;
+      const demandCancelled = demandCancelledMap.get(t.facilityId) ?? 0;
+      const fieldUnavailable = fieldUnavailableMap.get(t.facilityId) ?? 0;
+      const confirmed = total - cancelled;
       const rating = ratingMap.get(t.facilityId);
       return {
         facilityId: t.facilityId,
@@ -212,9 +235,12 @@ async function getFacilityTableImpl(filters: OverviewFilters, sortBy: FacilitySo
         regionId: info.market.regionId,
         name: info.name,
         totalGames: total,
-        confirmedGames: total - cancelled,
-        confirmationRate: total > 0 ? (total - cancelled) / total : 0,
-        cancellationRate: total > 0 ? cancelled / total : 0,
+        confirmedGames: confirmed,
+        confirmationRate: demandRate(confirmed, demandCancelled),
+        cancellationRate: confirmed + demandCancelled > 0 ? demandCancelled / (confirmed + demandCancelled) : 0,
+        rawConfirmationRate: rawRate(confirmed, cancelled),
+        fieldUnavailableGames: fieldUnavailable,
+        fieldUnavailableRate: total > 0 ? fieldUnavailable / total : 0,
         avgRating: rating && rating.count > 0 ? rating.sum / rating.count : null,
         ratingCount: rating?.count ?? 0,
         avgPrice: priceMap.get(t.facilityId) ?? null,

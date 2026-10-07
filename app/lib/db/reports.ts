@@ -1,6 +1,7 @@
 import { GameStatus } from "@prisma/client";
 import { prisma } from "./prisma";
 import { cached } from "./cache";
+import { countsForDemand } from "../metrics";
 import { buildWhere, labelForCancellationCategory, MIN_GAMES_FOR_RANKING, MIN_GAMES_FOR_CONTRIBUTION, type OverviewFilters } from "./shared";
 import { resolvePeriod, resolveComparisonPeriod, shiftAnchor } from "../period";
 import { getOverviewData, type OverviewData } from "./overview";
@@ -147,8 +148,8 @@ async function getFacilityComparisonImpl(
   const priorWhere = buildWhere({ ...filters, dateFrom: priorDateFrom, dateTo: priorDateTo });
 
   const [currentGroups, priorGroups] = await Promise.all([
-    prisma.game.groupBy({ by: ["facilityId", "status"], where, _count: { _all: true } }),
-    prisma.game.groupBy({ by: ["facilityId", "status"], where: priorWhere, _count: { _all: true } }),
+    prisma.game.groupBy({ by: ["facilityId", "status", "cancellationCategory"], where, _count: { _all: true } }),
+    prisma.game.groupBy({ by: ["facilityId", "status", "cancellationCategory"], where: priorWhere, _count: { _all: true } }),
   ]);
 
   const facilityIds = Array.from(new Set(currentGroups.map((g) => g.facilityId)));
@@ -158,24 +159,25 @@ async function getFacilityComparisonImpl(
     : [];
   const nameMap = new Map(facilityInfo.map((f): [string, string] => [f.id, f.name]));
 
-  function tally(groups: { facilityId: string; status: GameStatus; _count: { _all: number } }[]) {
-    const totals = new Map<string, { confirmed: number; total: number }>();
+  function tally(groups: { facilityId: string; status: GameStatus; cancellationCategory: string | null; _count: { _all: number } }[]) {
+    const totals = new Map<string, { confirmed: number; total: number; demandBase: number }>();
     for (const g of groups) {
-      const entry = totals.get(g.facilityId) ?? { confirmed: 0, total: 0 };
+      const entry = totals.get(g.facilityId) ?? { confirmed: 0, total: 0, demandBase: 0 };
       entry.total += Number(g._count._all);
+      if (countsForDemand(g.status, g.cancellationCategory)) entry.demandBase += Number(g._count._all);
       if (g.status === GameStatus.CONFIRMED) entry.confirmed += Number(g._count._all);
       totals.set(g.facilityId, entry);
     }
     return totals;
   }
 
-  const current = tally(currentGroups as unknown as { facilityId: string; status: GameStatus; _count: { _all: number } }[]);
-  const prior = tally(priorGroups as unknown as { facilityId: string; status: GameStatus; _count: { _all: number } }[]);
+  const current = tally(currentGroups as unknown as { facilityId: string; status: GameStatus; cancellationCategory: string | null; _count: { _all: number } }[]);
+  const prior = tally(priorGroups as unknown as { facilityId: string; status: GameStatus; cancellationCategory: string | null; _count: { _all: number } }[]);
 
   const rows: FacilityComparisonRow[] = Array.from(current.entries()).map(([facilityId, cur]) => {
     const p = prior.get(facilityId) ?? null;
-    const confirmationRate = cur.total > 0 ? cur.confirmed / cur.total : 0;
-    const priorConfirmationRate = p && p.total > 0 ? p.confirmed / p.total : null;
+    const confirmationRate = cur.demandBase > 0 ? cur.confirmed / cur.demandBase : 0;
+    const priorConfirmationRate = p && p.demandBase > 0 ? p.confirmed / p.demandBase : null;
     return {
       facilityId,
       name: nameMap.get(facilityId) ?? "—",
@@ -716,7 +718,7 @@ async function buildOpportunitySignals(
     // Por hora y estado, SOLO para estas pocas canchas — una consulta chica
     // y puntual, igual criterio que el resto de este archivo.
     prisma.game.groupBy({
-      by: ["facilityId", "time", "status"],
+      by: ["facilityId", "time", "status", "cancellationCategory"],
       where: { facilityId: { in: candidateIds }, date: { gte: windowStart, lte: windowEnd } },
       _count: { _all: true },
     }),
@@ -725,14 +727,15 @@ async function buildOpportunitySignals(
   type FacilityInfoRow = { id: string; name: string; market: { name: string; region: { name: string } | null } | null };
   const infoById = new Map((facilityInfo as FacilityInfoRow[]).map((f) => [f.id, f] as const));
 
-  type HourTally = { total: number; confirmed: number };
+  type HourTally = { total: number; confirmed: number; base: number }; // base = confirmados + cancelados por demanda
   const byFacilityHour = new Map<string, Map<string, HourTally>>();
   for (const g of hourGroups) {
     const hour = g.time?.slice(0, 2) ?? "??";
     if (hour === "??") continue;
     const byHour = byFacilityHour.get(g.facilityId) ?? new Map<string, HourTally>();
-    const tally = byHour.get(hour) ?? { total: 0, confirmed: 0 };
+    const tally = byHour.get(hour) ?? { total: 0, confirmed: 0, base: 0 };
     tally.total += Number(g._count._all);
+    if (countsForDemand(g.status, g.cancellationCategory)) tally.base += Number(g._count._all);
     if (g.status === GameStatus.CONFIRMED) tally.confirmed += Number(g._count._all);
     byHour.set(hour, tally);
     byFacilityHour.set(g.facilityId, byHour);
@@ -746,12 +749,12 @@ async function buildOpportunitySignals(
 
     const totalConfirmed = Array.from(byHour.values()).reduce((a, h) => a + h.confirmed, 0);
     if (totalConfirmed === 0) continue;
-    const totalGamesAllHours = Array.from(byHour.values()).reduce((a, h) => a + h.total, 0);
+    const totalGamesAllHours = Array.from(byHour.values()).reduce((a, h) => a + h.base, 0);
     const facilityAvgRate = totalGamesAllHours > 0 ? totalConfirmed / totalGamesAllHours : 0;
 
     const best = Array.from(byHour.entries())
-      .map(([hour, tally]) => ({ hour, ...tally, confirmationRate: tally.total > 0 ? tally.confirmed / tally.total : 0 }))
-      .filter((h) => h.total >= OPPORTUNITY_MIN_HOUR_GAMES)
+      .map(([hour, tally]) => ({ hour, ...tally, confirmationRate: tally.base > 0 ? tally.confirmed / tally.base : 0 }))
+      .filter((h) => h.base >= OPPORTUNITY_MIN_HOUR_GAMES)
       .sort((a, b) => b.confirmed - a.confirmed)[0];
 
     if (!best) continue;

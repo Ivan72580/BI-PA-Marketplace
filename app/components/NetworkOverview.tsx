@@ -1052,6 +1052,7 @@ export default async function NetworkOverview({
                     <th className="py-1.5 px-2 font-normal">{t("facilityTable.headers.confirmed")}</th>
                     <th className="py-1.5 px-2 font-normal">{t("facilityTable.headers.cancelled")}</th>
                     <th className="py-1.5 px-2 font-normal">{sortLink("cancellationRate", t("facilityTable.headers.cancellation"))}</th>
+                    <th className="py-1.5 px-2 font-normal" title={t("facilityTable.headers.fieldUnavailableHint")}>{t("facilityTable.headers.fieldUnavailable")}</th>
                     <th className="py-1.5 px-2 font-normal">{sortLink("rating", t("facilityTable.headers.rating"))}</th>
                     <th className="py-1.5 px-2 font-normal">{sortLink("price", t("facilityTable.headers.price"))}</th>
                   </tr>
@@ -1068,6 +1069,9 @@ export default async function NetworkOverview({
                       <td className="py-1.5 px-2 text-ink">{f.confirmedGames}</td>
                       <td className="py-1.5 px-2 text-ink">{f.totalGames - f.confirmedGames}</td>
                       <td className="py-1.5 px-2 text-ink">{formatPct(f.cancellationRate)}</td>
+                      <td className={`py-1.5 px-2 ${f.fieldUnavailableRate >= 0.15 ? "text-danger font-medium" : "text-ink"}`}>
+                        {f.fieldUnavailableGames > 0 ? `${f.fieldUnavailableGames} · ${formatPct(f.fieldUnavailableRate)}` : "—"}
+                      </td>
                       <td className="py-1.5 px-2 text-ink">{f.avgRating !== null ? f.avgRating.toFixed(2) : "—"}</td>
                       <td className="py-1.5 px-2 text-ink">{f.avgPrice !== null ? formatUSD(f.avgPrice) : "—"}</td>
                     </tr>

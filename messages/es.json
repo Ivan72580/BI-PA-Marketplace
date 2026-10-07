@@ -921,7 +921,9 @@
         "games": "Partidos",
         "confirmed": "Confirmados",
         "cancelled": "Cancelados",
-        "cancellation": "Cancelación",
+        "cancellation": "Cancelación (demanda)",
+        "fieldUnavailable": "Cancha no disp.",
+        "fieldUnavailableHint": "Partidos cancelados por 'cancha no disponible' y % sobre lo publicado. No entra en la tasa de demanda: mide qué tan confiable es la oferta de la facility. Rojo desde 15%.",
         "rating": "Rating",
         "price": "Precio"
       },

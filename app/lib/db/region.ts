@@ -1,6 +1,7 @@
 import { GameStatus } from "@prisma/client";
 import { prisma } from "./prisma";
 import { cached } from "./cache";
+import { countsForDemand } from "../metrics";
 import { buildWhere, MIN_GAMES_FOR_RANKING, type OverviewFilters } from "./shared";
 
 // ---------- Ranking de regiones (East/West) ----------
@@ -119,36 +120,37 @@ async function getRegionConfirmationRankingImpl(
   const priorWhere = buildWhere({ ...filters, dateFrom: priorDateFrom, dateTo: priorDateTo });
 
   const [currentGroups, priorGroups, facilityRegionMap] = await Promise.all([
-    prisma.game.groupBy({ by: ["facilityId", "status"], where, _count: { _all: true } }),
-    prisma.game.groupBy({ by: ["facilityId", "status"], where: priorWhere, _count: { _all: true } }),
+    prisma.game.groupBy({ by: ["facilityId", "status", "cancellationCategory"], where, _count: { _all: true } }),
+    prisma.game.groupBy({ by: ["facilityId", "status", "cancellationCategory"], where: priorWhere, _count: { _all: true } }),
     loadFacilityRegionMap(),
   ]);
 
-  function tallyByRegion(groups: { facilityId: string; status: GameStatus; _count: { _all: number } }[]) {
-    const totals = new Map<string, { confirmed: number; total: number }>();
+  function tallyByRegion(groups: { facilityId: string; status: GameStatus; cancellationCategory: string | null; _count: { _all: number } }[]) {
+    const totals = new Map<string, { confirmed: number; total: number; demandBase: number }>();
     for (const g of groups) {
       const info = facilityRegionMap.get(g.facilityId);
       if (!info) continue;
-      const entry = totals.get(info.regionId) ?? { confirmed: 0, total: 0 };
+      const entry = totals.get(info.regionId) ?? { confirmed: 0, total: 0, demandBase: 0 };
       entry.total += Number(g._count._all);
+      if (countsForDemand(g.status, g.cancellationCategory)) entry.demandBase += Number(g._count._all);
       if (g.status === GameStatus.CONFIRMED) entry.confirmed += Number(g._count._all);
       totals.set(info.regionId, entry);
     }
     return totals;
   }
 
-  const currentByRegion = tallyByRegion(currentGroups as unknown as { facilityId: string; status: GameStatus; _count: { _all: number } }[]);
-  const priorByRegion = tallyByRegion(priorGroups as unknown as { facilityId: string; status: GameStatus; _count: { _all: number } }[]);
+  const currentByRegion = tallyByRegion(currentGroups as unknown as { facilityId: string; status: GameStatus; cancellationCategory: string | null; _count: { _all: number } }[]);
+  const priorByRegion = tallyByRegion(priorGroups as unknown as { facilityId: string; status: GameStatus; cancellationCategory: string | null; _count: { _all: number } }[]);
 
   const regionNames = new Map<string, string>();
   for (const info of facilityRegionMap.values()) regionNames.set(info.regionId, info.regionName);
 
   const rows: RegionConfirmationRankingRow[] = Array.from(currentByRegion.entries())
-    .filter(([, cur]) => cur.total >= MIN_GAMES_FOR_RANKING)
+    .filter(([, cur]) => cur.demandBase >= MIN_GAMES_FOR_RANKING)
     .map(([regionId, cur]) => {
       const prior = priorByRegion.get(regionId);
-      const confirmationRate = cur.total > 0 ? cur.confirmed / cur.total : 0;
-      const priorConfirmationRate = prior && prior.total >= MIN_GAMES_FOR_RANKING ? prior.confirmed / prior.total : null;
+      const confirmationRate = cur.demandBase > 0 ? cur.confirmed / cur.demandBase : 0;
+      const priorConfirmationRate = prior && prior.demandBase >= MIN_GAMES_FOR_RANKING ? prior.confirmed / prior.demandBase : null;
       return {
         regionId,
         regionName: regionNames.get(regionId) ?? "—",
@@ -200,36 +202,37 @@ async function getRegionComparisonImpl(
   const priorWhere = priorDateFrom && priorDateTo ? buildWhere({ ...filters, dateFrom: priorDateFrom, dateTo: priorDateTo }) : null;
 
   const [currentGroups, priorGroups, facilityRegionMap] = await Promise.all([
-    prisma.game.groupBy({ by: ["facilityId", "status"], where, _count: { _all: true } }),
+    prisma.game.groupBy({ by: ["facilityId", "status", "cancellationCategory"], where, _count: { _all: true } }),
     priorWhere
-      ? prisma.game.groupBy({ by: ["facilityId", "status"], where: priorWhere, _count: { _all: true } })
+      ? prisma.game.groupBy({ by: ["facilityId", "status", "cancellationCategory"], where: priorWhere, _count: { _all: true } })
       : Promise.resolve([]),
     loadFacilityRegionMap(),
   ]);
 
-  function tallyByRegion(groups: { facilityId: string; status: GameStatus; _count: { _all: number } }[]) {
-    const totals = new Map<string, { confirmed: number; total: number }>();
+  function tallyByRegion(groups: { facilityId: string; status: GameStatus; cancellationCategory: string | null; _count: { _all: number } }[]) {
+    const totals = new Map<string, { confirmed: number; total: number; demandBase: number }>();
     for (const g of groups) {
       const info = facilityRegionMap.get(g.facilityId);
       if (!info) continue;
-      const entry = totals.get(info.regionId) ?? { confirmed: 0, total: 0 };
+      const entry = totals.get(info.regionId) ?? { confirmed: 0, total: 0, demandBase: 0 };
       entry.total += Number(g._count._all);
+      if (countsForDemand(g.status, g.cancellationCategory)) entry.demandBase += Number(g._count._all);
       if (g.status === GameStatus.CONFIRMED) entry.confirmed += Number(g._count._all);
       totals.set(info.regionId, entry);
     }
     return totals;
   }
 
-  const currentByRegion = tallyByRegion(currentGroups as unknown as { facilityId: string; status: GameStatus; _count: { _all: number } }[]);
-  const priorByRegion = tallyByRegion(priorGroups as unknown as { facilityId: string; status: GameStatus; _count: { _all: number } }[]);
+  const currentByRegion = tallyByRegion(currentGroups as unknown as { facilityId: string; status: GameStatus; cancellationCategory: string | null; _count: { _all: number } }[]);
+  const priorByRegion = tallyByRegion(priorGroups as unknown as { facilityId: string; status: GameStatus; cancellationCategory: string | null; _count: { _all: number } }[]);
 
   const regionNames = new Map<string, string>();
   for (const info of facilityRegionMap.values()) regionNames.set(info.regionId, info.regionName);
 
   const rows: RegionComparisonRow[] = Array.from(currentByRegion.entries()).map(([regionId, cur]) => {
     const prior = priorByRegion.get(regionId) ?? null;
-    const confirmationRate = cur.total > 0 ? cur.confirmed / cur.total : 0;
-    const priorConfirmationRate = prior && prior.total > 0 ? prior.confirmed / prior.total : null;
+    const confirmationRate = cur.demandBase > 0 ? cur.confirmed / cur.demandBase : 0;
+    const priorConfirmationRate = prior && prior.demandBase > 0 ? prior.confirmed / prior.demandBase : null;
     return {
       regionId,
       regionName: regionNames.get(regionId) ?? "—",

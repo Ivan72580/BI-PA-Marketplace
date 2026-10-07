@@ -921,7 +921,9 @@
         "games": "Games",
         "confirmed": "Confirmed",
         "cancelled": "Cancelled",
-        "cancellation": "Cancellation",
+        "cancellation": "Cancellation (demand)",
+        "fieldUnavailable": "Field unavailable",
+        "fieldUnavailableHint": "Games cancelled because the field was no longer available, and % of published. Excluded from the demand rate: it measures how reliable the facility's supply is. Red from 15%.",
         "rating": "Rating",
         "price": "Price"
       },

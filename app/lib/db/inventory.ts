@@ -1,6 +1,7 @@
 import { GameStatus } from "@prisma/client";
 import { prisma } from "./prisma";
 import { cached } from "./cache";
+import { bucketOf } from "../metrics";
 import { buildWhere, type OverviewFilters } from "./shared";
 
 // Inventario a nivel de partido recurrente ("slot").
@@ -35,7 +36,9 @@ export type Slot = {
   scheduled: number;
   confirmed: number;
   cancelled: number;
-  confirmationRate: number | null;
+  demandCancelled: number; // cancelados que hablan de demanda
+  fieldUnavailable: number; // cancelados por cancha no disponible
+  confirmationRate: number | null; // % de demanda: confirmados / (confirmados + cancelados por demanda)
   avgPlayers: number | null;
   capacity: number | null; // promedio de maxPlayers
   fillRate: number | null; // jugadores / capacidad, solo en confirmados
@@ -58,7 +61,7 @@ export type SlotQuery = { sort: SlotSort; limit: number; dayOfWeek?: string };
 
 type Acc = {
   facilityId: string; dayOfWeek: string; time: string; fieldName: string | null; gameSize: string | null;
-  confirmed: number; cancelled: number; players: number; capacityConfirmed: number; capacitySum: number; capacityN: number;
+  confirmed: number; cancelled: number; demandCancelled: number; fieldUnavailable: number; players: number; capacityConfirmed: number; capacitySum: number; capacityN: number;
   priceSum: number; priceN: number; revenue: number; occ: (SlotOccurrence & { t: number })[]; last: number;
 };
 
@@ -92,7 +95,7 @@ async function getSlotInventoryImpl(filters: OverviewFilters, query: SlotQuery):
   const games = await prisma.game.findMany({
     where,
     select: {
-      facilityId: true, date: true, time: true, dayOfWeek: true, fieldName: true, gameSize: true, status: true,
+      facilityId: true, date: true, time: true, dayOfWeek: true, fieldName: true, gameSize: true, status: true, cancellationCategory: true,
       finalPlayers: true, maxPlayers: true, gamePrice: true, eventRevenue: true,
     },
     orderBy: { date: "desc" },
@@ -107,7 +110,7 @@ async function getSlotInventoryImpl(filters: OverviewFilters, query: SlotQuery):
     if (!a) {
       a = {
         facilityId: g.facilityId, dayOfWeek: g.dayOfWeek, time: g.time, fieldName: g.fieldName, gameSize: g.gameSize,
-        confirmed: 0, cancelled: 0, players: 0, capacityConfirmed: 0, capacitySum: 0, capacityN: 0,
+        confirmed: 0, cancelled: 0, demandCancelled: 0, fieldUnavailable: 0, players: 0, capacityConfirmed: 0, capacitySum: 0, capacityN: 0,
         priceSum: 0, priceN: 0, revenue: 0, occ: [], last: 0,
       };
       acc.set(key, a);
@@ -122,6 +125,9 @@ async function getSlotInventoryImpl(filters: OverviewFilters, query: SlotQuery):
       a.revenue += g.eventRevenue ?? 0;
     } else {
       a.cancelled += 1;
+      const bk = bucketOf(g.cancellationCategory);
+      if (bk === "demand") a.demandCancelled += 1;
+      else if (bk === "fieldUnavailable") a.fieldUnavailable += 1;
     }
     a.capacitySum += g.maxPlayers; a.capacityN += 1;
     if (g.gamePrice !== null) { a.priceSum += g.gamePrice; a.priceN += 1; }
@@ -143,8 +149,8 @@ async function getSlotInventoryImpl(filters: OverviewFilters, query: SlotQuery):
       facilityName: fac.get(a.facilityId)?.name ?? a.facilityId,
       marketName: fac.get(a.facilityId)?.market.name ?? "",
       dayOfWeek: a.dayOfWeek, time: a.time, fieldName: a.fieldName, fieldKnown: a.fieldName !== null, gameSize: a.gameSize,
-      scheduled, confirmed: a.confirmed, cancelled: a.cancelled,
-      confirmationRate: scheduled > 0 ? a.confirmed / scheduled : null,
+      scheduled, confirmed: a.confirmed, cancelled: a.cancelled, demandCancelled: a.demandCancelled, fieldUnavailable: a.fieldUnavailable,
+      confirmationRate: a.confirmed + a.demandCancelled > 0 ? a.confirmed / (a.confirmed + a.demandCancelled) : null,
       avgPlayers: a.confirmed > 0 ? a.players / a.confirmed : null,
       capacity: a.capacityN > 0 ? a.capacitySum / a.capacityN : null,
       fillRate: a.capacityConfirmed > 0 ? a.players / a.capacityConfirmed : null,
