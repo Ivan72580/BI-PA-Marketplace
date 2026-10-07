@@ -2,6 +2,7 @@ import { GameStatus } from "@prisma/client";
 import { prisma } from "./prisma";
 import { cached } from "./cache";
 import { countsForDemand } from "../metrics";
+import { clipPriorToElapsed } from "../period";
 import { buildWhere, MIN_GAMES_FOR_RANKING, type OverviewFilters } from "./shared";
 
 // ---------- Ranking de regiones (East/West) ----------
@@ -45,7 +46,7 @@ async function getRegionRankingImpl(
   const priorYear = priorAnchor.getUTCFullYear();
   const priorMonthNum = priorAnchor.getUTCMonth() + 1;
   const priorDateFrom = new Date(Date.UTC(priorYear, priorMonthNum - 1, 1));
-  const priorDateTo = new Date(Date.UTC(priorYear, priorMonthNum, 0, 23, 59, 59));
+  const priorDateTo = clipPriorToElapsed(priorDateFrom, new Date(Date.UTC(priorYear, priorMonthNum, 0, 23, 59, 59)), dateFrom, dateTo);
 
   const where = buildWhere({ ...filters, dateFrom, dateTo });
   const priorWhere = buildWhere({ ...filters, dateFrom: priorDateFrom, dateTo: priorDateTo });
@@ -114,7 +115,7 @@ async function getRegionConfirmationRankingImpl(
   const priorYear = priorAnchor.getUTCFullYear();
   const priorMonthNum = priorAnchor.getUTCMonth() + 1;
   const priorDateFrom = new Date(Date.UTC(priorYear, priorMonthNum - 1, 1));
-  const priorDateTo = new Date(Date.UTC(priorYear, priorMonthNum, 0, 23, 59, 59));
+  const priorDateTo = clipPriorToElapsed(priorDateFrom, new Date(Date.UTC(priorYear, priorMonthNum, 0, 23, 59, 59)), dateFrom, dateTo);
 
   const where = buildWhere({ ...filters, dateFrom, dateTo });
   const priorWhere = buildWhere({ ...filters, dateFrom: priorDateFrom, dateTo: priorDateTo });

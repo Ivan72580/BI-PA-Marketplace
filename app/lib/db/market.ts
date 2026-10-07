@@ -2,6 +2,7 @@ import { GameStatus } from "@prisma/client";
 import { prisma } from "./prisma";
 import { cached } from "./cache";
 import { bucketOf, countsForDemand, demandRate, rawRate } from "../metrics";
+import { clipPriorToElapsed } from "../period";
 import { buildWhere, MIN_GAMES_FOR_RANKING, MAX_NAMED_SEGMENTS, type OverviewFilters } from "./shared";
 
 // ---------- Resumen completo por facility ----------
@@ -310,8 +311,10 @@ async function getParetoGroupsImpl(filters: OverviewFilters): Promise<{ top80: P
   if (filters.dateFrom && filters.dateTo && top80Rows.length > 0) {
     const priorDateFrom = new Date(filters.dateFrom);
     priorDateFrom.setUTCFullYear(priorDateFrom.getUTCFullYear() - 1);
-    const priorDateTo = new Date(filters.dateTo);
-    priorDateTo.setUTCFullYear(priorDateTo.getUTCFullYear() - 1);
+    const priorFullTo = new Date(filters.dateTo);
+    priorFullTo.setUTCFullYear(priorFullTo.getUTCFullYear() - 1);
+    // Mes en curso: se compara contra los mismos días transcurridos del año anterior, no el mes completo.
+    const priorDateTo = clipPriorToElapsed(priorDateFrom, priorFullTo, filters.dateFrom, filters.dateTo);
 
     const priorWhere = buildWhere({ ...filters, dateFrom: priorDateFrom, dateTo: priorDateTo });
     const priorGroups = await prisma.game.groupBy({
@@ -462,7 +465,7 @@ async function getMarketRankingImpl(
   const priorYear = priorAnchor.getUTCFullYear();
   const priorMonthNum = priorAnchor.getUTCMonth() + 1;
   const priorDateFrom = new Date(Date.UTC(priorYear, priorMonthNum - 1, 1));
-  const priorDateTo = new Date(Date.UTC(priorYear, priorMonthNum, 0, 23, 59, 59));
+  const priorDateTo = clipPriorToElapsed(priorDateFrom, new Date(Date.UTC(priorYear, priorMonthNum, 0, 23, 59, 59)), dateFrom, dateTo);
 
   const where = buildWhere({ ...filters, dateFrom, dateTo });
   const priorWhere = buildWhere({ ...filters, dateFrom: priorDateFrom, dateTo: priorDateTo });
@@ -543,7 +546,7 @@ async function getMarketConfirmationRankingImpl(
   const priorYear = priorAnchor.getUTCFullYear();
   const priorMonthNum = priorAnchor.getUTCMonth() + 1;
   const priorDateFrom = new Date(Date.UTC(priorYear, priorMonthNum - 1, 1));
-  const priorDateTo = new Date(Date.UTC(priorYear, priorMonthNum, 0, 23, 59, 59));
+  const priorDateTo = clipPriorToElapsed(priorDateFrom, new Date(Date.UTC(priorYear, priorMonthNum, 0, 23, 59, 59)), dateFrom, dateTo);
 
   const where = buildWhere({ ...filters, dateFrom, dateTo });
   const priorWhere = buildWhere({ ...filters, dateFrom: priorDateFrom, dateTo: priorDateTo });

@@ -356,3 +356,20 @@ export function resolveEvolutionWindow(
   windowStart.setUTCMonth(windowStart.getUTCMonth() - 6);
   return { unit: "week", windowStart, windowEnd };
 }
+
+/**
+ * Recorta el fin de una ventana de comparación para que dure lo mismo que lo transcurrido de la
+ * ventana actual cuando ésta todavía está en curso (ej. mes actual a mitad de mes). Sin esto, el
+ * mes en curso se compara contra el mes anterior COMPLETO y todo ranking sale con caída falsa.
+ * Si la ventana actual ya terminó (o todavía no empezó) devuelve el fin completo sin tocarlo.
+ * Mismo criterio que resolveComparisonPeriod: hoy cuenta como día transcurrido.
+ */
+export function clipPriorToElapsed(priorFrom: Date, priorFullTo: Date, currentFrom: Date, currentTo: Date): Date {
+  const now = nowInBusinessTimeZone();
+  if (now.getTime() < currentFrom.getTime() || now.getTime() > currentTo.getTime()) return priorFullTo;
+  const elapsedDays = Math.floor((now.getTime() - currentFrom.getTime()) / 86400000) + 1;
+  const partialEnd = new Date(priorFrom);
+  partialEnd.setUTCDate(priorFrom.getUTCDate() + elapsedDays - 1);
+  partialEnd.setUTCHours(23, 59, 59, 999);
+  return partialEnd.getTime() < priorFullTo.getTime() ? partialEnd : priorFullTo;
+}
