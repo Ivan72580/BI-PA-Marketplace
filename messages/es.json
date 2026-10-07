@@ -1060,8 +1060,8 @@
       "compareCaption": "vs. {period}"
     },
     "projection": {
-      "title": "Proyección de {month}: {n} partidos",
-      "detail": "{elapsed}/{total} días transcurridos · revenue proyectado {revenue}",
+      "title": "Proyección de {month}: {n} partidos confirmados",
+      "detail": "{elapsed}/{total} días con datos · revenue proyectado {revenue}",
       "notYetAvailable": "Sin proyección todavía para {month} — disponible desde el día {day}"
     },
     "alerts": {
@@ -1083,7 +1083,7 @@
     },
     "forecastMini": {
       "title": "Próxima semana (proyección)",
-      "games": "Partidos esperados",
+      "games": "Partidos agendados esperados",
       "confirmation": "Confirmación esperada",
       "insufficient": "Sin historial suficiente todavía."
     },
@@ -1353,7 +1353,7 @@
     "methodAverage": "Poco historial para estimar tendencia — se usó el promedio simple de los últimos {n} bloques comparables.",
     "methodInsufficient": "Sin suficiente historial comparable para este filtro y este rango (se necesitan al menos {min} bloques, hay {n}).",
     "games": {
-      "label": "Partidos esperados"
+      "label": "Partidos agendados esperados"
     },
     "confirmation": {
       "label": "Confirmación esperada"

@@ -1060,8 +1060,8 @@
       "compareCaption": "vs. {period}"
     },
     "projection": {
-      "title": "{month} projection: {n} games",
-      "detail": "{elapsed}/{total} days elapsed · projected revenue {revenue}",
+      "title": "{month} projection: {n} confirmed games",
+      "detail": "{elapsed}/{total} days with data · projected revenue {revenue}",
       "notYetAvailable": "No projection yet for {month} — available from day {day}"
     },
     "alerts": {
@@ -1083,7 +1083,7 @@
     },
     "forecastMini": {
       "title": "Next week (projected)",
-      "games": "Expected games",
+      "games": "Expected scheduled games",
       "confirmation": "Expected confirmation",
       "insufficient": "Not enough history yet."
     },
@@ -1353,7 +1353,7 @@
     "methodAverage": "Not enough history to estimate a trend — used the simple average of the last {n} comparable blocks.",
     "methodInsufficient": "Not enough comparable history for this filter and range (at least {min} blocks needed, {n} available).",
     "games": {
-      "label": "Games expected"
+      "label": "Scheduled games expected"
     },
     "confirmation": {
       "label": "Confirmation expected"

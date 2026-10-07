@@ -12,11 +12,17 @@ async function getMonthProjectionImpl(filters: Omit<OverviewFilters, "dateFrom" 
   const year = now.getUTCFullYear();
   const month = now.getUTCMonth();
   const monthStart = new Date(Date.UTC(year, month, 1));
-  const daysElapsed = now.getUTCDate();
+  const todayDay = now.getUTCDate();
   const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
 
   const where = buildWhere({ ...filters, dateFrom: monthStart, dateTo: now });
-  const games = await prisma.game.findMany({ where, select: { status: true, eventRevenue: true } });
+  const games = await prisma.game.findMany({ where, select: { status: true, eventRevenue: true, date: true } });
+
+  // Días con datos reales: hasta el último partido registrado del mes (el export no
+  // trae partidos de hoy). Dividir por el día calendario de hoy contaba un día
+  // sin datos y subestimaba la proyección. Sin partidos, cae al día de hoy.
+  const lastDataDay = games.reduce((mx, g) => Math.max(mx, g.date.getUTCDate()), 0);
+  const daysElapsed = lastDataDay > 0 ? Math.min(lastDataDay, todayDay) : todayDay;
 
   const confirmedSoFar = games.filter((g) => g.status === "CONFIRMED").length;
   const cancelledSoFar = games.filter((g) => g.status === "CANCELLED").length;
