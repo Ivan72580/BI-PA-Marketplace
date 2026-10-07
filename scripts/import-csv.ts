@@ -14,6 +14,7 @@
 import { PrismaClient, CancellationCategory, GameStatus } from "@prisma/client";
 import { parse } from "csv-parse/sync";
 import { extractFieldName } from "./lib/fieldName";
+import { categorizeCancellation } from "./lib/cancellation";
 import fs from "fs";
 
 const prisma = new PrismaClient();
@@ -96,28 +97,6 @@ function extractFieldType(raw: string | undefined | null): string | null {
 
 // Normaliza las 291 variantes de texto libre del CSV en categorías
 // consistentes y accionables para el motor de insights.
-function categorizeCancellation(raw: string | undefined | null): CancellationCategory | null {
-  if (!raw) return null;
-  const r = raw.trim().toLowerCase();
-  if (!r || r === "na" || r === "n/a") return CancellationCategory.OTHER;
-
-  if (r.includes("not enough players") || r.includes("last minute drop")) {
-    return CancellationCategory.NOT_ENOUGH_PLAYERS;
-  }
-  if (r.includes("field time") || r.includes("facility") || r.includes("contact with the facility")) {
-    return CancellationCategory.FACILITY_UNAVAILABLE;
-  }
-  if (r.includes("weather")) {
-    return CancellationCategory.WEATHER;
-  }
-  if (r.includes("maintenance") || r.includes("construction")) {
-    return CancellationCategory.MAINTENANCE;
-  }
-  if (r.includes("holiday")) {
-    return CancellationCategory.HOLIDAY;
-  }
-  return CancellationCategory.OTHER;
-}
 
 function toIntOrNull(v: string): number | null {
   if (v === undefined || v === null || v === "") return null;

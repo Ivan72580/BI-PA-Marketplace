@@ -748,12 +748,14 @@
       "scheduledSub": "confirmed + cancelled, in the period",
       "confirmed": "Games confirmed",
       "cancelled": "Games cancelled",
-      "confirmationRate": "Confirmation rate",
-      "cancellationRate": "Cancellation rate",
+      "confirmationRate": "Confirmation rate (demand)",
+      "cancellationRate": "Cancellation rate (demand)",
       "occupancy": "Occupancy (confirmed)",
       "occupancySub": "final players / max capacity",
       "revenue": "Revenue",
-      "rating": "Game rating"
+      "rating": "Game rating",
+      "demandNote": "Raw: {raw} · {n} non-demand cancellations excluded",
+      "demandCancelNote": "Not-enough-players only · field unavailable: {n}"
     },
     "insights": {
       "noGames": "No games recorded for the selected period/filter.",

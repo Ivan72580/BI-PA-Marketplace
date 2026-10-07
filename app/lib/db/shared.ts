@@ -35,6 +35,7 @@ const CATEGORY_LABEL: Record<string, string> = {
   WEATHER: "Clima",
   MAINTENANCE: "Mantenimiento",
   HOLIDAY: "Feriado",
+  PLUGIN: "Plugin (agentes externos)",
   OTHER: "Otro",
 };
 
@@ -51,6 +52,7 @@ const CATEGORY_LABEL_EN: Record<string, string> = {
   WEATHER: "Weather",
   MAINTENANCE: "Maintenance",
   HOLIDAY: "Holiday",
+  PLUGIN: "Plugin (external agents)",
   OTHER: "Other",
 };
 

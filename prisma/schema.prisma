@@ -68,6 +68,7 @@ enum CancellationCategory {
   WEATHER
   MAINTENANCE
   HOLIDAY
+  PLUGIN // cancelaciones hechas por agentes externos a Operaciones ("Cancelled due to plugin"); se excluyen de la demanda y de la planificación
   OTHER
 }
 

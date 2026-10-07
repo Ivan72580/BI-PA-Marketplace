@@ -11,6 +11,7 @@ import {
   linearRegression,
   type OverviewFilters,
 } from "./shared";
+import { countsForDemand } from "../metrics";
 import { combineFormatLabel } from "./format";
 import { weekdayAbbr } from "./weekday";
 import { getDailyTranslator, type DailyTranslator } from "./dailyMessages";
@@ -779,10 +780,10 @@ async function getMustScheduleSlotsImpl(
     const day = g.dayOfWeek;
     if (!hour || !day) continue;
     hoursSet.add(hour);
-    // Cancha no disponible: fuera del cálculo por completo (ni numerador ni
-    // denominador), en las dos direcciones — no es una falla de demanda ni
-    // de los jugadores, es un problema operativo ajeno a esta lectura.
-    if (g.status === "CANCELLED" && g.cancellationCategory === CancellationCategory.FACILITY_UNAVAILABLE) continue;
+    // Fuera del cálculo por completo (ni numerador ni denominador): cancha no
+    // disponible y toda cancelación que no habla de demanda (operativas, externas,
+    // plugin) — ver app/lib/metrics.ts. Es la misma regla de "tasa de demanda" del resto de la herramienta.
+    if (!countsForDemand(g.status, g.cancellationCategory)) continue;
 
     const formatLabel = combineFormatLabel(g.gameSize, g.fieldType, g.maxPlayers);
     const slotKey = `${day}|${hour}|${formatLabel}`;
@@ -1060,6 +1061,7 @@ async function getWeeklySlotForecastImpl(
       unavailableMap.set(slotKey, u);
       continue; // mismo criterio que mustSchedule: no cuenta para la tasa de confirmación del slot
     }
+    if (!countsForDemand(g.status, g.cancellationCategory)) continue; // idem para el resto de cancelaciones ajenas a la demanda
 
     const e: WeeklySlotAccumulator = slotMap.get(slotKey) ?? {
       confirmed: 0, total: 0, confirmedEarly: 0, totalEarly: 0, confirmedLate: 0, totalLate: 0,

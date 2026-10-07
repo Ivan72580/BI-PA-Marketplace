@@ -748,12 +748,14 @@
       "scheduledSub": "confirmados + cancelados, en el período",
       "confirmed": "Partidos confirmados",
       "cancelled": "Partidos cancelados",
-      "confirmationRate": "Tasa de confirmación",
-      "cancellationRate": "Tasa de cancelación",
+      "confirmationRate": "Tasa de confirmación (demanda)",
+      "cancellationRate": "Tasa de cancelación (demanda)",
       "occupancy": "Ocupación (confirmados)",
       "occupancySub": "jugadores finales / cupo máximo",
       "revenue": "Revenue",
-      "rating": "Rating de partidos"
+      "rating": "Rating de partidos",
+      "demandNote": "Cruda: {raw} · {n} cancelaciones ajenas a la demanda excluidas",
+      "demandCancelNote": "Solo falta de jugadores · cancha no disponible: {n}"
     },
     "insights": {
       "noGames": "No hay partidos registrados para el período/filtro seleccionado.",

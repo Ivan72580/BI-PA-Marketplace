@@ -4,6 +4,7 @@ import { cached } from "./cache";
 import { buildWhere, labelForCancellationCategory, sortHoursByOperatingDay, MIN_GAMES_FOR_RANKING, type OverviewFilters } from "./shared";
 import { getOverviewTranslator, type OverviewTranslator } from "./overviewMessages";
 import type { Locale } from "@/i18n/config";
+import { addToBuckets, bucketOf, demandRate, emptyBuckets, rawRate } from "../metrics";
 
 // `locale` se agrega como argumento explícito porque este texto se genera
 // DENTRO de una función cacheada con unstable_cache — ver el comentario en
@@ -31,6 +32,7 @@ async function getOverviewDataImpl(filters: OverviewFilters, locale: Locale = "e
     facilityCancelled,
     facilityConfirmedCounts,
     facilityRevenue,
+    facilityCancelledByCategory,
   ] = await Promise.all([
     prisma.game.count({ where }),
     prisma.game.count({ where: confirmedWhere }),
@@ -46,10 +48,19 @@ async function getOverviewDataImpl(filters: OverviewFilters, locale: Locale = "e
     prisma.game.groupBy({ by: ["facilityId"], where: cancelledWhere, _count: { _all: true } }),
     prisma.game.groupBy({ by: ["facilityId"], where: confirmedWhere, _count: { _all: true } }),
     prisma.game.groupBy({ by: ["facilityId"], where: confirmedWhere, _sum: { eventRevenue: true } }),
+    // Cancelaciones por facility Y categoría: para separar las que cuentan contra la demanda.
+    prisma.game.groupBy({ by: ["facilityId", "cancellationCategory"], where: cancelledWhere, _count: { _all: true } }),
   ]);
 
-  const confirmationRate = total > 0 ? confirmedCount / total : 0;
-  const cancellationRate = total > 0 ? cancelledCount / total : 0;
+  // Tasa de DEMANDA (ver app/lib/metrics.ts): las cancelaciones que no hablan de
+  // demanda (cancha no disponible, operativas/externas, plugin) salen del denominador.
+  // La tasa cruda (sobre todo lo publicado) se conserva aparte, etiquetada.
+  const cancelBuckets = emptyBuckets();
+  for (const g of cancellationGroups) addToBuckets(cancelBuckets, g.cancellationCategory, Number(g._count._all));
+  const demandGames = confirmedCount + cancelBuckets.demand;
+  const confirmationRate = demandRate(confirmedCount, cancelBuckets.demand);
+  const cancellationRate = demandGames > 0 ? cancelBuckets.demand / demandGames : 0;
+  const rawConfirmationRate = rawRate(confirmedCount, cancelledCount);
 
   // Revenue: dato secundario — la fuente no es 100% confiable (mezcla de
   // esquemas de precio distintos), no debe ser el KPI que guíe decisiones.
@@ -81,6 +92,7 @@ async function getOverviewDataImpl(filters: OverviewFilters, locale: Locale = "e
       category,
       label: labelForCancellationCategory(category, locale),
       count,
+      bucket: bucketOf(category),
       pct: cancelledCount > 0 ? count / cancelledCount : 0,
     }))
     .sort((a, b) => b.count - a.count);
@@ -110,6 +122,11 @@ async function getOverviewDataImpl(filters: OverviewFilters, locale: Locale = "e
   const cancelledByFacility = new Map<string, number>(facilityCancelled.map((f) => [f.facilityId, Number(f._count._all)]));
   const confirmedByFacility = new Map<string, number>(facilityConfirmedCounts.map((f) => [f.facilityId, Number(f._count._all)]));
   const revenueByFacility = new Map<string, number>(facilityRevenue.map((f) => [f.facilityId, f._sum.eventRevenue ?? 0]));
+  const demandCancelledByFacility = new Map<string, number>();
+  for (const g of facilityCancelledByCategory) {
+    if (bucketOf(g.cancellationCategory) !== "demand") continue;
+    demandCancelledByFacility.set(g.facilityId, (demandCancelledByFacility.get(g.facilityId) ?? 0) + Number(g._count._all));
+  }
 
   type FacilityAgg = {
     id: string;
@@ -118,6 +135,7 @@ async function getOverviewDataImpl(filters: OverviewFilters, locale: Locale = "e
     regionId: string;
     revenue: number;
     cancelledCount: number;
+    demandCancelledCount: number;
     confirmedCount: number;
     totalCount: number;
   };
@@ -132,6 +150,7 @@ async function getOverviewDataImpl(filters: OverviewFilters, locale: Locale = "e
         regionId: info.market.regionId,
         totalCount: Number(f._count._all),
         cancelledCount: cancelledByFacility.get(f.facilityId) ?? 0,
+        demandCancelledCount: demandCancelledByFacility.get(f.facilityId) ?? 0,
         confirmedCount: confirmedByFacility.get(f.facilityId) ?? 0,
         revenue: revenueByFacility.get(f.facilityId) ?? 0,
       };
@@ -183,18 +202,19 @@ async function getOverviewDataImpl(filters: OverviewFilters, locale: Locale = "e
       ? paretoConfirmations[paretoConfirmations.length - 1].cumulativePct
       : 0;
 
-  // Ranking por TASA: top 10 facilities con peor % de cancelación (equivale a
-  // la peor tasa de confirmación, ya que en estos datos son complementarias),
-  // exigiendo un mínimo de partidos para que la tasa sea representativa.
+  // Ranking por TASA: top 10 facilities con peor % de cancelación POR DEMANDA
+  // (equivale a la peor tasa de demanda, ya que son complementarias), exigiendo un
+  // mínimo de partidos que cuentan para la demanda para que la tasa sea representativa.
   const worstCancellationRate = [...facilities]
-    .filter((f) => f.totalCount >= MIN_GAMES_FOR_RANKING)
-    .map((f) => ({
+    .map((f) => ({ f, demandTotal: f.confirmedCount + f.demandCancelledCount }))
+    .filter(({ demandTotal }) => demandTotal >= MIN_GAMES_FOR_RANKING)
+    .map(({ f, demandTotal }) => ({
       facilityId: f.id,
       marketId: f.marketId,
       regionId: f.regionId,
       label: f.name,
-      rate: f.cancelledCount / f.totalCount,
-      totalGames: f.totalCount,
+      rate: f.demandCancelledCount / demandTotal,
+      totalGames: demandTotal,
     }))
     .sort((a, b) => b.rate - a.rate)
     .slice(0, 10);
@@ -225,6 +245,13 @@ async function getOverviewDataImpl(filters: OverviewFilters, locale: Locale = "e
     cancelledGames: cancelledCount,
     confirmationRate,
     cancellationRate,
+    // Tasa cruda y desglose de lo que quedó fuera de la demanda (metrics.ts).
+    rawConfirmationRate,
+    demandGames,
+    demandCancelledGames: cancelBuckets.demand,
+    fieldUnavailableGames: cancelBuckets.fieldUnavailable,
+    operationalCancelledGames: cancelBuckets.operational,
+    pluginCancelledGames: cancelBuckets.plugin,
     avgFillRate,
     totalRevenue,
     avgRevenuePerGame,

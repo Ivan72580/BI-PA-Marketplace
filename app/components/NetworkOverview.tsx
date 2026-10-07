@@ -418,6 +418,10 @@ export default async function NetworkOverview({
       <KpiCard
         label={t("kpi.confirmationRate")}
         value={formatPct(heroCurrent.confirmationRate)}
+        sublabel={t("kpi.demandNote", {
+          raw: formatPct(heroCurrent.rawConfirmationRate),
+          n: (heroCurrent.cancelledGames - heroCurrent.demandCancelledGames).toLocaleString("en-US"),
+        })}
         delta={heroPrior ? heroCurrent.confirmationRate - heroPrior.confirmationRate : undefined}
         deltaUnit="pts"
         staticDelta
@@ -427,6 +431,7 @@ export default async function NetworkOverview({
       />
       <KpiCard
         label={t("kpi.cancellationRate")}
+        sublabel={t("kpi.demandCancelNote", { n: heroCurrent.fieldUnavailableGames.toLocaleString("en-US") })}
         value={formatPct(heroCurrent.cancellationRate)}
         delta={heroPrior ? heroCurrent.cancellationRate - heroPrior.cancellationRate : undefined}
         deltaUnit="pts"
