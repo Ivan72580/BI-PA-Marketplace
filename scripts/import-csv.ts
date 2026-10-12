@@ -156,6 +156,7 @@ async function main() {
   };
   const pendingGames: GameRow[] = [];
   const BATCH_SIZE = 2000;
+  const UPSERT_CONCURRENCY = 15; // por debajo del pool de conexiones de Prisma (connection_limit por defecto: 21 en este equipo)
   let totalSynced = 0;
 
   async function flushBatch() {
@@ -191,10 +192,13 @@ async function main() {
     const mustUpdateIds = ids.filter((id) => reviewedIds.has(id));
 
     if (safeToDeleteIds.length > 0) {
-      await prisma.game.deleteMany({ where: { id: { in: safeToDeleteIds } } });
-      const created = await prisma.game.createMany({
-        data: safeToDeleteIds.map((id) => byId.get(id)!),
-      });
+      // Borrar + reinsertar en UNA transacción: si el createMany falla (ej. un valor de enum que la
+      // base todavía no conoce), el delete se revierte y los partidos quedan como estaban. Antes eran
+      // dos operaciones sueltas y una falla en la segunda dejaba el lote borrado hasta el próximo import.
+      const [, created] = await prisma.$transaction([
+        prisma.game.deleteMany({ where: { id: { in: safeToDeleteIds } } }),
+        prisma.game.createMany({ data: safeToDeleteIds.map((id) => byId.get(id)!) }),
+      ]);
       totalSynced += created.count;
     }
 
@@ -202,13 +206,17 @@ async function main() {
       // upsert (no update) por si alguna vez aparece una review para un id
       // que todavía no llegó a crearse como Game — no debería pasar en la
       // práctica, pero así no revienta si pasa.
-      await Promise.all(
-        mustUpdateIds.map((id) => {
-          const game = byId.get(id)!;
-          const { id: _id, ...updateData } = game; // id va en el `where`, no hace falta repetirlo en `update`
-          return prisma.game.upsert({ where: { id }, create: game, update: updateData });
-        })
-      );
+      // En tandas de UPSERT_CONCURRENCY: lanzar ~1000 upserts a la vez contra un pool de ~21 conexiones
+      // hace que los últimos esperen más del timeout del pool (P2024) cuando la base responde lento.
+      for (let i = 0; i < mustUpdateIds.length; i += UPSERT_CONCURRENCY) {
+        await Promise.all(
+          mustUpdateIds.slice(i, i + UPSERT_CONCURRENCY).map((id) => {
+            const game = byId.get(id)!;
+            const { id: _id, ...updateData } = game; // id va en el `where`, no hace falta repetirlo en `update`
+            return prisma.game.upsert({ where: { id }, create: game, update: updateData });
+          })
+        );
+      }
       totalSynced += mustUpdateIds.length;
     }
 
