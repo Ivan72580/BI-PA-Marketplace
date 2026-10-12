@@ -16,6 +16,7 @@ import { combineFormatLabel } from "./format";
 import { weekdayAbbr } from "./weekday";
 import { getDailyTranslator, type DailyTranslator } from "./dailyMessages";
 import type { Locale } from "@/i18n/config";
+import { MUST_SCHEDULE_MIN_RATE, MUST_SCHEDULE_MIN_SAMPLE } from "../mustSchedule";
 
 // Página de seguimiento diario: a diferencia de Trends/Market (que agregan
 // por período), acá todo está anclado a un día calendario puntual + una
@@ -669,8 +670,7 @@ export type StrugglingCancelSlot = {
   insight: string;
 };
 
-const MUST_SCHEDULE_MIN_RATE = 0.55;
-const MUST_SCHEDULE_MIN_SAMPLE = 3; // mínimo dentro de la ventana de 3 meses para que el % sea representativo
+// MUST_SCHEDULE_MIN_RATE / MUST_SCHEDULE_MIN_SAMPLE: definición única en app/lib/mustSchedule.ts
 const TREND_DELTA = 0.1; // 10 puntos entre la primera y segunda mitad de la ventana para hablar de tendencia
 const TOP_SLOT_MIN_RATE = 0.9; // "altísima o perfecta"
 const STRUGGLING_MIN_RATE = 0.35; // piso para no listar slots sin señal real de demanda

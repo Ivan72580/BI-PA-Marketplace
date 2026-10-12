@@ -1822,6 +1822,29 @@
     "legend": {
       "confirmed": "Confirmado",
       "cancelled": "Cancelado"
+    },
+    "views": {
+      "slots": "Publicados",
+      "schedule": "A agendar"
+    },
+    "schedule": {
+      "subtitle": "Partidos que conviene tener publicados sí o sí en {scope}, según los últimos meses",
+      "regionLabel": "Región:",
+      "count": "{shown} de {total} partidos recurrentes a agendar · ventana {from} → {to}",
+      "empty": "Ningún partido recurrente cumple la definición con estos filtros.",
+      "trend": {
+        "up": "En alza: la confirmación mejoró en la segunda mitad de la ventana",
+        "down": "En baja: la confirmación cayó en la segunda mitad de la ventana",
+        "flat": "Estable"
+      },
+      "card": {
+        "demandRate": "Tasa de demanda",
+        "price": "Precio prom.",
+        "summary": "{confirmed} confirmados de {base} con demanda en la ventana",
+        "fieldLost": "Se perdió {n} vez/veces por cancha no disponible: reservar con anticipación."
+      },
+      "definition": "A agendar = partido recurrente (facility + día + hora + cancha + formato) cuya tasa de demanda en los últimos {months} meses supera {rate}, con al menos {sample} partidos con demanda. Tasa de demanda = confirmados / (confirmados + cancelados por falta de jugadores). La lista se renueva una vez por semana ({week}).",
+      "limit": "No se cruza contra lo que ya está publicado a futuro: la lista muestra qué conviene tener, no qué falta."
     }
   }
 }

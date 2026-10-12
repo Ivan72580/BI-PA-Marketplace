@@ -20,3 +20,18 @@ export function cached<Args extends unknown[], T>(
     tags: [GAMES_DATA_TAG],
   });
 }
+
+// Caché SEMANAL para listas de planificación que no deberían cambiar a cada import
+// (ej. "A agendar"): se renueva sola cada lunes porque la semana ISO va en los argumentos
+// de la función (parte de la clave), y vence a los 7 días por las dudas. A propósito NO usa
+// GAMES_DATA_TAG: la invalidación automática post-import no la toca. Solo el botón manual
+// "Actualizar datos ahora" también invalida SCHEDULE_TAG.
+export const SCHEDULE_TAG = "schedule-weekly";
+const WEEKLY_SECONDS = 7 * 24 * 60 * 60;
+
+export function cachedWeekly<Args extends unknown[], T>(
+  keyPrefix: string,
+  fn: (...args: Args) => Promise<T>
+): (...args: Args) => Promise<T> {
+  return unstable_cache(fn, [keyPrefix], { revalidate: WEEKLY_SECONDS, tags: [SCHEDULE_TAG] });
+}

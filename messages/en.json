@@ -1822,6 +1822,29 @@
     "legend": {
       "confirmed": "Confirmed",
       "cancelled": "Cancelled"
+    },
+    "views": {
+      "slots": "Published",
+      "schedule": "To schedule"
+    },
+    "schedule": {
+      "subtitle": "Games worth having published in {scope}, based on recent months",
+      "regionLabel": "Region:",
+      "count": "{shown} of {total} recurring games to schedule · window {from} → {to}",
+      "empty": "No recurring game meets the definition with these filters.",
+      "trend": {
+        "up": "Rising: confirmation improved in the second half of the window",
+        "down": "Falling: confirmation dropped in the second half of the window",
+        "flat": "Stable"
+      },
+      "card": {
+        "demandRate": "Demand rate",
+        "price": "Avg price",
+        "summary": "{confirmed} confirmed out of {base} with demand in the window",
+        "fieldLost": "Lost {n} time(s) to field unavailability: reserve ahead."
+      },
+      "definition": "To schedule = recurring game (facility + day + hour + field + format) whose demand rate over the last {months} months is above {rate}, with at least {sample} games with demand. Demand rate = confirmed / (confirmed + cancelled for lack of players). The list refreshes once a week ({week}).",
+      "limit": "It is not cross-checked against what is already published ahead: the list shows what is worth having, not what is missing."
     }
   }
 }

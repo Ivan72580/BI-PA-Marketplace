@@ -15,6 +15,8 @@
 //  - Con menos de 12 meses no hay estacionalidad que medir.
 // =====================================================================================
 
+import { isDemandHealthy } from "./mustSchedule";
+
 export type MonthAgg = {
   year: number;
   month: number; // 0 = enero … 11 = diciembre
@@ -30,7 +32,6 @@ export type SeasonLevel = "high" | "mid" | "low";
 export const SEASON_HIGH_INDEX = 1.1;
 export const SEASON_LOW_INDEX = 0.9;
 export const SEASON_MAX_MONTHS = 3; // una temporada agrupa como máximo un trimestre
-export const DEMAND_OK_RATE = 0.55; // mismo piso que el "sí o sí" de Daily/Trends
 export const UNAVAIL_ELEVATED_RATE = 0.1;
 export const UNAVAIL_HIGH_RATE = 0.25;
 export const TREND_WORSENING_PP = 0.05; // +5 puntos de cancha no disponible vs el año previo
@@ -202,7 +203,7 @@ export type ActionKind = "supplyLimited" | "demandLimited" | "mixed" | "healthy"
 export function classify(input: { published: number; demandRate: number | null; unavailRate: number | null; trendPp: number | null }): ActionKind {
   const { published, demandRate, unavailRate, trendPp } = input;
   if (published < MIN_PUBLISHED_FOR_RATE || demandRate === null || unavailRate === null) return "insufficient";
-  const demandOk = demandRate >= DEMAND_OK_RATE;
+  const demandOk = isDemandHealthy(demandRate); // mismo piso que el "sí o sí" (mustSchedule.ts)
   const unavailElevated = unavailRate >= UNAVAIL_ELEVATED_RATE || (trendPp !== null && trendPp >= TREND_WORSENING_PP && unavailRate >= UNAVAIL_ELEVATED_RATE / 2);
   if (demandOk && unavailElevated) return "supplyLimited";
   if (!demandOk && unavailElevated) return "mixed";

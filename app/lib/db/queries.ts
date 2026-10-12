@@ -44,3 +44,4 @@ export * from "./forecast";
 export * from "./facilityProfile";
 export * from "./satisfaction";
 export * from "./reports";
+export * from "./mustScheduleBoard";

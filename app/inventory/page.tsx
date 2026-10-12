@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getTranslations, getLocale } from "next-intl/server";
-import { getFilterOptions, resolveFilterNames } from "../lib/db/queries";
+import { getFilterOptions, resolveFilterNames, getMustScheduleBoard } from "../lib/db/queries";
 import { getSlotInventory, SLOT_SORTS, MIN_SLOT_SAMPLE, type Slot, type SlotSort } from "../lib/db/inventory";
 import { DAY_ORDER } from "../lib/db/shared";
 import { weekdayAbbr, weekdayPlural } from "../lib/db/weekday";
@@ -8,8 +8,9 @@ import { resolvePeriod, todayISO, type Granularity, type ResolvedPeriod } from "
 import { type SP } from "../lib/searchParams";
 import type { Locale } from "@/i18n/config";
 import FilterPanel from "../components/FilterPanel";
+import ScheduleBoard from "../components/ScheduleBoard";
 
-type InvSP = SP & { sort?: string; day?: string; limit?: string };
+type InvSP = SP & { sort?: string; day?: string; limit?: string; view?: string };
 
 const PAGE_SIZE = 36;
 const MAX_LIMIT = 300;
@@ -112,10 +113,13 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
   const limit = Math.min(MAX_LIMIT, Math.max(PAGE_SIZE, Number(sp.limit) || PAGE_SIZE));
   const filters = { regionId: sp.regionId, marketId: sp.marketId, facilityId: sp.facilityId, dateFrom: period.dateFrom, dateTo: period.dateTo };
 
-  const [names, filterOptions, inv] = await Promise.all([
+  const view: "slots" | "schedule" = sp.view === "schedule" ? "schedule" : "slots";
+  const [names, filterOptions, inv, board] = await Promise.all([
     resolveFilterNames(sp),
     getFilterOptions(),
-    getSlotInventory(filters, { sort, limit, dayOfWeek: day }),
+    view === "slots" ? getSlotInventory(filters, { sort, limit, dayOfWeek: day }) : Promise.resolve(null),
+    // "A agendar" ignora el período: siempre mira la ventana reciente de 3 meses (ver mustSchedule.ts).
+    view === "schedule" ? getMustScheduleBoard({ regionId: sp.regionId, marketId: sp.marketId, facilityId: sp.facilityId }) : Promise.resolve(null),
   ]);
   const hasFilter = Boolean(sp.regionId || sp.marketId || sp.facilityId);
   const scope = names.facilityName ?? names.marketName ?? names.regionName ?? t("allNetwork");
@@ -125,7 +129,13 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
     <div>
       <div className="mb-5">
         <h1 className="font-display text-3xl font-bold text-ink">{t("title")}</h1>
-        <div className="text-sm text-ink-faint mt-1">{t("subtitle", { scope, period: period.label })}</div>
+        <div className="text-sm text-ink-faint mt-1">
+          {view === "schedule" ? t("schedule.subtitle", { scope }) : t("subtitle", { scope, period: period.label })}
+        </div>
+        <div className="mt-3 inline-flex items-center rounded-full bg-surface-sunken p-1 text-sm font-medium gap-1">
+          <Link href={href(sp, { view: undefined, limit: undefined })} className={`px-4 py-1.5 rounded-full transition-colors ${view === "slots" ? "bg-brand text-white shadow-sm" : "text-ink-muted hover:text-ink"}`}>{t("views.slots")}</Link>
+          <Link href={href(sp, { view: "schedule", limit: undefined, sort: undefined })} className={`px-4 py-1.5 rounded-full transition-colors ${view === "schedule" ? "bg-brand text-white shadow-sm" : "text-ink-muted hover:text-ink"}`}>{t("views.schedule")}</Link>
+        </div>
       </div>
 
       <FilterPanel
@@ -137,6 +147,16 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
       />
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4 text-xs">
+        {view === "schedule" && (
+          <div className="flex flex-wrap items-center gap-1">
+            <span className="text-ink-faint mr-1">{t("schedule.regionLabel")}</span>
+            <Link href={href(sp, { regionId: undefined, marketId: undefined, facilityId: undefined })} className={`rounded-full px-2.5 py-1 ${!sp.regionId ? "bg-brand text-white" : "bg-surface text-ink-muted hover:text-ink"}`}>{t("allDays")}</Link>
+            {filterOptions.regions.map((r: { id: string; name: string }) => (
+              <Link key={r.id} href={href(sp, { regionId: r.id, marketId: undefined, facilityId: undefined })} className={`rounded-full px-2.5 py-1 ${sp.regionId === r.id ? "bg-brand text-white" : "bg-surface text-ink-muted hover:text-ink"}`}>{r.name}</Link>
+            ))}
+          </div>
+        )}
+        {view === "slots" && (
         <div className="flex flex-wrap items-center gap-1">
           <span className="text-ink-faint mr-1">{t("sortLabel")}</span>
           {SLOT_SORTS.map((s) => (
@@ -146,6 +166,7 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
             </Link>
           ))}
         </div>
+        )}
         <div className="flex flex-wrap items-center gap-1">
           <span className="text-ink-faint mr-1">{t("dayLabel")}</span>
           <Link href={href(sp, { day: undefined, limit: undefined })} className={`rounded-full px-2.5 py-1 ${!day ? "bg-brand text-white" : "bg-surface text-ink-muted hover:text-ink"}`}>{t("allDays")}</Link>
@@ -155,7 +176,9 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
         </div>
       </div>
 
-      {inv.slots.length === 0 ? (
+      {view === "schedule" ? (
+        <ScheduleBoard board={board} t={t2} locale={locale} day={day} />
+      ) : !inv ? null : inv.slots.length === 0 ? (
         <div className="rounded-2xl bg-surface shadow-sm p-8 text-center text-sm text-ink-muted mt-4">
           {sort === "rateAsc" || sort === "rateDesc" || sort === "fillAsc" ? t("emptyRated", { min: MIN_SLOT_SAMPLE }) : t("empty")}
         </div>
@@ -179,13 +202,13 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
         </>
       )}
 
-      {inv.truncated && <p className="mt-4 text-xs text-warning">{t("truncated")}</p>}
-      {inv.unknownFieldSlots > 0 && <p className="mt-2 text-xs text-ink-faint">{t("unknownFieldFootnote", { n: inv.unknownFieldSlots })}</p>}
+      {inv?.truncated && <p className="mt-4 text-xs text-warning">{t("truncated")}</p>}
+      {inv && inv.unknownFieldSlots > 0 && <p className="mt-2 text-xs text-ink-faint">{t("unknownFieldFootnote", { n: inv.unknownFieldSlots })}</p>}
       <p className="mt-2 text-xs text-ink-faint flex flex-wrap items-center gap-x-3">
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-accent" aria-hidden="true" />{t("legend.confirmed")}</span>
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-danger" aria-hidden="true" />{t("legend.cancelled")}</span>
       </p>
-      <p className="mt-2 text-xs text-ink-faint">{t("definition")}</p>
+      {view === "slots" && <p className="mt-2 text-xs text-ink-faint">{t("definition")}</p>}
     </div>
   );
 }
