@@ -15,7 +15,8 @@ import { buildWhere, average, stdDev, linearRegression, type OverviewFilters } f
 //
 // "Semana"/"mes" acá son ventanas RODANTES desde hoy (próximos 7 / 30 días),
 // no el mes calendario en curso — ese ya lo cubre getMonthProjection
-// (regla de 3 sobre el mes actual). Esto es un pronóstico genuino de un
+// (ritmo por día de la semana sobre el mes actual). En la UI se rotulan
+// "Próximos 7 / 30 días" para no confundirlos con la proyección del mes de Overview. Esto es un pronóstico genuino de un
 // período que todavía no empezó, no una extrapolación del que está a mitad
 // de camino.
 

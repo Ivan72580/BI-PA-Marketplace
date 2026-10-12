@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import TopNav from "./components/TopNav";
 import UserMenu from "./components/UserMenu";
+import DataFreshness from "./components/DataFreshness";
 import AppChrome from "./components/AppChrome";
 import ModuleTracker from "./components/ModuleTracker";
 import { GlobalProvider } from "./context/GlobalContext";
@@ -43,7 +44,12 @@ export default async function RootLayout({
             <AppChrome
               topNav={
                 <TopNav
-                  userMenu={<UserMenu />}
+                  userMenu={
+                    <>
+                      <DataFreshness />
+                      <UserMenu />
+                    </>
+                  }
                   facilities={filterOptions.facilities}
                   markets={filterOptions.markets}
                   showLeadershipLink={currentUser?.canViewLeadership ?? false}

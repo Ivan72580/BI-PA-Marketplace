@@ -35,7 +35,9 @@
       "performance": "Performance",
       "market": "Markets"
     },
-    "inventory": "Inventory"
+    "inventory": "Inventory",
+    "dataThrough": "Data as of {date}",
+    "dataThroughStale": "{days} days without new data: check the import"
   },
   "FilterPanel": {
     "filterLabel": "Filter",
@@ -86,6 +88,14 @@
       "lastAdmin": "Can't remove the Admin role: this is the only remaining Admin.",
       "unauthorized": "You don't have permission to make this change.",
       "generic": "Couldn't save the change. Please try again."
+    },
+    "refreshData": {
+      "title": "Data",
+      "hint": "Data is cached up to 30 min. Use this after an exceptional import to see it right away.",
+      "button": "Refresh data now",
+      "running": "Refreshing…",
+      "ok": "Done",
+      "error": "Failed"
     }
   },
   "Daily": {
@@ -1355,8 +1365,8 @@
     "pageTitle": "Forecast",
     "subtitle": "What to expect across the network (or the chosen filter) for the coming days, based on recent historical trend — an estimate with a margin of error, not games already scheduled.",
     "allNetwork": "Whole network",
-    "rangeWeek": "Next week",
-    "rangeMonth": "Next month",
+    "rangeWeek": "Next 7 days",
+    "rangeMonth": "Next 30 days",
     "windowLabel": "Next {n} days",
     "badge": "Forecast",
     "disclaimer": "Estimate from linear regression over comparable historical blocks ({n} of the last {lookback} available) — not real data or games already scheduled. Each metric's range shows the margin of error (±1 historical standard deviation).",

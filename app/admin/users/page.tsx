@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { requireAdmin } from "../../lib/db/users";
 import { prisma } from "../../lib/db/prisma";
 import UserRoleTable from "./UserRoleTable";
+import RefreshDataButton from "./RefreshDataButton";
 
 export default async function AdminUsersPage() {
   const admin = await requireAdmin();
@@ -28,6 +29,7 @@ export default async function AdminUsersPage() {
     <div className="max-w-3xl">
       <h1 className="text-lg font-semibold text-ink mb-1">{t("usersTitle")}</h1>
       <p className="text-sm text-ink-muted mb-6">{t("usersSubtitle")}</p>
+      <RefreshDataButton />
       <UserRoleTable
         users={users.map((u) => ({
           ...u,

@@ -1,13 +1,14 @@
 import { unstable_cache } from "next/cache";
 
 // La herramienta se actualiza cuando alguien corre el import manual del CSV,
-// no en tiempo real — así que cachear resultados unos minutos es un buen
+// no en tiempo real — así que cachear resultados 30 minutos es un buen
 // balance: evita recalcular todo en cada click/pestaña/usuario, sin mostrar
-// datos desactualizados por mucho tiempo después de una sincronización nueva.
-const REVALIDATE_SECONDS = 300;
+// datos desactualizados: tras un import se puede invalidar al instante.
+const REVALIDATE_SECONDS = 1800;
 
-// Tag común para poder invalidar todo el caché de golpe con revalidateTag("games-data")
-// el día que conectemos el import a un endpoint de invalidación (ver SETUP.md).
+// Tag común para invalidar todo el caché de golpe con revalidateTag. Lo usan
+// POST /api/revalidate (llamado al terminar un import, ver scripts/lib/revalidate.ts)
+// y el botón "Actualizar datos ahora" de /admin/users.
 export const GAMES_DATA_TAG = "games-data";
 
 export function cached<Args extends unknown[], T>(

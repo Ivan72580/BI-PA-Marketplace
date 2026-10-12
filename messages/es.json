@@ -35,7 +35,9 @@
       "performance": "Rendimiento",
       "market": "Mercado"
     },
-    "inventory": "Inventario"
+    "inventory": "Inventario",
+    "dataThrough": "Datos al {date}",
+    "dataThroughStale": "Hace {days} días sin datos nuevos: revisá el import"
   },
   "FilterPanel": {
     "filterLabel": "Filtro",
@@ -86,6 +88,14 @@
       "lastAdmin": "No se puede quitar el rol de Admin: es el único Admin que queda.",
       "unauthorized": "No tenés permisos para hacer este cambio.",
       "generic": "No se pudo guardar el cambio. Probá de nuevo."
+    },
+    "refreshData": {
+      "title": "Datos",
+      "hint": "Los datos se cachean hasta 30 min. Usá esto tras un import excepcional para verlo ya.",
+      "button": "Actualizar datos ahora",
+      "running": "Actualizando…",
+      "ok": "Listo",
+      "error": "No se pudo"
     }
   },
   "Daily": {
@@ -1355,8 +1365,8 @@
     "pageTitle": "Pronóstico",
     "subtitle": "Qué esperar en la red (o en el filtro elegido) para los próximos días, según la tendencia histórica reciente — una estimación con margen de error, no partidos ya agendados.",
     "allNetwork": "Toda la red",
-    "rangeWeek": "Próxima semana",
-    "rangeMonth": "Próximo mes",
+    "rangeWeek": "Próximos 7 días",
+    "rangeMonth": "Próximos 30 días",
     "windowLabel": "Próximos {n} días",
     "badge": "Predicción",
     "disclaimer": "Estimación por regresión lineal sobre bloques históricos comparables ({n} de los últimos {lookback} disponibles) — no es un dato real ni partidos ya agendados. El rango de cada métrica muestra el margen de error (±1 desvío estándar histórico).",

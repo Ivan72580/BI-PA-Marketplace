@@ -16,6 +16,7 @@ import { parse } from "csv-parse/sync";
 import { extractFieldName } from "./lib/fieldName";
 import { categorizeCancellation } from "./lib/cancellation";
 import fs from "fs";
+import { notifyRevalidate } from "./lib/revalidate";
 
 const prisma = new PrismaClient();
 
@@ -325,6 +326,7 @@ async function main() {
   await flushBatch(); // el resto de filas que no llegó a completar un lote
 
   console.log(`Listo. Sincronizados: ${totalSynced}. Omitidos por datos incompletos: ${skipped}.`);
+  await notifyRevalidate();
 }
 
 main()

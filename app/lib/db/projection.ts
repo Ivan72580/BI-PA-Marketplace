@@ -3,6 +3,7 @@ import { cached } from "./cache";
 import { bucketOf } from "../metrics";
 import { average, buildWhere, stdDev, type OverviewFilters } from "./shared";
 import { nowInBusinessTimeZone } from "../period";
+import { getLatestDataDate } from "./freshness";
 import type { Locale } from "@/i18n/config";
 
 // `locale` con default "es" — mismo criterio que el resto de esta ronda: el
@@ -27,14 +28,18 @@ async function getMonthProjectionImpl(filters: Omit<OverviewFilters, "dateFrom" 
   const todayDay = now.getUTCDate();
   const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
 
-  const where = buildWhere({ ...filters, dateFrom: monthStart, dateTo: now });
-  const games = await prisma.game.findMany({ where, select: { status: true, cancellationCategory: true, eventRevenue: true, date: true } });
+  // Días con datos reales del mes en curso: hasta el último partido cargado en la base (el export
+  // no trae partidos de hoy, y si el import se atrasó, tampoco los de los últimos días). Se toma de
+  // la red completa (getLatestDataDate), NO del recorte filtrado: con un filtro de facility, el
+  // último partido de esa facility puede ser anterior al último día importado y subestimaría los
+  // días transcurridos. Si lo último importado es de un mes anterior (arrancó el mes y todavía no
+  // hay datos nuevos), daysElapsed = 0 y no se proyecta.
+  const latestISO = await getLatestDataDate();
+  const latest = latestISO ? new Date(`${latestISO}T00:00:00Z`) : null;
+  const daysElapsed = latest && latest.getUTCFullYear() === year && latest.getUTCMonth() === month ? Math.min(latest.getUTCDate(), todayDay) : 0;
 
-  // Días con datos reales: hasta el último partido registrado del mes (el export no
-  // trae partidos de hoy). Dividir por el día calendario de hoy contaba un día
-  // sin datos y subestimaba la proyección. Sin partidos, cae al día de hoy.
-  const lastDataDay = games.reduce((mx, g) => Math.max(mx, g.date.getUTCDate()), 0);
-  const daysElapsed = lastDataDay > 0 ? Math.min(lastDataDay, todayDay) : todayDay;
+  const where = buildWhere({ ...filters, dateFrom: monthStart, dateTo: new Date(Date.UTC(year, month, Math.max(daysElapsed, 1), 23, 59, 59)) });
+  const games = daysElapsed > 0 ? await prisma.game.findMany({ where, select: { status: true, cancellationCategory: true, eventRevenue: true, date: true } }) : [];
 
   const confirmedSoFar = games.filter((g) => g.status === "CONFIRMED").length;
   const cancelledSoFar = games.filter((g) => g.status === "CANCELLED").length;

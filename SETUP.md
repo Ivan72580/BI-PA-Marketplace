@@ -168,9 +168,11 @@ Si no bajaste ningún export nuevo ese día, el script no encuentra nada y no ha
 
 Las consultas pesadas (Overview, tabla de facilities, heatmap, etc.) ahora se cachean 5 minutos server-side — si dos personas (o dos pestañas tuyas) miran el mismo filtro dentro de esa ventana, la segunda carga es instantánea, no recalcula nada. No requiere ninguna configuración de tu parte, ya viene activo.
 
-**Importante**: como el caché dura 5 minutos, después de correr `npm run db:import` los datos nuevos pueden tardar hasta 5 minutos en reflejarse en la interfaz (no es inmediato). Si alguna vez necesitás verlo al instante después de importar, reiniciá `npm run dev` (en producción, un nuevo deploy también lo limpia).
+**Importante**: el caché dura 30 minutos, así que después de un import los datos nuevos pueden tardar hasta ese tiempo en verse. Hay tres formas de saltearlo:
 
-Si en algún momento este delay se vuelve molesto, se puede conectar el importador a un endpoint que invalide el caché apenas termina de sincronizar — quedó preparado para eso (`GAMES_DATA_TAG` en `app/lib/db/cache.ts`), pero no lo armamos todavía porque agrega una pieza más (un endpoint autenticado) que no hacía falta para esta etapa.
+1. **Automática al terminar el import** (opcional): definí `REVALIDATE_SECRET` (cualquier texto largo, el mismo valor en Vercel y en el `.env` de tu PC) y `REVALIDATE_URL=https://TU-APP.vercel.app/api/revalidate` en el `.env` de tu PC. Al final de `npm run db:import` el script avisa a la app y el caché se limpia solo. Si falta alguna de las dos variables, o el aviso falla, el import igual termina bien (solo lo informa por consola).
+2. **Manual**: en `/admin/users`, botón **Actualizar datos ahora** (solo Admin).
+3. En desarrollo local, reiniciar `npm run dev`.
 
 ## Qué quedó afuera de esta v1 (a propósito)
 
