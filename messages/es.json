@@ -1525,6 +1525,53 @@
         "avgWaitlist": "Lista de espera promedio",
         "medianLeadTime": "Lead time mediano"
       }
+    },
+    "plan": {
+      "title": "Temporadas según volumen de demanda",
+      "subtitle": "Volumen de demanda = confirmados + cancelados por falta de jugadores. El índice compara cada mes con su nivel normal (1,00) y descuenta el crecimiento del negocio, así un mes no parece alto solo por ser más reciente. Se recalcula solo con cada import.",
+      "methodCentered": "Índice ajustado por crecimiento · {n} meses completos de historia",
+      "methodProvisional": "Provisorio: con {n} meses de historia no se descuenta el crecimiento. Se afina al completar 24 meses.",
+      "insufficient": "Todavía no hay 12 meses completos de historia ({n} hasta ahora): no se puede medir estacionalidad.",
+      "indexRow": "Índice de volumen de demanda por mes (1,00 = nivel normal)",
+      "unavailRow": "Cancha no disponible, % de lo publicado (volumen perdido por falta de oferta)",
+      "noData": "Sin datos suficientes",
+      "level": {
+        "high": "Alta",
+        "mid": "Media",
+        "low": "Baja"
+      },
+      "headers": {
+        "season": "Temporada",
+        "level": "Nivel",
+        "index": "Índice",
+        "share": "% del volumen",
+        "demandRate": "Tasa de demanda",
+        "unavailRate": "Cancha no disp.",
+        "trend": "vs año previo",
+        "reading": "Lectura",
+        "facility": "Facility",
+        "month": "Mes",
+        "lost": "Partidos perdidos / año",
+        "reserveBy": "Reservar antes del"
+      },
+      "trend": {
+        "flat": "= sin cambio"
+      },
+      "action": {
+        "supplyLimited": "Oferta limitada: hay demanda y se pierde cancha. Conviene reservar con anticipación.",
+        "demandLimited": "Demanda limitada: no ampliar oferta.",
+        "mixed": "Revisar: poca demanda y también se pierde cancha.",
+        "healthy": "Sin acción.",
+        "insufficient": "Muestra insuficiente."
+      },
+      "footnote": "Lectura: demanda sana = tasa de demanda ≥ {demand}; cancha no disponible elevada = ≥ {unavail} de lo publicado, o en alza respecto del año previo. \"vs año previo\" compara el último año completo contra el anterior, en puntos porcentuales (pp).",
+      "planTitle": "Plan de reservas: próximos 3 meses",
+      "planSubtitle": "Por facility, mirando el mismo mes de los últimos años. La anticipación sugerida va de 1 a 4 semanas según cuánta cancha se perdió y si viene empeorando.",
+      "countsLine": "{supply} con oferta limitada · {mixed} para revisar · {demand} con demanda limitada",
+      "planEmpty": "Ninguna facility amerita reservar con anticipación en estos meses.",
+      "overdue": "Ya pasó la fecha: reservar ahora",
+      "weeksBefore": "{n} sem. antes",
+      "planFootnote": "Solo se ve la falta de cancha que canceló un partido ya publicado: un horario que nunca se pudo publicar no deja rastro. Depende de la categorización de cancelaciones."
     }
   },
   "Reports": {

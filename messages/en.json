@@ -1525,6 +1525,53 @@
         "avgWaitlist": "Avg. waitlist",
         "medianLeadTime": "Median lead time"
       }
+    },
+    "plan": {
+      "title": "Seasons by demand volume",
+      "subtitle": "Demand volume = confirmed + games cancelled for lack of players. The index compares each month with its normal level (1.00) and removes business growth, so a month doesn't look high just for being more recent. It recalculates itself with every import.",
+      "methodCentered": "Growth-adjusted index · {n} complete months of history",
+      "methodProvisional": "Provisional: with {n} months of history growth is not removed. It sharpens once there are 24 months.",
+      "insufficient": "There aren't 12 complete months of history yet ({n} so far): seasonality can't be measured.",
+      "indexRow": "Demand volume index by month (1.00 = normal level)",
+      "unavailRow": "Field unavailable, % of published (volume lost to lack of supply)",
+      "noData": "Not enough data",
+      "level": {
+        "high": "High",
+        "mid": "Medium",
+        "low": "Low"
+      },
+      "headers": {
+        "season": "Season",
+        "level": "Level",
+        "index": "Index",
+        "share": "% of volume",
+        "demandRate": "Demand rate",
+        "unavailRate": "Field unavail.",
+        "trend": "vs prior year",
+        "reading": "Reading",
+        "facility": "Facility",
+        "month": "Month",
+        "lost": "Games lost / year",
+        "reserveBy": "Reserve before"
+      },
+      "trend": {
+        "flat": "= no change"
+      },
+      "action": {
+        "supplyLimited": "Supply-limited: there is demand and fields are being lost. Reserve ahead.",
+        "demandLimited": "Demand-limited: don't add supply.",
+        "mixed": "Review: low demand and fields are also being lost.",
+        "healthy": "No action.",
+        "insufficient": "Not enough sample."
+      },
+      "footnote": "Reading: healthy demand = demand rate ≥ {demand}; elevated field unavailability = ≥ {unavail} of published, or rising versus the prior year. \"vs prior year\" compares the latest complete year with the one before, in percentage points (pp).",
+      "planTitle": "Reservation plan: next 3 months",
+      "planSubtitle": "Per facility, looking at the same month in past years. Suggested lead time runs from 1 to 4 weeks depending on how much field time was lost and whether it is getting worse.",
+      "countsLine": "{supply} supply-limited · {mixed} to review · {demand} demand-limited",
+      "planEmpty": "No facility needs to be reserved ahead in these months.",
+      "overdue": "Date has passed: reserve now",
+      "weeksBefore": "{n} wk before",
+      "planFootnote": "Only field loss that cancelled an already-published game is visible: a slot that could never be published leaves no trace. Depends on cancellation categorization."
     }
   },
   "Reports": {

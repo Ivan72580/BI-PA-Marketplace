@@ -6,6 +6,7 @@ import {
   getSeasonalityData,
   getMonthProjection,
   getSeasonalPattern,
+  getSeasonPlan,
   type SeasonalityMonthPoint,
   type SeasonalMonthPoint,
 } from "../lib/db/queries";
@@ -17,6 +18,7 @@ import Glossary from "../components/Glossary";
 import GroupSection from "../components/GroupSection";
 import LineChart from "../components/charts/LineChart";
 import InsightsPanel, { type PanelInsight } from "../components/InsightsPanel";
+import SeasonPlan from "../components/SeasonPlan";
 import SeasonalityCalendar, { type SeasonalityMonthCardVM } from "../components/SeasonalityCalendar";
 
 type MetricKey = "confirmedGames" | "revenue" | "cumulativeGames" | "cumulativeRevenue";
@@ -301,7 +303,7 @@ export default async function SeasonalityPage({ searchParams }: { searchParams: 
   const histMetric: HistMetricKey = isHistMetricKey(sp.histMetric) ? sp.histMetric : "confirmedGames";
   const filters = { regionId: sp.regionId, marketId: sp.marketId, facilityId: sp.facilityId };
 
-  const [names, filterOptions, data, monthProjection, seasonalPattern] = await Promise.all([
+  const [names, filterOptions, data, monthProjection, seasonalPattern, seasonPlan] = await Promise.all([
     resolveFilterNames(sp),
     getFilterOptions(),
     getSeasonalityData(filters, year),
@@ -314,6 +316,8 @@ export default async function SeasonalityPage({ searchParams }: { searchParams: 
     // este año", es "qué mes es estructuralmente más fuerte/flojo en toda
     // la historia registrada").
     getSeasonalPattern(filters, locale),
+    // Temporadas por volumen de demanda + disponibilidad + plan de reservas: tampoco depende de `year`.
+    getSeasonPlan(filters),
   ]);
 
   const hasFilter = Boolean(sp.regionId || sp.marketId || sp.facilityId);
@@ -522,6 +526,8 @@ export default async function SeasonalityPage({ searchParams }: { searchParams: 
 
         {chartIsEmpty ? <div className="text-sm text-ink-faint">{t("chart.empty")}</div> : <LineChart data={lineChartData} />}
       </GroupSection>
+
+      <SeasonPlan data={seasonPlan} />
 
       <SeasonalityCalendar
         months={cards}

@@ -14,6 +14,7 @@
 //   extended.ts       - organizador, satisfacción, demanda, lead time, precio
 //   facility.ts       - contexto, evolución temporal y tabla completa por facility
 //   seasonality.ts    - serie mensual, overlay interanual e insights
+//   seasonPlan.ts     - temporadas por volumen de demanda, disponibilidad y plan de reservas
 //   trends.ts          - series por bucket, patrones día/hora/formato, consistencia de slots, estacionalidad
 //   market.ts          - resumen y ranking por facility/market
 //   region.ts          - ranking por región (East/West), para la vista de Leadership
@@ -33,6 +34,7 @@ export * from "./projection";
 export * from "./extended";
 export * from "./facility";
 export * from "./seasonality";
+export * from "./seasonPlan";
 export * from "./format";
 export * from "./trends";
 export * from "./market";
