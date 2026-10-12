@@ -11,8 +11,8 @@ type Metric = "games" | "perField";
 // pide tráfico moderado y atribución, suficiente para una herramienta interna). Si más adelante
 // hace falta otro estilo o más volumen (MapTiler, Stadia, Mapbox...), se cambia con estas variables
 // de entorno sin tocar código. Ojo: son NEXT_PUBLIC_*, se leen al compilar.
-const TILE_URL = process.env.NEXT_PUBLIC_MAP_TILE_URL || "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
-const TILE_ATTRIBUTION =
+export const TILE_URL = process.env.NEXT_PUBLIC_MAP_TILE_URL || "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+export const TILE_ATTRIBUTION =
   process.env.NEXT_PUBLIC_MAP_ATTRIBUTION || '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
 export type ZoneMapLabels = {

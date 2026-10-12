@@ -12,6 +12,7 @@ type SP = {
   view?: string;
   group?: string;
   month?: string;
+  shareView?: string; // "map" = vista de mapa del tab Market share
   tab?: string; // deep-link a un tab puntual (ej. desde "ver detalle" en Overview)
 };
 

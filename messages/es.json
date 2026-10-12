@@ -581,7 +581,21 @@
       "byFacilityTitle": "Participación por facility",
       "byFacilitySubtitle": "{month} — % de los partidos confirmados de este market que representa cada facility. Clickeá una facility para ver su consistencia de horarios en Trends",
       "confirmedCount": "{n} confirmados",
-      "empty": "Sin partidos confirmados en este market para el mes elegido."
+      "empty": "Sin partidos confirmados en este market para el mes elegido.",
+      "map": {
+        "viewCards": "Tarjetas",
+        "viewMap": "Mapa",
+        "listTitleMarkets": "Markets",
+        "listTitleFacilities": "Facilities",
+        "clickHint": "Tocá una burbuja o un nombre para ver el detalle. El tamaño es el volumen de partidos confirmados del mes.",
+        "seeMarket": "Ver participación de sus facilities",
+        "seeFacility": "Ver detalle de la facility",
+        "approximate": "Borde punteado: ubicación aproximada (centro del ZIP o ciudad).",
+        "legendLow": "Menos partidos",
+        "legendHigh": "Más partidos",
+        "unmapped": "{n} facilities sin ubicación no aparecen en el mapa.",
+        "empty": "No hay ubicaciones para mostrar en el mapa con estos filtros."
+      }
     },
     "reputation": {
       "title": "Reputación y ranking",

@@ -4,6 +4,7 @@
 export type MapFacility = {
   id: string;
   name: string;
+  marketId: string;
   marketName: string;
   regionName: string;
   latitude: number;

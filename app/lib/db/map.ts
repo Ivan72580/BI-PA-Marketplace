@@ -21,7 +21,7 @@ type FieldRow = { facilityId: string; fieldName: string | null };
 type FacilityRow = {
   id: string;
   name: string;
-  market: { name: string; region: { name: string } };
+  market: { id: string; name: string; region: { name: string } };
   profile: {
     latitude: number | null; longitude: number | null; geoPrecision: string | null;
     city: string | null; state: string | null; postalCode: string | null;
@@ -53,7 +53,7 @@ async function getMapDataImpl(filters: OverviewFilters): Promise<MapData> {
     where: { id: { in: ids } },
     select: {
       id: true, name: true,
-      market: { select: { name: true, region: { select: { name: true } } } },
+      market: { select: { id: true, name: true, region: { select: { name: true } } } },
       profile: { select: { latitude: true, longitude: true, geoPrecision: true, city: true, state: true, postalCode: true } },
     },
   })) as unknown as FacilityRow[];
@@ -71,7 +71,7 @@ async function getMapDataImpl(filters: OverviewFilters): Promise<MapData> {
     }
     const fields = fieldsByFacility.get(f.id) ?? null;
     mapped.push({
-      id: f.id, name: f.name, marketName: f.market.name, regionName: f.market.region.name,
+      id: f.id, name: f.name, marketId: f.market.id, marketName: f.market.name, regionName: f.market.region.name,
       latitude: p.latitude, longitude: p.longitude, approximate: p.geoPrecision === "POSTAL_CODE",
       city: p.city, state: p.state, postalCode: p.postalCode,
       confirmedGames: s.confirmed, cancelledGames: s.cancelled, demandCancelledGames: s.demandCancelled, scheduledGames: s.confirmed + s.cancelled,
