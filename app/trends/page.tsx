@@ -20,6 +20,9 @@ import {
   DAY_ORDER,
   type OverviewFilters,
 } from "../lib/db/queries";
+import { getMapData } from "../lib/db/map";
+import LandingMap, { type LandingBubble } from "../components/LandingMap";
+import { MUST_SCHEDULE_MIN_RATE } from "../lib/mustSchedule";
 import { resolvePeriod, shiftAnchor, todayISO, type Granularity, type ResolvedPeriod } from "../lib/period";
 import { weekdayAbbr } from "../lib/db/weekday";
 import FilterPanel from "../components/FilterPanel";
@@ -45,6 +48,7 @@ type SP = {
   granularity?: string; period?: string; compare?: string;
   slotMonth?: string; detalleGranularity?: string; detallePeriod?: string;
   mustHoldWindow?: string; avoidWindow?: string;
+  focus?: string; // landing: market enfocado en el mini-mapa (marketId)
 };
 
 const TREND_GRANULARITIES: Granularity[] = ["year", "semester", "quarter", "month"];
@@ -269,15 +273,28 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
     ? null
     : await (async () => {
         const landingMonth = todayISO().slice(0, 7);
-        const [marketMovers, climatePoints, dayPattern, hourPattern, formatLeaderboard] = await Promise.all([
+        // Market enfocado desde el mini-mapa (solo en la landing, sin market elegido): el panel de
+        // día/horario/formato se calcula para ese market. Un focus fuera del alcance se ignora.
+        const focusMarket =
+          !hasMarket && sp.focus
+            ? filterOptions.markets.find((m: { id: string; regionId: string }) => m.id === sp.focus && (!sp.regionId || m.regionId === sp.regionId))
+            : undefined;
+        const patternFilters: Omit<OverviewFilters, "dateFrom" | "dateTo"> = focusMarket ? { regionId: focusMarket.regionId, marketId: focusMarket.id } : scopeFilters;
+        const patternScopeLabel = focusMarket?.name ?? scopeLabel;
+        const [monthY, monthM] = landingMonth.split("-").map(Number);
+        const [marketMovers, climatePoints, dayPattern, hourPattern, formatLeaderboard, mapData] = await Promise.all([
           // Rankear markets entre sí no tiene sentido una vez que ya se
           // eligió uno puntual (hasMarket) — ahí abajo solo quedan los
           // patrones de día/hora/formato, re-escopeados a ese market.
           hasMarket ? Promise.resolve([]) : getMarketConfirmationRanking(scopeFilters, landingMonth),
           getQuarterClimate(scopeFilters, locale),
-          getDayOfWeekPattern(scopeFilters, locale),
-          getHourPattern(scopeFilters),
-          getNetworkFormatLeaderboard(scopeFilters),
+          getDayOfWeekPattern(patternFilters, locale),
+          getHourPattern(patternFilters),
+          getNetworkFormatLeaderboard(patternFilters),
+          // Coordenadas de las facilities para el mini-mapa (solo hace falta sin market elegido).
+          hasMarket
+            ? Promise.resolve(null)
+            : getMapData({ ...scopeFilters, dateFrom: new Date(Date.UTC(monthY, monthM - 1, 1)), dateTo: new Date(Date.UTC(monthY, monthM, 0, 23, 59, 59)) }),
         ]);
         type MarketMeta = { id: string; name: string; regionId: string };
         const marketMeta = new Map<string, MarketMeta>(
@@ -298,6 +315,29 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
           .slice(0, 10)
           .map((f) => ({ ...f, label: f.facilityName ? `${f.label} · ${f.facilityName}` : f.label }));
         const quarterInsights = buildQuarterInsights(climatePoints, t);
+
+        // Burbujas del mini-mapa: una por market con tasa de demanda del mes (mismo ranking que arriba),
+        // ubicada en el centro (ponderado por partidos confirmados) de sus facilities con coordenadas.
+        const landingBubbles: LandingBubble[] = [];
+        if (mapData) {
+          const byMarket = new Map<string, { lat: number; lng: number; w: number; approx: number; n: number }>();
+          for (const f of mapData.zones.flatMap((z) => z.facilities)) {
+            const w = f.confirmedGames > 0 ? f.confirmedGames : 1;
+            const e = byMarket.get(f.marketId) ?? { lat: 0, lng: 0, w: 0, approx: 0, n: 0 };
+            e.lat += f.latitude * w; e.lng += f.longitude * w; e.w += w; e.n += 1; if (f.approximate) e.approx += 1;
+            byMarket.set(f.marketId, e);
+          }
+          for (const m of marketMovers) {
+            const e = byMarket.get(m.marketId);
+            const meta = marketMeta.get(m.marketId);
+            if (!e || !meta) continue;
+            landingBubbles.push({
+              key: m.marketId, label: meta.name, latitude: e.lat / e.w, longitude: e.lng / e.w,
+              games: m.totalGames, rate: m.confirmationRate, approximate: e.approx / e.n > 0.5,
+              href: buildTrendsQuery(sp, { focus: m.marketId }),
+            });
+          }
+        }
 
         return (
           <GroupSection title={t("landing.networkSectionTitle", { scope: scopeLabel })}>
@@ -360,17 +400,57 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
               </div>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-              <SectionCard title={t("landing.bestDayTitle")} subtitle={t("landing.bestDaySubtitle", { scope: scopeLabel })}>
-                <RateBarList rows={dayPattern} emptyLabel={t("rateBarEmpty")} occupancyLabel={t("landing.occupancyShort")} conversionLabel={t("landing.conversionShort")} />
-              </SectionCard>
-              <SectionCard title={t("landing.bestHourTitle")} subtitle={t("landing.bestHourSubtitle", { scope: scopeLabel, n: MIN_SAMPLE_FOR_RATE_BAR })}>
-                <RateBarList rows={hourRows} emptyLabel={t("rateBarEmpty")} occupancyLabel={t("landing.occupancyShort")} conversionLabel={t("landing.conversionShort")} />
-              </SectionCard>
-              <SectionCard title={t("landing.bestFormatTitle")} subtitle={t("landing.bestFormatSubtitle", { scope: scopeLabel, n: MIN_SAMPLE_FOR_RATE_BAR })}>
-                <RateBarList rows={formatRows} emptyLabel={t("rateBarEmpty")} />
-              </SectionCard>
-            </div>
+            {hasMarket || landingBubbles.length === 0 ? (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                <SectionCard title={t("landing.bestDayTitle")} subtitle={t("landing.bestDaySubtitle", { scope: scopeLabel })}>
+                  <RateBarList rows={dayPattern} emptyLabel={t("rateBarEmpty")} occupancyLabel={t("landing.occupancyShort")} conversionLabel={t("landing.conversionShort")} />
+                </SectionCard>
+                <SectionCard title={t("landing.bestHourTitle")} subtitle={t("landing.bestHourSubtitle", { scope: scopeLabel, n: MIN_SAMPLE_FOR_RATE_BAR })}>
+                  <RateBarList rows={hourRows} emptyLabel={t("rateBarEmpty")} occupancyLabel={t("landing.occupancyShort")} conversionLabel={t("landing.conversionShort")} />
+                </SectionCard>
+                <SectionCard title={t("landing.bestFormatTitle")} subtitle={t("landing.bestFormatSubtitle", { scope: scopeLabel, n: MIN_SAMPLE_FOR_RATE_BAR })}>
+                  <RateBarList rows={formatRows} emptyLabel={t("rateBarEmpty")} />
+                </SectionCard>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-5">
+                <SectionCard title={t("landing.map.title")} subtitle={t("landing.map.subtitle", { n: MIN_SAMPLE_FOR_RATE_BAR })}>
+                  <LandingMap bubbles={landingBubbles} selectedKey={focusMarket?.id ?? null} rateLabel={t("landing.map.rateLabel")} gamesLabel={t("landing.map.gamesLabel")} />
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-[11px] text-ink-faint">
+                    <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-brand" aria-hidden="true" />{t("landing.map.legendOk", { pct: Math.round(MUST_SCHEDULE_MIN_RATE * 100) })}</span>
+                    <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-danger" aria-hidden="true" />{t("landing.map.legendLow", { pct: Math.round(MUST_SCHEDULE_MIN_RATE * 100) })}</span>
+                    <span>{t("landing.map.sizeHint")}</span>
+                  </div>
+                </SectionCard>
+                <SectionCard
+                  title={t("landing.map.panelTitle", { scope: patternScopeLabel })}
+                  subtitle={focusMarket ? t("landing.map.panelFocusHint", { n: MIN_SAMPLE_FOR_RATE_BAR }) : t("landing.map.panelHint")}
+                  action={
+                    focusMarket ? (
+                      <div className="flex flex-col items-end gap-0.5 text-xs">
+                        <Link href={buildTrendsQuery(sp, { regionId: focusMarket.regionId, marketId: focusMarket.id, focus: undefined })} className="text-brand hover:underline">{t("landing.map.openMarket", { market: focusMarket.name })}</Link>
+                        <Link href={buildTrendsQuery(sp, { focus: undefined })} className="text-ink-faint hover:underline">{t("landing.map.clearFocus")}</Link>
+                      </div>
+                    ) : undefined
+                  }
+                >
+                  <div className="space-y-5">
+                    <div>
+                      <div className="text-xs font-semibold text-ink mb-2">{t("landing.bestDayTitle")}</div>
+                      <RateBarList rows={dayPattern} emptyLabel={t("rateBarEmpty")} occupancyLabel={t("landing.occupancyShort")} conversionLabel={t("landing.conversionShort")} />
+                    </div>
+                    <div>
+                      <div className="text-xs font-semibold text-ink mb-2">{t("landing.bestHourTitle")}</div>
+                      <RateBarList rows={hourRows} emptyLabel={t("rateBarEmpty")} occupancyLabel={t("landing.occupancyShort")} conversionLabel={t("landing.conversionShort")} />
+                    </div>
+                    <div>
+                      <div className="text-xs font-semibold text-ink mb-2">{t("landing.bestFormatTitle")}</div>
+                      <RateBarList rows={formatRows} emptyLabel={t("rateBarEmpty")} />
+                    </div>
+                  </div>
+                </SectionCard>
+              </div>
+            )}
           </GroupSection>
         );
       })();

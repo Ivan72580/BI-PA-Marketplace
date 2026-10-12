@@ -367,7 +367,21 @@
       "vsPriorRate": "vs. {pct} el mes pasado",
       "scopeNetwork": "Toda la red",
       "occupancyShort": "Ocup.",
-      "conversionShort": "Conv."
+      "conversionShort": "Conv.",
+      "map": {
+        "title": "Dónde mirar",
+        "subtitle": "Un círculo por market, este mes. Tocá uno para ver su mejor día, horario y formato al lado (mínimo {n} partidos por fila).",
+        "rateLabel": "Tasa de demanda",
+        "gamesLabel": "publicados",
+        "legendOk": "Tasa de demanda por encima de {pct}%",
+        "legendLow": "Tasa de demanda de {pct}% o menos",
+        "sizeHint": "Tamaño: partidos publicados del mes. Borde punteado: ubicación aproximada.",
+        "panelTitle": "Mejor día, horario y formato — {scope}",
+        "panelHint": "Sin market enfocado: se muestra el alcance completo. Tocá un círculo para acotarlo.",
+        "panelFocusHint": "Solo este market. Mejor = mayor tasa de demanda (mínimo {n} partidos).",
+        "openMarket": "Abrir Trends de {market} →",
+        "clearFocus": "Quitar selección"
+      }
     },
     "quarterInsight": {
       "noVariation": "{label}: sin variación relevante entre trimestres.",

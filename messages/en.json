@@ -367,7 +367,21 @@
       "vsPriorRate": "vs. {pct} last month",
       "scopeNetwork": "The whole network",
       "occupancyShort": "Occ.",
-      "conversionShort": "Conv."
+      "conversionShort": "Conv.",
+      "map": {
+        "title": "Where to look",
+        "subtitle": "One circle per market, this month. Tap one to see its best day, hour and format alongside (at least {n} games per row).",
+        "rateLabel": "Demand rate",
+        "gamesLabel": "published",
+        "legendOk": "Demand rate above {pct}%",
+        "legendLow": "Demand rate of {pct}% or less",
+        "sizeHint": "Size: games published this month. Dashed border: approximate location.",
+        "panelTitle": "Best day, hour and format — {scope}",
+        "panelHint": "No market focused: showing the full scope. Tap a circle to narrow it down.",
+        "panelFocusHint": "This market only. Best = highest demand rate (at least {n} games).",
+        "openMarket": "Open {market} Trends →",
+        "clearFocus": "Clear selection"
+      }
     },
     "quarterInsight": {
       "noVariation": "{label}: no meaningful variation between quarters.",
