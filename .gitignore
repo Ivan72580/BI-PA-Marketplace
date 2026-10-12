@@ -45,3 +45,6 @@ next-env.d.ts
 
 # logs de corridas de auto-import.ts (ver SETUP.md) — operativo, no código
 /logs
+
+# mapa de arquitectura generado (npm run map)
+/docs/architecture-map.html

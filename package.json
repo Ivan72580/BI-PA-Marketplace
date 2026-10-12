@@ -14,6 +14,7 @@
     "db:import-game-reviews": "tsx scripts/import-game-reviews.ts data/game-reviews.csv",
     "db:import-app-reviews": "tsx scripts/import-app-reviews.ts data/app-reviews.csv",
     "db:import-satisfaction": "tsx scripts/import-satisfaction.ts",
+    "map": "node scripts/architecture-map/build.mjs",
     "auto-import": "tsx scripts/auto-import.ts"
   },
   "dependencies": {
