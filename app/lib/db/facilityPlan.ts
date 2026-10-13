@@ -30,7 +30,7 @@ export type FacilityPlan = {
   gamesRead: number;
   truncated: boolean;
   slots: ClassifiedSlot[];
-  gapCount: number;
+  thinCount: number;
   week: WeekDay[];
   month: MonthPlan;
 };
@@ -71,7 +71,7 @@ async function getFacilityPlanImpl(facilityId: string, today: string): Promise<F
   }));
 
   const stats = buildSlotStats(games, from, to);
-  const { slots, gapCount } = classifySlots(stats, to, priceByFormat(games));
+  const { slots, thinCount } = classifySlots(stats, to, priceByFormat(games));
   return {
     windowFrom: from,
     windowTo: to,
@@ -79,7 +79,7 @@ async function getFacilityPlanImpl(facilityId: string, today: string): Promise<F
     gamesRead: rows.length,
     truncated: rows.length >= MAX_GAMES_READ,
     slots,
-    gapCount,
+    thinCount,
     week: buildWeekPlan(slots, today, 7),
     month: buildMonthPlan(games, from, to, today, 30),
   };

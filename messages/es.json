@@ -1462,24 +1462,6 @@
         "down": "En baja: cayó en la segunda mitad de la ventana",
         "flat": "Estable"
       },
-      "groups": {
-        "all": "Todos",
-        "consistent": {
-          "label": "Consistentes",
-          "badge": "Consistente",
-          "desc": "Alta confirmación en los últimos 3 meses y sin señales de deterioro."
-        },
-        "review": {
-          "label": "A revisar",
-          "badge": "A revisar",
-          "desc": "Todavía confirman más de {rate}, pero van a la baja o son inestables: conviene empujarlos o revisar el precio."
-        },
-        "follow": {
-          "label": "A seguir",
-          "badge": "A seguir",
-          "desc": "Se perdieron por cancha no disponible hace poco: revisarlos antes de sacarlos de la agenda."
-        }
-      },
       "card": {
         "demandRate": "Tasa de demanda",
         "fill": "Llenado",
@@ -1490,9 +1472,7 @@
         "lastSeen": "último {date}",
         "fieldUnknown": "Cancha sin identificar",
         "unknownFieldNote": "Sin identificador de cancha: puede mezclar canchas distintas del mismo día, hora y formato.",
-        "consistent": "{confirmed} de {base} ediciones confirmadas en la ventana.",
         "trendDown": "Va a la baja: de {early} a {late} entre la primera y la segunda mitad de la ventana.",
-        "unstable": "Inestable: {n} de las últimas {last} ediciones se cancelaron por falta de jugadores.",
         "priceUnknown": "Sin precio registrado en este slot: revisá precio y difusión.",
         "price": {
           "above": "Precio {price}, {pct} por encima del promedio del facility en {format} ({avg}). Probá ajustarlo o armar una promoción.",
@@ -1500,19 +1480,24 @@
           "below": "Precio {price}, {pct} por debajo del promedio del facility en {format} ({avg}). Es poco probable que el precio sea el problema."
         },
         "followLost": "{n, plural, one {Se perdió # vez} other {Se perdió # veces}} por cancha no disponible.",
-        "followHealthy": "Cuando se juega, la demanda es sana ({rate} en {base} ediciones): lo que falla es la cancha. Confirmá la reserva con el facility antes de sacarlo de la agenda.",
-        "followWeak": "Hay pocas ediciones jugadas ({base}) para medir la demanda, pero la cancha falló varias veces: reservala y mirá cómo responde antes de decidir.",
+        "followHealthy": "Cuando se juega, la demanda es sana: lo que falla es la cancha. Reservala con anticipación y confirmá con el facility antes de sacarlo de la agenda.",
+        "followWeak": "Hay pocas ediciones jugadas para medir la demanda, pero la cancha falló varias veces: reservala y mirá cómo responde antes de decidir.",
         "followRefs": "Cancelaciones consideradas:",
-        "noReason": "Sin motivo registrado"
+        "noReason": "Sin motivo registrado",
+        "green": "{confirmed} de {base} ediciones confirmadas: confirma sin problemas.",
+        "amber": "Variable: {confirmed} de {base} ediciones confirmadas; {n} de las últimas {last} se cancelaron por falta de jugadores. No alcanza para darlo por asegurado ni para sacarlo: seguilo y empujá la confirmación.",
+        "red": "Confirma poco ({confirmed} de {base} ediciones): no conviene contar con este slot. Antes de sacarlo, revisá precio y horario.",
+        "gray": "Pocas ediciones jugadas ({base}): todavía no hay una tasa confiable.",
+        "recentLow": "El promedio de 3 meses es {rate}, pero la segunda mitad de la ventana quedó en {late}: lo más reciente rinde menos."
       },
       "week": {
         "title": "Calendario de la semana",
         "subtitle": "Qué debería estar agendado cada día según los últimos {months} meses del facility ({from} → {to}). Es una referencia histórica por slot: la base no trae los partidos ya publicados.",
-        "stripLegend": "Cada fecha muestra cuántos slots le tocan de cada grupo: verde consistentes, ámbar a revisar, gris a seguir.",
         "empty": "Este facility no tiene slots recurrentes en estos grupos.",
-        "gap": "{n, plural, one {# slot con tasa entre {min} y {reviewRate} y tendencia a la baja no aparece en ningún grupo.} other {# slots con tasa entre {min} y {reviewRate} y tendencia a la baja no aparecen en ningún grupo.}}",
-        "definition": "Consistente: tasa de demanda mayor a {min} con al menos {sample} ediciones y sin deterioro (misma definición del sí o sí). A revisar: tasa mayor a {reviewRate} y a la baja ({delta} puntos o más entre la primera y la segunda mitad de la ventana) o inestable ({cancelled} o más cancelaciones por demanda en las últimas {last} ediciones). A seguir: cancha no disponible en los últimos {days} días, con demanda sana o, si hay poca muestra, al menos dos pérdidas. Un slot cae en un solo grupo (prioridad: a seguir, a revisar, consistente). Tasa de demanda = confirmados / (confirmados + cancelados por falta de jugadores).",
-        "limit": "La base no incluye partidos futuros: el calendario dice qué conviene tener, no qué falta publicar."
+        "definition": "Semáforo por tasa de demanda del slot en la ventana, con al menos {sample} ediciones. Verde: {green} o más (confirma sin problemas); si lo más reciente de la ventana cayó por debajo de {green}, pasa a ámbar. Ámbar: entre {floor} y {green} (variable: ni asegurado ni para sacar). Rojo: {floor} o menos. Asegurar cancha: se perdió por cancha no disponible en los últimos {days} días, con demanda sana o, si hay poca muestra, al menos dos pérdidas; es una marca aparte del color. La tendencia es la diferencia de {delta} puntos o más entre la primera y la segunda mitad de la ventana. Tasa de demanda = confirmados / (confirmados + cancelados por falta de jugadores). El contexto de cada tarjeta muestra las últimas {last} ediciones.",
+        "limit": "La base no incluye partidos futuros: el calendario dice qué conviene tener, no qué falta publicar.",
+        "stripSecure": "{n} asegurar",
+        "thin": "{n, plural, one {# slot con menos de {min} ediciones no se clasifica.} other {# slots con menos de {min} ediciones no se clasifican.}}"
       },
       "month": {
         "title": "Panorama de los próximos 30 días",
@@ -1538,9 +1523,9 @@
         "matrix": {
           "title": "Horarios por día",
           "legend": {
-            "easy": "Fácil de confirmar (≥{easy})",
-            "ok": "Normal",
-            "risk": "Riesgo (≤{floor} o cayendo)",
+            "green": "Verde: confirma sin problemas (≥{green})",
+            "amber": "Ámbar: precaución ({floor} a {green})",
+            "red": "Rojo: riesgo (≤{floor})",
             "thin": "Poca muestra (<{min})"
           },
           "fieldLost": "{n} por cancha no disponible",
@@ -1548,12 +1533,12 @@
         },
         "easy": {
           "title": "Horarios fáciles de confirmar",
-          "empty": "Ningún horario llega a {easy} con muestra suficiente."
+          "empty": "Ningún horario llega a {green} con muestra suficiente."
         },
         "risk": {
           "title": "Dónde cuidar la confirmación",
           "empty": "Ninguna combinación día + horario muestra riesgo con muestra suficiente.",
-          "note": "Combinaciones con tasa de {floor} o menos, o que vienen cayendo con tasa menor a {easy}. Las cancelaciones por cancha no disponible no entran en la tasa."
+          "note": "Combinaciones día + horario en ámbar ({floor} a {green}) o rojo ({floor} o menos), las rojas primero. Las cancelaciones por cancha no disponible no entran en la tasa."
         },
         "context": {
           "title": "Qué esperar, con contexto",
@@ -1573,9 +1558,6 @@
         }
       },
       "insights": {
-        "review": "{n, plural, one {# slot a revisar esta semana} other {# slots a revisar esta semana}}; el más flojo es {day} {time} ({rate} de demanda).",
-        "follow": "{n, plural, one {# slot a seguir} other {# slots a seguir}}: perdieron partidos por cancha no disponible hace poco. Confirmá la reserva antes de sacarlos de la agenda.",
-        "consistent": "{n, plural, one {# slot consistente} other {# slots consistentes}} esta semana: son los que no conviene dejar sin publicar.",
         "days": "Los {best} son el día más sólido ({bestRate}) y los {worst} el más flojo ({worstRate}); el promedio del facility es {avg}.",
         "weakDay": "Los {worst} son el punto débil ({worstRate} de demanda contra {avg} del facility).",
         "risk": "{n, plural, one {# combinación día + horario en riesgo} other {# combinaciones día + horario en riesgo}}; empezá por {day} {time}.",
@@ -1585,7 +1567,41 @@
           "mid": "{month} suele ser temporada media para este facility (índice {index}): demanda en su nivel normal.",
           "low": "{month} suele ser temporada baja para este facility (índice {index}): conviene esperar menos demanda que lo normal."
         },
-        "noSeason": "Todavía no hay historia para medir la estacionalidad de este facility (12 meses completos; hay {n})."
+        "noSeason": "Todavía no hay historia para medir la estacionalidad de este facility (12 meses completos; hay {n}).",
+        "secure": "{n, plural, one {# slot para asegurar la cancha} other {# slots para asegurar la cancha}}: perdieron partidos por cancha no disponible hace poco. Reservalos con anticipación.",
+        "amber": "{n, plural, one {# slot en precaución} other {# slots en precaución}}: confirman entre 55 % y 75 %, ni para dar por asegurados ni para sacar. Seguilos y empujá la confirmación.",
+        "red": "{n, plural, one {# slot en rojo} other {# slots en rojo}}: confirman poco, no cuentes con ellos.",
+        "green": "{n, plural, one {# slot en verde} other {# slots en verde}} esta semana: confirman sin problemas, no conviene dejarlos sin publicar."
+      },
+      "filters": {
+        "all": "Todos"
+      },
+      "lights": {
+        "green": {
+          "label": "Verde",
+          "short": "Confirma sin problemas",
+          "desc": "Tasa de demanda de {green} o más: la expectativa es confiable."
+        },
+        "amber": {
+          "label": "Ámbar",
+          "short": "Precaución",
+          "desc": "Tasa entre {floor} y {green}: variable. No alcanza para darlo por asegurado ni para sacarlo."
+        },
+        "red": {
+          "label": "Rojo",
+          "short": "Riesgo",
+          "desc": "Tasa de {floor} o menos: no conviene contar con este slot."
+        },
+        "gray": {
+          "label": "Sin tasa",
+          "short": "Poca muestra",
+          "desc": "Pocas ediciones jugadas."
+        }
+      },
+      "secure": {
+        "label": "Asegurar cancha",
+        "badge": "Asegurar cancha",
+        "desc": "Se perdió por cancha no disponible en los últimos {days} días: conviene reservar la cancha con anticipación."
       }
     }
   },

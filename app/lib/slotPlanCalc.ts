@@ -1,9 +1,9 @@
 import { bucketOf } from "./metrics";
-import { MUST_SCHEDULE_MIN_SAMPLE, isDemandHealthy, qualifiesMustSchedule } from "./mustSchedule";
+import { MUST_SCHEDULE_MIN_SAMPLE, isDemandHealthy } from "./mustSchedule";
 
 // =====================================================================================
 // Cálculo puro (sin base de datos) del plan por facility de Pronóstico:
-//  - "Próximos 7 días": qué slots deberían estar agendados cada fecha, en tres grupos.
+//  - "Próximos 7 días": qué slots deberían estar agendados cada fecha, con un semáforo.
 //  - "Próximos 30 días": qué días y horarios son más sólidos, cuáles riesgosos.
 //
 // Todo parte de la misma foto: los partidos de la facility en la ventana reciente (3 meses,
@@ -12,24 +12,26 @@ import { MUST_SCHEDULE_MIN_SAMPLE, isDemandHealthy, qualifiesMustSchedule } from
 // falta de jugadores). Cancha no disponible y cancelaciones operativas quedan fuera de la
 // tasa y se cuentan aparte.
 //
-// Los tres grupos (un slot cae en uno solo, en este orden de prioridad):
-//   A SEGUIR     Se perdió por cancha no disponible hace poco y vale la pena revisarlo antes
-//                de sacarlo de la agenda (ver `isWorthFollowing`).
-//   A REVISAR    Todavía confirma (> REVIEW_MIN_RATE) pero va a la baja o es inestable:
-//                conviene empujarlo o revisar el precio antes de que caiga.
-//   CONSISTENTE  Es "sí o sí" (mustSchedule.ts) y no muestra deterioro.
+// SEMÁFORO (por tasa de demanda del slot, con al menos MUST_SCHEDULE_MIN_SAMPLE ediciones):
+//   VERDE   tasa >= GREEN_MIN_RATE (75 %): confirma sin problemas; la expectativa es confiable.
+//   ÁMBAR   tasa entre el piso del sí o sí (55 %) y 75 %: variable. No alcanza para darlo por
+//           asegurado ni para sacarlo: conviene seguirlo y empujar la confirmación.
+//   ROJO    tasa <= 55 %: no conviene contar con él.
+//   Un verde se degrada a ámbar si la segunda mitad de la ventana (lo más reciente) cayó por
+//   debajo de 75 %: el promedio de 3 meses ya no describe cómo se comporta hoy.
+//
+// ASEGURAR CANCHA (marca aparte, independiente del color): el slot se perdió por cancha no
+// disponible hace poco y vale la pena reservarlo con anticipación (ver `isWorthFollowing`).
 // =====================================================================================
 
-export const REVIEW_MIN_RATE = 0.6; // piso de "a revisar" (ver nota del hueco 55–60 % en la UI)
+export const GREEN_MIN_RATE = 0.75; // verde: confirma sin problemas (la expectativa es confiable)
 export const TREND_DELTA = 0.1; // 10 puntos entre la primera y la segunda mitad de la ventana
 export const TREND_MIN_HALF_BASE = 2; // partidos con base de demanda mínimos en cada mitad para hablar de tendencia
-export const UNSTABLE_LOOKBACK = 6; // últimas N ediciones del slot que se miran para "inestable"
-export const UNSTABLE_MIN_CANCELLED = 2; // cancelaciones por demanda dentro de esas N
+export const RECENT_EDITIONS = 6; // últimas N ediciones del slot que se muestran como contexto
 export const FOLLOW_RECENT_DAYS = 28; // la última pérdida por cancha tiene que ser de las últimas 4 semanas
 export const FOLLOW_MIN_LOSSES_WEAK_EVIDENCE = 2; // con poca muestra de demanda, hace falta que sea recurrente
 export const PRICE_ABOVE_AVG_PCT = 0.1; // precio del slot 10 % sobre el promedio del facility en ese formato
 export const CELL_MIN_BASE = MUST_SCHEDULE_MIN_SAMPLE; // muestra mínima de una celda día × horario
-export const EASY_MIN_RATE = 0.7; // "fácil de confirmar"
 export const DAY_TIER_DELTA = 0.05; // un día es mejor/peor si se aleja 5 puntos de la tasa del facility
 export const DAY_MIN_BASE = 6; // muestra mínima para comparar días de la semana
 
@@ -48,7 +50,9 @@ export type PlanGame = {
 };
 
 export type Trend = "up" | "down" | "flat";
-export type SlotGroup = "follow" | "review" | "consistent";
+export type PlanFilter = "green" | "amber" | "red" | "secure"; // filtros de la vista de 7 días
+export const PLAN_FILTERS: PlanFilter[] = ["green", "amber", "red", "secure"];
+export type Light = "green" | "amber" | "red" | "gray"; // gray: poca muestra, pero con pérdidas recurrentes por cancha
 
 export type SlotStat = {
   key: string;
@@ -127,8 +131,8 @@ export type SlotMetrics = {
   earlyRate: number | null;
   lateRate: number | null;
   trend: Trend;
-  unstable: boolean;
-  recentCancelled: number; // cancelaciones por demanda en las últimas UNSTABLE_LOOKBACK ediciones
+  recentCancelled: number; // cancelaciones por demanda en las últimas RECENT_EDITIONS ediciones
+  recentEditions: number;
   fillRate: number | null;
   avgPrice: number | null;
 };
@@ -142,12 +146,12 @@ export function slotMetrics(s: SlotStat): SlotMetrics {
     earlyRate !== null && lateRate !== null
       ? lateRate - earlyRate >= TREND_DELTA ? "up" : earlyRate - lateRate >= TREND_DELTA ? "down" : "flat"
       : "flat";
-  const last = s.outcomes.slice(-UNSTABLE_LOOKBACK);
+  const last = s.outcomes.slice(-RECENT_EDITIONS);
   const recentCancelled = last.filter((o) => !o.ok).length;
   return {
     base, rate, earlyRate, lateRate, trend,
-    unstable: trend === "flat" && last.length >= UNSTABLE_LOOKBACK && recentCancelled >= UNSTABLE_MIN_CANCELLED,
     recentCancelled,
+    recentEditions: last.length,
     fillRate: s.capacity > 0 ? s.players / s.capacity : null,
     avgPrice: s.priceN > 0 ? s.priceSum / s.priceN : null,
   };
@@ -172,7 +176,8 @@ export type PriceNote = {
 
 export type ClassifiedSlot = {
   key: string;
-  group: SlotGroup;
+  light: Light;
+  secure: boolean; // asegurar cancha: se perdió hace poco por cancha no disponible y vale la pena reservarlo
   dayOfWeek: string;
   time: string;
   fieldName: string | null;
@@ -183,8 +188,8 @@ export type ClassifiedSlot = {
   earlyRate: number | null;
   lateRate: number | null;
   trend: Trend;
-  unstable: boolean;
   recentCancelled: number;
+  recentEditions: number;
   fillRate: number | null;
   avgPrice: number | null;
   priceNote: PriceNote | null;
@@ -195,9 +200,16 @@ export type ClassifiedSlot = {
 
 export type Classification = {
   slots: ClassifiedSlot[];
-  /** Slots "sí o sí" con deterioro y tasa entre el piso del sí o sí y REVIEW_MIN_RATE: no caen en ningún grupo. */
-  gapCount: number;
+  /** Slots con menos de MUST_SCHEDULE_MIN_SAMPLE ediciones y sin pérdidas recurrentes por cancha: no se clasifican. */
+  thinCount: number;
 };
+
+/** Color del semáforo para una tasa y su mitad reciente (null si la muestra no alcanza). */
+export function lightOf(base: number, rate: number | null, lateRate: number | null): Light | null {
+  if (base < MUST_SCHEDULE_MIN_SAMPLE || rate === null) return null;
+  if (rate >= GREEN_MIN_RATE) return lateRate !== null && lateRate < GREEN_MIN_RATE ? "amber" : "green";
+  return isDemandHealthy(rate) ? "amber" : "red";
+}
 
 /** Precio promedio de los confirmados del facility, por formato (clave "" = sin formato). */
 export function priceByFormat(games: PlanGame[]): Map<string, number> {
@@ -221,29 +233,23 @@ function priceNoteOf(avgPrice: number | null, gameSize: string | null, byFormat:
 
 export function classifySlots(stats: SlotStat[], toISO: string, byFormat: Map<string, number>): Classification {
   const slots: ClassifiedSlot[] = [];
-  let gapCount = 0;
+  let thinCount = 0;
   for (const s of stats) {
     const m = slotMetrics(s);
-    const worsening = m.trend === "down" || m.unstable;
-    let group: SlotGroup | null = null;
-    if (isWorthFollowing(s, m, toISO)) group = "follow";
-    else if (m.base >= MUST_SCHEDULE_MIN_SAMPLE && m.rate !== null && m.rate > REVIEW_MIN_RATE && worsening) group = "review";
-    else if (qualifiesMustSchedule(m.base, m.rate)) {
-      if (!worsening) group = "consistent";
-      else gapCount += 1;
-    }
-    if (!group) continue;
+    const secure = isWorthFollowing(s, m, toISO);
+    const light = lightOf(m.base, m.rate, m.lateRate) ?? (secure ? "gray" : null);
+    if (!light) { thinCount += 1; continue; }
     slots.push({
-      key: s.key, group, dayOfWeek: s.dayOfWeek, time: s.time, fieldName: s.fieldName, gameSize: s.gameSize,
+      key: s.key, light, secure, dayOfWeek: s.dayOfWeek, time: s.time, fieldName: s.fieldName, gameSize: s.gameSize,
       base: m.base, confirmed: s.confirmed, rate: m.rate, earlyRate: m.earlyRate, lateRate: m.lateRate, trend: m.trend,
-      unstable: m.unstable, recentCancelled: m.recentCancelled, fillRate: m.fillRate, avgPrice: m.avgPrice,
+      recentCancelled: m.recentCancelled, recentEditions: m.recentEditions, fillRate: m.fillRate, avgPrice: m.avgPrice,
       priceNote: priceNoteOf(m.avgPrice, s.gameSize, byFormat),
       fieldLost: s.fieldLost.slice(-6),
       recent: s.outcomes.slice(-8),
       lastDate: s.lastDate,
     });
   }
-  return { slots, gapCount };
+  return { slots, thinCount };
 }
 
 // ---------- Próximos 7 días ----------
@@ -251,14 +257,14 @@ export type WeekDay = { dateISO: string; dayOfWeek: string; slots: ClassifiedSlo
 
 /** Las próximas `days` fechas desde `todayISO` (incluida), cada una con los slots de su día de semana. */
 export function buildWeekPlan(slots: ClassifiedSlot[], todayISO: string, days = 7): WeekDay[] {
-  const order = { follow: 0, review: 1, consistent: 2 } as const;
+  const order: Record<Light, number> = { red: 0, amber: 1, gray: 2, green: 3 };
   return Array.from({ length: days }, (_, i) => {
     const dateISO = addDaysISO(todayISO, i);
     const dayOfWeek = dayNameOf(dateISO);
     return {
       dateISO,
       dayOfWeek,
-      slots: slots.filter((s) => s.dayOfWeek === dayOfWeek).sort((a, b) => a.time.localeCompare(b.time) || order[a.group] - order[b.group]),
+      slots: slots.filter((s) => s.dayOfWeek === dayOfWeek).sort((a, b) => a.time.localeCompare(b.time) || order[a.light] - order[b.light]),
     };
   });
 }
@@ -277,7 +283,7 @@ export type WeekdayStat = {
   fieldLost: number;
 };
 
-export type CellBand = "easy" | "ok" | "risk" | "thin";
+export type CellBand = "green" | "amber" | "red" | "thin";
 export type MatrixCell = { dayOfWeek: string; time: string; confirmed: number; base: number; rate: number | null; trend: Trend; fieldLost: number; band: CellBand };
 
 export type MonthPlan = {
@@ -286,8 +292,8 @@ export type MonthPlan = {
   weekdays: WeekdayStat[];
   times: string[]; // columnas de la matriz, ordenadas
   cells: MatrixCell[];
-  easyTimes: { time: string; rate: number; base: number; days: string[] }[]; // horarios fáciles de confirmar
-  riskByDay: { dayOfWeek: string; cells: MatrixCell[] }[];
+  easyTimes: { time: string; rate: number; base: number; days: string[] }[]; // horarios en verde (fáciles de confirmar)
+  riskByDay: { dayOfWeek: string; cells: MatrixCell[] }[]; // celdas en ámbar o rojo por día, las rojas primero
   fieldLostTotal: number;
   publishedTotal: number;
 };
@@ -356,9 +362,7 @@ export function buildMonthPlan(games: PlanGame[], fromISO: string, toISO: string
     const trend = trendOf(tl);
     let band: CellBand = "thin";
     if (tl.base >= CELL_MIN_BASE && rate !== null) {
-      if (!isDemandHealthy(rate) || (trend === "down" && rate <= EASY_MIN_RATE)) band = "risk";
-      else if (rate >= EASY_MIN_RATE && trend !== "down") band = "easy";
-      else band = "ok";
+      band = rate >= GREEN_MIN_RATE ? "green" : isDemandHealthy(rate) ? "amber" : "red";
     }
     cells.push({ dayOfWeek, time, confirmed: tl.confirmed, base: tl.base, rate, trend, fieldLost: tl.fieldLost, band });
   }
@@ -367,7 +371,7 @@ export function buildMonthPlan(games: PlanGame[], fromISO: string, toISO: string
   // Horarios fáciles de confirmar: se agrupa por hora del día, sumando los días en que la celda es "easy".
   const timeAcc = new Map<string, { confirmed: number; base: number; days: string[] }>();
   for (const c of cells) {
-    if (c.band !== "easy") continue;
+    if (c.band !== "green") continue;
     const a = timeAcc.get(c.time) ?? { confirmed: 0, base: 0, days: [] };
     a.confirmed += c.confirmed; a.base += c.base; a.days.push(c.dayOfWeek);
     timeAcc.set(c.time, a);
@@ -379,7 +383,7 @@ export function buildMonthPlan(games: PlanGame[], fromISO: string, toISO: string
 
   const riskByDay = ORDER.map((d) => ({
     dayOfWeek: d,
-    cells: cells.filter((c) => c.dayOfWeek === d && c.band === "risk").sort((a, b) => (a.rate ?? 1) - (b.rate ?? 1) || a.time.localeCompare(b.time)),
+    cells: cells.filter((c) => c.dayOfWeek === d && (c.band === "red" || c.band === "amber")).sort((a, b) => (a.rate ?? 1) - (b.rate ?? 1) || a.time.localeCompare(b.time)),
   })).filter((x) => x.cells.length > 0);
 
   const publishedTotal = games.length;

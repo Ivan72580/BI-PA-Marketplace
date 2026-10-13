@@ -16,7 +16,7 @@ import {
   type SeasonPlanData,
 } from "../lib/db/queries";
 import { levelOf } from "../lib/seasonPlanCalc";
-import { addDaysISO, type SlotGroup } from "../lib/slotPlanCalc";
+import { addDaysISO, PLAN_FILTERS, type PlanFilter } from "../lib/slotPlanCalc";
 import { weekdayLabel, weekdayPlural } from "../lib/db/weekday";
 import type { Locale } from "@/i18n/config";
 import { todayISO } from "../lib/period";
@@ -27,7 +27,7 @@ import InsightsPanel, { type PanelInsight } from "../components/InsightsPanel";
 import FacilityWeekPlan from "../components/FacilityWeekPlan";
 import FacilityMonthPlan, { type SeasonContext } from "../components/FacilityMonthPlan";
 
-type SP = { regionId?: string; marketId?: string; facilityId?: string; range?: string; group?: string };
+type SP = { regionId?: string; marketId?: string; facilityId?: string; range?: string; filter?: string };
 
 // Tipo mínimo del traductor — mismo criterio que Daily/Trends/Market.
 type Translator = (key: string, values?: Record<string, string | number>) => string;
@@ -129,8 +129,6 @@ function buildForecastInsights(forecast: NetworkForecast, risk: ForecastRiskFaci
   return lines;
 }
 
-const SLOT_GROUPS: SlotGroup[] = ["consistent", "review", "follow"];
-
 // Contexto estacional de los meses que toca la ventana de 30 días (hoy y hoy + 29), tomado de
 // la misma lectura de Estacionalidad pero acotada al facility.
 function buildSeasonContext(plan: SeasonPlanData | null, today: string): SeasonContext | null {
@@ -153,16 +151,16 @@ function buildSeasonContext(plan: SeasonPlanData | null, today: string): SeasonC
 function buildFacilityInsights(plan: FacilityPlan, season: SeasonContext | null, range: ForecastRange, t: Translator, locale: Locale): PanelInsight[] {
   const out: PanelInsight[] = [];
   const pct0 = (n: number | null) => (n === null ? "—" : `${(n * 100).toFixed(0)}%`);
-  const review = plan.slots.filter((s) => s.group === "review");
-  const follow = plan.slots.filter((s) => s.group === "follow");
+  const green = plan.slots.filter((s) => s.light === "green");
+  const amber = plan.slots.filter((s) => s.light === "amber");
+  const red = plan.slots.filter((s) => s.light === "red");
+  const secure = plan.slots.filter((s) => s.secure);
 
   if (range === "week") {
-    if (review.length > 0) {
-      const w = [...review].sort((a, b) => (a.rate ?? 1) - (b.rate ?? 1))[0];
-      out.push({ text: t("plan.insights.review", { n: review.length, day: weekdayLabel(w.dayOfWeek, locale), time: w.time, rate: pct0(w.rate) }), severity: "critical" });
-    }
-    if (follow.length > 0) out.push({ text: t("plan.insights.follow", { n: follow.length }), severity: "info" });
-    out.push({ text: t("plan.insights.consistent", { n: plan.slots.length - review.length - follow.length }), severity: "info" });
+    if (secure.length > 0) out.push({ text: t("plan.insights.secure", { n: secure.length }), severity: "critical" });
+    if (amber.length > 0) out.push({ text: t("plan.insights.amber", { n: amber.length }), severity: "info" });
+    if (red.length > 0) out.push({ text: t("plan.insights.red", { n: red.length }), severity: "critical" });
+    out.push({ text: t("plan.insights.green", { n: green.length }), severity: "notable" });
     return out;
   }
 
@@ -199,7 +197,7 @@ export default async function ForecastPage({ searchParams }: { searchParams: Pro
   const filters = { regionId: sp.regionId, marketId: sp.marketId, facilityId: sp.facilityId };
   const today = todayISO();
 
-  const group = SLOT_GROUPS.find((g) => g === sp.group);
+  const planFilter = PLAN_FILTERS.find((f) => f === sp.filter);
 
   const [names, filterOptions, forecast, riskFacilities, facilityPlan, seasonRaw] = await Promise.all([
     resolveFilterNames(sp),
@@ -212,7 +210,7 @@ export default async function ForecastPage({ searchParams }: { searchParams: Pro
   ]);
   const seasonContext = buildSeasonContext(seasonRaw, today);
   // Los links del plan conservan el facility y vuelven siempre a la vista de 7 días.
-  const weekHrefFor = (g: SlotGroup | undefined) => buildForecastQuery(sp, { range: undefined, group: g });
+  const weekHrefFor = (f: PlanFilter | undefined) => buildForecastQuery(sp, { range: undefined, filter: f });
 
   const hasFilter = Boolean(sp.regionId || sp.marketId || sp.facilityId);
   const rangeLabelKey = range === "week" ? "rangeWeek" : "rangeMonth";
@@ -355,7 +353,7 @@ export default async function ForecastPage({ searchParams }: { searchParams: Pro
       {sp.facilityId && (
         facilityPlan ? (
           range === "week" ? (
-            <FacilityWeekPlan plan={facilityPlan} t={t} locale={locale} group={group} hrefFor={weekHrefFor} />
+            <FacilityWeekPlan plan={facilityPlan} t={t} locale={locale} filter={planFilter} hrefFor={weekHrefFor} />
           ) : (
             <FacilityMonthPlan plan={facilityPlan} season={seasonContext} t={t} locale={locale} weekHrefFor={weekHrefFor} />
           )

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { weekdayAbbr, weekdayLabel, weekdayPlural } from "../lib/db/weekday";
 import type { FacilityPlan } from "../lib/db/facilityPlan";
-import { CELL_MIN_BASE, DAY_MIN_BASE, EASY_MIN_RATE, type CellBand, type SlotGroup, type Trend } from "../lib/slotPlanCalc";
+import { CELL_MIN_BASE, DAY_MIN_BASE, GREEN_MIN_RATE, type CellBand, type PlanFilter, type Trend } from "../lib/slotPlanCalc";
 import { MUST_SCHEDULE_MIN_RATE, MUST_SCHEDULE_WINDOW_MONTHS } from "../lib/mustSchedule";
 import type { Locale } from "@/i18n/config";
 
@@ -23,11 +23,12 @@ const pct = (n: number | null) => (n === null ? "—" : `${(n * 100).toFixed(0)}
 const TREND_GLYPH: Record<Trend, string> = { up: "▲", down: "▼", flat: "▬" };
 const TREND_TONE: Record<Trend, string> = { up: "text-brand", down: "text-danger", flat: "text-ink-faint" };
 const BAND_TONE: Record<CellBand, string> = {
-  easy: "bg-brand-soft text-brand",
-  ok: "bg-surface-sunken text-ink",
-  risk: "bg-danger-soft text-danger",
+  green: "bg-brand-soft text-brand",
+  amber: "bg-warning-soft text-warning",
+  red: "bg-danger-soft text-danger",
   thin: "text-ink-faint",
 };
+const BAND_DOT: Record<CellBand, string> = { green: "bg-accent", amber: "bg-warning", red: "bg-danger", thin: "bg-surface-sunken border border-border" };
 const TIER_TONE = { better: "bg-brand-soft text-brand", weaker: "bg-warning-soft text-warning", typical: "", insufficient: "text-ink-faint" } as const;
 
 function shortDate(iso: string, locale: Locale) {
@@ -37,10 +38,10 @@ function monthName(month: number, locale: Locale) {
   return new Date(Date.UTC(2026, month, 1)).toLocaleDateString(locale === "en" ? "en-US" : "es-AR", { month: "long", timeZone: "UTC" });
 }
 
-function Tile({ label, value, note, href }: { label: string; value: string; note?: string; href?: string }) {
+function Tile({ label, value, note, href, dot }: { label: string; value: string; note?: string; href?: string; dot?: string }) {
   const body = (
     <div className="rounded-xl bg-surface-sunken p-3 h-full">
-      <div className="text-xs text-ink-faint mb-1">{label}</div>
+      <div className="text-xs text-ink-faint mb-1 flex items-center gap-1.5">{dot && <i className={`inline-block h-2.5 w-2.5 rounded-full ${dot}`} aria-hidden="true" />}{label}</div>
       <div className="font-display text-lg font-bold text-ink">{value}</div>
       {note && <div className="text-[11px] text-ink-muted mt-0.5">{note}</div>}
     </div>
@@ -55,10 +56,10 @@ export default function FacilityMonthPlan({
   season: SeasonContext | null;
   t: T;
   locale: Locale;
-  weekHrefFor: (g: SlotGroup | undefined) => string;
+  weekHrefFor: (f: PlanFilter | undefined) => string;
 }) {
   const m = plan.month;
-  const counts = (g: SlotGroup) => plan.slots.filter((s) => s.group === g).length;
+  const counts = (f: PlanFilter) => plan.slots.filter((s) => (f === "secure" ? s.secure : s.light === f)).length;
   const better = m.weekdays.filter((d) => d.tier === "better");
   const weaker = m.weekdays.filter((d) => d.tier === "weaker");
   const names = (ds: typeof better) => ds.map((d) => weekdayPlural(d.dayOfWeek, locale)).join(", ");
@@ -73,11 +74,12 @@ export default function FacilityMonthPlan({
         </p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         <Tile label={t("plan.month.tiles.rate")} value={pct(overall)} note={t("plan.month.tiles.rateNote", { base: m.overallBase })} />
-        <Tile label={t("plan.groups.consistent.label")} value={String(counts("consistent"))} note={t("plan.month.tiles.openWeek")} href={weekHrefFor("consistent")} />
-        <Tile label={t("plan.groups.review.label")} value={String(counts("review"))} note={t("plan.month.tiles.openWeek")} href={weekHrefFor("review")} />
-        <Tile label={t("plan.groups.follow.label")} value={String(counts("follow"))} note={t("plan.month.tiles.openWeek")} href={weekHrefFor("follow")} />
+        <Tile label={t("plan.lights.green.label")} value={String(counts("green"))} note={t("plan.month.tiles.openWeek")} href={weekHrefFor("green")} dot={BAND_DOT.green} />
+        <Tile label={t("plan.lights.amber.label")} value={String(counts("amber"))} note={t("plan.month.tiles.openWeek")} href={weekHrefFor("amber")} dot={BAND_DOT.amber} />
+        <Tile label={t("plan.lights.red.label")} value={String(counts("red"))} note={t("plan.month.tiles.openWeek")} href={weekHrefFor("red")} dot={BAND_DOT.red} />
+        <Tile label={t("plan.secure.label")} value={String(counts("secure"))} note={t("plan.month.tiles.openWeek")} href={weekHrefFor("secure")} />
       </div>
 
       {/* Días de la semana */}
@@ -115,10 +117,10 @@ export default function FacilityMonthPlan({
         <div>
           <h4 className="text-sm font-medium text-ink">{t("plan.month.matrix.title")}</h4>
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-ink-muted my-2">
-            {(["easy", "ok", "risk", "thin"] as CellBand[]).map((b) => (
+            {(["green", "amber", "red", "thin"] as CellBand[]).map((b) => (
               <span key={b} className="inline-flex items-center gap-1.5">
-                <i className={`inline-block h-3 w-3 rounded ${BAND_TONE[b]} ${b === "thin" ? "border border-border" : ""}`} />
-                {t(`plan.month.matrix.legend.${b}`, { easy: pct(EASY_MIN_RATE), floor: pct(MUST_SCHEDULE_MIN_RATE), min: CELL_MIN_BASE })}
+                <i className={`inline-block h-3 w-3 rounded-full ${BAND_DOT[b]}`} />
+                {t(`plan.month.matrix.legend.${b}`, { green: pct(GREEN_MIN_RATE), floor: pct(MUST_SCHEDULE_MIN_RATE), min: CELL_MIN_BASE })}
               </span>
             ))}
           </div>
@@ -159,7 +161,7 @@ export default function FacilityMonthPlan({
         <div>
           <h4 className="text-sm font-medium text-ink mb-2">{t("plan.month.easy.title")}</h4>
           {m.easyTimes.length === 0 ? (
-            <p className="text-sm text-ink-faint">{t("plan.month.easy.empty", { easy: pct(EASY_MIN_RATE) })}</p>
+            <p className="text-sm text-ink-faint">{t("plan.month.easy.empty", { green: pct(GREEN_MIN_RATE) })}</p>
           ) : (
             <ul className="space-y-1.5">
               {m.easyTimes.map((e) => (
@@ -184,14 +186,14 @@ export default function FacilityMonthPlan({
                   {r.cells.map((c, i) => (
                     <span key={c.time} className="text-ink-muted">
                       {i > 0 && ", "}
-                      <span className="font-semibold text-danger">{c.time}</span> <span className="text-xs tabular-nums">{pct(c.rate)}</span>{c.trend === "down" && <span className="text-danger text-[10px]"> ▼</span>}
+                      <span className={`font-semibold ${c.band === "red" ? "text-danger" : "text-warning"}`}>{c.time}</span> <span className="text-xs tabular-nums">{pct(c.rate)}</span>{c.trend === "down" && <span className="text-danger text-[10px]"> ▼</span>}
                     </span>
                   ))}
                 </li>
               ))}
             </ul>
           )}
-          <p className="text-[11px] text-ink-faint mt-2">{t("plan.month.risk.note", { floor: pct(MUST_SCHEDULE_MIN_RATE), easy: pct(EASY_MIN_RATE) })}</p>
+          <p className="text-[11px] text-ink-faint mt-2">{t("plan.month.risk.note", { floor: pct(MUST_SCHEDULE_MIN_RATE), green: pct(GREEN_MIN_RATE) })}</p>
         </div>
       </div>
 
