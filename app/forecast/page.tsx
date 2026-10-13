@@ -5,19 +5,29 @@ import {
   resolveFilterNames,
   getNetworkForecast,
   getForecastRiskFacilities,
+  getFacilityPlan,
+  getSeasonPlan,
   LOOKBACK_BLOCKS,
   MIN_BLOCKS_FOR_PREDICTION,
   type ForecastRange,
   type NetworkForecast,
   type ForecastRiskFacility,
+  type FacilityPlan,
+  type SeasonPlanData,
 } from "../lib/db/queries";
+import { levelOf } from "../lib/seasonPlanCalc";
+import { addDaysISO, type SlotGroup } from "../lib/slotPlanCalc";
+import { weekdayLabel, weekdayPlural } from "../lib/db/weekday";
+import type { Locale } from "@/i18n/config";
 import { todayISO } from "../lib/period";
 import FilterPanel from "../components/FilterPanel";
 import ChangeBadge from "../components/ChangeBadge";
 import Glossary from "../components/Glossary";
 import InsightsPanel, { type PanelInsight } from "../components/InsightsPanel";
+import FacilityWeekPlan from "../components/FacilityWeekPlan";
+import FacilityMonthPlan, { type SeasonContext } from "../components/FacilityMonthPlan";
 
-type SP = { regionId?: string; marketId?: string; facilityId?: string; range?: string };
+type SP = { regionId?: string; marketId?: string; facilityId?: string; range?: string; group?: string };
 
 // Tipo mínimo del traductor — mismo criterio que Daily/Trends/Market.
 type Translator = (key: string, values?: Record<string, string | number>) => string;
@@ -119,19 +129,90 @@ function buildForecastInsights(forecast: NetworkForecast, risk: ForecastRiskFaci
   return lines;
 }
 
+const SLOT_GROUPS: SlotGroup[] = ["consistent", "review", "follow"];
+
+// Contexto estacional de los meses que toca la ventana de 30 días (hoy y hoy + 29), tomado de
+// la misma lectura de Estacionalidad pero acotada al facility.
+function buildSeasonContext(plan: SeasonPlanData | null, today: string): SeasonContext | null {
+  if (!plan) return null;
+  const months = [...new Set([0, 29].map((n) => new Date(`${addDaysISO(today, n)}T00:00:00Z`).getUTCMonth()))];
+  return {
+    provisional: plan.method === "provisional",
+    completeMonths: plan.completeMonths,
+    hasIndex: plan.method !== null,
+    items: months.map((month) => {
+      const idx = plan.index.find((i) => i.month === month)?.index ?? null;
+      const av = plan.availability.find((a) => a.month === month);
+      return { month, index: idx, level: idx !== null ? levelOf(idx) : null, unavailRate: av?.rate ?? null, unavailTrendPp: av?.trendPp ?? null };
+    }),
+  };
+}
+
+// Insights del plan por facility: mismo criterio determinístico que el resto (texto sobre datos
+// ya calculados). Para la semana resumen los grupos; para el mes, días, estacionalidad y oferta.
+function buildFacilityInsights(plan: FacilityPlan, season: SeasonContext | null, range: ForecastRange, t: Translator, locale: Locale): PanelInsight[] {
+  const out: PanelInsight[] = [];
+  const pct0 = (n: number | null) => (n === null ? "—" : `${(n * 100).toFixed(0)}%`);
+  const review = plan.slots.filter((s) => s.group === "review");
+  const follow = plan.slots.filter((s) => s.group === "follow");
+
+  if (range === "week") {
+    if (review.length > 0) {
+      const w = [...review].sort((a, b) => (a.rate ?? 1) - (b.rate ?? 1))[0];
+      out.push({ text: t("plan.insights.review", { n: review.length, day: weekdayLabel(w.dayOfWeek, locale), time: w.time, rate: pct0(w.rate) }), severity: "critical" });
+    }
+    if (follow.length > 0) out.push({ text: t("plan.insights.follow", { n: follow.length }), severity: "info" });
+    out.push({ text: t("plan.insights.consistent", { n: plan.slots.length - review.length - follow.length }), severity: "info" });
+    return out;
+  }
+
+  const m = plan.month;
+  const better = m.weekdays.filter((d) => d.tier === "better").sort((a, b) => (b.rate ?? 0) - (a.rate ?? 0));
+  const weaker = m.weekdays.filter((d) => d.tier === "weaker").sort((a, b) => (a.rate ?? 1) - (b.rate ?? 1));
+  if (better.length > 0 && weaker.length > 0) {
+    out.push({ text: t("plan.insights.days", { best: weekdayPlural(better[0].dayOfWeek, locale), bestRate: pct0(better[0].rate), worst: weekdayPlural(weaker[0].dayOfWeek, locale), worstRate: pct0(weaker[0].rate), avg: pct0(m.overallRate) }), severity: "info" });
+  } else if (weaker.length > 0) {
+    out.push({ text: t("plan.insights.weakDay", { worst: weekdayPlural(weaker[0].dayOfWeek, locale), worstRate: pct0(weaker[0].rate), avg: pct0(m.overallRate) }), severity: "critical" });
+  }
+  const riskCells = m.riskByDay.reduce((a, r) => a + r.cells.length, 0);
+  if (riskCells > 0) {
+    const first = m.riskByDay[0];
+    out.push({ text: t("plan.insights.risk", { n: riskCells, day: weekdayLabel(first.dayOfWeek, locale), time: first.cells[0].time }), severity: "critical" });
+  }
+  if (m.publishedTotal > 0 && m.fieldLostTotal > 0) {
+    out.push({ text: t("plan.insights.supply", { n: m.fieldLostTotal, total: m.publishedTotal, pct: pct0(m.fieldLostTotal / m.publishedTotal) }), severity: m.fieldLostTotal / m.publishedTotal >= 0.1 ? "critical" : "info" });
+  }
+  const first = season?.items[0];
+  if (season && first && first.index !== null && first.level) {
+    out.push({ text: t(`plan.insights.season.${first.level}`, { month: new Date(Date.UTC(2026, first.month, 1)).toLocaleDateString(locale === "en" ? "en-US" : "es-AR", { month: "long", timeZone: "UTC" }), index: first.index.toFixed(2) }), severity: "info" });
+  } else if (season && !season.hasIndex) {
+    out.push({ text: t("plan.insights.noSeason", { n: season.completeMonths }), severity: "info" });
+  }
+  return out;
+}
+
 export default async function ForecastPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
-  const [t] = await Promise.all([getTranslations("Forecast"), getLocale()]);
+  const [t, localeRaw] = await Promise.all([getTranslations("Forecast"), getLocale()]);
+  const locale = localeRaw as Locale;
   const range: ForecastRange = sp.range === "month" ? "month" : "week";
   const filters = { regionId: sp.regionId, marketId: sp.marketId, facilityId: sp.facilityId };
   const today = todayISO();
 
-  const [names, filterOptions, forecast, riskFacilities] = await Promise.all([
+  const group = SLOT_GROUPS.find((g) => g === sp.group);
+
+  const [names, filterOptions, forecast, riskFacilities, facilityPlan, seasonRaw] = await Promise.all([
     resolveFilterNames(sp),
     getFilterOptions(),
     getNetworkForecast(filters, range, today),
     getForecastRiskFacilities(filters, range, today),
+    // Plan por facility: solo cuando hay un facility elegido. Estacionalidad solo para la vista de 30 días.
+    sp.facilityId ? getFacilityPlan(sp.facilityId) : Promise.resolve(null),
+    sp.facilityId && range === "month" ? getSeasonPlan({ facilityId: sp.facilityId }) : Promise.resolve(null),
   ]);
+  const seasonContext = buildSeasonContext(seasonRaw, today);
+  // Los links del plan conservan el facility y vuelven siempre a la vista de 7 días.
+  const weekHrefFor = (g: SlotGroup | undefined) => buildForecastQuery(sp, { range: undefined, group: g });
 
   const hasFilter = Boolean(sp.regionId || sp.marketId || sp.facilityId);
   const rangeLabelKey = range === "week" ? "rangeWeek" : "rangeMonth";
@@ -271,6 +352,18 @@ export default async function ForecastPage({ searchParams }: { searchParams: Pro
         )}
       </div>
 
+      {sp.facilityId && (
+        facilityPlan ? (
+          range === "week" ? (
+            <FacilityWeekPlan plan={facilityPlan} t={t} locale={locale} group={group} hrefFor={weekHrefFor} />
+          ) : (
+            <FacilityMonthPlan plan={facilityPlan} season={seasonContext} t={t} locale={locale} weekHrefFor={weekHrefFor} />
+          )
+        ) : (
+          <div className="rounded-2xl bg-surface shadow-sm p-5 text-sm text-ink-faint">{t("plan.noData")}</div>
+        )
+      )}
+
       {!sp.facilityId && (
         <div className="rounded-2xl bg-surface shadow-sm p-5">
           <h3 className="text-sm font-medium text-ink mb-0.5">{t("risk.title")}</h3>
@@ -301,7 +394,10 @@ export default async function ForecastPage({ searchParams }: { searchParams: Pro
         ]}
       />
 
-      <InsightsPanel title={t("insights.panelTitle")} insights={buildForecastInsights(forecast, riskFacilities, t)} />
+      <InsightsPanel
+        title={t("insights.panelTitle")}
+        insights={[...buildForecastInsights(forecast, riskFacilities, t), ...(facilityPlan ? buildFacilityInsights(facilityPlan, seasonContext, range, t, locale) : [])]}
+      />
     </div>
   );
 }

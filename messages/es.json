@@ -1453,6 +1453,140 @@
       "yoyDown": "El volumen esperado está {pct}% por debajo de lo que pasó real en el mismo período el año pasado.",
       "riskTop": "{n} facilities muestran una tendencia de deterioro proyectada — la más marcada es {name}.",
       "revenueCaveat": "El revenue esperado es el número menos confiable de este pronóstico: combina precio, jugadores y volumen, las tres inciertas."
+    },
+    "plan": {
+      "noData": "Este facility no tiene partidos en la ventana reciente: no hay base para armar el plan.",
+      "truncated": "Se alcanzó el tope de partidos leídos: el cálculo puede estar incompleto.",
+      "trend": {
+        "up": "En alza: mejoró en la segunda mitad de la ventana",
+        "down": "En baja: cayó en la segunda mitad de la ventana",
+        "flat": "Estable"
+      },
+      "groups": {
+        "all": "Todos",
+        "consistent": {
+          "label": "Consistentes",
+          "badge": "Consistente",
+          "desc": "Alta confirmación en los últimos 3 meses y sin señales de deterioro."
+        },
+        "review": {
+          "label": "A revisar",
+          "badge": "A revisar",
+          "desc": "Todavía confirman más de {rate}, pero van a la baja o son inestables: conviene empujarlos o revisar el precio."
+        },
+        "follow": {
+          "label": "A seguir",
+          "badge": "A seguir",
+          "desc": "Se perdieron por cancha no disponible hace poco: revisarlos antes de sacarlos de la agenda."
+        }
+      },
+      "card": {
+        "demandRate": "Tasa de demanda",
+        "fill": "Llenado",
+        "priceLabel": "Precio prom.",
+        "recent": "Últimas ediciones",
+        "confirmed": "confirmado",
+        "cancelled": "cancelado",
+        "lastSeen": "último {date}",
+        "fieldUnknown": "Cancha sin identificar",
+        "unknownFieldNote": "Sin identificador de cancha: puede mezclar canchas distintas del mismo día, hora y formato.",
+        "consistent": "{confirmed} de {base} ediciones confirmadas en la ventana.",
+        "trendDown": "Va a la baja: de {early} a {late} entre la primera y la segunda mitad de la ventana.",
+        "unstable": "Inestable: {n} de las últimas {last} ediciones se cancelaron por falta de jugadores.",
+        "priceUnknown": "Sin precio registrado en este slot: revisá precio y difusión.",
+        "price": {
+          "above": "Precio {price}, {pct} por encima del promedio del facility en {format} ({avg}). Probá ajustarlo o armar una promoción.",
+          "inline": "Precio {price}, en línea con el promedio del facility en {format} ({avg}). Antes de tocarlo, revisá difusión y horario.",
+          "below": "Precio {price}, {pct} por debajo del promedio del facility en {format} ({avg}). Es poco probable que el precio sea el problema."
+        },
+        "followLost": "{n, plural, one {Se perdió # vez} other {Se perdió # veces}} por cancha no disponible.",
+        "followHealthy": "Cuando se juega, la demanda es sana ({rate} en {base} ediciones): lo que falla es la cancha. Confirmá la reserva con el facility antes de sacarlo de la agenda.",
+        "followWeak": "Hay pocas ediciones jugadas ({base}) para medir la demanda, pero la cancha falló varias veces: reservala y mirá cómo responde antes de decidir.",
+        "followRefs": "Cancelaciones consideradas:",
+        "noReason": "Sin motivo registrado"
+      },
+      "week": {
+        "title": "Calendario de la semana",
+        "subtitle": "Qué debería estar agendado cada día según los últimos {months} meses del facility ({from} → {to}). Es una referencia histórica por slot: la base no trae los partidos ya publicados.",
+        "stripLegend": "Cada fecha muestra cuántos slots le tocan de cada grupo: verde consistentes, ámbar a revisar, gris a seguir.",
+        "empty": "Este facility no tiene slots recurrentes en estos grupos.",
+        "gap": "{n, plural, one {# slot con tasa entre {min} y {reviewRate} y tendencia a la baja no aparece en ningún grupo.} other {# slots con tasa entre {min} y {reviewRate} y tendencia a la baja no aparecen en ningún grupo.}}",
+        "definition": "Consistente: tasa de demanda mayor a {min} con al menos {sample} ediciones y sin deterioro (misma definición del sí o sí). A revisar: tasa mayor a {reviewRate} y a la baja ({delta} puntos o más entre la primera y la segunda mitad de la ventana) o inestable ({cancelled} o más cancelaciones por demanda en las últimas {last} ediciones). A seguir: cancha no disponible en los últimos {days} días, con demanda sana o, si hay poca muestra, al menos dos pérdidas. Un slot cae en un solo grupo (prioridad: a seguir, a revisar, consistente). Tasa de demanda = confirmados / (confirmados + cancelados por falta de jugadores).",
+        "limit": "La base no incluye partidos futuros: el calendario dice qué conviene tener, no qué falta publicar."
+      },
+      "month": {
+        "title": "Panorama de los próximos 30 días",
+        "subtitle": "Cómo rinde cada día y horario del facility según los últimos {months} meses ({from} → {to}): qué esperar y dónde mirar primero.",
+        "tiles": {
+          "rate": "Tasa de demanda del facility",
+          "rateNote": "{base} ediciones con demanda",
+          "openWeek": "Ver en próximos 7 días →"
+        },
+        "days": {
+          "title": "Días de la semana",
+          "better": "Más sólidos: {days}.",
+          "weaker": "Más flojos: {days}.",
+          "even": "Los días rinden parecido: ninguno se aleja 5 puntos del promedio del facility.",
+          "tier": {
+            "better": "Más sólido",
+            "weaker": "Más flojo",
+            "insufficient": "Poca muestra (<{min})"
+          },
+          "dates": "{n} fechas",
+          "legend": "La barra muestra la tasa de demanda; la marca vertical es el promedio del facility ({avg}). Un día es más sólido o más flojo si se aleja 5 puntos o más."
+        },
+        "matrix": {
+          "title": "Horarios por día",
+          "legend": {
+            "easy": "Fácil de confirmar (≥{easy})",
+            "ok": "Normal",
+            "risk": "Riesgo (≤{floor} o cayendo)",
+            "thin": "Poca muestra (<{min})"
+          },
+          "fieldLost": "{n} por cancha no disponible",
+          "note": "Suma todas las canchas y formatos del facility en ese día y horario. n = ediciones con demanda en la ventana."
+        },
+        "easy": {
+          "title": "Horarios fáciles de confirmar",
+          "empty": "Ningún horario llega a {easy} con muestra suficiente."
+        },
+        "risk": {
+          "title": "Dónde cuidar la confirmación",
+          "empty": "Ninguna combinación día + horario muestra riesgo con muestra suficiente.",
+          "note": "Combinaciones con tasa de {floor} o menos, o que vienen cayendo con tasa menor a {easy}. Las cancelaciones por cancha no disponible no entran en la tasa."
+        },
+        "context": {
+          "title": "Qué esperar, con contexto",
+          "level": "{level} para este facility (índice {index}){provisional}.",
+          "levels": {
+            "high": "temporada alta",
+            "mid": "temporada media",
+            "low": "temporada baja"
+          },
+          "provisional": " · provisorio: no descuenta el crecimiento",
+          "noIndex": "sin índice estacional todavía.",
+          "unavail": "En años anteriores, {rate} de lo publicado en ese mes se canceló por cancha no disponible{trend}.",
+          "unavailUp": " (+{pp} pts vs el año previo)",
+          "unavailDown": " ({pp} pts menos que el año previo)",
+          "noHistory": "Sin historial suficiente para medir estacionalidad de este facility: hacen falta 12 meses completos (hay {n}).",
+          "note": "El índice compara el volumen de demanda de ese mes con su nivel normal. Una temporada alta no garantiza confirmación: indica que se espera más demanda."
+        }
+      },
+      "insights": {
+        "review": "{n, plural, one {# slot a revisar esta semana} other {# slots a revisar esta semana}}; el más flojo es {day} {time} ({rate} de demanda).",
+        "follow": "{n, plural, one {# slot a seguir} other {# slots a seguir}}: perdieron partidos por cancha no disponible hace poco. Confirmá la reserva antes de sacarlos de la agenda.",
+        "consistent": "{n, plural, one {# slot consistente} other {# slots consistentes}} esta semana: son los que no conviene dejar sin publicar.",
+        "days": "Los {best} son el día más sólido ({bestRate}) y los {worst} el más flojo ({worstRate}); el promedio del facility es {avg}.",
+        "weakDay": "Los {worst} son el punto débil ({worstRate} de demanda contra {avg} del facility).",
+        "risk": "{n, plural, one {# combinación día + horario en riesgo} other {# combinaciones día + horario en riesgo}}; empezá por {day} {time}.",
+        "supply": "{n} de {total} partidos publicados ({pct}) se perdieron por cancha no disponible en los últimos 3 meses: ese volumen no habla de demanda.",
+        "season": {
+          "high": "{month} suele ser temporada alta para este facility (índice {index}): se espera más demanda que lo normal.",
+          "mid": "{month} suele ser temporada media para este facility (índice {index}): demanda en su nivel normal.",
+          "low": "{month} suele ser temporada baja para este facility (índice {index}): conviene esperar menos demanda que lo normal."
+        },
+        "noSeason": "Todavía no hay historia para medir la estacionalidad de este facility (12 meses completos; hay {n})."
+      }
     }
   },
   "Seasonality": {

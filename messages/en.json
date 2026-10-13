@@ -1453,6 +1453,140 @@
       "yoyDown": "Expected volume is {pct}% below what actually happened in the same period last year.",
       "riskTop": "{n} facilities show a projected declining trend — the most pronounced is {name}.",
       "revenueCaveat": "Expected revenue is the least reliable number in this forecast: it combines price, players and volume, all three uncertain."
+    },
+    "plan": {
+      "noData": "This facility has no games in the recent window, so there is nothing to build the plan from.",
+      "truncated": "The cap on games read was reached: the calculation may be incomplete.",
+      "trend": {
+        "up": "Rising: improved in the second half of the window",
+        "down": "Falling: dropped in the second half of the window",
+        "flat": "Stable"
+      },
+      "groups": {
+        "all": "All",
+        "consistent": {
+          "label": "Consistent",
+          "badge": "Consistent",
+          "desc": "High confirmation over the last 3 months and no signs of decline."
+        },
+        "review": {
+          "label": "To review",
+          "badge": "To review",
+          "desc": "Still confirm above {rate}, but are declining or unstable: worth pushing or reviewing the price."
+        },
+        "follow": {
+          "label": "To follow",
+          "badge": "To follow",
+          "desc": "Lost recently to field unavailability: check them before removing them from the schedule."
+        }
+      },
+      "card": {
+        "demandRate": "Demand rate",
+        "fill": "Fill rate",
+        "priceLabel": "Avg. price",
+        "recent": "Latest editions",
+        "confirmed": "confirmed",
+        "cancelled": "cancelled",
+        "lastSeen": "last {date}",
+        "fieldUnknown": "Field not identified",
+        "unknownFieldNote": "No field identifier: it may mix different fields on the same day, time and format.",
+        "consistent": "{confirmed} of {base} editions confirmed in the window.",
+        "trendDown": "Declining: from {early} to {late} between the first and second half of the window.",
+        "unstable": "Unstable: {n} of the last {last} editions were cancelled for lack of players.",
+        "priceUnknown": "No price recorded for this slot: review price and promotion.",
+        "price": {
+          "above": "Price {price}, {pct} above the facility average for {format} ({avg}). Try adjusting it or running a promotion.",
+          "inline": "Price {price}, in line with the facility average for {format} ({avg}). Before touching it, review promotion and time of day.",
+          "below": "Price {price}, {pct} below the facility average for {format} ({avg}). Price is unlikely to be the problem."
+        },
+        "followLost": "{n, plural, one {Lost # time} other {Lost # times}} to field unavailability.",
+        "followHealthy": "When it is played, demand is healthy ({rate} over {base} editions): the field is what fails. Confirm the booking with the facility before removing it from the schedule.",
+        "followWeak": "Few editions were played ({base}) to measure demand, but the field failed several times: book it and see how it responds before deciding.",
+        "followRefs": "Cancellations considered:",
+        "noReason": "No reason recorded"
+      },
+      "week": {
+        "title": "This week's calendar",
+        "subtitle": "What should be scheduled each day based on the facility's last {months} months ({from} → {to}). It is a historical reference per slot: the database does not include games already published.",
+        "stripLegend": "Each date shows how many slots it has in each group: green consistent, amber to review, grey to follow.",
+        "empty": "This facility has no recurring slots in these groups.",
+        "gap": "{n, plural, one {# slot with a rate between {min} and {reviewRate} and a declining trend is not in any group.} other {# slots with a rate between {min} and {reviewRate} and a declining trend are not in any group.}}",
+        "definition": "Consistent: demand rate above {min} with at least {sample} editions and no decline (same definition as must-schedule). To review: rate above {reviewRate} and declining ({delta} points or more between the first and second half of the window) or unstable ({cancelled} or more demand cancellations in the last {last} editions). To follow: field unavailable in the last {days} days, with healthy demand or, when the sample is small, at least two losses. A slot falls in one group only (priority: to follow, to review, consistent). Demand rate = confirmed / (confirmed + cancelled for lack of players).",
+        "limit": "The database has no future games: the calendar says what is worth having, not what is still missing."
+      },
+      "month": {
+        "title": "Next 30 days at a glance",
+        "subtitle": "How each day and time of the facility performs over the last {months} months ({from} → {to}): what to expect and where to look first.",
+        "tiles": {
+          "rate": "Facility demand rate",
+          "rateNote": "{base} editions with demand",
+          "openWeek": "See in next 7 days →"
+        },
+        "days": {
+          "title": "Days of the week",
+          "better": "Strongest: {days}.",
+          "weaker": "Weakest: {days}.",
+          "even": "Days perform alike: none is 5 points away from the facility average.",
+          "tier": {
+            "better": "Strongest",
+            "weaker": "Weakest",
+            "insufficient": "Small sample (<{min})"
+          },
+          "dates": "{n} dates",
+          "legend": "The bar is the demand rate; the vertical mark is the facility average ({avg}). A day is stronger or weaker when it is 5 points or more away."
+        },
+        "matrix": {
+          "title": "Times by day",
+          "legend": {
+            "easy": "Easy to confirm (≥{easy})",
+            "ok": "Normal",
+            "risk": "Risk (≤{floor} or falling)",
+            "thin": "Small sample (<{min})"
+          },
+          "fieldLost": "{n} to field unavailability",
+          "note": "Adds up all fields and formats of the facility at that day and time. n = editions with demand in the window."
+        },
+        "easy": {
+          "title": "Easy-to-confirm times",
+          "empty": "No time reaches {easy} with enough sample."
+        },
+        "risk": {
+          "title": "Where to watch confirmation",
+          "empty": "No day + time combination shows risk with enough sample.",
+          "note": "Combinations with a rate of {floor} or lower, or falling with a rate below {easy}. Field-unavailable cancellations are not part of the rate."
+        },
+        "context": {
+          "title": "What to expect, in context",
+          "level": "{level} for this facility (index {index}){provisional}.",
+          "levels": {
+            "high": "high season",
+            "mid": "mid season",
+            "low": "low season"
+          },
+          "provisional": " · provisional: does not discount growth",
+          "noIndex": "no seasonal index yet.",
+          "unavail": "In previous years, {rate} of what was published that month was cancelled for field unavailability{trend}.",
+          "unavailUp": " (+{pp} pts vs the previous year)",
+          "unavailDown": " ({pp} pts less than the previous year)",
+          "noHistory": "Not enough history to measure seasonality for this facility: 12 complete months are needed ({n} so far).",
+          "note": "The index compares that month's demand volume with its normal level. A high season does not guarantee confirmation: it means more demand is expected."
+        }
+      },
+      "insights": {
+        "review": "{n, plural, one {# slot to review this week} other {# slots to review this week}}; the weakest is {day} {time} ({rate} demand rate).",
+        "follow": "{n, plural, one {# slot to follow} other {# slots to follow}}: they lost games to field unavailability recently. Confirm the booking before removing them from the schedule.",
+        "consistent": "{n, plural, one {# consistent slot} other {# consistent slots}} this week: the ones not worth leaving unpublished.",
+        "days": "{best} are the strongest day ({bestRate}) and {worst} the weakest ({worstRate}); the facility average is {avg}.",
+        "weakDay": "{worst} are the weak spot ({worstRate} demand rate against {avg} for the facility).",
+        "risk": "{n, plural, one {# day + time combination at risk} other {# day + time combinations at risk}}; start with {day} {time}.",
+        "supply": "{n} of {total} published games ({pct}) were lost to field unavailability in the last 3 months: that volume says nothing about demand.",
+        "season": {
+          "high": "{month} is usually high season for this facility (index {index}): more demand than normal is expected.",
+          "mid": "{month} is usually mid season for this facility (index {index}): demand at its normal level.",
+          "low": "{month} is usually low season for this facility (index {index}): expect less demand than normal."
+        },
+        "noSeason": "There is not yet enough history to measure seasonality for this facility (12 complete months; {n} so far)."
+      }
     }
   },
   "Seasonality": {
