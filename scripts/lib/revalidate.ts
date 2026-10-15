@@ -12,7 +12,7 @@ import path from "path";
 //   REVALIDATE_URL    = https://tu-app.vercel.app/api/revalidate
 //   REVALIDATE_SECRET = el mismo valor que está en Vercel
 
-function readEnvFile(name: string): string | undefined {
+export function readEnvFile(name: string): string | undefined {
   try {
     const raw = fs.readFileSync(path.join(process.cwd(), ".env"), "utf-8");
     for (const line of raw.split(/\r?\n/)) {

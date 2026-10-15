@@ -164,6 +164,19 @@ Si no bajaste ningún export nuevo ese día, el script no encuentra nada y no ha
 
 **Si algo no anduvo bien**: la ventana de `cmd.exe` se cierra sola apenas el proceso termina (haya salido bien o mal), así que no da tiempo a leer nada en pantalla — no es un indicador confiable de si funcionó. Revisá en cambio `logs\auto-import.log` dentro de la carpeta del proyecto: ahí queda registrada cada corrida completa, línea por línea, incluida la salida real del import y cualquier error (por ejemplo, si el archivo llegó pero falló al copiarlo o al sincronizar con la base). Si tres fuentes están configuradas y una falla, las otras dos igual se procesan — no se corta todo por una sola.
 
+### Mantener producción y pre-producción al día con el mismo import
+
+El `.env` de tu PC suele apuntar a pre-producción, mientras que la app de Vercel lee de otra base. Por eso un import normal solo actualiza la base del `.env`. Para que `npm run auto-import` (y la tarea programada) cargue las dos, agregá al `.env` de tu PC:
+
+```
+PROD_DATABASE_URL="…la misma conexión que DATABASE_URL en Vercel…"
+PROD_DIRECT_URL="…la misma que DIRECT_URL en Vercel (opcional; si falta se usa PROD_DATABASE_URL)…"
+REVALIDATE_URL="https://TU-APP.vercel.app/api/revalidate"   # solo se avisa tras importar a producción
+REVALIDATE_SECRET="…el mismo valor que en Vercel…"
+```
+
+Cada fuente se sincroniza primero con la base del `.env` y después con producción. Si una falla, la otra igual se intenta, y el log (`logs\auto-import.log`) marca cuál destino falló y su host (sin credenciales). Si `PROD_DATABASE_URL` no está definida, el log lo avisa en cada corrida. Para ponerte al día solo en producción: `npm run auto-import -- --only=prod` (o `--only=local`). El import es un upsert por id, así que repetirlo no duplica nada.
+
 ## Caché y performance (agregado para que aguante crecimiento de datos y varios usuarios a la vez)
 
 Las consultas pesadas (Overview, tabla de facilities, heatmap, etc.) ahora se cachean 5 minutos server-side — si dos personas (o dos pestañas tuyas) miran el mismo filtro dentro de esa ventana, la segunda carga es instantánea, no recalcula nada. No requiere ninguna configuración de tu parte, ya viene activo.

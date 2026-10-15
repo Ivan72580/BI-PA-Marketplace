@@ -6,7 +6,8 @@
  * cubría events.csv.
  *
  * Uso manual:
- *   npm run auto-import
+ *   npm run auto-import                 (base del .env + producción si PROD_DATABASE_URL está definida)
+ *   npm run auto-import -- --only=prod  (solo producción, para ponerse al día)
  *
  * No borra nada de Descargas. Cada fuente es independiente: si no hay un
  * archivo nuevo de una fuente, esa fuente simplemente no se sincroniza esta
@@ -54,6 +55,7 @@ import os from "os";
 import { execSync } from "child_process";
 import { mergeCsvIntoMaster } from "./lib/csvMerge";
 import { gameReviewKey, appReviewKey } from "./lib/reviewKeys";
+import { readEnvFile } from "./lib/revalidate";
 
 const PROJECT_ROOT = path.join(__dirname, "..");
 const DOWNLOADS_DIR = path.join(os.homedir(), "Downloads");
@@ -143,20 +145,74 @@ function waitUntilReadable(filePath: string, attempts = 5, delayMs = 1500): void
   }
 }
 
+// ---------- Destinos: la base del .env y, si está configurada, producción ----------
+// El .env local apunta a pre-producción. Para que producción también quede al día en cada
+// corrida (programada o manual), se define en el .env de la PC:
+//   PROD_DATABASE_URL = conexión de producción (la misma que DATABASE_URL en Vercel)
+//   PROD_DIRECT_URL   = conexión directa de producción (opcional; si falta se usa PROD_DATABASE_URL)
+// Cada fuente se sincroniza primero con la base del .env y después con producción; un fallo en
+// un destino no impide intentar el otro. Los scripts de import leen DATABASE_URL/DIRECT_URL del
+// entorno, que tiene prioridad sobre el .env, así que no hace falta tocar ningún otro archivo.
+// Pasando `--only=prod` o `--only=local` se corre un solo destino (útil para ponerse al día).
+// El aviso de invalidación de caché (REVALIDATE_URL) apunta a la app de producción, así que solo
+// se manda en la corrida de producción: avisarle antes de que tenga los datos no serviría.
+
+type Target = { name: string; env: Record<string, string> };
+
+function envValue(name: string): string | undefined {
+  return process.env[name] ?? readEnvFile(name) ?? undefined;
+}
+
+function hostOf(url: string | undefined): string {
+  try { return url ? new URL(url).host : "?"; } catch { return "?"; }
+}
+
+function buildTargets(): Target[] {
+  const only = process.argv.find((a) => a.startsWith("--only="))?.slice("--only=".length);
+  const localUrl = envValue("DATABASE_URL");
+  const prodUrl = envValue("PROD_DATABASE_URL");
+  const prodDirect = envValue("PROD_DIRECT_URL") ?? prodUrl;
+  const targets: Target[] = [];
+
+  if (only !== "prod") {
+    targets.push({ name: `base del .env (${hostOf(localUrl)})`, env: { REVALIDATE_URL: "" } });
+  }
+  if (only !== "local") {
+    if (!prodUrl || !prodDirect) {
+      log(`  AVISO: PROD_DATABASE_URL no está definida en el .env — producción NO se actualiza en esta corrida.`);
+    } else if (prodUrl === localUrl) {
+      log(`  La base del .env ya es la de producción — no se repite el import.`);
+    } else {
+      targets.push({ name: `PRODUCCIÓN (${hostOf(prodUrl)})`, env: { DATABASE_URL: prodUrl, DIRECT_URL: prodDirect } });
+    }
+  }
+  return targets;
+}
+
 // Corre "npm run <npmScript>" capturando toda su salida (antes quedaba con
 // stdio:"inherit", así que si la ventana se cerraba sola, esa salida se
 // perdía para siempre) — ahora se guarda entera en el log, haya salido bien
-// o mal.
+// o mal. Se repite por cada destino; si alguno falla, igual se intentan los demás.
 function runNpmScript(npmScript: string): void {
-  try {
-    const output = execSync(`npm run ${npmScript}`, { cwd: PROJECT_ROOT, encoding: "utf-8" });
-    if (output.trim()) log(output.trimEnd());
-  } catch (err) {
-    const e = err as { stdout?: string; stderr?: string; message: string };
-    if (e.stdout?.trim()) log(e.stdout.trimEnd());
-    if (e.stderr?.trim()) log(e.stderr.trimEnd());
-    throw new Error(`falló "npm run ${npmScript}" (ver salida arriba)`);
+  const failed: string[] = [];
+  for (const target of buildTargets()) {
+    log(`  → ${target.name}`);
+    try {
+      const output = execSync(`npm run ${npmScript}`, {
+        cwd: PROJECT_ROOT,
+        encoding: "utf-8",
+        env: { ...process.env, ...target.env },
+      });
+      if (output.trim()) log(output.trimEnd());
+    } catch (err) {
+      const e = err as { stdout?: string; stderr?: string; message: string };
+      if (e.stdout?.trim()) log(e.stdout.trimEnd());
+      if (e.stderr?.trim()) log(e.stderr.trimEnd());
+      failed.push(target.name);
+      log(`  FALLÓ en ${target.name}.`);
+    }
   }
+  if (failed.length > 0) throw new Error(`falló "npm run ${npmScript}" en: ${failed.join("; ")} (ver salida arriba)`);
 }
 
 function findLatestMatch(pattern: RegExp): string | null {
