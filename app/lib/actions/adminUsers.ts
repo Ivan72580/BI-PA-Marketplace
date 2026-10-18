@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import type { Role } from "@prisma/client";
 import { prisma } from "../db/prisma";
 import { requireAdmin } from "../db/users";
+import { isAppModule, isModuleLevel, MODULES, type AppModule, type ModuleLevel } from "../module";
 
 export type UpdateRoleResult =
   | { ok: true }
@@ -37,20 +38,26 @@ export async function updateUserRole(userId: string, newRole: Role): Promise<Upd
   }
 }
 
-export type UpdateLeadershipAccessResult =
+export type UpdateModuleAccessResult =
   | { ok: true }
   | { ok: false; errorKey: "unauthorized" | "generic" };
 
-// Prende/apaga el acceso a /leadership. A diferencia del rol, no hay un
-// mínimo que proteger (no es un recurso escaso como "al menos un Admin"),
-// así que no necesita el chequeo de "último Admin" — solo re-validar que
-// quien llama sea Admin.
-export async function updateLeadershipAccess(userId: string, value: boolean): Promise<UpdateLeadershipAccessResult> {
+// Cambia el nivel de una persona en un módulo (ver app/lib/module.ts).
+// Siempre guarda una fila, aunque el nivel coincida con el default: así un
+// cambio futuro de default no le cambia el acceso a quien ya fue revisado.
+export async function updateModuleAccess(userId: string, appModule: AppModule, level: ModuleLevel): Promise<UpdateModuleAccessResult> {
   const admin = await requireAdmin();
   if (!admin) return { ok: false, errorKey: "unauthorized" };
+  if (!isAppModule(appModule) || !isModuleLevel(level) || !MODULES[appModule].levels.includes(level)) {
+    return { ok: false, errorKey: "generic" };
+  }
 
   try {
-    await prisma.user.update({ where: { id: userId }, data: { canViewLeadership: value } });
+    await prisma.userModuleAccess.upsert({
+      where: { userId_module: { userId, module: appModule } },
+      update: { level },
+      create: { userId, module: appModule, level },
+    });
     revalidatePath("/admin/users");
     return { ok: true };
   } catch {

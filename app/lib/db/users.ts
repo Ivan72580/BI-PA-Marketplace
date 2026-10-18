@@ -1,6 +1,9 @@
+import { cache } from "react";
+import { redirect } from "next/navigation";
 import { auth } from "../auth";
 import { prisma } from "./prisma";
 import type { User } from "@prisma/client";
+import { firstAccessibleHome, hasLevel, resolveAccess, type AppModule, type ModuleAccess, type ModuleLevel } from "../module";
 
 // Fuente de verdad para "quién soy" del lado del negocio (rol, locale, id).
 // A propósito NO se guarda el rol en el JWT de la sesión: así un cambio de
@@ -31,11 +34,49 @@ export async function requireAdmin(): Promise<User | null> {
   return user?.role === "ADMIN" ? user : null;
 }
 
-// Mismo criterio que requireAdmin, para el permiso independiente que gatea
-// /leadership. A propósito NO es "o ADMIN o esto": son dos preguntas
-// distintas (ver comentario en schema.prisma), así que un Admin sin el flag
-// no pasa este check.
+// ---------- Acceso por módulo (ver app/lib/module.ts) ----------
+// Usuario + acceso efectivo a cada módulo, una sola consulta por request:
+// cache() de React lo comparte entre el layout, el gate de la sección, la
+// página y el menú del mismo render. A propósito NO es "ADMIN ve todo":
+// administrar usuarios y ver un módulo son preguntas distintas, y un Admin
+// se asigna su propio acceso desde /admin/users como a cualquiera.
+export type UserWithAccess = { user: User; access: ModuleAccess };
+
+export const getCurrentUserWithAccess = cache(async (): Promise<UserWithAccess | null> => {
+  const session = await auth();
+  const email = session?.user?.email;
+  if (!email) return null;
+  try {
+    const user = await prisma.user.findUnique({ where: { email }, include: { moduleAccess: true } });
+    if (!user) return null;
+    const { moduleAccess, ...rest } = user;
+    return { user: rest, access: resolveAccess(moduleAccess) };
+  } catch {
+    return null;
+  }
+});
+
+// Para server actions y páginas: el usuario si tiene al menos `min` en el
+// módulo; null si no. Nunca confiar en que la UI escondió un botón.
+export async function requireModule(appModule: AppModule, min: ModuleLevel = "VIEW"): Promise<User | null> {
+  const current = await getCurrentUserWithAccess();
+  return current && hasLevel(current.access[appModule], min) ? current.user : null;
+}
+
+// Para el layout de cada sección: sin acceso de lectura al módulo, manda a
+// la página de inicio de otro módulo que sí pueda ver, o a /sin-acceso.
+// Sin sesión no hace nada (eso lo resuelve middleware.ts mandando a /login).
+export async function gateModule(appModule: AppModule): Promise<UserWithAccess | null> {
+  const current = await getCurrentUserWithAccess();
+  if (!current) return null;
+  if (!hasLevel(current.access[appModule], "VIEW")) {
+    redirect(firstAccessibleHome(current.access, appModule) ?? "/sin-acceso");
+  }
+  return current;
+}
+
+// Acceso de lectura a Executive (antes: el flag canViewLeadership, hoy
+// obsoleto). Se mantiene el nombre porque lo usan varias páginas.
 export async function requireLeadershipAccess(): Promise<User | null> {
-  const user = await getCurrentUser();
-  return user?.canViewLeadership ? user : null;
+  return requireModule("EXECUTIVE", "VIEW");
 }

@@ -29,15 +29,18 @@
       "forecast": "Projection for next week or month.",
       "market": "Concentration, reputation, price and engagement.",
       "map": "Where Plei operates and which zones have the most volume.",
-      "inventory": "Which games each facility publishes and how each performs."
+      "inventory": "Which games each facility publishes and how each performs.",
+      "weeklyLog": "Team notes during the week and Thursday's report."
     },
     "groups": {
       "performance": "Performance",
-      "market": "Markets"
+      "market": "Markets",
+      "team": "Team"
     },
     "inventory": "Inventory",
     "dataThrough": "Data as of {date}",
-    "dataThroughStale": "{days} days without new data: check the import"
+    "dataThroughStale": "{days} days without new data: check the import",
+    "weeklyLog": "Weekly log"
   },
   "FilterPanel": {
     "filterLabel": "Filter",
@@ -66,12 +69,11 @@
   },
   "Admin": {
     "usersTitle": "Users",
-    "usersSubtitle": "Manage team roles. Users are created automatically the first time they sign in.",
+    "usersSubtitle": "Roles and each person's access to each module. Users are created automatically on first sign-in and get the default access (Operations: view; Team: edit; Executive: no access).",
     "table": {
       "user": "User",
       "email": "Email",
       "role": "Role",
-      "leadership": "Leadership",
       "weeklyReport": "Weekly email",
       "lastLogin": "Last login",
       "never": "Never"
@@ -2023,6 +2025,88 @@
       },
       "definition": "To schedule = recurring game (facility + day + hour + field + format) whose demand rate over the last {months} months is above {rate}, with at least {sample} games with demand. Demand rate = confirmed / (confirmed + cancelled for lack of players). The list refreshes once a week ({week}).",
       "limit": "It is not cross-checked against what is already published ahead: the list shows what is worth having, not what is missing."
+    }
+  },
+  "WeeklyLog": {
+    "title": "Weekly log",
+    "subtitle": "What happens during the week, noted as it happens. Weeks run Friday to Thursday; the report is put together on Thursday.",
+    "range": "Fri {from} – Thu {to}",
+    "weekNav": "Change week",
+    "prevWeek": "Previous week",
+    "nextWeek": "Next week",
+    "thisWeek": "This week",
+    "noUser": "We couldn't identify your account. Sign in again to use the log.",
+    "form": {
+      "title": "Add a note",
+      "text": "What happened?",
+      "textPlaceholder": "E.g.: Moved Friday's 11pm game to 9pm; I adjusted the price.",
+      "topic": "Facility or topic (optional)",
+      "topicPlaceholder": "E.g.: Soccer City, Payments, POC",
+      "date": "Day",
+      "submit": "Save",
+      "shortcut": "Ctrl/⌘ + Enter to save",
+      "linked": "Linked to facility {name} ({market})"
+    },
+    "saved": "Note saved",
+    "filter": {
+      "label": "Show:",
+      "all": "Whole team",
+      "me": "Me"
+    },
+    "count": "{count, plural, =0 {No notes} one {# note} other {# notes}}",
+    "empty": "No notes this week yet. Whatever gets noted shows up here, grouped by day, and feeds the report.",
+    "emptyFiltered": "This person has no notes this week.",
+    "edit": "Edit",
+    "delete": "Delete",
+    "confirmDelete": "Delete this note?",
+    "yes": "Yes",
+    "no": "No",
+    "save": "Save",
+    "cancel": "Cancel",
+    "report": {
+      "title": "Weekly report",
+      "help": "Gathers {scope}, grouped by facility or topic, ready to edit and copy.",
+      "scopeAll": "the whole team's notes",
+      "scopeMine": "your notes",
+      "scopeOf": "{name}'s notes",
+      "build": "Build report",
+      "rebuild": "Rebuild (replaces the text)",
+      "textLabel": "Report text",
+      "placeholder": "The report shows up here. You can edit it before copying.",
+      "copy": "Copy",
+      "copied": "Copied",
+      "download": "Download .txt",
+      "subject": "Subject: Weekly log – {range}",
+      "general": "General",
+      "byAuthor": "({name})"
+    },
+    "errors": {
+      "unauthorized": "You don't have permission to do this.",
+      "invalid": "Check the text and the date.",
+      "generic": "Couldn't save. Try again in a moment.",
+      "copy": "Couldn't copy: select the text and press Ctrl/⌘ + C."
+    },
+    "readOnly": "You have view access to the Team module: you can read notes and build the report, but not add notes."
+  },
+  "Modules": {
+    "names": {
+      "MAGIC": "Operations",
+      "TEAM": "Team",
+      "EXECUTIVE": "Executive"
+    },
+    "descriptions": {
+      "MAGIC": "Overview, Performance, Market and the operations report.",
+      "TEAM": "Weekly log (and later the Facilities log). Edit = add notes.",
+      "EXECUTIVE": "Executive Panel and Executive Summary. Edit = change Facility Profile."
+    },
+    "levels": {
+      "NONE": "No access",
+      "VIEW": "View",
+      "EDIT": "Edit"
+    },
+    "noAccess": {
+      "title": "You don't have access yet",
+      "body": "Your account exists but has no access to any module of the app. Ask an Admin to enable it from Users."
     }
   }
 }

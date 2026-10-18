@@ -1,6 +1,8 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import { getFilterOptions, resolveFilterNames, getOpsReportData, getExecutiveReportData, type ReportGranularity } from "../lib/db/queries";
-import { requireLeadershipAccess } from "../lib/db/users";
+import { redirect } from "next/navigation";
+import { getCurrentUserWithAccess } from "../lib/db/users";
+import { hasLevel } from "../lib/module";
 import { todayISO } from "../lib/period";
 import type { Locale } from "@/i18n/config";
 import FilterPanel from "../components/FilterPanel";
@@ -32,19 +34,22 @@ function isReportGranularity(value: string | undefined): value is ReportGranular
 
 export default async function ReportsPage({ searchParams }: { searchParams: Promise<ReportsSP> }) {
   const sp = await searchParams;
-  const [t, rawLocale, leadershipUser] = await Promise.all([
+  const [t, rawLocale, current] = await Promise.all([
     getTranslations("Reports"),
     getLocale(),
-    requireLeadershipAccess(),
+    getCurrentUserWithAccess(),
   ]);
   const locale = rawLocale as Locale;
 
-  const hasExecutiveAccess = Boolean(leadershipUser);
-  // Si se pide ?type=executive sin acceso, se degrada en silencio a Ops en
-  // vez de redirigir o mostrar un error — mismo criterio de no revelar de
-  // más que ya usa el resto de la app (ReportTypeTabs ni siquiera ofrece
-  // la pestaña en ese caso).
-  const type: "ops" | "executive" = sp.type === "executive" && hasExecutiveAccess ? "executive" : "ops";
+  // Cada reporte sigue el acceso de su módulo (app/lib/module.ts): el
+  // operativo, Operativo (MAGIC); el Executive Summary, Executive.
+  const hasOpsAccess = hasLevel(current?.access.MAGIC, "VIEW");
+  const hasExecutiveAccess = hasLevel(current?.access.EXECUTIVE, "VIEW");
+  if (!hasOpsAccess && !hasExecutiveAccess) redirect("/sin-acceso");
+  // Si se pide un reporte sin acceso, se degrada en silencio al otro en vez
+  // de mostrar un error — mismo criterio de no revelar de más que ya usa el
+  // resto de la app (ReportTypeTabs solo aparece con acceso a los dos).
+  const type: "ops" | "executive" = !hasOpsAccess || (sp.type === "executive" && hasExecutiveAccess) ? "executive" : "ops";
 
   const granularity: ReportGranularity = isReportGranularity(sp.granularity) ? sp.granularity : "month";
   const anchorISO = sp.period || todayISO();
@@ -66,7 +71,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     <div className="space-y-5">
       <div className="print:hidden flex flex-wrap items-end justify-between gap-3">
         <h1 className="font-display text-3xl font-bold text-ink mb-1">{title}</h1>
-        <ReportTypeTabs hasExecutiveAccess={hasExecutiveAccess} />
+        <ReportTypeTabs hasExecutiveAccess={hasExecutiveAccess && hasOpsAccess} />
       </div>
 
       <div className="print:hidden flex flex-wrap items-end justify-between gap-3 pb-4 border-b border-border">

@@ -1,0 +1,1384 @@
+From f649ec9770f4b31bed14ce4f7b11a40759b8941b Mon Sep 17 00:00:00 2001
+From: Ivan <ivnenunez@gmail.com>
+Date: Sun, 18 Oct 2026 13:29:22 -0400
+Subject: [PATCH] =?UTF-8?q?Pron=C3=B3stico:=20bloque=20de=20predicci=C3=B3?=
+ =?UTF-8?q?n=20sin=20l=C3=ADnea=20punteada,=20piso/techo=20como=20alertas?=
+ =?UTF-8?q?=20y=20Facilities=20a=20vigilar=20por=20regi=C3=B3n=20con=20exp?=
+ =?UTF-8?q?licaci=C3=B3n?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- Bloque "Próximos 7/30 días" pasa a GroupSection (mismo diseño que el resto; puntito y etiqueta Predicción en warning).
+  Último recuadro punteado restante (estado vacío del Registro semanal) pasa a fondo sólido.
+- Tarjetas: "proyectado/a" en vez de "esperado/a", valor principal absoluto y extremos como piso (riesgo, a revisar)
+  y techo (positivo, a sostener).
+- Facilities a vigilar: sin filtro, una caja por región (East/West); con región o market, baja y alza lado a lado;
+  con market, desglose por facility (agendados, confirmados, vs. promedio, tasa y variación del tiempo de confirmación).
+  Cada facility trae qué cambió entre el último período y el anterior (motivos de cancelación, slots, menos oferta)
+  y una sugerencia. Nuevo criterio de baja: tasa -1 punto o más, o muchos cancelados con confirmados bajo el promedio.
+- Calendario de 7 días por facility: grilla semanal clásica con renglones compactos; las tarjetas completas quedan plegadas.
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Uzwyv3u3LqwqsbFDnkzpoU
+---
+ app/components/FacilityWeekPlan.tsx  | 105 +++++++----
+ app/components/ForecastWatchlist.tsx | 172 ++++++++++++++++++
+ app/forecast/page.tsx                | 132 +++++++-------
+ app/lib/db/forecast.ts               |  14 +-
+ app/lib/db/forecastWatch.ts          | 254 +++++++++++++++++++++++++++
+ app/lib/db/queries.ts                |   2 +
+ app/lib/forecastWatchCalc.ts         | 105 +++++++++++
+ app/weekly-log/WeeklyLogBoard.tsx    |   2 +-
+ messages/en.json                     |  88 ++++++++--
+ messages/es.json                     |  88 ++++++++--
+ 10 files changed, 828 insertions(+), 134 deletions(-)
+ create mode 100644 app/components/ForecastWatchlist.tsx
+ create mode 100644 app/lib/db/forecastWatch.ts
+ create mode 100644 app/lib/forecastWatchCalc.ts
+
+diff --git a/app/components/FacilityWeekPlan.tsx b/app/components/FacilityWeekPlan.tsx
+index e0c420f..197b97e 100644
+--- a/app/components/FacilityWeekPlan.tsx
++++ b/app/components/FacilityWeekPlan.tsx
+@@ -8,16 +8,17 @@ import {
+ import { MUST_SCHEDULE_MIN_RATE, MUST_SCHEDULE_MIN_SAMPLE, MUST_SCHEDULE_WINDOW_MONTHS } from "../lib/mustSchedule";
+ import type { Locale } from "@/i18n/config";
+ 
+-// "Próximos 7 días" de Pronóstico cuando hay un facility elegido: un calendario con una tarjeta
+-// por slot (mismo lenguaje visual que "A agendar" de Inventario) y un semáforo por tasa de
+-// demanda. Las definiciones viven en app/lib/slotPlanCalc.ts.
++// "Próximos 7 días" de Pronóstico cuando hay un facility elegido: un calendario semanal clásico
++// (una columna por fecha, un renglón compacto por slot) con el semáforo por tasa de demanda. El
++// detalle completo de cada slot (las tarjetas de siempre) queda un clic más abajo. Las
++// definiciones viven en app/lib/slotPlanCalc.ts.
+ 
+ type T = (key: string, values?: Record<string, string | number>) => string;
+ 
+-const LIGHTS: Light[] = ["green", "amber", "red"];
+ const DOT: Record<Light, string> = { green: "bg-accent", amber: "bg-warning", red: "bg-danger", gray: "bg-ink-faint" };
+ const TEXT: Record<Light, string> = { green: "text-brand", amber: "text-warning", red: "text-danger", gray: "text-ink-muted" };
+ const TINT: Record<Light, string> = { green: "bg-brand-soft/60", amber: "bg-warning-soft", red: "bg-danger-soft", gray: "bg-surface" };
++const BAR: Record<Light, string> = { green: "border-accent", amber: "border-warning", red: "border-danger", gray: "border-ink-faint" };
+ const TREND_GLYPH = { up: "▲", down: "▼", flat: "▬" } as const;
+ const TREND_TONE = { up: "text-brand", down: "text-danger", flat: "text-ink-faint" } as const;
+ 
+@@ -127,6 +128,39 @@ function Card({ c, t, locale }: { c: ClassifiedSlot; t: T; locale: Locale }) {
+   );
+ }
+ 
++// Renglón compacto del calendario: hora, tasa de demanda con su tendencia, cancha y formato. El
++// semáforo va en la barra lateral, el puntito y el texto oculto (nunca solo color); el detalle
++// completo está en el tooltip y en las tarjetas de más abajo.
++function Chip({ c, t }: { c: ClassifiedSlot; t: T }) {
++  const detail = [
++    `${c.time} · ${c.fieldName ?? t("plan.card.fieldUnknown")} · ${c.gameSize ?? "—"}`,
++    `${t(`plan.lights.${c.light}.label`)} · ${t("plan.card.demandRate")} ${pct(c.rate)} (${c.confirmed}/${c.base})`,
++    c.secure ? t("plan.secure.badge") : "",
++  ].filter(Boolean).join("\n");
++  return (
++    <div className={`rounded-lg border-l-[3px] px-2 py-1.5 ${TINT[c.light]} ${BAR[c.light]}`} title={detail}>
++      <div className="flex items-center justify-between gap-1">
++        <span className="inline-flex items-center gap-1 font-display text-sm font-bold text-ink leading-none">
++          <i className={`inline-block h-2 w-2 rounded-full ${DOT[c.light]}`} aria-hidden="true" />
++          {c.time}
++          <span className="sr-only">{t(`plan.lights.${c.light}.label`)}</span>
++        </span>
++        <span className={`text-xs font-semibold tabular-nums ${TEXT[c.light]}`}>
++          {pct(c.rate)}
++          <span className={`ml-0.5 text-[9px] ${TREND_TONE[c.trend]}`} title={t(`plan.trend.${c.trend}`)}>{TREND_GLYPH[c.trend]}</span>
++        </span>
++      </div>
++      <div className="mt-0.5 flex items-center justify-between gap-1 text-[10px] text-ink-muted">
++        <span className="truncate">{c.fieldName ?? "—"}</span>
++        <span className="shrink-0">{c.gameSize ?? ""}</span>
++      </div>
++      {c.secure && (
++        <span className="mt-1 inline-block rounded-full bg-ink text-white text-[9px] font-bold uppercase tracking-wide px-1.5 py-px">{t("plan.secure.badge")}</span>
++      )}
++    </div>
++  );
++}
++
+ const matches = (s: ClassifiedSlot, f: PlanFilter | undefined) => !f || (f === "secure" ? s.secure : s.light === f);
+ 
+ export default function FacilityWeekPlan({
+@@ -141,8 +175,6 @@ export default function FacilityWeekPlan({
+   const total = plan.slots.length;
+   const count = (f: PlanFilter) => plan.slots.filter((s) => matches(s, f)).length;
+   const days = plan.week.map((d) => ({ ...d, shown: d.slots.filter((s) => matches(s, filter)) }));
+-  const dayLight = (d: (typeof days)[number], l: Light) => d.slots.filter((s) => s.light === l).length;
+-  const daySecure = (d: (typeof days)[number]) => d.slots.filter((s) => s.secure).length;
+   const dayLabel = (iso: string, dow: string) => `${weekdayLabel(dow, locale)} ${shortDate(iso, locale)}`;
+ 
+   return (
+@@ -168,37 +200,46 @@ export default function FacilityWeekPlan({
+         ))}
+       </div>
+ 
+-      {/* Tira de la semana: cuántos slots de cada color toca cada fecha. */}
+-      <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+-        {days.map((d) => (
+-          <a key={d.dateISO} href={`#d-${d.dateISO}`} className="rounded-xl bg-surface-sunken hover:bg-brand-soft transition-colors px-2.5 py-2 text-center">
+-            <div className="text-xs font-semibold text-ink">{weekdayAbbr(d.dayOfWeek, locale)}</div>
+-            <div className="text-[10px] text-ink-faint mb-1">{shortDate(d.dateISO, locale)}</div>
+-            <div className="flex justify-center gap-2 text-[11px] font-semibold text-ink">
+-              {LIGHTS.map((l) => (
+-                <span key={l} className="inline-flex items-center gap-0.5" title={t(`plan.lights.${l}.label`)}>
+-                  <i className={`inline-block h-2 w-2 rounded-full ${DOT[l]}`} aria-hidden="true" />{dayLight(d, l)}
+-                </span>
+-              ))}
+-            </div>
+-            {daySecure(d) > 0 && <div className="mt-1 text-[10px] font-bold text-ink">{t("plan.week.stripSecure", { n: daySecure(d) })}</div>}
+-          </a>
+-        ))}
+-      </div>
+-
+       {total === 0 ? (
+         <div className="text-sm text-ink-faint py-6 text-center">{t("plan.week.empty")}</div>
+       ) : (
+-        days.filter((d) => d.shown.length > 0).map((d) => (
+-          <div key={d.dateISO} id={`d-${d.dateISO}`} className="scroll-mt-20">
+-            <h4 className="font-display text-base font-bold text-ink mb-2 capitalize">
+-              {dayLabel(d.dateISO, d.dayOfWeek)} <span className="text-xs font-normal text-ink-faint">· {d.shown.length}</span>
+-            </h4>
+-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+-              {d.shown.map((c) => <Card key={`${d.dateISO}|${c.key}`} c={c} t={t} locale={locale} />)}
++        <>
++          {/* Calendario: una columna por fecha; en pantallas angostas se desliza horizontalmente. */}
++          <div className="overflow-x-auto -mx-1 px-1 pb-1">
++            <div className="grid grid-cols-7 gap-2 min-w-[980px]">
++              {days.map((d, i) => (
++                <div key={d.dateISO} id={`d-${d.dateISO}`} className="flex flex-col gap-1.5 scroll-mt-20">
++                  <div className={`rounded-lg px-2 py-1.5 text-center ${i === 0 ? "bg-brand text-white" : "bg-surface-sunken text-ink"}`}>
++                    <div className="text-xs font-semibold capitalize">{weekdayAbbr(d.dayOfWeek, locale)}{i === 0 ? ` · ${t("plan.week.today")}` : ""}</div>
++                    <div className={`text-[10px] ${i === 0 ? "text-white/80" : "text-ink-faint"}`}>{shortDate(d.dateISO, locale)}</div>
++                  </div>
++                  {d.shown.length === 0 ? (
++                    <div className="text-center text-xs text-ink-faint py-2">—</div>
++                  ) : (
++                    d.shown.map((c) => <Chip key={`${d.dateISO}|${c.key}`} c={c} t={t} />)
++                  )}
++                </div>
++              ))}
+             </div>
+           </div>
+-        ))
++
++          {/* Detalle: las tarjetas completas de cada slot, plegadas para no ensuciar el calendario. */}
++          <details className="group rounded-xl bg-surface-sunken px-4 py-3">
++            <summary className="cursor-pointer select-none text-sm font-medium text-ink">{t("plan.week.detailToggle")}</summary>
++            <div className="mt-4 space-y-5">
++              {days.filter((d) => d.shown.length > 0).map((d) => (
++                <div key={d.dateISO}>
++                  <h4 className="font-display text-base font-bold text-ink mb-2 capitalize">
++                    {dayLabel(d.dateISO, d.dayOfWeek)} <span className="text-xs font-normal text-ink-faint">· {d.shown.length}</span>
++                  </h4>
++                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
++                    {d.shown.map((c) => <Card key={`${d.dateISO}|${c.key}`} c={c} t={t} locale={locale} />)}
++                  </div>
++                </div>
++              ))}
++            </div>
++          </details>
++        </>
+       )}
+ 
+       {plan.thinCount > 0 && <p className="text-xs text-ink-faint">{t("plan.week.thin", { n: plan.thinCount, min: MUST_SCHEDULE_MIN_SAMPLE })}</p>}
+diff --git a/app/components/ForecastWatchlist.tsx b/app/components/ForecastWatchlist.tsx
+new file mode 100644
+index 0000000..7e51587
+--- /dev/null
++++ b/app/components/ForecastWatchlist.tsx
+@@ -0,0 +1,172 @@
++import Link from "next/link";
++import ChangeBadge from "./ChangeBadge";
++import Glossary from "./Glossary";
++import { weekdayAbbr } from "../lib/db/weekday";
++import { labelForCancellationCategory } from "../lib/db/shared";
++import type { ForecastWatch, WatchItem } from "../lib/db/forecastWatch";
++import { explainDown, explainUp, type SlotShift } from "../lib/forecastWatchCalc";
++import type { Locale } from "@/i18n/config";
++
++// "Facilities a vigilar" de Pronóstico. Sin filtro: una caja por región (East / West) con las que
++// proyectan baja. Con región o market: a la izquierda las que proyectan baja y a la derecha las que
++// proyectan alza; con market, además, el desglose de las que más pesan en la proyección. Cada
++// facility trae una explicación corta (qué cambió entre el último período y el anterior) y una
++// sugerencia. El criterio y los umbrales están en app/lib/forecastWatchCalc.ts.
++
++type T = (key: string, values?: Record<string, string | number>) => string;
++
++const signed = (n: number, digits = 0) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n).toFixed(digits)}`;
++
++function Explanation({ item, t, locale }: { item: WatchItem; t: T; locale: Locale }) {
++  const d = item.driver;
++  if (!d) return <p className="text-[11px] text-ink-faint">{t("watch.noDriver")}</p>;
++
++  const slotList = (slots: SlotShift[]) => slots.map((s) => `${weekdayAbbr(s.dayOfWeek, locale)} ${s.time} (${s.prior}→${s.recent})`).join(", ");
++  const base = { days: d.days, confirmedRecent: d.confirmed.recent, confirmedPrior: d.confirmed.prior };
++
++  if (item.direction === "up") {
++    const up = explainUp(d);
++    return (
++      <div className="text-[11px] text-ink-muted leading-snug space-y-1">
++        <p>{t("watch.upSummary", { ...base, rate: `${(item.predictedRate * 100).toFixed(0)}%` })}</p>
++        {up.slots.length > 0 && <p>{t("watch.slotsGained", { list: slotList(up.slots) })}</p>}
++        <p className="rounded-md bg-brand-soft/70 text-brand px-2 py-1"><span className="font-semibold">{t("watch.suggestionLabel")}</span> {t("watch.suggest.up")}</p>
++      </div>
++    );
++  }
++
++  const down = explainDown(d);
++  const reasonList = down.reasons
++    .map((r) => `${r.category === "UNSPECIFIED" ? t("watch.reasonUnspecified") : labelForCancellationCategory(r.category, locale)} (${r.prior}→${r.recent})`)
++    .join(", ");
++  return (
++    <div className="text-[11px] text-ink-muted leading-snug space-y-1">
++      <p>{t("watch.downSummary", { ...base, cancelledRecent: d.cancelled.recent, cancelledPrior: d.cancelled.prior })}</p>
++      {down.supply && <p>{t("watch.supply", { prior: down.supply.prior, recent: down.supply.recent })}</p>}
++      {down.reasons.length > 0 && <p>{t(down.growing ? "watch.reasonsGrowing" : "watch.reasonsTop", { list: reasonList })}</p>}
++      {down.slots.length > 0 && <p>{t("watch.slotsLost", { list: slotList(down.slots) })}</p>}
++      <p className="rounded-md bg-warning-soft text-warning px-2 py-1"><span className="font-semibold">{t("watch.suggestionLabel")}</span> {t(`watch.suggest.${down.suggestion}`)}</p>
++    </div>
++  );
++}
++
++function Row({ item, t, locale, hrefFor }: { item: WatchItem; t: T; locale: Locale; hrefFor: (i: WatchItem) => string }) {
++  return (
++    <li className="py-3 first:pt-0 last:pb-0 space-y-1.5">
++      <div className="flex items-start justify-between gap-2">
++        <div className="min-w-0">
++          <Link href={hrefFor(item)} className="text-sm font-medium text-ink hover:text-brand truncate block">{item.facilityName}</Link>
++          <div className="text-[11px] text-ink-faint truncate">{item.marketName}</div>
++        </div>
++        <div className="flex flex-col items-end shrink-0 text-xs text-ink-faint">
++          <ChangeBadge value={item.rateDelta} unit="pts" />
++          <span>
++            {item.direction === "up"
++              ? t("watch.confirmedDelta", { n: signed(item.confirmedDelta) })
++              : t("watch.projDown", { delta: signed(item.confirmedDelta), n: item.predictedCancelled })}
++          </span>
++        </div>
++      </div>
++      <Explanation item={item} t={t} locale={locale} />
++    </li>
++  );
++}
++
++function Box({ title, subtitle, empty, items, t, locale, hrefFor }: {
++  title: string; subtitle: string; empty: string; items: WatchItem[]; t: T; locale: Locale; hrefFor: (i: WatchItem) => string;
++}) {
++  return (
++    <div className="rounded-2xl bg-surface shadow-sm p-5">
++      <h3 className="text-sm font-medium text-ink mb-0.5">{title}</h3>
++      <p className="text-xs text-ink-faint mb-4">{subtitle}</p>
++      {items.length === 0 ? (
++        <div className="text-sm text-ink-faint">{empty}</div>
++      ) : (
++        <ul className="divide-y divide-border">
++          {items.map((i) => <Row key={i.facilityId} item={i} t={t} locale={locale} hrefFor={hrefFor} />)}
++        </ul>
++      )}
++    </div>
++  );
++}
++
++function Breakdown({ items, t, hrefFor }: { items: WatchItem[]; t: T; hrefFor: (i: WatchItem) => string }) {
++  return (
++    <div className="rounded-2xl bg-surface shadow-sm p-5">
++      <h3 className="text-sm font-medium text-ink mb-0.5">{t("watch.breakdown.title")}</h3>
++      <p className="text-xs text-ink-faint mb-4">{t("watch.breakdown.subtitle")}</p>
++      <div className="overflow-x-auto">
++        <table className="w-full text-sm min-w-[640px]">
++          <thead>
++            <tr className="text-left text-[11px] text-ink-faint border-b border-border">
++              <th className="font-medium pb-2 pr-3">{t("watch.breakdown.facility")}</th>
++              <th className="font-medium pb-2 px-2 text-right">{t("watch.breakdown.scheduled")}</th>
++              <th className="font-medium pb-2 px-2 text-right">{t("watch.breakdown.confirmed")}</th>
++              <th className="font-medium pb-2 px-2 text-right">{t("watch.breakdown.vsAvg")}</th>
++              <th className="font-medium pb-2 px-2 text-right">{t("watch.breakdown.rate")}</th>
++              <th className="font-medium pb-2 pl-2 text-right">{t("watch.breakdown.leadTime")}</th>
++            </tr>
++          </thead>
++          <tbody className="divide-y divide-border">
++            {items.map((i) => {
++              const lt = i.driver?.leadTime;
++              const ltDelta = lt && lt.recent !== null && lt.prior !== null ? lt.recent - lt.prior : null;
++              const ltTone = ltDelta === null ? "text-ink-faint" : ltDelta <= -1 ? "text-warning" : "text-ink-muted";
++              return (
++                <tr key={i.facilityId}>
++                  <td className="py-2 pr-3"><Link href={hrefFor(i)} className="font-medium text-ink hover:text-brand">{i.facilityName}</Link></td>
++                  <td className="py-2 px-2 text-right tabular-nums">{Math.round(i.predictedGames)}</td>
++                  <td className="py-2 px-2 text-right tabular-nums">{Math.round(i.predictedConfirmed)}</td>
++                  <td className={`py-2 px-2 text-right tabular-nums font-semibold ${i.confirmedDelta < 0 ? "text-danger" : "text-brand"}`}>{signed(i.confirmedDelta, 1)}</td>
++                  <td className="py-2 px-2 text-right tabular-nums">{(i.predictedRate * 100).toFixed(0)}% <ChangeBadge value={i.rateDelta} unit="pts" /></td>
++                  <td className={`py-2 pl-2 text-right tabular-nums ${ltTone}`} title={t("watch.breakdown.leadTimeHint")}>
++                    {lt && lt.recent !== null ? `${lt.recent.toFixed(0)} h` : "—"}
++                    {ltDelta !== null && <span className="text-[11px]"> ({Math.abs(ltDelta) >= 1 ? `${signed(ltDelta)} h` : "="})</span>}
++                  </td>
++                </tr>
++              );
++            })}
++          </tbody>
++        </table>
++      </div>
++      <Glossary
++        items={[
++          { term: t("watch.glossary.vsAvg.term"), def: t("watch.glossary.vsAvg.def") },
++          { term: t("watch.glossary.leadTime.term"), def: t("watch.glossary.leadTime.def") },
++        ]}
++      />
++    </div>
++  );
++}
++
++export default function ForecastWatchlist({
++  watch, t, locale, rangeLabel, hrefFor,
++}: {
++  watch: ForecastWatch;
++  t: T;
++  locale: Locale;
++  rangeLabel: string;
++  hrefFor: (i: WatchItem) => string;
++}) {
++  return (
++    <div className="space-y-5">
++      {watch.scope === "network" ? (
++        <div className="grid gap-5 lg:grid-cols-2">
++          {watch.regions.map((r) => (
++            <Box key={r.regionId} title={t("watch.regionTitle", { region: r.regionName })} subtitle={t("risk.subtitle", { range: rangeLabel })}
++              empty={t("watch.regionEmpty", { region: r.regionName })} items={r.down} t={t} locale={locale} hrefFor={hrefFor} />
++          ))}
++        </div>
++      ) : (
++        <>
++          <div className="grid gap-5 lg:grid-cols-2">
++            <Box title={t("risk.title")} subtitle={t("risk.subtitle", { range: rangeLabel })} empty={t("risk.empty")} items={watch.down} t={t} locale={locale} hrefFor={hrefFor} />
++            <Box title={t("watch.up.title")} subtitle={t("watch.up.subtitle", { range: rangeLabel })} empty={t("watch.up.empty")} items={watch.up} t={t} locale={locale} hrefFor={hrefFor} />
++          </div>
++          {watch.scope === "market" && watch.breakdown.length > 0 && <Breakdown items={watch.breakdown} t={t} hrefFor={hrefFor} />}
++        </>
++      )}
++      <Glossary items={[{ term: t("glossary.risk.term"), def: t("glossary.risk.def") }]} />
++    </div>
++  );
++}
+diff --git a/app/forecast/page.tsx b/app/forecast/page.tsx
+index 150c7f6..44af1ed 100644
+--- a/app/forecast/page.tsx
++++ b/app/forecast/page.tsx
+@@ -4,14 +4,15 @@ import {
+   getFilterOptions,
+   resolveFilterNames,
+   getNetworkForecast,
+-  getForecastRiskFacilities,
++  getForecastWatch,
+   getFacilityPlan,
+   getSeasonPlan,
+   LOOKBACK_BLOCKS,
+   MIN_BLOCKS_FOR_PREDICTION,
+   type ForecastRange,
+   type NetworkForecast,
+-  type ForecastRiskFacility,
++  type ForecastWatch,
++  type WatchItem,
+   type FacilityPlan,
+   type SeasonPlanData,
+ } from "../lib/db/queries";
+@@ -21,7 +22,8 @@ import { weekdayLabel, weekdayPlural } from "../lib/db/weekday";
+ import type { Locale } from "@/i18n/config";
+ import { todayISO } from "../lib/period";
+ import FilterPanel from "../components/FilterPanel";
+-import ChangeBadge from "../components/ChangeBadge";
++import GroupSection from "../components/GroupSection";
++import ForecastWatchlist from "../components/ForecastWatchlist";
+ import Glossary from "../components/Glossary";
+ import InsightsPanel, { type PanelInsight } from "../components/InsightsPanel";
+ import FacilityWeekPlan from "../components/FacilityWeekPlan";
+@@ -51,26 +53,30 @@ function formatUSD(n: number) {
+ function formatNum(n: number) {
+   return Math.round(n).toLocaleString("en-US");
+ }
+-function formatGamesRange(low: number | null, high: number | null): string | undefined {
+-  if (low === null || high === null) return undefined;
+-  return `${formatNum(low)}–${formatNum(high)}`;
+-}
+-function formatPctRange(low: number | null, high: number | null): string | undefined {
+-  if (low === null || high === null) return undefined;
+-  return `${formatPct(low)}–${formatPct(high)}`;
+-}
+-function formatUSDRange(low: number | null, high: number | null): string | undefined {
+-  if (low === null || high === null) return undefined;
+-  return `${formatUSD(low)}–${formatUSD(high)}`;
+-}
+ 
+-function ForecastTile({ label, value, rangeText, note }: { label: string; value: string; rangeText?: string; note?: string }) {
++// Un valor proyectado se muestra como número absoluto (la tarjeta y la página ya dicen que es una
++// proyección) y sus extremos como alertas: el piso es el escenario a revisar y el techo el que conviene
++// sostener. Los extremos son ± 1 desvío estándar del historial (ver glosario), no una garantía.
++function ForecastTile({ label, value, low, high, t, note }: { label: string; value: string; low?: string; high?: string; t: Translator; note?: string }) {
+   return (
+-    <div className="rounded-xl bg-surface border border-warning/20 p-3">
++    <div className="rounded-xl bg-surface-sunken p-3">
+       <div className="text-xs text-ink-faint mb-1">{label}</div>
+       <div className="font-display text-lg font-bold text-ink">{value}</div>
+-      {rangeText && <div className="text-[11px] text-ink-muted mt-0.5">{rangeText}</div>}
+-      {note && <div className="text-[10px] text-warning mt-1 leading-snug">{note}</div>}
++      {low !== undefined && high !== undefined && (
++        <div className="mt-1.5 space-y-0.5 text-[11px] leading-tight">
++          <div className="flex items-baseline gap-1 text-danger" title={t("bands.lowHint")}>
++            <span aria-hidden="true">▼</span>
++            <span className="font-semibold tabular-nums">{low}</span>
++            <span className="text-ink-muted">{t("bands.low")}</span>
++          </div>
++          <div className="flex items-baseline gap-1 text-brand" title={t("bands.highHint")}>
++            <span aria-hidden="true">▲</span>
++            <span className="font-semibold tabular-nums">{high}</span>
++            <span className="text-ink-muted">{t("bands.high")}</span>
++          </div>
++        </div>
++      )}
++      {note && <div className="text-[10px] text-warning mt-1.5 leading-snug">{note}</div>}
+     </div>
+   );
+ }
+@@ -81,7 +87,7 @@ function ForecastTile({ label, value, rangeText, note }: { label: string; value:
+ // (confirmación esperada a la baja, radar de riesgo con resultados);
+ // "notable" es una señal positiva; "info" es contexto (método usado,
+ // comparación YoY, advertencia de revenue).
+-function buildForecastInsights(forecast: NetworkForecast, risk: ForecastRiskFacility[], t: Translator): PanelInsight[] {
++function buildForecastInsights(forecast: NetworkForecast, watch: ForecastWatch | null, t: Translator): PanelInsight[] {
+   const lines: PanelInsight[] = [];
+ 
+   if (forecast.method === "insufficient") {
+@@ -120,8 +126,11 @@ function buildForecastInsights(forecast: NetworkForecast, risk: ForecastRiskFaci
+     });
+   }
+ 
+-  if (risk.length > 0) {
+-    lines.push({ text: t("insights.riskTop", { n: risk.length, name: risk[0].facilityName }), severity: "critical" });
++  if (watch && watch.downCount > 0 && watch.topDownName) {
++    lines.push({ text: t("insights.riskTop", { n: watch.downCount, name: watch.topDownName }), severity: "critical" });
++  }
++  if (watch && watch.scope !== "network" && watch.upCount > 0) {
++    lines.push({ text: t("insights.upCount", { n: watch.upCount }), severity: "notable" });
+   }
+ 
+   lines.push({ text: t("insights.revenueCaveat"), severity: "info" });
+@@ -199,11 +208,11 @@ export default async function ForecastPage({ searchParams }: { searchParams: Pro
+ 
+   const planFilter = PLAN_FILTERS.find((f) => f === sp.filter);
+ 
+-  const [names, filterOptions, forecast, riskFacilities, facilityPlan, seasonRaw] = await Promise.all([
++  const [names, filterOptions, forecast, watch, facilityPlan, seasonRaw] = await Promise.all([
+     resolveFilterNames(sp),
+     getFilterOptions(),
+     getNetworkForecast(filters, range, today),
+-    getForecastRiskFacilities(filters, range, today),
++    getForecastWatch(filters, range, today),
+     // Plan por facility: solo cuando hay un facility elegido. Estacionalidad solo para la vista de 30 días.
+     sp.facilityId ? getFacilityPlan(sp.facilityId) : Promise.resolve(null),
+     sp.facilityId && range === "month" ? getSeasonPlan({ facilityId: sp.facilityId }) : Promise.resolve(null),
+@@ -212,6 +221,8 @@ export default async function ForecastPage({ searchParams }: { searchParams: Pro
+   // Los links del plan conservan el facility y vuelven siempre a la vista de 7 días.
+   const weekHrefFor = (f: PlanFilter | undefined) => buildForecastQuery(sp, { range: undefined, filter: f });
+ 
++  const facilityHref = (i: WatchItem) => buildForecastQuery(sp, { regionId: i.regionId, marketId: i.marketId, facilityId: i.facilityId });
++
+   const hasFilter = Boolean(sp.regionId || sp.marketId || sp.facilityId);
+   const rangeLabelKey = range === "week" ? "rangeWeek" : "rangeMonth";
+ 
+@@ -275,49 +286,51 @@ export default async function ForecastPage({ searchParams }: { searchParams: Pro
+         ))}
+       </div>
+ 
+-      {/* Bloque de predicción — mismo lenguaje visual que la sección de
+-          Diario (borde punteado + badge "Predicción"), a propósito: es la
+-          misma naturaleza de dato (estimado, no real) en toda la app, así
+-          que se ve igual en toda la app. */}
+-      <div className="rounded-2xl border-2 border-dashed border-warning/40 bg-warning-soft/40 p-5">
+-        <div className="flex items-center gap-2 mb-1 flex-wrap">
+-          <span className="text-base leading-none" aria-hidden="true">🔮</span>
+-          <h3 className="text-sm font-semibold text-ink">{t("windowLabel", { n: forecast.windowDays })}</h3>
+-          <span className="text-[10px] font-bold uppercase tracking-wide bg-warning text-white px-1.5 py-0.5 rounded-full">{t("badge")}</span>
+-        </div>
+-        <p className="text-xs text-ink-muted mb-4 max-w-3xl">{t("disclaimer", { n: forecast.occurrences, lookback: LOOKBACK_BLOCKS })}</p>
++      {/* Bloque de predicción: una GroupSection más (mismo fondo y borde que el resto de la app, sin
++          línea punteada). El matiz "esto es una estimación" queda en el puntito y la etiqueta
++          Predicción en warning, igual que en Diario. */}
++      <GroupSection title={`🔮 ${t("windowLabel", { n: forecast.windowDays })}`} accent="warning" badge={t("badge")}>
++        <p className="text-xs text-ink-muted max-w-3xl -mt-1">{t("disclaimer", { n: forecast.occurrences, lookback: LOOKBACK_BLOCKS })}</p>
+ 
+         {forecast.method === "insufficient" ? (
+           <div className="text-sm text-ink-faint">{t("methodInsufficient", { min: MIN_BLOCKS_FOR_PREDICTION, n: forecast.occurrences })}</div>
+         ) : (
+           <>
+-            {forecast.method === "average" && <div className="text-xs text-ink-faint mb-3">{t("methodAverage", { n: forecast.occurrences })}</div>}
++            {forecast.method === "average" && <div className="text-xs text-ink-faint">{t("methodAverage", { n: forecast.occurrences })}</div>}
+ 
+             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+               <ForecastTile
++                t={t}
+                 label={t("games.label")}
+-                value={forecast.games.predicted !== null ? `~${formatNum(forecast.games.predicted)}` : "—"}
+-                rangeText={formatGamesRange(forecast.games.low, forecast.games.high)}
++                value={forecast.games.predicted !== null ? formatNum(forecast.games.predicted) : "—"}
++                low={forecast.games.low !== null ? formatNum(forecast.games.low) : undefined}
++                high={forecast.games.high !== null ? formatNum(forecast.games.high) : undefined}
+               />
+               <ForecastTile
++                t={t}
+                 label={t("confirmation.label")}
+-                value={forecast.confirmationRate.predicted !== null ? `~${formatPct(forecast.confirmationRate.predicted)}` : "—"}
+-                rangeText={formatPctRange(forecast.confirmationRate.low, forecast.confirmationRate.high)}
++                value={forecast.confirmationRate.predicted !== null ? formatPct(forecast.confirmationRate.predicted) : "—"}
++                low={forecast.confirmationRate.low !== null ? formatPct(forecast.confirmationRate.low) : undefined}
++                high={forecast.confirmationRate.high !== null ? formatPct(forecast.confirmationRate.high) : undefined}
+               />
+               <ForecastTile
++                t={t}
+                 label={t("occupancy.label")}
+-                value={forecast.occupancyRate.predicted !== null ? `~${formatPct(forecast.occupancyRate.predicted)}` : "—"}
+-                rangeText={formatPctRange(forecast.occupancyRate.low, forecast.occupancyRate.high)}
++                value={forecast.occupancyRate.predicted !== null ? formatPct(forecast.occupancyRate.predicted) : "—"}
++                low={forecast.occupancyRate.low !== null ? formatPct(forecast.occupancyRate.low) : undefined}
++                high={forecast.occupancyRate.high !== null ? formatPct(forecast.occupancyRate.high) : undefined}
+               />
+               <ForecastTile
++                t={t}
+                 label={t("revenue.label")}
+-                value={forecast.revenue.predicted !== null ? `~${formatUSD(forecast.revenue.predicted)}` : "—"}
+-                rangeText={formatUSDRange(forecast.revenue.low, forecast.revenue.high)}
++                value={forecast.revenue.predicted !== null ? formatUSD(forecast.revenue.predicted) : "—"}
++                low={forecast.revenue.low !== null ? formatUSD(forecast.revenue.low) : undefined}
++                high={forecast.revenue.high !== null ? formatUSD(forecast.revenue.high) : undefined}
+                 note={t("revenue.lowConfidence")}
+               />
+             </div>
+ 
+-            <div className="mt-4 pt-4 border-t border-warning/20">
++            <div className="pt-4 border-t border-border">
+               <div className="text-xs font-medium text-ink mb-2">{t("breakdown.title")}</div>
+               {forecast.predictedConfirmedGames !== null && forecast.predictedCancelledGames !== null && forecast.predictedConfirmedGames + forecast.predictedCancelledGames > 0 ? (
+                 <div>
+@@ -342,13 +355,13 @@ export default async function ForecastPage({ searchParams }: { searchParams: Pro
+             </div>
+ 
+             {forecast.sameWindowLastYear && (
+-              <div className="mt-3 text-xs text-ink-faint">
++              <div className="text-xs text-ink-faint">
+                 {t("yoy.value", { games: formatNum(forecast.sameWindowLastYear.totalGames), pct: formatPct(forecast.sameWindowLastYear.confirmationRate) })}
+               </div>
+             )}
+           </>
+         )}
+-      </div>
++      </GroupSection>
+ 
+       {sp.facilityId && (
+         facilityPlan ? (
+@@ -362,28 +375,7 @@ export default async function ForecastPage({ searchParams }: { searchParams: Pro
+         )
+       )}
+ 
+-      {!sp.facilityId && (
+-        <div className="rounded-2xl bg-surface shadow-sm p-5">
+-          <h3 className="text-sm font-medium text-ink mb-0.5">{t("risk.title")}</h3>
+-          <p className="text-xs text-ink-faint mb-4">{t("risk.subtitle", { range: t(rangeLabelKey) })}</p>
+-          {riskFacilities.length === 0 ? (
+-            <div className="text-sm text-ink-faint">{t("risk.empty")}</div>
+-          ) : (
+-            <div className="space-y-3">
+-              {riskFacilities.map((r) => (
+-                <div key={r.facilityId} className="flex items-center justify-between gap-2 text-sm">
+-                  <span className="text-ink font-medium truncate">{r.facilityName}</span>
+-                  <span className="flex items-center gap-2 shrink-0 text-ink-faint text-xs">
+-                    {r.predictedCancelledGames !== null && <span>{t("risk.cancelledLabel", { n: r.predictedCancelledGames })}</span>}
+-                    {r.confirmationRateDelta !== null && <ChangeBadge value={r.confirmationRateDelta} unit="pts" />}
+-                  </span>
+-                </div>
+-              ))}
+-            </div>
+-          )}
+-          <Glossary items={[{ term: t("glossary.risk.term"), def: t("glossary.risk.def") }]} />
+-        </div>
+-      )}
++      {watch && <ForecastWatchlist watch={watch} t={t} locale={locale} rangeLabel={t(rangeLabelKey)} hrefFor={facilityHref} />}
+ 
+       <Glossary
+         items={[
+@@ -394,7 +386,7 @@ export default async function ForecastPage({ searchParams }: { searchParams: Pro
+ 
+       <InsightsPanel
+         title={t("insights.panelTitle")}
+-        insights={[...buildForecastInsights(forecast, riskFacilities, t), ...(facilityPlan ? buildFacilityInsights(facilityPlan, seasonContext, range, t, locale) : [])]}
++        insights={[...buildForecastInsights(forecast, watch, t), ...(facilityPlan ? buildFacilityInsights(facilityPlan, seasonContext, range, t, locale) : [])]}
+       />
+     </div>
+   );
+diff --git a/app/lib/db/forecast.ts b/app/lib/db/forecast.ts
+index b25d2d3..c759215 100644
+--- a/app/lib/db/forecast.ts
++++ b/app/lib/db/forecast.ts
+@@ -20,10 +20,10 @@ import { buildWhere, average, stdDev, linearRegression, type OverviewFilters } f
+ // período que todavía no empezó, no una extrapolación del que está a mitad
+ // de camino.
+ 
+-function parseISODate(iso: string): Date {
++export function parseISODate(iso: string): Date {
+   return new Date(`${iso}T00:00:00.000Z`);
+ }
+-function addDaysUTC(d: Date, delta: number): Date {
++export function addDaysUTC(d: Date, delta: number): Date {
+   const r = new Date(d);
+   r.setUTCDate(r.getUTCDate() + delta);
+   return r;
+@@ -32,14 +32,14 @@ function addDaysUTC(d: Date, delta: number): Date {
+ export type ForecastRange = "week" | "month";
+ export type ForecastMethod = "regression" | "average" | "insufficient";
+ 
+-const RANGE_DAYS: Record<ForecastRange, number> = { week: 7, month: 30 };
++export const RANGE_DAYS: Record<ForecastRange, number> = { week: 7, month: 30 };
+ // Exportados: app/forecast/page.tsx los necesita para el texto del
+ // disclaimer y del estado "sin historial suficiente" — un solo número
+ // fuente de verdad, mismo criterio que MIN_OCCURRENCES_FOR_PREDICTION
+ // en daily.ts.
+ export const LOOKBACK_BLOCKS = 12;
+ export const MIN_BLOCKS_FOR_PREDICTION = 3;
+-const MIN_BLOCKS_FOR_TREND = 5;
++export const MIN_BLOCKS_FOR_TREND = 5;
+ 
+ export type ForecastMetric = {
+   predicted: number | null;
+@@ -48,7 +48,7 @@ export type ForecastMetric = {
+   avg: number | null; // promedio simple de esos mismos bloques, como referencia
+ };
+ 
+-function buildMetric(historicalValues: number[], n: number, method: ForecastMethod, clamp: [number, number] | null): ForecastMetric {
++export function buildMetric(historicalValues: number[], n: number, method: ForecastMethod, clamp: [number, number] | null): ForecastMetric {
+   if (method === "insufficient" || historicalValues.length === 0) {
+     return { predicted: null, low: null, high: null, avg: null };
+   }
+@@ -70,7 +70,7 @@ function buildMetric(historicalValues: number[], n: number, method: ForecastMeth
+   return { predicted: clampFn(predicted), low, high, avg };
+ }
+ 
+-type BlockTotals = {
++export type BlockTotals = {
+   totalGames: number; // publicados (volumen de oferta)
+   demandBase: number; // confirmados + cancelados por demanda: denominador de la tasa de demanda
+   confirmedGames: number;
+@@ -79,7 +79,7 @@ type BlockTotals = {
+   revenue: number;
+ };
+ 
+-function emptyBlock(): BlockTotals {
++export function emptyBlock(): BlockTotals {
+   return { totalGames: 0, demandBase: 0, confirmedGames: 0, sumFinalConfirmed: 0, sumMaxConfirmed: 0, revenue: 0 };
+ }
+ 
+diff --git a/app/lib/db/forecastWatch.ts b/app/lib/db/forecastWatch.ts
+new file mode 100644
+index 0000000..fa85736
+--- /dev/null
++++ b/app/lib/db/forecastWatch.ts
+@@ -0,0 +1,254 @@
++import { prisma } from "./prisma";
++import { cached } from "./cache";
++import { withDemandOnly } from "../metrics";
++import { getLatestDataDate } from "./freshness";
++import { average, buildWhere, type OverviewFilters } from "./shared";
++import {
++  LOOKBACK_BLOCKS, MIN_BLOCKS_FOR_TREND, RANGE_DAYS, addDaysUTC, buildMetric, emptyBlock, parseISODate,
++  type BlockTotals, type ForecastRange,
++} from "./forecast";
++import {
++  directionOf, topSlotShifts,
++  type Direction, type FacilityDriver, type ReasonShift,
++} from "../forecastWatchCalc";
++
++// ---------- Pronóstico: "Facilities a vigilar" y "Facilities en alza" ----------
++// Misma proyección por facility que getForecastRiskFacilities (regresión de 12 bloques de 7 o 30
++// días sobre partidos publicados y tasa de demanda), pero devolviendo TODAS las facilities con
++// historial suficiente, ya clasificadas en baja / alza / estable, más lo necesario para explicar
++// el cambio: motivos de cancelación, slots que ganaron o perdieron confirmados y variación del
++// tiempo de confirmación. Los textos se arman en la UI (ver forecastWatchCalc.ts).
++
++const DRIVER_DAYS: Record<ForecastRange, number> = { week: 28, month: 60 };
++const LIST_SIZE = 5;
++const BREAKDOWN_SIZE = 8;
++
++type FilterNoDates = Omit<OverviewFilters, "dateFrom" | "dateTo">;
++
++export type FacilityOutlook = {
++  facilityId: string;
++  facilityName: string;
++  marketId: string;
++  marketName: string;
++  regionId: string;
++  regionName: string;
++  /** Partidos agendados (publicados) proyectados para la ventana. */
++  predictedGames: number;
++  predictedConfirmed: number;
++  predictedCancelled: number;
++  /** Promedio de confirmados por bloque en el historial, como referencia. */
++  avgConfirmed: number;
++  /** Confirmados proyectados menos su promedio: cuánto aporta la facility al cambio de la proyección. */
++  confirmedDelta: number;
++  predictedRate: number;
++  /** Tasa de demanda proyectada menos su promedio histórico (0.03 = 3 puntos). */
++  rateDelta: number;
++  direction: Direction;
++};
++
++type CountRow = { facilityId: string; _count: { _all: number } };
++type FacilityMeta = { id: string; name: string; market: { id: string; name: string; regionId: string; region: { name: string } } };
++
++async function getForecastOutlookImpl(filters: FilterNoDates, range: ForecastRange, todayISOStr: string): Promise<FacilityOutlook[]> {
++  if (filters.facilityId) return [];
++  const blockDays = RANGE_DAYS[range];
++  const windowEnd = addDaysUTC(parseISODate(todayISOStr), -1);
++
++  const blockRanges = Array.from({ length: LOOKBACK_BLOCKS }, (_, idx) => {
++    const blockDateTo = addDaysUTC(windowEnd, -(LOOKBACK_BLOCKS - 1 - idx) * blockDays);
++    return { blockDateFrom: addDaysUTC(blockDateTo, -(blockDays - 1)), blockDateTo };
++  });
++
++  const [blockGroups, metaRows] = await Promise.all([
++    Promise.all(
++      blockRanges.map(async ({ blockDateFrom, blockDateTo }) => {
++        const blockWhere = buildWhere({ ...filters, dateFrom: blockDateFrom, dateTo: blockDateTo });
++        return (await Promise.all([
++          prisma.game.groupBy({ by: ["facilityId"], where: blockWhere, _count: { _all: true } }),
++          prisma.game.groupBy({ by: ["facilityId"], where: { ...blockWhere, status: "CONFIRMED" }, _count: { _all: true } }),
++          prisma.game.groupBy({ by: ["facilityId"], where: withDemandOnly(blockWhere), _count: { _all: true } }),
++        ])) as [CountRow[], CountRow[], CountRow[]];
++      })
++    ),
++    prisma.facility.findMany({
++      select: { id: true, name: true, market: { select: { id: true, name: true, regionId: true, region: { select: { name: true } } } } },
++    }) as Promise<FacilityMeta[]>,
++  ]);
++  const metaById = new Map(metaRows.map((f): [string, FacilityMeta] => [f.id, f]));
++
++  const byFacility = new Map<string, BlockTotals[]>();
++  blockGroups.forEach(([totals, confirmed, demand], idx) => {
++    const confirmedBy = new Map(confirmed.map((g): [string, number] => [g.facilityId, Number(g._count._all)]));
++    const demandBy = new Map(demand.map((g): [string, number] => [g.facilityId, Number(g._count._all)]));
++    for (const g of totals) {
++      const blocks = byFacility.get(g.facilityId) ?? Array.from({ length: LOOKBACK_BLOCKS }, emptyBlock);
++      blocks[idx].totalGames = Number(g._count._all);
++      blocks[idx].confirmedGames = confirmedBy.get(g.facilityId) ?? 0;
++      blocks[idx].demandBase = demandBy.get(g.facilityId) ?? 0;
++      byFacility.set(g.facilityId, blocks);
++    }
++  });
++
++  const out: FacilityOutlook[] = [];
++  for (const [facilityId, blocks] of byFacility.entries()) {
++    const meta = metaById.get(facilityId);
++    if (!meta) continue;
++    const withData = blocks.filter((b) => b.totalGames > 0);
++    const withDemand = withData.filter((b) => b.demandBase > 0);
++    // Sin historial propio suficiente no se proyecta (mismo piso que el resto del Pronóstico).
++    if (withData.length < MIN_BLOCKS_FOR_TREND || withDemand.length < MIN_BLOCKS_FOR_TREND) continue;
++
++    const sumTotal = withData.reduce((a, b) => a + b.totalGames, 0);
++    const demandShare = sumTotal > 0 ? withData.reduce((a, b) => a + b.demandBase, 0) / sumTotal : 1;
++    const gamesMetric = buildMetric(withData.map((b) => b.totalGames), withData.length, "regression", null);
++    const rateMetric = buildMetric(withDemand.map((b) => b.confirmedGames / b.demandBase), withDemand.length, "regression", [0, 1]);
++    if (gamesMetric.predicted === null || rateMetric.predicted === null || rateMetric.avg === null) continue;
++
++    const predictedConfirmed = gamesMetric.predicted * demandShare * rateMetric.predicted;
++    const avgConfirmed = average(withData.map((b) => b.confirmedGames));
++    const rateDelta = rateMetric.predicted - rateMetric.avg;
++    const confirmedDelta = predictedConfirmed - avgConfirmed;
++    const predictedCancelled = Math.round(gamesMetric.predicted) - Math.round(predictedConfirmed);
++
++    out.push({
++      facilityId,
++      facilityName: meta.name,
++      marketId: meta.market.id,
++      marketName: meta.market.name,
++      regionId: meta.market.regionId,
++      regionName: meta.market.region.name,
++      predictedGames: gamesMetric.predicted,
++      predictedConfirmed,
++      predictedCancelled,
++      avgConfirmed,
++      confirmedDelta,
++      predictedRate: rateMetric.predicted,
++      rateDelta,
++      direction: directionOf(rateDelta, confirmedDelta, predictedCancelled),
++    });
++  }
++  return out;
++}
++
++const getForecastOutlook = cached("getForecastOutlook", getForecastOutlookImpl);
++
++// ---------- Por qué cambió: último período vs el anterior ----------
++
++type CatRow = { facilityId: string; cancellationCategory: string | null; _count: { _all: number } };
++type SlotRow = { facilityId: string; dayOfWeek: string; time: string; _count: { _all: number } };
++type LeadRow = { facilityId: string; _count: { _all: number }; _avg: { confirmationLeadTime: number | null } };
++
++async function getForecastDriversImpl(facilityIds: string[], range: ForecastRange, todayISOStr: string): Promise<Record<string, FacilityDriver>> {
++  if (facilityIds.length === 0) return {};
++  const days = DRIVER_DAYS[range];
++  // Se ancla en el último día con datos cargados (no en "ayer"): si el import se atrasó, el período
++  // reciente no queda vacío por culpa del atraso.
++  const latest = await getLatestDataDate();
++  const end = latest ? parseISODate(latest) : addDaysUTC(parseISODate(todayISOStr), -1);
++  const recent = { gte: addDaysUTC(end, -(days - 1)), lte: end };
++  const prior = { gte: addDaysUTC(end, -(2 * days - 1)), lte: addDaysUTC(end, -days) };
++  const base = { facilityId: { in: facilityIds } };
++
++  const [catR, catP, slotR, slotP, leadR, leadP] = (await Promise.all([
++    ...[recent, prior].map((date) => prisma.game.groupBy({ by: ["facilityId", "cancellationCategory"], where: { ...base, date, status: "CANCELLED" }, _count: { _all: true } })),
++    ...[recent, prior].map((date) => prisma.game.groupBy({ by: ["facilityId", "dayOfWeek", "time"], where: { ...base, date, status: "CONFIRMED" }, _count: { _all: true } })),
++    ...[recent, prior].map((date) => prisma.game.groupBy({ by: ["facilityId"], where: { ...base, date, status: "CONFIRMED" }, _count: { _all: true }, _avg: { confirmationLeadTime: true } })),
++  ])) as [CatRow[], CatRow[], SlotRow[], SlotRow[], LeadRow[], LeadRow[]];
++
++  const out: Record<string, FacilityDriver> = {};
++  for (const id of facilityIds) {
++    const reasonMap = new Map<string, ReasonShift>();
++    const bump = (rows: CatRow[], key: "recent" | "prior") => {
++      for (const r of rows) {
++        if (r.facilityId !== id) continue;
++        const category = r.cancellationCategory ?? "UNSPECIFIED";
++        const cur = reasonMap.get(category) ?? { category, recent: 0, prior: 0 };
++        cur[key] += Number(r._count._all);
++        reasonMap.set(category, cur);
++      }
++    };
++    bump(catR, "recent");
++    bump(catP, "prior");
++    const reasons = [...reasonMap.values()];
++
++    const slotMap = (rows: SlotRow[]) => new Map(rows.filter((r) => r.facilityId === id).map((r): [string, number] => [`${r.dayOfWeek}|${r.time}`, Number(r._count._all)]));
++    const { gainers, losers } = topSlotShifts(slotMap(slotR), slotMap(slotP));
++
++    const lead = (rows: LeadRow[]) => rows.find((r) => r.facilityId === id);
++    const lr = lead(leadR);
++    const lp = lead(leadP);
++    out[id] = {
++      facilityId: id,
++      days,
++      confirmed: { recent: Number(lr?._count._all ?? 0), prior: Number(lp?._count._all ?? 0) },
++      cancelled: { recent: reasons.reduce((a, r) => a + r.recent, 0), prior: reasons.reduce((a, r) => a + r.prior, 0) },
++      reasons,
++      slotGainers: gainers,
++      slotLosers: losers,
++      leadTime: { recent: lr?._avg.confirmationLeadTime ?? null, prior: lp?._avg.confirmationLeadTime ?? null },
++    };
++  }
++  return out;
++}
++
++const getForecastDrivers = cached("getForecastDrivers", getForecastDriversImpl);
++
++// ---------- Lo que muestra la página, según el nivel elegido ----------
++
++export type WatchItem = FacilityOutlook & { driver: FacilityDriver | null };
++export type WatchRegion = { regionId: string; regionName: string; down: WatchItem[] };
++
++// downCount / upCount: cuántas facilities del filtro proyectan baja / alza en total (las listas muestran las primeras).
++export type ForecastWatch = { downCount: number; upCount: number; topDownName: string | null } & (
++  | { scope: "network"; regions: WatchRegion[] }
++  | { scope: "region" | "market"; down: WatchItem[]; up: WatchItem[]; breakdown: WatchItem[] }
++);
++
++/** Baja: peor tasa + más cancelados (por posición, como antes). Alza: más confirmados sobre su promedio. */
++function rankDown(items: FacilityOutlook[]): FacilityOutlook[] {
++  const byDrop = [...items].sort((a, b) => a.rateDelta - b.rateDelta);
++  const byCancelled = [...items].sort((a, b) => b.predictedCancelled - a.predictedCancelled);
++  const dropRank = new Map(byDrop.map((c, i) => [c.facilityId, i + 1]));
++  const cancelledRank = new Map(byCancelled.map((c, i) => [c.facilityId, i + 1]));
++  return [...items].sort((a, b) => (dropRank.get(a.facilityId)! + cancelledRank.get(a.facilityId)!) - (dropRank.get(b.facilityId)! + cancelledRank.get(b.facilityId)!));
++}
++
++export async function getForecastWatch(filters: FilterNoDates, range: ForecastRange, todayISOStr: string): Promise<ForecastWatch | null> {
++  if (filters.facilityId) return null;
++  const outlook = await getForecastOutlook(filters, range, todayISOStr);
++  const downAll = rankDown(outlook.filter((o) => o.direction === "down"));
++  const upAll = outlook.filter((o) => o.direction === "up").sort((a, b) => b.confirmedDelta - a.confirmedDelta);
++
++  let network: { regionId: string; regionName: string; down: FacilityOutlook[] }[] = [];
++  let down: FacilityOutlook[] = [];
++  let up: FacilityOutlook[] = [];
++  let breakdown: FacilityOutlook[] = [];
++
++  if (!filters.regionId && !filters.marketId) {
++    const regions = new Map<string, string>();
++    for (const o of outlook) regions.set(o.regionId, o.regionName);
++    network = [...regions.entries()]
++      .sort((a, b) => a[1].localeCompare(b[1]))
++      .map(([regionId, regionName]) => ({ regionId, regionName, down: downAll.filter((o) => o.regionId === regionId).slice(0, LIST_SIZE) }));
++  } else {
++    down = downAll.slice(0, LIST_SIZE);
++    up = upAll.slice(0, LIST_SIZE);
++    if (filters.marketId) breakdown = [...outlook].sort((a, b) => Math.abs(b.confirmedDelta) - Math.abs(a.confirmedDelta)).slice(0, BREAKDOWN_SIZE);
++  }
++
++  const ids = [...new Set([...network.flatMap((r) => r.down), ...down, ...up, ...breakdown].map((o) => o.facilityId))].sort();
++  const drivers = await getForecastDrivers(ids, range, todayISOStr);
++  const withDriver = (o: FacilityOutlook): WatchItem => ({ ...o, driver: drivers[o.facilityId] ?? null });
++
++  const counts = { downCount: downAll.length, upCount: upAll.length, topDownName: downAll[0]?.facilityName ?? null };
++  if (!filters.regionId && !filters.marketId) {
++    return { ...counts, scope: "network", regions: network.map((r) => ({ ...r, down: r.down.map(withDriver) })) };
++  }
++  return {
++    ...counts,
++    scope: filters.marketId ? "market" : "region",
++    down: down.map(withDriver),
++    up: up.map(withDriver),
++    breakdown: breakdown.map(withDriver),
++  };
++}
+diff --git a/app/lib/db/queries.ts b/app/lib/db/queries.ts
+index 5122314..048738b 100644
+--- a/app/lib/db/queries.ts
++++ b/app/lib/db/queries.ts
+@@ -21,6 +21,7 @@
+ //   region.ts          - ranking por región (East/West), para la vista de Leadership
+ //   daily.ts           - seguimiento diario: foto del día, línea base, evolución y calendario "sí o sí"
+ //   forecast.ts         - pronóstico de red: próxima semana/mes (regresión agregada) y radar de riesgo hacia adelante
++//   forecastWatch.ts   - Pronóstico: facilities a vigilar (baja), en alza y desglose por market, con el porqué del cambio
+ //   facilityProfile.ts - módulo de datos maestros del facility (perfil + relación + historial), enlazado desde Leadership
+ //   satisfaction.ts    - Player Satisfaction: reviews por partido (GameReview) y reviews de tienda de apps (AppReview), enlazado desde Leadership
+ 
+@@ -43,6 +44,7 @@ export * from "./market";
+ export * from "./region";
+ export * from "./daily";
+ export * from "./forecast";
++export * from "./forecastWatch";
+ export * from "./facilityProfile";
+ export * from "./satisfaction";
+ export * from "./reports";
+diff --git a/app/lib/forecastWatchCalc.ts b/app/lib/forecastWatchCalc.ts
+new file mode 100644
+index 0000000..6be6f44
+--- /dev/null
++++ b/app/lib/forecastWatchCalc.ts
+@@ -0,0 +1,105 @@
++// ---------- "Facilities a vigilar" de Pronóstico: cálculo puro (sin Prisma) ----------
++// Decide qué facilities van a la lista de baja o de alza y arma la explicación breve
++// (qué cambió, por qué y qué hacer) a partir de conteos ya agregados. Está separado de
++// app/lib/db/forecastWatch.ts para poder probarlo sin base. Los textos viven en los mensajes
++// (Forecast.watch.*); acá solo se decide QUÉ decir, no cómo.
++
++/** Caída mínima de la tasa de demanda proyectada (vs su promedio) para contar como baja: 1 punto. Debajo de eso es ruido. */
++export const DOWN_MIN_RATE_DROP = 0.01;
++/** Cancelados proyectados por bloque a partir de los cuales una facility con confirmados a la baja se vigila aunque la tasa no caiga. */
++export const DOWN_MIN_CANCELLED = 3;
++/** Si lo publicado (confirmados + cancelados) cae al menos esto entre períodos, la merma se explica por menos oferta. */
++export const SUPPLY_DROP_PCT = 0.2;
++
++export type Direction = "down" | "up" | "flat";
++
++/**
++ * Baja: la tasa de demanda proyectada cae al menos 1 punto bajo su propio promedio, o hay muchos cancelados
++ * proyectados Y los confirmados proyectados quedan bajo su promedio. Alza: confirmados proyectados por encima
++ * de su promedio sin que sea baja. El resto es estable y no se lista.
++ * (Antes bastaba tener 3 cancelados proyectados para entrar a "a vigilar", aunque la facility estuviera mejorando.)
++ */
++export function directionOf(rateDelta: number, confirmedDelta: number, predictedCancelled: number): Direction {
++  if (rateDelta <= -DOWN_MIN_RATE_DROP || (predictedCancelled >= DOWN_MIN_CANCELLED && confirmedDelta < 0)) return "down";
++  if (confirmedDelta > 0 && rateDelta >= 0) return "up";
++  return "flat";
++}
++
++export type ReasonShift = { category: string; recent: number; prior: number };
++export type SlotShift = { dayOfWeek: string; time: string; recent: number; prior: number };
++
++/** Conteos de una facility en el último período (`days` días) y en el anterior de igual largo. */
++export type FacilityDriver = {
++  facilityId: string;
++  days: number;
++  confirmed: { recent: number; prior: number };
++  cancelled: { recent: number; prior: number };
++  /** Cancelados por categoría ("UNSPECIFIED" = sin motivo cargado). */
++  reasons: ReasonShift[];
++  /** Slots (día + hora) que más ganaron / más perdieron confirmados entre períodos. */
++  slotGainers: SlotShift[];
++  slotLosers: SlotShift[];
++  /** Horas promedio entre la confirmación y el partido, de los confirmados de cada período. */
++  leadTime: { recent: number | null; prior: number | null };
++};
++
++export type SuggestionKey =
++  | "NOT_ENOUGH_PLAYERS" | "FACILITY_UNAVAILABLE" | "WEATHER" | "MAINTENANCE" | "HOLIDAY" | "OTHER" | "PLUGIN"
++  | "UNSPECIFIED" | "supply" | "generic" | "up";
++
++export type DownExplanation = {
++  /** Lo publicado en cada período, solo si cayó lo suficiente para ser la explicación. */
++  supply: { prior: number; recent: number } | null;
++  /** Motivos de cancelación que más crecieron (hasta 2); si ninguno creció, los más frecuentes del último período. */
++  reasons: ReasonShift[];
++  growing: boolean;
++  /** Slots que más confirmados perdieron (hasta 2). */
++  slots: SlotShift[];
++  suggestion: SuggestionKey;
++};
++
++const SUGGESTIBLE = new Set(["NOT_ENOUGH_PLAYERS", "FACILITY_UNAVAILABLE", "WEATHER", "MAINTENANCE", "HOLIDAY", "OTHER", "PLUGIN", "UNSPECIFIED"]);
++
++export function explainDown(d: FacilityDriver): DownExplanation {
++  const growing = d.reasons.filter((r) => r.recent > r.prior).sort((a, b) => b.recent - b.prior - (a.recent - a.prior));
++  const byRecent = [...d.reasons].filter((r) => r.recent > 0).sort((a, b) => b.recent - a.recent);
++  const reasons = (growing.length > 0 ? growing : byRecent).slice(0, 2);
++
++  const pubPrior = d.confirmed.prior + d.cancelled.prior;
++  const pubRecent = d.confirmed.recent + d.cancelled.recent;
++  const supplyDrop = pubPrior > 0 && pubRecent <= pubPrior * (1 - SUPPLY_DROP_PCT) && d.confirmed.recent < d.confirmed.prior;
++
++  const top = reasons[0]?.category;
++  let suggestion: SuggestionKey = "generic";
++  if (growing.length > 0 && top && SUGGESTIBLE.has(top)) suggestion = top as SuggestionKey;
++  else if (supplyDrop) suggestion = "supply";
++  else if (top && SUGGESTIBLE.has(top)) suggestion = top as SuggestionKey;
++
++  return {
++    supply: supplyDrop ? { prior: pubPrior, recent: pubRecent } : null,
++    reasons,
++    growing: growing.length > 0,
++    slots: d.slotLosers.filter((s) => s.recent < s.prior).slice(0, 2),
++    suggestion,
++  };
++}
++
++export type UpExplanation = { slots: SlotShift[]; suggestion: "up" };
++
++export function explainUp(d: FacilityDriver): UpExplanation {
++  return { slots: d.slotGainers.filter((s) => s.recent > s.prior).slice(0, 2), suggestion: "up" };
++}
++
++/** Los `limit` slots con mayor cambio (positivo para ganadores, negativo para perdedores), de las claves "día|hora". */
++export function topSlotShifts(recent: Map<string, number>, prior: Map<string, number>, limit = 2): { gainers: SlotShift[]; losers: SlotShift[] } {
++  const keys = new Set([...recent.keys(), ...prior.keys()]);
++  const all: SlotShift[] = [...keys].map((k) => {
++    const [dayOfWeek, time] = k.split("|");
++    return { dayOfWeek, time, recent: recent.get(k) ?? 0, prior: prior.get(k) ?? 0 };
++  });
++  const delta = (s: SlotShift) => s.recent - s.prior;
++  return {
++    gainers: all.filter((s) => delta(s) > 0).sort((a, b) => delta(b) - delta(a)).slice(0, limit),
++    losers: all.filter((s) => delta(s) < 0).sort((a, b) => delta(a) - delta(b)).slice(0, limit),
++  };
++}
+diff --git a/app/weekly-log/WeeklyLogBoard.tsx b/app/weekly-log/WeeklyLogBoard.tsx
+index 32dc602..1b7af11 100644
+--- a/app/weekly-log/WeeklyLogBoard.tsx
++++ b/app/weekly-log/WeeklyLogBoard.tsx
+@@ -237,7 +237,7 @@ export default function WeeklyLogBoard({
+ 
+         {/* Lista */}
+         {byDay.length === 0 ? (
+-          <p className="rounded-2xl border border-dashed border-border-strong p-6 text-sm text-ink-muted">{entries.length ? t("emptyFiltered") : t("empty")}</p>
++          <p className="rounded-2xl bg-surface-sunken p-6 text-sm text-ink-muted">{entries.length ? t("emptyFiltered") : t("empty")}</p>
+         ) : (
+           <div className="rounded-2xl bg-surface shadow-sm divide-y divide-surface-sunken">
+             {byDay.map(([day, items]) => (
+diff --git a/messages/en.json b/messages/en.json
+index 8d65f21..b3ae5c9 100644
+--- a/messages/en.json
++++ b/messages/en.json
+@@ -1399,24 +1399,24 @@
+     "rangeMonth": "Next 30 days",
+     "windowLabel": "Next {n} days",
+     "badge": "Forecast",
+-    "disclaimer": "Estimate from linear regression over comparable historical blocks ({n} of the last {lookback} available) — not real data or games already scheduled. Each metric's range shows the margin of error (±1 historical standard deviation).",
++    "disclaimer": "Estimate from linear regression over comparable historical blocks ({n} of the last {lookback} available) — not real data or games already scheduled. Under each value, the floor marks the scenario to review and the ceiling the one to sustain (±1 historical standard deviation).",
+     "methodAverage": "Not enough history to estimate a trend — used the simple average of the last {n} comparable blocks.",
+     "methodInsufficient": "Not enough comparable history for this filter and range (at least {min} blocks needed, {n} available).",
+     "games": {
+-      "label": "Scheduled games expected"
++      "label": "Scheduled games projected"
+     },
+     "confirmation": {
+-      "label": "Confirmation expected"
++      "label": "Confirmation projected"
+     },
+     "occupancy": {
+-      "label": "Occupancy expected"
++      "label": "Occupancy projected"
+     },
+     "revenue": {
+-      "label": "Revenue expected",
++      "label": "Revenue projected",
+       "lowConfidence": "Lower confidence: combines price, players and volume, all three uncertain."
+     },
+     "breakdown": {
+-      "title": "Expected breakdown",
++      "title": "Projected breakdown",
+       "confirmed": "Confirmed",
+       "cancelled": "Cancelled"
+     },
+@@ -1427,7 +1427,7 @@
+       "title": "Facilities to watch",
+       "subtitle": "Own trend projected forward ({range}) — only the ones showing signs of decline.",
+       "empty": "No facility in this filter shows a projected declining trend.",
+-      "cancelledLabel": "{n} cancellations expected"
++      "cancelledLabel": "{n} cancellations projected"
+     },
+     "glossary": {
+       "regression": {
+@@ -1435,12 +1435,12 @@
+         "def": "fits a trend line over the comparable historical blocks and projects one step forward — not a flat average, it reflects whether the metric has been trending up or down."
+       },
+       "range": {
+-        "term": "Range (margin of error)",
+-        "def": "± 1 standard deviation of those same historical blocks — the more irregular the history, the wider the range."
++        "term": "Floor and ceiling",
++        "def": "± 1 standard deviation of the same historical blocks: the floor is the low scenario, to review if it materializes; the ceiling is the high scenario, positive and worth sustaining. The more irregular the history, the further apart they are."
+       },
+       "risk": {
+         "term": "Facilities to watch",
+-        "def": "facilities whose own recent trend, projected forward, worsens — same ranking criteria as Daily's risk radar, but looking forward instead of back."
++        "def": "facilities whose projected demand rate falls at least 1 point below their own average, or that project many cancellations with confirmed games below their average. Rising ones project confirmed games above their average without the rate dropping."
+       }
+     },
+     "insights": {
+@@ -1454,7 +1454,8 @@
+       "yoyUp": "Expected volume is {pct}% above what actually happened in the same period last year.",
+       "yoyDown": "Expected volume is {pct}% below what actually happened in the same period last year.",
+       "riskTop": "{n} facilities show a projected declining trend — the most pronounced is {name}.",
+-      "revenueCaveat": "Expected revenue is the least reliable number in this forecast: it combines price, players and volume, all three uncertain."
++      "revenueCaveat": "Expected revenue is the least reliable number in this forecast: it combines price, players and volume, all three uncertain.",
++      "upCount": "{n} facilities project more confirmed games than their average: worth sustaining what is working for them."
+     },
+     "plan": {
+       "noData": "This facility has no games in the recent window, so there is nothing to build the plan from.",
+@@ -1499,7 +1500,9 @@
+         "definition": "Traffic light by the slot demand rate in the window, with at least {sample} editions. Green: {green} or more (confirms without issues); if the most recent part of the window fell below {green}, it turns amber. Amber: between {floor} and {green} (variable: neither secured nor to remove). Red: {floor} or less. Secure field: lost to field unavailability in the last {days} days, with healthy demand or, with a small sample, at least two losses; it is a separate mark from the color. Trend is a difference of {delta} points or more between the first and second half of the window. Demand rate = confirmed / (confirmed + cancelled for lack of players). Each card context shows the last {last} editions.",
+         "limit": "The database has no future games: the calendar says what is worth having, not what is still missing.",
+         "stripSecure": "{n} to secure",
+-        "thin": "{n, plural, one {# slot with fewer than {min} editions is not classified.} other {# slots with fewer than {min} editions are not classified.}}"
++        "thin": "{n, plural, one {# slot with fewer than {min} editions is not classified.} other {# slots with fewer than {min} editions are not classified.}}",
++        "today": "Today",
++        "detailToggle": "See the detail of each slot (cards)"
+       },
+       "month": {
+         "title": "Next 30 days at a glance",
+@@ -1605,6 +1608,67 @@
+         "badge": "Secure field",
+         "desc": "Lost to field unavailability in the last {days} days: worth booking the field in advance."
+       }
++    },
++    "bands": {
++      "low": "risk · to review",
++      "high": "positive · to sustain",
++      "lowHint": "Projection floor (−1 historical standard deviation). If the real value ends up near this number, something needs review.",
++      "highHint": "Projection ceiling (+1 historical standard deviation). Reaching this number is a positive signal to sustain."
++    },
++    "watch": {
++      "regionTitle": "Facilities to watch · {region}",
++      "regionEmpty": "No {region} facility projects a decline.",
++      "noDriver": "Not enough data from the last period to explain the change.",
++      "downSummary": "Last {days} days vs. the previous {days}: {confirmedRecent} confirmed (before {confirmedPrior}) and {cancelledRecent} cancelled (before {cancelledPrior}).",
++      "upSummary": "Last {days} days vs. the previous {days}: {confirmedRecent} confirmed (before {confirmedPrior}); projected demand rate {rate}.",
++      "supply": "Fewer games were published ({prior} → {recent}): the drop comes from less supply.",
++      "reasonsGrowing": "Cancellations that grew the most: {list}.",
++      "reasonsTop": "Most frequent cancellation reasons: {list}.",
++      "slotsLost": "Slots that lost the most confirmed games: {list}.",
++      "slotsGained": "Slots that contributed the most: {list}.",
++      "suggestionLabel": "Suggestion:",
++      "reasonUnspecified": "No reason recorded",
++      "confirmedDelta": "{n} confirmed vs. their average",
++      "suggest": {
++        "NOT_ENOUGH_PLAYERS": "Review pricing and promotion for the times with fewer sign-ups and concentrate supply on the slots that do confirm.",
++        "FACILITY_UNAVAILABLE": "Confirm field availability with the facility before publishing and secure critical slots with an advance booking.",
++        "WEATHER": "Define an alternative (covered field or another time) for bad-weather days and warn players in advance.",
++        "MAINTENANCE": "Ask the facility for its maintenance calendar and do not publish those dates.",
++        "HOLIDAY": "Check the holiday calendar and adjust supply for those days before publishing.",
++        "OTHER": "Review the reasons recorded as Other case by case to see whether one cause repeats.",
++        "PLUGIN": "Coordinate with the team that runs the plugin on why these games are cancelled.",
++        "UNSPECIFIED": "Record the reason for each cancellation: without a reason there is no way to know what to fix.",
++        "supply": "Talk to the facility about why fewer games are published and recover the times that stopped being offered.",
++        "generic": "Review the facility slots one by one in its Forecast calendar.",
++        "up": "Sustain these published times and secure the field in advance so they are not lost."
++      },
++      "up": {
++        "title": "Rising facilities",
++        "subtitle": "They project more confirmed games than their own average ({range}), without their demand rate dropping.",
++        "empty": "No facility in this filter projects a rise."
++      },
++      "breakdown": {
++        "title": "Facilities that weigh most in the projection",
++        "subtitle": "The ones pushing their projected confirmed games the most above or below their own average. Scheduled = confirmed + cancelled.",
++        "facility": "Facility",
++        "scheduled": "Scheduled proj.",
++        "confirmed": "Confirmed proj.",
++        "vsAvg": "vs. average",
++        "rate": "Proj. rate",
++        "leadTime": "Confirmation lead time",
++        "leadTimeHint": "Average hours between confirmation and the game in the last period, and its change against the previous one. If it drops, players confirm closer to game time: a possible sign of lower engagement."
++      },
++      "glossary": {
++        "vsAvg": {
++          "term": "vs. average",
++          "def": "projected confirmed games minus the facility historical average of confirmed games per block."
++        },
++        "leadTime": {
++          "term": "Confirmation lead time",
++          "def": "a hint, not proof: it can drop from lower engagement or from more last-minute demand, so read it together with the rate."
++        }
++      },
++      "projDown": "{delta} confirmed vs. their average · {n} cancellations projected"
+     }
+   },
+   "Seasonality": {
+diff --git a/messages/es.json b/messages/es.json
+index 69c11d1..bf279a3 100644
+--- a/messages/es.json
++++ b/messages/es.json
+@@ -1399,24 +1399,24 @@
+     "rangeMonth": "Próximos 30 días",
+     "windowLabel": "Próximos {n} días",
+     "badge": "Predicción",
+-    "disclaimer": "Estimación por regresión lineal sobre bloques históricos comparables ({n} de los últimos {lookback} disponibles) — no es un dato real ni partidos ya agendados. El rango de cada métrica muestra el margen de error (±1 desvío estándar histórico).",
++    "disclaimer": "Estimación por regresión lineal sobre bloques históricos comparables ({n} de los últimos {lookback} disponibles) — no es un dato real ni partidos ya agendados. Debajo de cada valor, el piso marca el escenario a revisar y el techo el que conviene sostener (± 1 desvío estándar histórico).",
+     "methodAverage": "Poco historial para estimar tendencia — se usó el promedio simple de los últimos {n} bloques comparables.",
+     "methodInsufficient": "Sin suficiente historial comparable para este filtro y este rango (se necesitan al menos {min} bloques, hay {n}).",
+     "games": {
+-      "label": "Partidos agendados esperados"
++      "label": "Partidos agendados proyectados"
+     },
+     "confirmation": {
+-      "label": "Confirmación esperada"
++      "label": "Confirmación proyectada"
+     },
+     "occupancy": {
+-      "label": "Ocupación esperada"
++      "label": "Ocupación proyectada"
+     },
+     "revenue": {
+-      "label": "Revenue esperado",
++      "label": "Revenue proyectado",
+       "lowConfidence": "Menor confiabilidad: combina precio, jugadores y volumen, las tres inciertas."
+     },
+     "breakdown": {
+-      "title": "Desglose esperado",
++      "title": "Desglose proyectado",
+       "confirmed": "Confirmados",
+       "cancelled": "Cancelados"
+     },
+@@ -1427,7 +1427,7 @@
+       "title": "Facilities a vigilar",
+       "subtitle": "Tendencia propia proyectada hacia adelante ({range}) — solo las que muestran señales de deterioro.",
+       "empty": "Ninguna facility de este filtro muestra una tendencia de deterioro proyectada.",
+-      "cancelledLabel": "{n} cancelados esperados"
++      "cancelledLabel": "{n} cancelados proyectados"
+     },
+     "glossary": {
+       "regression": {
+@@ -1435,12 +1435,12 @@
+         "def": "ajusta una línea de tendencia sobre los bloques históricos comparables y proyecta un paso más adelante — no es un promedio plano, refleja si la métrica viene subiendo o bajando."
+       },
+       "range": {
+-        "term": "Rango (margen de error)",
+-        "def": "± 1 desvío estándar de esos mismos bloques históricos — cuanto más irregular fue el historial, más ancho el rango."
++        "term": "Piso y techo",
++        "def": "± 1 desvío estándar de los mismos bloques históricos: el piso es el escenario bajo, a revisar si se materializa; el techo es el escenario alto, positivo y a sostener. Cuanto más irregular fue el historial, más separados están."
+       },
+       "risk": {
+         "term": "Facilities a vigilar",
+-        "def": "facilities cuya propia tendencia reciente, proyectada hacia adelante, empeora — mismo criterio de ranking que el radar de riesgo de Diario, pero mirando hacia adelante en vez de hacia atrás."
++        "def": "facilities cuya tasa de demanda proyectada cae al menos 1 punto bajo su propio promedio, o que proyectan muchos cancelados con confirmados por debajo de su promedio. Las de alza son las que proyectan confirmados por encima de su promedio sin caer la tasa."
+       }
+     },
+     "insights": {
+@@ -1454,7 +1454,8 @@
+       "yoyUp": "El volumen esperado está {pct}% por encima de lo que pasó real en el mismo período el año pasado.",
+       "yoyDown": "El volumen esperado está {pct}% por debajo de lo que pasó real en el mismo período el año pasado.",
+       "riskTop": "{n} facilities muestran una tendencia de deterioro proyectada — la más marcada es {name}.",
+-      "revenueCaveat": "El revenue esperado es el número menos confiable de este pronóstico: combina precio, jugadores y volumen, las tres inciertas."
++      "revenueCaveat": "El revenue esperado es el número menos confiable de este pronóstico: combina precio, jugadores y volumen, las tres inciertas.",
++      "upCount": "{n} facilities proyectan más confirmados que su promedio: conviene sostener lo que les está funcionando."
+     },
+     "plan": {
+       "noData": "Este facility no tiene partidos en la ventana reciente: no hay base para armar el plan.",
+@@ -1499,7 +1500,9 @@
+         "definition": "Semáforo por tasa de demanda del slot en la ventana, con al menos {sample} ediciones. Verde: {green} o más (confirma sin problemas); si lo más reciente de la ventana cayó por debajo de {green}, pasa a ámbar. Ámbar: entre {floor} y {green} (variable: ni asegurado ni para sacar). Rojo: {floor} o menos. Asegurar cancha: se perdió por cancha no disponible en los últimos {days} días, con demanda sana o, si hay poca muestra, al menos dos pérdidas; es una marca aparte del color. La tendencia es la diferencia de {delta} puntos o más entre la primera y la segunda mitad de la ventana. Tasa de demanda = confirmados / (confirmados + cancelados por falta de jugadores). El contexto de cada tarjeta muestra las últimas {last} ediciones.",
+         "limit": "La base no incluye partidos futuros: el calendario dice qué conviene tener, no qué falta publicar.",
+         "stripSecure": "{n} asegurar",
+-        "thin": "{n, plural, one {# slot con menos de {min} ediciones no se clasifica.} other {# slots con menos de {min} ediciones no se clasifican.}}"
++        "thin": "{n, plural, one {# slot con menos de {min} ediciones no se clasifica.} other {# slots con menos de {min} ediciones no se clasifican.}}",
++        "today": "Hoy",
++        "detailToggle": "Ver el detalle de cada slot (tarjetas)"
+       },
+       "month": {
+         "title": "Panorama de los próximos 30 días",
+@@ -1605,6 +1608,67 @@
+         "badge": "Asegurar cancha",
+         "desc": "Se perdió por cancha no disponible en los últimos {days} días: conviene reservar la cancha con anticipación."
+       }
++    },
++    "bands": {
++      "low": "riesgo · a revisar",
++      "high": "positivo · a sostener",
++      "lowHint": "Piso de la proyección (−1 desvío estándar del historial). Si el valor real termina cerca de este número, hay algo para revisar.",
++      "highHint": "Techo de la proyección (+1 desvío estándar del historial). Si se llega a este número es una señal positiva a sostener."
++    },
++    "watch": {
++      "regionTitle": "Facilities a vigilar · {region}",
++      "regionEmpty": "Ninguna facility de {region} proyecta una baja.",
++      "noDriver": "Sin datos suficientes del último período para explicar el cambio.",
++      "downSummary": "Últimos {days} días vs. los {days} anteriores: {confirmedRecent} confirmados (antes {confirmedPrior}) y {cancelledRecent} cancelados (antes {cancelledPrior}).",
++      "upSummary": "Últimos {days} días vs. los {days} anteriores: {confirmedRecent} confirmados (antes {confirmedPrior}); tasa de demanda proyectada {rate}.",
++      "supply": "Se publicaron menos partidos ({prior} → {recent}): la merma viene de menos oferta.",
++      "reasonsGrowing": "Cancelaciones que más crecieron: {list}.",
++      "reasonsTop": "Motivos de cancelación más frecuentes: {list}.",
++      "slotsLost": "Slots que más confirmados perdieron: {list}.",
++      "slotsGained": "Slots que más aportaron: {list}.",
++      "suggestionLabel": "Sugerencia:",
++      "reasonUnspecified": "Sin motivo cargado",
++      "confirmedDelta": "{n} confirmados vs. su promedio",
++      "suggest": {
++        "NOT_ENOUGH_PLAYERS": "Revisar precio y promoción de los horarios con menos inscriptos y concentrar la oferta en los slots que sí confirman.",
++        "FACILITY_UNAVAILABLE": "Confirmar la disponibilidad de cancha con la facility antes de publicar y asegurar con reserva anticipada los slots críticos.",
++        "WEATHER": "Definir una alternativa (cancha techada u otro horario) para los días de mal clima y avisar a los jugadores con anticipación.",
++        "MAINTENANCE": "Pedir a la facility su calendario de mantenimiento y no publicar esas fechas.",
++        "HOLIDAY": "Revisar el calendario de feriados y ajustar la oferta de esos días antes de publicarla.",
++        "OTHER": "Revisar caso por caso los motivos cargados como Otro para ver si hay una causa que se repite.",
++        "PLUGIN": "Coordinar con el equipo que maneja el plugin por qué se cancelan estos partidos.",
++        "UNSPECIFIED": "Cargar el motivo de cada cancelación: sin motivo no se puede saber qué corregir.",
++        "supply": "Hablar con la facility sobre por qué se publica menos y recuperar los horarios que se dejaron de ofrecer.",
++        "generic": "Revisar los slots de la facility uno por uno en su calendario de Pronóstico.",
++        "up": "Sostener estos horarios publicados y asegurar la cancha con anticipación para no perderlos."
++      },
++      "up": {
++        "title": "Facilities en alza",
++        "subtitle": "Proyectan más confirmados que su propio promedio ({range}), sin que baje su tasa de demanda.",
++        "empty": "Ninguna facility de este filtro proyecta un alza."
++      },
++      "breakdown": {
++        "title": "Facilities con más peso en la proyección",
++        "subtitle": "Las que más empujan sus confirmados proyectados por encima o por debajo de su propio promedio. Agendados = confirmados + cancelados.",
++        "facility": "Facility",
++        "scheduled": "Agendados proy.",
++        "confirmed": "Confirmados proy.",
++        "vsAvg": "vs. promedio",
++        "rate": "Tasa proy.",
++        "leadTime": "Tiempo de confirmación",
++        "leadTimeHint": "Horas promedio entre la confirmación y el partido en el último período, y su variación contra el anterior. Si baja, los jugadores confirman más cerca del partido: posible señal de menor engagement."
++      },
++      "glossary": {
++        "vsAvg": {
++          "term": "vs. promedio",
++          "def": "confirmados proyectados menos el promedio de confirmados por bloque del historial de esa facility."
++        },
++        "leadTime": {
++          "term": "Tiempo de confirmación",
++          "def": "es un indicio, no una prueba: puede bajar por menos engagement o por más demanda de último momento, así que se lee junto con la tasa."
++        }
++      },
++      "projDown": "{delta} confirmados vs. su promedio · {n} cancelados proyectados"
+     }
+   },
+   "Seasonality": {
+-- 
+2.43.0
+

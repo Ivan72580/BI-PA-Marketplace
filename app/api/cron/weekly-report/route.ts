@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createTranslator } from "use-intl/core";
 import { prisma } from "@/app/lib/db/prisma";
 import { requireAdmin } from "@/app/lib/db/users";
+import { hasLevel, resolveAccess } from "@/app/lib/module";
 import { getOpsReportData, getExecutiveReportData, type ReportCore } from "@/app/lib/db/queries";
 import { shiftAnchor, todayISO } from "@/app/lib/period";
 import { getResendClient, getReportSenderAddress } from "@/app/lib/email/resend";
@@ -33,7 +34,7 @@ export const dynamic = "force-dynamic";
 // corrida a la siguiente. Ajustable sin tocar nada más de este archivo.
 const ACTIVE_WINDOW_DAYS = 14;
 
-type Recipient = { id: string; email: string; locale: string; canViewLeadership: boolean };
+type Recipient = { id: string; email: string; locale: string };
 
 function isAuthorizedCronRequest(req: NextRequest): boolean {
   const secret = process.env.CRON_SECRET;
@@ -144,23 +145,22 @@ export async function GET(req: NextRequest) {
   let execRecipients: Recipient[];
 
   if (isTestRun && testEmail) {
-    const testRecipient: Recipient = { id: "test", email: testEmail, locale: "es", canViewLeadership: true };
+    const testRecipient: Recipient = { id: "test", email: testEmail, locale: "es" };
     opsRecipients = [testRecipient];
     execRecipients = [testRecipient];
   } else {
     const activeSince = new Date();
     activeSince.setUTCDate(activeSince.getUTCDate() - ACTIVE_WINDOW_DAYS);
 
-    // Cast explícito: mismo motivo que el resto de app/lib/db/*.ts (ver
-    // comentario en reports.ts) — este sandbox no tiene un cliente Prisma
-    // generado desde el schema actual, así que el tipo inferido para un
-    // campo nuevo (receivesWeeklyReport) no es confiable sin esto.
-    const users = (await prisma.user.findMany({
+    const users = await prisma.user.findMany({
       where: { receivesWeeklyReport: true, lastLoginAt: { gte: activeSince } },
-      select: { id: true, email: true, locale: true, canViewLeadership: true },
-    })) as Recipient[];
-    opsRecipients = users;
-    execRecipients = users.filter((u) => u.canViewLeadership);
+      select: { id: true, email: true, locale: true, moduleAccess: { select: { module: true, level: true } } },
+    });
+    // Cada reporte va a quien puede ver su módulo (app/lib/module.ts):
+    // el operativo, Operativo (MAGIC); el Executive Summary, Executive.
+    const withAccess = users.map(({ moduleAccess, ...u }) => ({ recipient: u as Recipient, access: resolveAccess(moduleAccess) }));
+    opsRecipients = withAccess.filter((u) => hasLevel(u.access.MAGIC, "VIEW")).map((u) => u.recipient);
+    execRecipients = withAccess.filter((u) => hasLevel(u.access.EXECUTIVE, "VIEW")).map((u) => u.recipient);
   }
 
   const [opsResult, execResult] = await Promise.all([

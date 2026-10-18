@@ -29,15 +29,18 @@
       "forecast": "Proyección de la semana o el mes que viene.",
       "market": "Concentración, reputación, precio y engagement.",
       "map": "Dónde opera Plei y qué zonas tienen más volumen.",
-      "inventory": "Qué partidos publica cada facility y cómo rinde cada uno."
+      "inventory": "Qué partidos publica cada facility y cómo rinde cada uno.",
+      "weeklyLog": "Notas del equipo en la semana y reporte para el jueves."
     },
     "groups": {
       "performance": "Rendimiento",
-      "market": "Mercado"
+      "market": "Mercado",
+      "team": "Equipo"
     },
     "inventory": "Inventario",
     "dataThrough": "Datos al {date}",
-    "dataThroughStale": "Hace {days} días sin datos nuevos: revisá el import"
+    "dataThroughStale": "Hace {days} días sin datos nuevos: revisá el import",
+    "weeklyLog": "Registro semanal"
   },
   "FilterPanel": {
     "filterLabel": "Filtro",
@@ -66,12 +69,11 @@
   },
   "Admin": {
     "usersTitle": "Usuarios",
-    "usersSubtitle": "Gestión de roles del equipo. Los usuarios se crean automáticamente al iniciar sesión por primera vez.",
+    "usersSubtitle": "Roles y acceso de cada persona a cada módulo. Los usuarios se crean solos al iniciar sesión por primera vez y entran con el acceso por defecto (Operativo: ver; Equipo: editar; Ejecutivo: sin acceso).",
     "table": {
       "user": "Usuario",
       "email": "Email",
       "role": "Rol",
-      "leadership": "Leadership",
       "weeklyReport": "Mail semanal",
       "lastLogin": "Último acceso",
       "never": "Nunca"
@@ -2023,6 +2025,88 @@
       },
       "definition": "A agendar = partido recurrente (facility + día + hora + cancha + formato) cuya tasa de demanda en los últimos {months} meses supera {rate}, con al menos {sample} partidos con demanda. Tasa de demanda = confirmados / (confirmados + cancelados por falta de jugadores). La lista se renueva una vez por semana ({week}).",
       "limit": "No se cruza contra lo que ya está publicado a futuro: la lista muestra qué conviene tener, no qué falta."
+    }
+  },
+  "WeeklyLog": {
+    "title": "Registro semanal",
+    "subtitle": "Lo que pasa durante la semana, anotado en el momento. La semana va de viernes a jueves; el jueves se arma el reporte.",
+    "range": "vie {from} – jue {to}",
+    "weekNav": "Cambiar de semana",
+    "prevWeek": "Semana anterior",
+    "nextWeek": "Semana siguiente",
+    "thisWeek": "Esta semana",
+    "noUser": "No se pudo identificar tu cuenta. Volvé a iniciar sesión para usar el registro.",
+    "form": {
+      "title": "Anotar",
+      "text": "¿Qué pasó?",
+      "textPlaceholder": "Ej.: Movió el partido de las 11pm del viernes a las 9pm; ajusté el precio.",
+      "topic": "Facility o tema (opcional)",
+      "topicPlaceholder": "Ej.: Soccer City, Pagos, POC",
+      "date": "Día",
+      "submit": "Guardar",
+      "shortcut": "Ctrl/⌘ + Enter para guardar",
+      "linked": "Vinculada a la facility {name} ({market})"
+    },
+    "saved": "Nota guardada",
+    "filter": {
+      "label": "Ver:",
+      "all": "Todo el equipo",
+      "me": "Yo"
+    },
+    "count": "{count, plural, =0 {Sin notas} one {# nota} other {# notas}}",
+    "empty": "Todavía no hay notas en esta semana. Lo que se anote aparece acá, agrupado por día, y sirve de base para el reporte.",
+    "emptyFiltered": "Esta persona no tiene notas en la semana.",
+    "edit": "Editar",
+    "delete": "Borrar",
+    "confirmDelete": "¿Borrar la nota?",
+    "yes": "Sí",
+    "no": "No",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "report": {
+      "title": "Reporte de la semana",
+      "help": "Junta las notas de {scope}, agrupadas por facility o tema, listas para editar y copiar.",
+      "scopeAll": "todo el equipo",
+      "scopeMine": "tus notas",
+      "scopeOf": "{name}",
+      "build": "Armar reporte",
+      "rebuild": "Volver a armar (reemplaza el texto)",
+      "textLabel": "Texto del reporte",
+      "placeholder": "El reporte aparece acá. Se puede editar antes de copiarlo.",
+      "copy": "Copiar",
+      "copied": "Copiado",
+      "download": "Descargar .txt",
+      "subject": "Asunto: Registro semanal – {range}",
+      "general": "General",
+      "byAuthor": "({name})"
+    },
+    "errors": {
+      "unauthorized": "No tenés permiso para hacer esto.",
+      "invalid": "Revisá el texto y la fecha.",
+      "generic": "No se pudo guardar. Probá de nuevo en un momento.",
+      "copy": "No se pudo copiar: seleccioná el texto y usá Ctrl/⌘ + C."
+    },
+    "readOnly": "Tenés acceso de lectura al módulo Equipo: podés ver las notas y armar el reporte, pero no anotar."
+  },
+  "Modules": {
+    "names": {
+      "MAGIC": "Operativo",
+      "TEAM": "Equipo",
+      "EXECUTIVE": "Ejecutivo"
+    },
+    "descriptions": {
+      "MAGIC": "Resumen, Rendimiento, Mercado y el reporte operativo.",
+      "TEAM": "Registro semanal (y más adelante la Bitácora de Facilities). Editar = anotar.",
+      "EXECUTIVE": "Panel Ejecutivo y Executive Summary. Editar = cambiar el Facility Profile."
+    },
+    "levels": {
+      "NONE": "Sin acceso",
+      "VIEW": "Ver",
+      "EDIT": "Editar"
+    },
+    "noAccess": {
+      "title": "Todavía no tenés acceso",
+      "body": "Tu cuenta existe pero no tiene acceso a ningún módulo de la app. Pedile a un Admin que te lo habilite desde Usuarios."
     }
   }
 }

@@ -9,7 +9,7 @@ import AppChrome from "./components/AppChrome";
 import ModuleTracker from "./components/ModuleTracker";
 import { GlobalProvider } from "./context/GlobalContext";
 import { getFilterOptions } from "./lib/db/queries";
-import { getCurrentUser } from "./lib/db/users";
+import { getCurrentUserWithAccess } from "./lib/db/users";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -28,11 +28,11 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [filterOptions, locale, messages, currentUser] = await Promise.all([
+  const [filterOptions, locale, messages, current] = await Promise.all([
     getFilterOptions(),
     getLocale(),
     getMessages(),
-    getCurrentUser(),
+    getCurrentUserWithAccess(),
   ]);
 
   return (
@@ -52,7 +52,7 @@ export default async function RootLayout({
                   }
                   facilities={filterOptions.facilities}
                   markets={filterOptions.markets}
-                  showLeadershipLink={currentUser?.canViewLeadership ?? false}
+                  access={current?.access ?? null}
                 />
               }
             >

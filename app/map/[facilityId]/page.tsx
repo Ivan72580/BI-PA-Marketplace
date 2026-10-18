@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { getTranslations, getLocale } from "next-intl/server";
 import { getFacilityProfileDetail } from "../../lib/db/queries";
 import { getFacilityInventory, type InventoryRow } from "../../lib/db/map";
-import { getCurrentUser } from "../../lib/db/users";
+import { getCurrentUserWithAccess } from "../../lib/db/users";
+import { hasLevel } from "../../lib/module";
 import { DAY_ORDER, DAY_LABEL_ES } from "../../lib/db/shared";
 import { resolvePeriod, todayISO, type Granularity, type ResolvedPeriod } from "../../lib/period";
 import type { SP } from "../../lib/searchParams";
@@ -32,7 +33,7 @@ function resolve(sp: SP, locale: Locale, customLabel: string): ResolvedPeriod {
 }
 
 export default async function MapFacilityPage({ params, searchParams }: { params: Promise<{ facilityId: string }>; searchParams: Promise<SP> }) {
-  const [{ facilityId }, sp, rawLocale, t, user] = await Promise.all([params, searchParams, getLocale(), getTranslations("MapFacility"), getCurrentUser()]);
+  const [{ facilityId }, sp, rawLocale, t, user] = await Promise.all([params, searchParams, getLocale(), getTranslations("MapFacility"), getCurrentUserWithAccess()]);
   const locale = rawLocale as Locale;
   const period = resolve(sp, locale, t("customRangeLabel"));
 
@@ -58,7 +59,8 @@ export default async function MapFacilityPage({ params, searchParams }: { params
   const qs = query.toString() ? `?${query.toString()}` : "";
 
   const unit = profile?.rateUnit ? t(`rateUnit.${profile.rateUnit}`) : null;
-  const canEdit = Boolean(user?.canViewLeadership);
+  // Editar el Facility Profile = EDIT en Executive (ver app/lib/module.ts).
+  const canEdit = hasLevel(user?.access.EXECUTIVE, "EDIT");
   const verified = profile?.ratesVerifiedAt ? profile.ratesVerifiedAt.toISOString().slice(0, 10) : null;
 
   return (

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { useTranslations } from "next-intl";
 import FacilitySearch from "./FacilitySearch";
+import { hasLevel, type AppModule, type ModuleAccess } from "../lib/module";
 
 function MenuIcon({ open }: { open: boolean }) {
   // Mismo ícono, alterna entre "hamburguesa" y "cerrar" (X) con las mismas
@@ -102,6 +103,16 @@ function SeasonalityIcon() {
     </svg>
   );
 }
+function WeeklyLogIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 3h9l3 3v15H6z" />
+      <line x1="9" y1="10" x2="15" y2="10" />
+      <line x1="9" y1="14" x2="15" y2="14" />
+      <line x1="9" y1="18" x2="12" y2="18" />
+    </svg>
+  );
+}
 function LeadershipIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -117,17 +128,18 @@ function LeadershipIcon() {
 // quedaba apretada en pantallas medianas, y Reportes no es una vista que
 // se consulte con la misma frecuencia que el resto — vive ahora como link
 // dentro del menú de usuario, con su propio selector Operativo/Ejecutivo.
-type NavKey = "overview" | "trends" | "market" | "map" | "inventory" | "daily" | "forecast" | "seasonality" | "panelEjecutivo";
+type NavKey = "overview" | "trends" | "market" | "map" | "inventory" | "daily" | "forecast" | "seasonality" | "weeklyLog" | "panelEjecutivo";
 type NavLink = { href: string; labelKey: NavKey; icon: () => ReactNode };
-type GroupKey = "performance" | "market";
+type GroupKey = "performance" | "market" | "team";
 
 // Navegación agrupada (aprobada por Ivan): RESUMEN / RENDIMIENTO / MERCADO.
 // Resumen es una página sola, así que va como link directo; los otros dos
 // grupos se despliegan. Cada ítem lleva una línea de "qué responde" (TopNav.desc.*).
 const overviewLink: NavLink = { href: "/", labelKey: "overview", icon: OverviewIcon };
-const groups: { key: GroupKey; children: NavLink[] }[] = [
+const groups: { key: GroupKey; module: AppModule; children: NavLink[] }[] = [
   {
     key: "performance",
+    module: "MAGIC",
     children: [
       { href: "/trends", labelKey: "trends", icon: TrendsIcon },
       { href: "/daily", labelKey: "daily", icon: DailyIcon },
@@ -137,11 +149,19 @@ const groups: { key: GroupKey; children: NavLink[] }[] = [
   },
   {
     key: "market",
+    module: "MAGIC",
     children: [
       { href: "/market", labelKey: "market", icon: MarketIcon },
       { href: "/map", labelKey: "map", icon: MapIcon },
       { href: "/inventory", labelKey: "inventory", icon: InventoryIcon },
     ],
+  },
+  // EQUIPO: lo que el equipo carga a mano (no sale del import de partidos).
+  // Arranca con el Registro semanal; la Bitácora de Facilities va a vivir acá.
+  {
+    key: "team",
+    module: "TEAM",
+    children: [{ href: "/weekly-log", labelKey: "weeklyLog", icon: WeeklyLogIcon }],
   },
 ];
 
@@ -154,13 +174,20 @@ export default function TopNav({
   userMenu,
   facilities,
   markets,
-  showLeadershipLink = false,
+  access,
 }: {
   userMenu: ReactNode;
   facilities: { id: string; name: string; marketId: string }[];
   markets: { id: string; name: string; regionId: string }[];
-  showLeadershipLink?: boolean;
+  // Acceso por módulo (app/lib/module.ts); null = sin sesión o sin datos.
+  // Cada grupo del menú se muestra solo si la persona puede ver su módulo.
+  // Es solo visual: el acceso real lo valida gateModule en cada sección.
+  access: ModuleAccess | null;
 }) {
+  const canSee = (m: AppModule) => hasLevel(access?.[m], "VIEW");
+  const showLeadershipLink = canSee("EXECUTIVE");
+  const showMagic = canSee("MAGIC");
+  const visibleGroups = groups.filter((g) => canSee(g.module));
   const pathname = usePathname();
   const t = useTranslations("TopNav");
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -179,7 +206,7 @@ export default function TopNav({
   // "default" en el sentido de ser la primera que ve, sin necesidad de un
   // redirect automático post-login — ver nota de entrega sobre por qué no
   // se implementó ese redirect todavía.
-  const directLinks = showLeadershipLink ? [panelEjecutivoLink, overviewLink] : [overviewLink];
+  const directLinks = [...(showLeadershipLink ? [panelEjecutivoLink] : []), ...(showMagic ? [overviewLink] : [])];
   const [openGroup, setOpenGroup] = useState<GroupKey | null>(null);
   const navRef = useRef<HTMLElement>(null);
   // Cerrar el desplegable al navegar (mismo patrón de ajuste durante el render que el menú mobile).
@@ -254,7 +281,7 @@ export default function TopNav({
   const navLinks = (variant: "inline" | "stacked") => (
     <>
       {directLinks.map((l) => linkItem(l, variant))}
-      {groups.map((g) => {
+      {visibleGroups.map((g) => {
         const active = g.children.some((c) => isLinkActive(pathname, c.href));
         if (variant === "stacked") {
           return (
@@ -320,14 +347,17 @@ export default function TopNav({
         <div className="flex-1 min-w-0 lg:hidden" />
 
         <div className="flex items-center gap-3 py-2 shrink-0">
-          <div className="w-56 hidden lg:block">
-            <FacilitySearch
-              facilities={facilities}
-              markets={markets}
-              placeholder={t("facilitySearch.placeholder")}
-              emptyMessageTemplate={t("facilitySearch.empty", { query: "{query}" })}
-            />
-          </div>
+          {/* El buscador lleva a la ficha de la facility (módulo Operativo). */}
+          {showMagic && (
+            <div className="w-56 hidden lg:block">
+              <FacilitySearch
+                facilities={facilities}
+                markets={markets}
+                placeholder={t("facilitySearch.placeholder")}
+                emptyMessageTemplate={t("facilitySearch.empty", { query: "{query}" })}
+              />
+            </div>
+          )}
 
           {/* <lg : un solo botón abre un panel con la búsqueda y los links
               apilados — reemplaza tanto el nav como el buscador inline. */}
@@ -347,12 +377,14 @@ export default function TopNav({
 
       {mobileOpen && (
         <div ref={mobilePanelRef} className="lg:hidden border-t border-white/10 px-4 py-3 space-y-3">
-          <FacilitySearch
-            facilities={facilities}
-            markets={markets}
-            placeholder={t("facilitySearch.placeholder")}
-            emptyMessageTemplate={t("facilitySearch.empty", { query: "{query}" })}
-          />
+          {showMagic && (
+            <FacilitySearch
+              facilities={facilities}
+              markets={markets}
+              placeholder={t("facilitySearch.placeholder")}
+              emptyMessageTemplate={t("facilitySearch.empty", { query: "{query}" })}
+            />
+          )}
           <nav className="flex flex-col gap-0.5">{navLinks("stacked")}</nav>
         </div>
       )}

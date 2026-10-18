@@ -48,6 +48,7 @@ model Facility {
   // FacilityProfile. Opcional porque no todos los facilities lo van a tener
   // completo desde el día uno.
   profile  FacilityProfile?
+  weeklyLogEntries WeeklyLogEntry[]
 
   @@unique([name, marketId])
   @@index([marketId])
@@ -223,13 +224,42 @@ enum Role {
   MEMBER
 }
 
-// Los dos "módulos" de la app, cada uno con su propio nav/permiso: MAGIC es
-// Overview/Trends/Market/Daily (todo lo operativo, visible para cualquier
-// cuenta), EXECUTIVE es /panel-ejecutivo (gateado por canViewLeadership).
-// Ver User.lastModule.
+// Módulos de la app. Cada uno agrupa rutas y tiene su propio permiso por
+// usuario (ver UserModuleAccess). El registro en código — rutas, página de
+// inicio y nivel por defecto — vive en app/lib/module.ts.
+//   MAGIC     Operativo: Resumen, Rendimiento, Mercado y el reporte operativo.
+//   TEAM      Equipo: lo que el equipo carga a mano (Registro semanal; después
+//             la Bitácora de Facilities).
+//   EXECUTIVE Ejecutivo: /panel-ejecutivo y el Executive Summary.
+// Ver también User.lastModule.
 enum AppModule {
   MAGIC
   EXECUTIVE
+  TEAM
+}
+
+// Nivel de acceso a un módulo. VIEW = ver; EDIT = además cargar/editar los
+// datos manuales del módulo (notas del registro, Facility Profile).
+// Administrar usuarios NO es un nivel de módulo: sigue siendo Role.ADMIN.
+enum ModuleLevel {
+  NONE
+  VIEW
+  EDIT
+}
+
+// Acceso de un usuario a un módulo. Sin fila = el nivel por defecto del
+// módulo (app/lib/module.ts), así una cuenta nueva entra con los defaults
+// sin que haya que crearle filas. Una fila con NONE quita un acceso que por
+// defecto tendría.
+model UserModuleAccess {
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  module    AppModule
+  level     ModuleLevel
+  updatedAt DateTime    @updatedAt
+
+  @@id([userId, module])
+  @@map("user_module_access")
 }
 
 // Cuenta de la app. NextAuth sigue en JWT puro (sin adapter/DB sessions) —
@@ -433,9 +463,10 @@ model User {
   name        String?
   image       String?
   role        Role      @default(MEMBER)
-  // Permiso independiente del Role (ver comentario en el enum): habilita la
-  // vista /leadership. Se puede combinar con cualquier Role — un Admin no
-  // lo tiene automáticamente, y se otorga/revoca desde /admin/users.
+  // OBSOLETO desde la migración 20261016120000_module_access: el acceso a
+  // Executive ahora es UserModuleAccess (module EXECUTIVE). La migración
+  // copió este valor (true -> EDIT) y la app ya no lo lee. Se deja la columna
+  // un tiempo para poder volver atrás; borrarla en una migración posterior.
   canViewLeadership Boolean @default(false)
   // Opt-out (default true) del mail semanal de reportes (Ops para
   // cualquier cuenta activa, Executive Summary además solo para quienes
@@ -458,6 +489,32 @@ model User {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   lastLoginAt DateTime?
+  weeklyLogEntries WeeklyLogEntry[]
+  moduleAccess     UserModuleAccess[]
 
   @@map("users")
+}
+
+// ---------- Registro semanal ----------
+// Notas sueltas que el equipo va anotando durante la semana (viernes a
+// jueves) y que después se juntan en un reporte para el manager. Lo ve todo
+// el equipo; cada persona edita y borra solo lo suyo. `topic` es texto libre
+// ("Soccer City", "POC Acme", "Pagos"); cuando coincide con el nombre de una
+// facility se guarda además `facilityId`, para poder cruzar las notas con los
+// datos de esa facility sin depender de cómo se escribió el nombre.
+model WeeklyLogEntry {
+  id         String    @id @default(cuid())
+  date       DateTime  @db.Date // día al que se refiere la nota (no cuándo se cargó)
+  text       String
+  topic      String?
+  facilityId String?
+  facility   Facility? @relation(fields: [facilityId], references: [id], onDelete: SetNull)
+  authorId   String
+  author     User      @relation(fields: [authorId], references: [id])
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([date])
+  @@index([facilityId])
+  @@map("weekly_log_entries")
 }

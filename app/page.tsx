@@ -9,6 +9,7 @@ import NetworkOverview from "./components/NetworkOverview";
 import FacilityDetailView from "./components/FacilityDetailView";
 import CancellationReasonRanking from "./components/CancellationReasonRanking";
 import ChangeBadge from "./components/ChangeBadge";
+import { gateModule } from "./lib/db/users";
 
 function isCancellationCategory(value: string | undefined): value is CancellationCategory {
   return !!value && (Object.values(CancellationCategory) as string[]).includes(value);
@@ -25,6 +26,9 @@ function formatRate(n: number | null): string {
 }
 
 export default async function OverviewPage({ searchParams }: { searchParams: Promise<SP> }) {
+  // "/" es del módulo Operativo. No puede ir en un layout (el de la raíz
+  // envuelve toda la app), así que el gate va acá — ver app/lib/module.ts.
+  await gateModule("MAGIC");
   const [sp, rawLocale, t] = await Promise.all([searchParams, getLocale(), getTranslations("Overview")]);
   const locale = rawLocale as Locale;
   // Default: mes en curso, no "todo el histórico" — regla global.

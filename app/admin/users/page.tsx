@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { requireAdmin } from "../../lib/db/users";
 import { prisma } from "../../lib/db/prisma";
 import UserRoleTable from "./UserRoleTable";
+import { resolveAccess } from "../../lib/module";
 import RefreshDataButton from "./RefreshDataButton";
 
 export default async function AdminUsersPage() {
@@ -17,7 +18,7 @@ export default async function AdminUsersPage() {
         email: true,
         name: true,
         role: true,
-        canViewLeadership: true,
+        moduleAccess: { select: { module: true, level: true } },
         receivesWeeklyReport: true,
         lastLoginAt: true,
       },
@@ -26,13 +27,14 @@ export default async function AdminUsersPage() {
   ]);
 
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-5xl">
       <h1 className="text-lg font-semibold text-ink mb-1">{t("usersTitle")}</h1>
       <p className="text-sm text-ink-muted mb-6">{t("usersSubtitle")}</p>
       <RefreshDataButton />
       <UserRoleTable
-        users={users.map((u) => ({
+        users={users.map(({ moduleAccess, ...u }) => ({
           ...u,
+          access: resolveAccess(moduleAccess),
           lastLoginAt: u.lastLoginAt ? u.lastLoginAt.toISOString() : null,
         }))}
         currentUserId={admin.id}

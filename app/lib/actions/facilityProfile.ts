@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import type { Amenity, IndoorOutdoor, PricingModel, RateUnit, RelationshipEventStatus, RelationshipEventType } from "@prisma/client";
 import { prisma } from "../db/prisma";
-import { requireLeadershipAccess } from "../db/users";
+import { requireModule } from "../db/users";
 
 export type ActionResult = { ok: true } | { ok: false; errorKey: "unauthorized" | "generic" };
 
@@ -59,7 +59,7 @@ export type FacilityProfileInput = {
 const RATE_FIELDS = ["marketRate", "pricingModel", "fixedRate", "rateUnit", "revenueSharePct", "discountAmount", "discountPct", "freeHoursPerMonth"] as const;
 
 export async function saveFacilityProfile(facilityId: string, input: FacilityProfileInput): Promise<ActionResult> {
-  const access = await requireLeadershipAccess();
+  const access = await requireModule("EXECUTIVE", "EDIT");
   if (!access) return { ok: false, errorKey: "unauthorized" };
 
   try {
@@ -88,7 +88,7 @@ export type PeakWindowInput = { dayOfWeek: number; startHour: number; endHour: n
 // y el form las manda completas en cada guardado, así que borrar+recrear es
 // más simple que reconciliar altas/bajas/ediciones fila por fila.
 export async function savePeakWindows(facilityId: string, windows: PeakWindowInput[]): Promise<ActionResult> {
-  const access = await requireLeadershipAccess();
+  const access = await requireModule("EXECUTIVE", "EDIT");
   if (!access) return { ok: false, errorKey: "unauthorized" };
 
   try {
@@ -115,7 +115,7 @@ export type RelationshipEventInput = {
 };
 
 export async function addRelationshipEvent(facilityId: string, input: RelationshipEventInput): Promise<ActionResult> {
-  const access = await requireLeadershipAccess();
+  const access = await requireModule("EXECUTIVE", "EDIT");
   if (!access) return { ok: false, errorKey: "unauthorized" };
 
   try {
@@ -143,7 +143,7 @@ export async function updateRelationshipEventStatus(
   facilityId: string,
   status: RelationshipEventStatus
 ): Promise<ActionResult> {
-  const access = await requireLeadershipAccess();
+  const access = await requireModule("EXECUTIVE", "EDIT");
   if (!access) return { ok: false, errorKey: "unauthorized" };
 
   try {
@@ -156,7 +156,7 @@ export async function updateRelationshipEventStatus(
 }
 
 export async function deleteRelationshipEvent(eventId: string, facilityId: string): Promise<ActionResult> {
-  const access = await requireLeadershipAccess();
+  const access = await requireModule("EXECUTIVE", "EDIT");
   if (!access) return { ok: false, errorKey: "unauthorized" };
 
   try {

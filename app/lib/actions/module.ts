@@ -5,7 +5,7 @@ import { auth } from "../auth";
 import { prisma } from "../db/prisma";
 import { isAppModule, MODULE_COOKIE, type AppModule } from "../module";
 
-// Guarda qué módulo (Magic/Executive) está usando ahora: siempre en la
+// Guarda qué módulo (ver app/lib/module.ts) está usando ahora: siempre en la
 // cookie (para que /entrada lo sepa desde el primer request de la sesión
 // sin esperar una consulta a la base), y además en User.lastModule si hay
 // sesión activa, para que viaje entre dispositivos — mismo criterio que

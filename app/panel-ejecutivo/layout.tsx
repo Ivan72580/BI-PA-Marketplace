@@ -1,5 +1,4 @@
-import { redirect } from "next/navigation";
-import { requireLeadershipAccess } from "../lib/db/users";
+import { gateModule } from "../lib/db/users";
 import PanelEjecutivoNav from "../components/PanelEjecutivoNav";
 
 // Único punto donde se valida el acceso a todo el cluster /panel-ejecutivo
@@ -9,8 +8,9 @@ import PanelEjecutivoNav from "../components/PanelEjecutivoNav";
 // que alcanza con chequearlo una sola vez aquí — mismo criterio que ya usa
 // RootLayout con la sesión de NextAuth.
 export default async function PanelEjecutivoLayout({ children }: { children: React.ReactNode }) {
-  const access = await requireLeadershipAccess();
-  if (!access) redirect("/");
+  // Sin acceso a Executive, gateModule redirige al inicio de otro módulo
+  // que la persona sí pueda ver (ver app/lib/module.ts).
+  await gateModule("EXECUTIVE");
 
   return (
     <div>

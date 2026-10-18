@@ -1,0 +1,187 @@
+facility,market,publicados,confirmados,cancelados,cancha_no_disponible,tasa_cruda,tasa_demanda,dif_pts
+"Revolution Soccer Complex","Houston",887,691,196,86,0.7790304396843292,0.8626716604244694,8.36
+"Houston Soccer Field","Houston",715,560,155,73,0.7832167832167832,0.8722741433021807,8.91
+"Ulete","Dallas | Fort Worth",300,191,109,62,0.6366666666666667,0.8025210084033614,16.59
+"Foro Sports Club","Dallas | Fort Worth",394,268,126,56,0.6802030456852792,0.7928994082840237,11.27
+"City Futsal","Dallas | Fort Worth",647,476,171,43,0.7357032457496137,0.7880794701986755,5.24
+"R9 Ronaldo Academy","Orlando",483,380,103,41,0.7867494824016563,0.8597285067873304,7.30
+"Intentional Sports","Chicago",110,56,54,40,0.509090909090909,0.8,29.09
+"City Futsal The Colony","Dallas | Fort Worth",441,345,96,39,0.782312925170068,0.8582089552238806,7.59
+"Flagler Grove Park","South Florida",124,85,39,37,0.6854838709677419,0.9770114942528736,29.15
+"Soccer 5 Kendall","South Florida",222,98,124,34,0.44144144144144143,0.5212765957446809,7.98
+"The HatTrick Oakridge","Houston",192,113,79,31,0.5885416666666666,0.7018633540372671,11.33
+"Gol Soccer Complex","Los Angeles",271,197,74,30,0.7269372693726938,0.8174273858921162,9.05
+"Soccer 5 Tropical Park","South Florida",161,83,78,28,0.515527950310559,0.6240601503759399,10.85
+"Super Golazo","South Florida",222,153,69,27,0.6891891891891891,0.7846153846153846,9.54
+"High Soccer Arena","Orlando",197,114,83,26,0.5786802030456852,0.6666666666666666,8.80
+"Peek Sports Texas","Houston",284,194,90,26,0.6830985915492958,0.751937984496124,6.88
+"Indoor Soccer Box","Houston",131,43,88,25,0.3282442748091603,0.4056603773584906,7.74
+"XL Soccer | Lake Nona","Orlando",212,137,75,22,0.6462264150943396,0.7210526315789474,7.48
+"Next Level Performance Facility","South Florida",292,212,80,22,0.726027397260274,0.7851851851851852,5.92
+"Soccer Planet USA","South Florida",185,134,51,22,0.7243243243243244,0.8220858895705522,9.78
+"Upper 90 Soccer Center","Dallas | Fort Worth",110,74,36,22,0.6727272727272727,0.8409090909090909,16.82
+"Flagler Grove Park | Miami Premier FC","South Florida",176,114,62,21,0.6477272727272727,0.7354838709677419,8.78
+"Katy International Sports Complex","Houston",628,521,107,21,0.8296178343949044,0.8583196046128501,2.87
+"XL Soccer | Winter Park","Orlando",149,77,72,21,0.5167785234899329,0.6015625,8.48
+"Soccer 5 Brian Piccolo Park","South Florida",661,461,200,19,0.697428139183056,0.7180685358255452,2.06
+"Toros Lifestyle Soccer Art District","Houston",533,439,94,19,0.8236397748592871,0.8540856031128404,3.04
+"Rockville Sports Arena","DMV | Baltimore",315,273,42,18,0.8666666666666667,0.9191919191919192,5.25
+"GoPro Arena","Houston",354,227,127,18,0.6412429378531074,0.6755952380952381,3.44
+"Kinecta Soccer Center","Los Angeles",147,105,42,18,0.7142857142857143,0.813953488372093,9.97
+"Kingdom Sports Arena","South Florida",117,76,41,16,0.6495726495726496,0.7524752475247525,10.29
+"OTP Killian","South Florida",183,114,69,16,0.6229508196721312,0.6826347305389222,5.97
+"Futbol Fever","South Florida",66,47,19,16,0.7121212121212122,0.94,22.79
+"Urban Soccer 5 Center","Los Angeles",183,146,37,16,0.7978142076502732,0.874251497005988,7.64
+"Casa LA Futebol","Los Angeles",174,107,67,15,0.6149425287356322,0.6729559748427673,5.80
+"City Soccer Indoor Complex","West Palm Beach",186,102,84,15,0.5483870967741935,0.5964912280701754,4.81
+"Braza Soccer Culture","South Florida",120,37,83,15,0.30833333333333335,0.3523809523809524,4.40
+"Pac Global Academy | West Houston","Houston",162,94,68,15,0.5802469135802469,0.6394557823129252,5.92
+"Skyline Indoor Soccer","Denver",102,65,37,15,0.6372549019607843,0.7471264367816092,10.99
+"King Soccer","Houston",76,29,47,14,0.3815789473684211,0.46774193548387094,8.62
+"Revo Soccer","South Florida",184,129,55,13,0.7010869565217391,0.7543859649122807,5.33
+"Arena SSC Wynwood","South Florida",267,129,138,13,0.48314606741573035,0.5078740157480315,2.47
+"Grand Rapids Soccer Society","Grand Rapids",176,135,41,13,0.7670454545454546,0.8282208588957055,6.12
+"Glory Soccer Club","South Florida",153,83,70,13,0.5424836601307189,0.5928571428571429,5.04
+"Lab Five Soccer Pacoima","Los Angeles",242,136,106,13,0.5619834710743802,0.5938864628820961,3.19
+"Naperville Yard Indoor Sports Complex","Chicago",73,54,19,12,0.7397260273972602,0.8852459016393442,14.55
+"Doral Soccerland Park","South Florida",78,46,32,12,0.5897435897435898,0.696969696969697,10.72
+"City Soccer PSL","West Palm Beach",156,83,73,11,0.532051282051282,0.5724137931034483,4.04
+"Stadio Soccer","South Florida",388,304,84,11,0.7835051546391752,0.8063660477453581,2.29
+"Crossbar Academy","Houston",231,174,57,11,0.7532467532467533,0.7909090909090909,3.77
+"Galaxy Park","Los Angeles",63,41,22,10,0.6507936507936508,0.7735849056603774,12.28
+"Lab Five Soccer Gardena","Los Angeles",339,242,97,10,0.7138643067846607,0.7355623100303952,2.17
+"Soccer Plant","DMV | Baltimore",126,69,57,10,0.5476190476190477,0.5948275862068966,4.72
+"Foothill Futbol Center","Los Angeles",74,25,49,10,0.33783783783783783,0.390625,5.28
+"Toca Evanston","Chicago",195,146,49,9,0.7487179487179487,0.7849462365591398,3.62
+"Soccer Town","South Florida",99,58,41,9,0.5858585858585859,0.6444444444444445,5.86
+"Granada Indoor Soccer","South Florida",122,57,65,9,0.4672131147540984,0.504424778761062,3.72
+"Q & B Indoor Sports","Houston",114,51,63,9,0.4473684210526316,0.4857142857142857,3.83
+"Phield House","Philadelphia",118,53,65,9,0.4491525423728814,0.48623853211009177,3.71
+"Free Kick Orlando","Orlando",58,31,27,9,0.5344827586206896,0.6326530612244898,9.82
+"Striker Sportsclub","Denver",216,145,71,9,0.6712962962962963,0.7004830917874396,2.92
+"TOCA Soccer Center | The Colony","Dallas | Fort Worth",46,26,20,9,0.5652173913043478,0.7027027027027027,13.75
+"Pro Touch Soccer Center","Dallas | Fort Worth",251,193,58,8,0.7689243027888446,0.7942386831275721,2.53
+"UMB Bank Performance Center","Dallas | Fort Worth",164,151,13,8,0.9207317073170732,0.967948717948718,4.72
+"Socceroof Wall Street | Indoor","New York Metropolitan Area",89,37,52,8,0.4157303370786517,0.4567901234567901,4.11
+"Shelton Academy Soccer","South Florida",210,156,54,8,0.7428571428571429,0.7722772277227723,2.94
+"Soccer 5 John Prince Park","West Palm Beach",245,193,52,8,0.7877551020408163,0.8143459915611815,2.66
+"The HatTrick Patio","Houston",133,86,47,8,0.6466165413533834,0.688,4.14
+"Teamworks Canton","Boston",67,39,28,7,0.582089552238806,0.65,6.79
+"Fut5ive","South Florida",48,21,27,7,0.4375,0.5121951219512195,7.47
+"HTX Fieldhouse","Houston",258,170,88,7,0.6589147286821705,0.6772908366533864,1.84
+"Soctainer Pulisic Stomping Grounds","South Florida",143,95,48,7,0.6643356643356644,0.6985294117647058,3.42
+"Airpark Soccerplex","DMV | Baltimore",207,96,111,7,0.463768115942029,0.48,1.62
+"Soccer City","South Florida",560,436,124,7,0.7785714285714286,0.7884267631103075,0.99
+"Houston Select FC","Houston",66,49,17,6,0.7424242424242424,0.8166666666666667,7.42
+"Futbol Pitch Indoor Soccer","South Florida",121,55,66,6,0.45454545454545453,0.4782608695652174,2.37
+"El Potrero Miami","South Florida",119,59,60,6,0.4957983193277311,0.5221238938053098,2.63
+"Soccer 5 Coconut Creek","South Florida",574,395,179,5,0.6881533101045296,0.6942003514938488,0.60
+"New Jersey Stallions","New York Metropolitan Area",29,3,26,5,0.10344827586206896,0.125,2.16
+"Socceroof Sunset Park","New York Metropolitan Area",30,8,22,5,0.26666666666666666,0.32,5.33
+"Pegaso HTX","Houston",1202,835,367,5,0.6946755407653911,0.697577276524645,0.29
+"Opa-Locka SoccerLand Park","South Florida",232,214,18,5,0.9224137931034483,0.9427312775330396,2.03
+"SoccerZone","Dallas | Fort Worth",109,64,45,5,0.5871559633027523,0.6153846153846154,2.82
+"COPA Soccer Training Center","Bay Area",22,15,7,4,0.6818181818181818,0.8333333333333334,15.15
+"Crossbar Soccer + Beer | Richardson","Dallas | Fort Worth",23,19,4,4,0.8260869565217391,1,17.39
+"Soccer 5 Hialeah","South Florida",90,55,35,4,0.6111111111111112,0.6395348837209303,2.84
+"Cancha Five Stars | Hillcroft","Houston",121,42,79,4,0.34710743801652894,0.358974358974359,1.19
+"Soccer Nation KC","Kansas City",53,23,30,4,0.4339622641509434,0.46938775510204084,3.54
+"Houston Dynamo Sports Park","Houston",26,22,4,4,0.8461538461538461,1,15.38
+"Salient Touch Futbol Academy","Dallas | Fort Worth",307,243,64,4,0.7915309446254072,0.801980198019802,1.04
+"Soccer Cage Downtown","South Florida",153,116,37,4,0.7581699346405228,0.7785234899328859,2.04
+"America's Got Soccer","South Florida",83,49,34,4,0.5903614457831325,0.620253164556962,2.99
+"TOCA Soccer Center Naperville","Chicago",52,19,33,3,0.36538461538461536,0.3877551020408163,2.24
+"Silverbacks Park","Atlanta",71,24,47,3,0.3380281690140845,0.35294117647058826,1.49
+"Athlete Training & Health - Cypress | Morby","Houston",52,35,17,3,0.6730769230769231,0.7142857142857143,4.12
+"Hagginwood Park","Sacramento",16,12,4,3,0.75,0.9230769230769231,17.31
+"Huntington Beach Sports Complex","Los Angeles",8,5,3,3,0.625,1,37.50
+"Soccer Lounge Miami","South Florida",31,7,24,3,0.22580645161290322,0.25,2.42
+"Casey's SportsWorld","Phoenix",78,32,46,3,0.41025641025641024,0.4266666666666667,1.64
+"N75 Futsal Arena","Denver",56,30,26,3,0.5357142857142857,0.5660377358490566,3.03
+"Gool Indoor Soccer","South Florida",115,79,36,3,0.6869565217391305,0.7053571428571429,1.84
+"Sports World","DMV | Baltimore",192,113,79,3,0.5885416666666666,0.5978835978835979,0.93
+"Michigan Jaguars Athletic Facility Novi","Detroit",197,92,105,3,0.467005076142132,0.4742268041237113,0.72
+"West Covina Sportsplex","Los Angeles",43,37,6,2,0.8604651162790697,0.9024390243902439,4.20
+"Fut360","Dallas | Fort Worth",37,21,16,2,0.5675675675675675,0.6,3.24
+"Great Park","Los Angeles",41,34,7,2,0.8292682926829268,0.8717948717948718,4.25
+"Humble Indoor Soccer","Houston",10,7,3,2,0.7,0.875,17.50
+"Fulcrum Fives | Cincinnati","Cincinnati",52,29,23,2,0.5576923076923077,0.58,2.23
+"Lou Ramos Center","Philadelphia",81,42,39,2,0.5185185185185185,0.5316455696202531,1.31
+"Indoor Soccer Fields NFM","South West Florida",14,1,13,2,0.07142857142857142,0.08333333333333333,1.19
+"Socceroof Long Island City","New York Metropolitan Area",39,12,27,2,0.3076923076923077,0.32432432432432434,1.66
+"Crossbar Academy | Indoor Soccer","Houston",62,19,43,2,0.3064516129032258,0.31666666666666665,1.02
+"Soccer Complex","South Florida",272,146,126,2,0.5367647058823529,0.5407407407407407,0.40
+"Pegaso Soccer","South Florida",954,548,406,2,0.5744234800838575,0.5756302521008403,0.12
+"Community Fieldhouse","Houston",16,13,3,2,0.8125,0.9285714285714286,11.61
+"PSG Academy Houston","Houston",15,3,12,1,0.2,0.21428571428571427,1.43
+"Anaheim Family YMCA Community Complex","Los Angeles",84,68,16,1,0.8095238095238095,0.8192771084337349,0.98
+"Kick'em Training Facility","Dallas | Fort Worth",3,0,3,1,0,0,0.00
+"Socceroof New Rochelle","New York Metropolitan Area",28,14,14,1,0.5,0.5185185185185185,1.85
+"Nova Sportsplex | VLG","DMV | Baltimore",17,5,12,1,0.29411764705882354,0.3125,1.84
+"The Fields Sports Complex - NJ","New York Metropolitan Area",49,7,42,1,0.14285714285714285,0.14583333333333334,0.30
+"Socceroof Crown Heights","New York Metropolitan Area",43,24,19,1,0.5581395348837209,0.5714285714285714,1.33
+"Le Five Indoor Soccer | West Sacramento","Sacramento",27,11,16,1,0.4074074074074074,0.4230769230769231,1.57
+"Vaqueros Field at Sycamore Park","Dallas | Fort Worth",88,83,5,1,0.9431818181818182,0.9540229885057471,1.08
+"Kendall Soccer Park | Miami Premier FC","South Florida",9,8,1,1,0.8888888888888888,1,11.11
+"UNLMTD South Boston","Boston",35,7,28,1,0.2,0.20588235294117646,0.59
+"Athletes Training & Health - Allen | Morby","Dallas | Fort Worth",10,5,5,1,0.5,0.5555555555555556,5.56
+"The Eddy","Denver",86,75,11,1,0.872093023255814,0.8823529411764706,1.03
+"TOCA St. Louis","St. Louis",84,40,44,1,0.47619047619047616,0.4819277108433735,0.57
+"Crossbar Soccer + Beer | Futbol Evolution","Dallas | Fort Worth",4,2,2,1,0.5,0.6666666666666666,16.67
+"La Redonda Indoor Soccer","South Florida",24,15,9,1,0.625,0.6521739130434783,2.72
+"ASport | Bellfort","Houston",1,0,1,1,0,,
+"Universal Sports Academy","Bay Area",31,25,6,1,0.8064516129032258,0.8333333333333334,2.69
+"EVLV","New York Metropolitan Area",1,0,1,1,0,,
+"Teamworks Acton","Boston",20,7,13,1,0.35,0.3684210526315789,1.84
+"Rockwall Indoor Sports World","Dallas | Fort Worth",162,129,33,1,0.7962962962962963,0.8012422360248447,0.49
+"BT Sports Academy","Tampa",79,48,31,0,0.6075949367088608,0.6075949367088608,0.00
+"Randall's Island Park","New York Metropolitan Area",7,3,4,0,0.42857142857142855,0.42857142857142855,0.00
+"Cedar Rock Sportsplex","Grand Rapids",40,23,17,0,0.575,0.575,0.00
+"AFA International Center","South Florida",13,1,12,0,0.07692307692307693,0.07692307692307693,0.00
+"Legacy QA Location for Client","Legacy QA Region Alaska",2,0,2,0,0,0,0.00
+"Pitch 25 - Sphere","Houston",10,8,2,0,0.8,0.8,0.00
+"Randy Johnson Park Bluff Creek Fields","Los Angeles",8,8,0,0,1,1,0.00
+"Michigan Jaguars West Bloomfield","Detroit",9,3,6,0,0.3333333333333333,0.3333333333333333,0.00
+"Turf On Soccer Fields","Houston",93,40,53,0,0.43010752688172044,0.43010752688172044,0.00
+"Legacy QA Location for Client","Alaska",10,1,9,0,0.1,0.1,0.00
+"Playa Vista Sports Park","Los Angeles",14,12,2,0,0.8571428571428571,0.8571428571428571,0.00
+"Dowdy Field","South Florida",86,80,6,0,0.9302325581395349,0.9302325581395349,0.00
+"East Bay Sports | San Ramon","Bay Area",38,19,19,0,0.5,0.5,0.00
+"Tom Bates Sports Complex | Norcal Athletics","Bay Area",12,12,0,0,1,1,0.00
+"Athlete Training and Health | Cypress","Houston",12,12,0,0,1,1,0.00
+"Fire Ball Soccer","Houston",7,3,4,0,0.42857142857142855,0.42857142857142855,0.00
+"JL and Enid W. Demps Park | Miami Premier FC","South Florida",3,1,2,0,0.3333333333333333,0.3333333333333333,0.00
+"Valley Soccer Center","Los Angeles",13,10,3,0,0.7692307692307693,0.7692307692307693,0.00
+"Keller Fields | Futbol Evolution","Dallas | Fort Worth",16,15,1,0,0.9375,0.9375,0.00
+"Creative Player Sports","Charlotte",56,36,20,0,0.6428571428571429,0.6428571428571429,0.00
+"Rent A Field","South Florida",83,25,58,0,0.30120481927710846,0.30120481927710846,0.00
+"Soccer 5 Snohomish County","Seattle",12,0,12,0,0,0,0.00
+"QA Location TWRD QA Boreal Ridge Athletics","Alaska",4,0,4,0,0,0,0.00
+"Q & B Indoor Sports - Sphere","Houston",12,7,5,0,0.5833333333333334,0.5833333333333334,0.00
+"Ontario Soccer Complex","Los Angeles",29,27,2,0,0.9310344827586207,0.9310344827586207,0.00
+"Futbolito-Golfo de Mexico","Houston",65,19,46,0,0.2923076923076923,0.2923076923076923,0.00
+"Krome Sports","South Florida",139,95,44,0,0.6834532374100719,0.6834532374100719,0.00
+"Memorial Indoor Soccer","Houston",25,23,2,0,0.92,0.92,0.00
+"Ventura Indoor","Atlanta",24,0,24,0,0,0,0.00
+"The Barn | SAT Soccer","Denver",4,0,4,0,0,0,0.00
+"Tyngsboro Sports Center","Boston",2,0,2,0,0,0,0.00
+"Athlete Training and Health | Katy","Houston",26,21,5,0,0.8076923076923077,0.8076923076923077,0.00
+"South Run Field House | VLG","DMV | Baltimore",19,9,10,0,0.47368421052631576,0.47368421052631576,0.00
+"One-Touch Soccer | Morby","Atlanta",5,0,5,0,0,0,0.00
+"Scheels Overland Park Soccer Complex","Kansas City",13,10,3,0,0.7692307692307693,0.7692307692307693,0.00
+"NASA Indoor Soccer","Houston",7,7,0,0,1,1,0.00
+"Torrance Batting Cages","Los Angeles",36,36,0,0,1,1,0.00
+"Wheatland Athletic Association","Chicago",14,8,6,0,0.5714285714285714,0.5714285714285714,0.00
+"Socceroof Toronto","Toronto",12,2,10,0,0.16666666666666666,0.16666666666666666,0.00
+"Le Five Indoor Soccer | Rancho Cordova","Sacramento",21,13,8,0,0.6190476190476191,0.6190476190476191,0.00
+"Total Sports Novi East","Detroit",26,4,22,0,0.15384615384615385,0.15384615384615385,0.00
+"Gateway Park | Futbol Evolution","Dallas | Fort Worth",3,3,0,0,1,1,0.00
+"Campus El Segundo Athletic Fields","Los Angeles",13,8,5,0,0.6153846153846154,0.6153846153846154,0.00
+"Riverside Sports Complex","Boston",2,0,2,0,0,0,0.00
+"St. Joes Elite Sports Center","Detroit",25,23,2,0,0.92,0.92,0.00
+"Soccer 5 Bayonne","New York Metropolitan Area",7,1,6,0,0.14285714285714285,0.14285714285714285,0.00
+"Pegaso Soccer | Events","South Florida",1,0,1,0,0,0,0.00
+"Greenfield Arena Midtown | Morby","Memphis",1,0,1,0,0,0,0.00
+"Wynwood Arena","South Florida",37,20,17,0,0.5405405405405406,0.5405405405405406,0.00
+"Socceroof New Haven","Hartford | Springfield",7,0,7,0,0,0,0.00
+"Mather Sports Center Complex | Jaime Rodriguez","Sacramento",10,10,0,0,1,1,0.00
