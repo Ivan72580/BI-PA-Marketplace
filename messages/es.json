@@ -2393,6 +2393,115 @@
       "unauthorized": "No tenés permiso para hacer esto.",
       "invalid": "Revisá los datos: falta algo obligatorio o hay un valor fuera de rango.",
       "generic": "No se pudo guardar. Probá de nuevo."
+    },
+    "state": {
+      "title": "Estado calculado",
+      "overviewTitle": "Estado por facility",
+      "overviewSubtitle": "{count, plural, one {# facility con aportes} other {# facilities con aportes}}. Elegí una para ver el detalle.",
+      "none": "—",
+      "noSignal": "Sin señal suficiente",
+      "confidenceLabel": "Confianza",
+      "suggestedAction": "Acción sugerida",
+      "quadrants": {
+        "PARTNER": {
+          "name": "Socio",
+          "hint": "Cumple lo acordado y la relación funciona. Conviene invertir: asegurar slots recurrentes y priorizarla en la planificación."
+        },
+        "RELIABLE_DIFFICULT": {
+          "name": "Fiable pero difícil",
+          "hint": "Sostiene lo acordado, pero el trato o la alineación son complicados. Mantener: acuerdos por escrito, un único interlocutor y no ceder en la publicación."
+        },
+        "OPPORTUNIST_CORDIAL": {
+          "name": "Oportunista cordial",
+          "hint": "Trato amable, pero nos usa de relleno de su inventario. Publicar solo con confirmación firme y exigir slots bloqueados."
+        },
+        "OPPORTUNIST_CONFLICT": {
+          "name": "Conflictiva oportunista",
+          "hint": "Poco fiable y con relación mala. Esfuerzo mínimo; evaluar alternativas cercanas (según su peso en el revenue del market)."
+        },
+        "NO_SIGNAL": {
+          "name": "Sin señal suficiente",
+          "hint": "Hay {count, plural, one {# aporte} other {# aportes}}, todavía pocos o muy viejos para clasificarla. Se aclara con más registros recientes."
+        }
+      },
+      "actions": {
+        "INVEST": "Invertir",
+        "MAINTAIN": "Mantener",
+        "CONDITION": "Condicionar",
+        "REDUCE": "Reducir esfuerzo"
+      },
+      "confidence": {
+        "HIGH": "alta",
+        "MEDIUM": "media",
+        "LOW": "baja"
+      },
+      "trend": {
+        "UP": "mejora",
+        "DOWN": "empeora",
+        "FLAT": "estable"
+      },
+      "dims": {
+        "D1": {
+          "name": "Cumplimiento",
+          "hint": "¿Lo acordado se sostiene? Retiros de slots publicados, sustituciones, cancelaciones pedidas por la facility."
+        },
+        "D2": {
+          "name": "Calidad de oferta",
+          "hint": "¿Qué nos dan? Liberación tardía, solo sobrantes, slots que nunca repiten, quejas de cancha."
+        },
+        "D3": {
+          "name": "Alineación",
+          "hint": "¿Respetan nuestras decisiones? Cómo terminan los pedidos cuando decimos que no."
+        },
+        "D4": {
+          "name": "Trato y comunicación",
+          "hint": "Trato, demoras en responder y gestos positivos."
+        }
+      },
+      "axes": {
+        "reliability": "Fiabilidad",
+        "relation": "Relación"
+      },
+      "metrics": {
+        "friction": "Fricción",
+        "frictionHint": "Eventos negativos cada 10 partidos confirmados, últimos 90 días. Sin dato con menos de 10 partidos.",
+        "attributable": "Cancelaciones de la facility",
+        "attributableHint": "% de las cancelaciones de 90 días atribuibles a la facility: motivo 'cancha no disponible' más partidos de eventos de disponibilidad, sin contar dos veces el mismo.",
+        "demand": "Tasa de demanda",
+        "demandVs": "{rate} (market {market})",
+        "demandHint": "Confirmados sobre confirmados más cancelados por demanda, últimos 90 días, contra el promedio del market. Mirar junto con la conducta: la relación va en los dos sentidos.",
+        "requests": "Pedidos por mes",
+        "requestsHint": "Insistencia: cuántos pedidos hace la facility. Por sí sola es neutral.",
+        "conflict": "Pedidos que escalan",
+        "conflictHint": "Conflictividad: % de los pedidos que rechazamos y terminaron en reacción hostil o imposición."
+      },
+      "alerts": {
+        "SUB_LOGGING": {
+          "name": "Posible falta de registro",
+          "hint": "Hay cancelaciones por 'cancha no disponible' en los datos y ningún evento de disponibilidad cargado en 90 días."
+        },
+        "HOSTILE_REPEAT": {
+          "name": "Conducta hostil repetida",
+          "hint": "Dos o más hechos de trato grave u hostil en 90 días."
+        },
+        "RETIRO_STREAK": {
+          "name": "Racha de retiros",
+          "hint": "Tres o más retiros de slots en los últimos 60 días."
+        },
+        "PLEI_FAULTS": {
+          "name": "Incumplimientos nuestros",
+          "hint": "Registramos dos o más incumplimientos de Plei en 90 días: leer el estado con ese contexto."
+        }
+      },
+      "table": {
+        "facility": "Facility",
+        "quadrant": "Cuadrante",
+        "friction": "Fricción",
+        "trend": "Tendencia",
+        "confidence": "Confianza",
+        "truncated": "Mostrando {shown} de {total}. Filtrá por mercado para ver el resto."
+      },
+      "footnote": "Es una propuesta, no una etiqueta: se deriva de los hechos registrados (pesan más los recientes y los confirmados por otras personas) y de los partidos de los últimos 90 días. Una dimensión necesita evidencia mínima para puntuar. Los umbrales son una primera calibración."
     }
   }
 }

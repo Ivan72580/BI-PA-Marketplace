@@ -2393,6 +2393,115 @@
       "unauthorized": "You don't have permission to do this.",
       "invalid": "Check the data: something required is missing or a value is out of range.",
       "generic": "Couldn't save. Try again."
+    },
+    "state": {
+      "title": "Calculated status",
+      "overviewTitle": "Status by facility",
+      "overviewSubtitle": "{count, plural, one {# facility with entries} other {# facilities with entries}}. Pick one for the detail.",
+      "none": "—",
+      "noSignal": "Not enough signal",
+      "confidenceLabel": "Confidence",
+      "suggestedAction": "Suggested action",
+      "quadrants": {
+        "PARTNER": {
+          "name": "Partner",
+          "hint": "Delivers what was agreed and the relationship works. Worth investing: secure recurring slots and prioritize it in planning."
+        },
+        "RELIABLE_DIFFICULT": {
+          "name": "Reliable but difficult",
+          "hint": "Holds up its commitments, but treatment or alignment is hard. Maintain: written agreements, a single contact, and don't give in on publishing."
+        },
+        "OPPORTUNIST_CORDIAL": {
+          "name": "Cordial opportunist",
+          "hint": "Friendly, but uses us to fill its inventory. Publish only with firm confirmation and ask for blocked slots."
+        },
+        "OPPORTUNIST_CONFLICT": {
+          "name": "Conflictive opportunist",
+          "hint": "Unreliable and a poor relationship. Minimum effort; look at nearby alternatives (weighing its share of market revenue)."
+        },
+        "NO_SIGNAL": {
+          "name": "Not enough signal",
+          "hint": "There {count, plural, one {is # entry} other {are # entries}}, still too few or too old to classify. More recent entries will clear it up."
+        }
+      },
+      "actions": {
+        "INVEST": "Invest",
+        "MAINTAIN": "Maintain",
+        "CONDITION": "Set conditions",
+        "REDUCE": "Reduce effort"
+      },
+      "confidence": {
+        "HIGH": "high",
+        "MEDIUM": "medium",
+        "LOW": "low"
+      },
+      "trend": {
+        "UP": "improving",
+        "DOWN": "worsening",
+        "FLAT": "steady"
+      },
+      "dims": {
+        "D1": {
+          "name": "Compliance",
+          "hint": "Does what was agreed hold? Withdrawn published slots, substitutions, cancellations requested by the facility."
+        },
+        "D2": {
+          "name": "Offer quality",
+          "hint": "What do they give us? Late release, leftovers only, slots that never repeat, field complaints."
+        },
+        "D3": {
+          "name": "Alignment",
+          "hint": "Do they respect our decisions? How requests end when we say no."
+        },
+        "D4": {
+          "name": "Treatment & communication",
+          "hint": "Treatment, slow replies and positive gestures."
+        }
+      },
+      "axes": {
+        "reliability": "Reliability",
+        "relation": "Relationship"
+      },
+      "metrics": {
+        "friction": "Friction",
+        "frictionHint": "Negative events per 10 confirmed games, last 90 days. No value under 10 games.",
+        "attributable": "Facility cancellations",
+        "attributableHint": "% of the last 90 days' cancellations attributable to the facility: 'field unavailable' reason plus games linked to availability events, never counting the same game twice.",
+        "demand": "Demand rate",
+        "demandVs": "{rate} (market {market})",
+        "demandHint": "Confirmed over confirmed plus demand-cancelled, last 90 days, against the market average. Read it together with behavior: causality runs both ways.",
+        "requests": "Requests per month",
+        "requestsHint": "Insistence: how many requests the facility makes. Neutral on its own.",
+        "conflict": "Escalating requests",
+        "conflictHint": "Conflict: % of the requests we turned down that ended in a hostile reaction or an imposed condition."
+      },
+      "alerts": {
+        "SUB_LOGGING": {
+          "name": "Possible under-logging",
+          "hint": "The data shows 'field unavailable' cancellations and no availability event was logged in 90 days."
+        },
+        "HOSTILE_REPEAT": {
+          "name": "Repeated hostile conduct",
+          "hint": "Two or more serious or hostile treatment facts in 90 days."
+        },
+        "RETIRO_STREAK": {
+          "name": "Streak of withdrawals",
+          "hint": "Three or more slot withdrawals in the last 60 days."
+        },
+        "PLEI_FAULTS": {
+          "name": "Our own failures",
+          "hint": "We logged two or more Plei failures in 90 days: read the status with that context."
+        }
+      },
+      "table": {
+        "facility": "Facility",
+        "quadrant": "Quadrant",
+        "friction": "Friction",
+        "trend": "Trend",
+        "confidence": "Confidence",
+        "truncated": "Showing {shown} of {total}. Filter by market to see the rest."
+      },
+      "footnote": "A proposal, not a label: derived from the logged facts (recent ones and those confirmed by others weigh more) and from the last 90 days of games. Each dimension needs minimum evidence to score. Thresholds are a first calibration."
     }
   }
 }

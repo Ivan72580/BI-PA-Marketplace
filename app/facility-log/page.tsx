@@ -10,7 +10,9 @@ import { addDaysISO, formatDay } from "../lib/weeklyLog";
 import { todayISO } from "../lib/period";
 import FilterPanel from "../components/FilterPanel";
 import PageHeader from "../components/PageHeader";
+import { getFacilityStates } from "../lib/db/facilityState";
 import FacilityLogBoard from "./FacilityLogBoard";
+import { FacilityStateCard, FacilityStateTable } from "./FacilityState";
 
 type SP = { regionId?: string; marketId?: string; facilityId?: string; kind?: string; limit?: string };
 
@@ -45,11 +47,12 @@ export default async function FacilityLogPage({ searchParams }: { searchParams: 
   const user = current?.user ?? null;
   const canEdit = hasLevel(current?.access.TEAM, "EDIT");
 
-  const [{ rows, hasMore }, summaryRows, topics, weeklyNotes] = await Promise.all([
+  const [{ rows, hasMore }, summaryRows, topics, weeklyNotes, states] = await Promise.all([
     getFacilityLogEntries(scope, { kind, limit, meId: user?.id ?? null }),
     getFacilityLogSummaryRows(scope),
     getRecentLogTopics(),
     sp.facilityId ? getWeeklyNotesForFacility(sp.facilityId, addDaysISO(today, -90)) : Promise.resolve([]),
+    getFacilityStates(scope, today),
   ]);
   const summary = summarizeLog(summaryRows, today);
 
@@ -96,6 +99,10 @@ export default async function FacilityLogPage({ searchParams }: { searchParams: 
         {stat(t("stats.recent"), t("stats.recentValue", { neg: summary.recentNegative, pos: summary.recentPositive }))}
         {stat(t("stats.last"), summary.lastDate ? formatDay(summary.lastDate, locale, { day: "numeric", month: "short", year: "numeric" }) : t("stats.none"))}
       </div>
+
+      {sp.facilityId
+        ? states[0] && <FacilityStateCard row={states[0]} />
+        : <FacilityStateTable rows={states} hrefFor={(id) => href(sp, { facilityId: id, kind: undefined, limit: undefined })} />}
 
       <div className="inline-flex gap-0.5 rounded-full bg-surface-panel p-1 text-sm">
         {([undefined, ...LOG_KINDS] as (LogKind | undefined)[]).map((k) => (
