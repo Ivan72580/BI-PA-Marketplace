@@ -127,7 +127,7 @@ export default async function FacilityDetailView({
 
   const cancellationChart = {
     labels: data.cancellationBreakdown.map((c) => c.label),
-    datasets: [{ label: t("facility.cancellationsChartLabel"), data: data.cancellationBreakdown.map((c) => c.count), backgroundColor: "#ff4b33" }],
+    datasets: [{ label: t("facility.cancellationsChartLabel"), data: data.cancellationBreakdown.map((c) => c.count), backgroundColor: "#dc2626" }],
   };
 
   const evolutionUnitLabel = evolutionWindow.unit === "week" ? t("facility.evolutionTitleWeekly") : t("facility.evolutionTitleMonthly");

@@ -544,7 +544,8 @@
         "noChangesWordCancelled": "problem"
       }
     },
-    "headerAllFacilities": "All facilities"
+    "headerAllFacilities": "All facilities",
+    "filter": "Filter"
   },
   "ChangeBadge": {
     "noPriorData": "no data for the prior period",
@@ -740,7 +741,8 @@
       "title": "Confirmed-game concentration — {region}",
       "subtitle": "80/20 Pareto — click to see the full detail",
       "summary": "{total} confirmed total · {n} facilities make up {pct}"
-    }
+    },
+    "filter": "Filter"
   },
   "Overview": {
     "pageTitle": "Overview",
@@ -755,7 +757,8 @@
       "revenueLabel": "Revenue (proj.)",
       "basedOn": "Based on {total} games played so far — {confirmed} confirmed ({confirmedRate}) and {cancelled} cancelled ({cancelledRate}) — over {elapsed} of {daysInMonth} days, with {revenue} in revenue accrued.",
       "notYetAvailable": "{month} projection available from day {day}",
-      "priorBasis": "Prior full month: {priorConfirmed} confirmed games and {priorRevenue} in revenue — the basis for the variation above."
+      "priorBasis": "Prior full month: {priorConfirmed} confirmed games and {priorRevenue} in revenue — the basis for the variation above.",
+      "how": "How it's calculated"
     },
     "tabs": {
       "summary": "Summary",

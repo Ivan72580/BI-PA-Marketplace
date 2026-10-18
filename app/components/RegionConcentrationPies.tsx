@@ -4,8 +4,8 @@ import { getParetoGroups, getFilterOptions, type OverviewFilters } from "../lib/
 import PieChart from "./charts/PieChart";
 
 const PIE_COLORS = [
-  "#0b3b2e", "#104834", "#15543b", "#1a6141", "#1e6d47", "#237a4e", "#288654", "#2d935a",
-  "#329f60", "#37ac67", "#3bb86d", "#40c573", "#45d17a", "#4ade80", "#a7e7cf", "#7c8ba1",
+  "#0b3b2e", "#0c4430", "#0e4c32", "#0f5534", "#105e36", "#116637", "#126f39", "#14773b",
+  "#15803d", "#329156", "#50a26e", "#6db386", "#8ac49f", "#a8d5b8", "#9aa6a8", "#394447",
 ];
 
 function formatPct(n: number) {

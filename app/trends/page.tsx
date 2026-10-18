@@ -26,6 +26,8 @@ import { MUST_SCHEDULE_MIN_RATE } from "../lib/mustSchedule";
 import { resolvePeriod, shiftAnchor, todayISO, type Granularity, type ResolvedPeriod } from "../lib/period";
 import { weekdayAbbr } from "../lib/db/weekday";
 import FilterPanel from "../components/FilterPanel";
+import PageHeader from "../components/PageHeader";
+import CollapsibleFilter from "../components/CollapsibleFilter";
 import FacilityDayHeatmap from "../components/FacilityDayHeatmap";
 import InsightsPanel, { type PanelInsight } from "../components/InsightsPanel";
 import LineChart from "../components/charts/LineChart";
@@ -52,7 +54,7 @@ type SP = {
 };
 
 const TREND_GRANULARITIES: Granularity[] = ["year", "semester", "quarter", "month"];
-const METRIC_COLORS = { confirmation: "#16755c", cancellation: "#ff4b33", occupancy: "#4ade80", conversion: "#0b3b2e" };
+const METRIC_COLORS = { confirmation: "#15803d", cancellation: "#dc2626", occupancy: "#394447", conversion: "#0b3b2e" };
 
 function formatPct(n: number) {
   return `${(n * 100).toFixed(1)}%`;
@@ -459,10 +461,9 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
   if (!hasMarket) {
     return (
       <div>
-        <h1 className="font-display text-3xl font-bold text-ink mb-1">{t("title")}</h1>
-        <div className="text-sm text-ink-faint mb-4 max-w-2xl">{t("landingSubtitle")}</div>
+        <PageHeader scope={scopeMarketName ?? scopeRegionName} title={t("title")} subtitle={t("landingSubtitle")} />
 
-        <div className="rounded-2xl bg-brand-soft/50 border border-brand/25 px-5 py-3 flex items-center justify-between gap-4 flex-wrap">
+        <div className="rounded-2xl bg-surface shadow-sm px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
           <div className="min-w-0">
             <div className="text-sm font-semibold text-ink">{t("landing.pickPrompt")}</div>
             <div className="text-xs text-ink-muted">{t("landing.pickHint")}</div>
@@ -984,25 +985,24 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
 
   return (
     <div>
-      <div className="flex items-start justify-between gap-6 flex-wrap mb-2">
-        <div>
-          <h1 className="font-display text-3xl font-bold text-ink mb-1">{t("title")}</h1>
-          <div className="text-sm text-ink-faint mb-2 max-w-xl">{t("mainSubtitle")}</div>
-          <div className="flex items-center gap-1.5 text-sm">
+      <PageHeader
+        scope={(sp.facilityId ? filterOptions.facilities.find((f: { id: string }) => f.id === sp.facilityId)?.name : undefined) ?? scopeMarketName ?? scopeRegionName}
+        title={t("title")}
+        subtitle={t("mainSubtitle")}
+        actions={<QuarterClimate points={quarterClimate} />}
+        filter={
+          <CollapsibleFilter label={t("filter")} active>
             <LinkSelect paramName="regionId" value={sp.regionId ?? ""} clear={["marketId", "facilityId"]} options={filterOptions.regions.map((r) => ({ value: r.id, label: r.name }))} />
-            <span className="text-ink-faint">›</span>
             <LinkSelect paramName="marketId" value={sp.marketId ?? ""} clear={["facilityId"]} options={marketsInRegion.map((m) => ({ value: m.id, label: m.name }))} />
-            <span className="text-ink-faint">›</span>
             <LinkSelect
               paramName="facilityId"
               value={sp.facilityId ?? ""}
               options={[{ value: "", label: t("headerAllFacilities") }, ...filterOptions.facilities.filter((f) => f.marketId === sp.marketId).map((f) => ({ value: f.id, label: f.name }))]}
             />
-            <Link href="/trends" className="text-xs text-ink-faint hover:text-ink ml-2">{t("changeRegion")}</Link>
-          </div>
-        </div>
-        <QuarterClimate points={quarterClimate} />
-      </div>
+            <Link href="/trends" className="px-1 text-xs text-ink-faint hover:text-ink">{t("changeRegion")}</Link>
+          </CollapsibleFilter>
+        }
+      />
 
       {/* Resumen de alcance (hallazgo 5 del mapeo de lógica no expuesta,
           3/10/26): mismo contenido que la pantalla de selección de arriba,

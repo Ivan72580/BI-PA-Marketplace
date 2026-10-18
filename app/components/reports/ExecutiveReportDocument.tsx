@@ -41,7 +41,7 @@ export default function ExecutiveReportDocument({ core, t, scopeLabel }: { core:
 
   const chartData = {
     labels: evolution.map((p) => p.label),
-    datasets: [{ label: t("evolution.legend"), data: evolution.map((p) => p.confirmedGames), borderColor: "#16755c" }],
+    datasets: [{ label: t("evolution.legend"), data: evolution.map((p) => p.confirmedGames), borderColor: "#15803d" }],
   };
 
   return (
@@ -184,7 +184,7 @@ export default function ExecutiveReportDocument({ core, t, scopeLabel }: { core:
                   {item.kind === "decliningSlot" && item.trendSeries && item.trendSeries.length >= 2 && (
                     <div className="mt-2">
                       <div className="text-[10px] text-ink-faint mb-0.5 print:text-[7pt]">{t("opportunity.trend.label")}</div>
-                      <Sparkline values={item.trendSeries} height={32} color="#cc3c29" fill={false} />
+                      <Sparkline values={item.trendSeries} height={32} color="#dc2626" fill={false} />
                     </div>
                   )}
                   <ul className="mt-1.5 space-y-1 list-disc list-inside">

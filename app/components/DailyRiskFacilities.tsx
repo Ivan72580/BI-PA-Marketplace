@@ -42,7 +42,7 @@ export default async function DailyRiskFacilities({
           const market = marketId ? marketById.get(marketId) : undefined;
           const href = market ? `/daily?regionId=${market.regionId}&marketId=${market.id}&facilityId=${r.facilityId}` : null;
           const barPct = maxCancelled > 0 ? (r.recentCancelledGames / maxCancelled) * 100 : 0;
-          const barColor = r.severity === "high" ? "bg-danger" : "bg-warning";
+          const barColor = r.severity === "high" ? "bg-danger" : "bg-warning-fill";
 
           const row = (
             <div>

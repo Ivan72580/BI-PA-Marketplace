@@ -18,7 +18,7 @@ export default async function DataFreshness() {
 
   return (
     <span
-      className={`hidden md:inline text-[11px] whitespace-nowrap ${stale ? "text-amber-300" : "text-white/50"}`}
+      className={`hidden md:inline text-[11px] whitespace-nowrap ${stale ? "text-[#fbbf24]" : "text-white/50"}`}
       title={stale ? t("dataThroughStale", { days: lagDays }) : undefined}
     >
       {t("dataThrough", { date: label })}

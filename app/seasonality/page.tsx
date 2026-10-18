@@ -13,6 +13,7 @@ import {
 import { nowInBusinessTimeZone } from "../lib/period";
 import type { Locale } from "@/i18n/config";
 import FilterPanel from "../components/FilterPanel";
+import PageHeader from "../components/PageHeader";
 import ChangeBadge from "../components/ChangeBadge";
 import Glossary from "../components/Glossary";
 import GroupSection from "../components/GroupSection";
@@ -70,13 +71,13 @@ function isHistMetricKey(value: string | undefined): value is HistMetricKey {
 // de diseño no tiene 8 tonos categóricos distintos, así que cada métrica
 // se mira de a una (tabs), no las 8 superpuestas en un mismo gráfico.
 const HIST_METRIC_COLORS: Record<HistMetricKey, string> = {
-  confirmedGames: "#16755c",
-  cancelledGames: "#ff4b33",
-  confirmationRate: "#16755c",
-  cancellationRate: "#ff4b33",
-  occupancyRate: "#4ade80",
+  confirmedGames: "#15803d",
+  cancelledGames: "#dc2626",
+  confirmationRate: "#15803d",
+  cancellationRate: "#dc2626",
+  occupancyRate: "#394447",
   conversionRate: "#0b3b2e",
-  avgWaitlist: "#b45309",
+  avgWaitlist: "#f59e0b",
   medianLeadTime: "#0b3b2e",
 };
 
@@ -377,7 +378,7 @@ export default async function SeasonalityPage({ searchParams }: { searchParams: 
   const lineChartData = {
     labels: monthLabels,
     datasets: [
-      { label: t("chart.legend", { year }), data: activeSeries.current, borderColor: "#16755c" },
+      { label: t("chart.legend", { year }), data: activeSeries.current, borderColor: "#15803d" },
       ...(showCompare
         ? [{ label: t("chart.legend", { year: year - 1 }), data: activeSeries.prior, borderColor: "#9ca3af", borderDash: [6, 4], fill: false }]
         : []),
@@ -411,51 +412,20 @@ export default async function SeasonalityPage({ searchParams }: { searchParams: 
 
   return (
     <div className="space-y-5">
-      <div>
-        {/* Mismo patrón de breadcrumb que Forecast/Market: región > market >
-            facility, cada nivel clickeable para "subir" un escalón. */}
-        <div className="flex flex-wrap gap-1.5 text-sm mb-2">
-          <Link
-            href={buildSeasonalityQuery(sp, { regionId: undefined, marketId: undefined, facilityId: undefined })}
-            className={sp.regionId ? "text-brand" : "text-ink font-medium"}
-          >
-            {t("allNetwork")}
-          </Link>
-          {names.regionName && (
-            <>
-              <span className="text-ink-faint">›</span>
-              <Link href={buildSeasonalityQuery(sp, { marketId: undefined, facilityId: undefined })} className={sp.marketId ? "text-brand" : "text-ink font-medium"}>
-                {names.regionName}
-              </Link>
-            </>
-          )}
-          {names.marketName && (
-            <>
-              <span className="text-ink-faint">›</span>
-              <Link href={buildSeasonalityQuery(sp, { facilityId: undefined })} className={sp.facilityId ? "text-brand" : "text-ink font-medium"}>
-                {names.marketName}
-              </Link>
-            </>
-          )}
-          {names.facilityName && (
-            <>
-              <span className="text-ink-faint">›</span>
-              <span className="text-ink font-medium">{names.facilityName}</span>
-            </>
-          )}
-        </div>
-
-        <h1 className="font-display text-3xl font-bold text-ink mb-1">{t("pageTitle")}</h1>
-        <div className="text-sm text-ink-faint max-w-2xl">{t("subtitle")}</div>
-      </div>
-
-      <FilterPanel
-        regions={filterOptions.regions}
-        markets={filterOptions.markets}
-        facilities={filterOptions.facilities}
-        showTimeControls={false}
-        hasFilter={hasFilter}
-        clearHref={buildSeasonalityQuery(sp, { regionId: undefined, marketId: undefined, facilityId: undefined })}
+      <PageHeader
+        scope={names.facilityName ?? names.marketName ?? names.regionName}
+        title={t("pageTitle")}
+        subtitle={t("subtitle")}
+        filter={
+          <FilterPanel
+            regions={filterOptions.regions}
+            markets={filterOptions.markets}
+            facilities={filterOptions.facilities}
+            showTimeControls={false}
+            hasFilter={hasFilter}
+            clearHref={buildSeasonalityQuery(sp, { regionId: undefined, marketId: undefined, facilityId: undefined })}
+          />
+        }
       />
 
       {/* Selector de año — reemplaza el selector de granularidad/período

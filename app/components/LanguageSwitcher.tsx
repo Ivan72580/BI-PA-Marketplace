@@ -23,7 +23,7 @@ export default function LanguageSwitcher({ locale }: { locale: Locale }) {
   }
 
   return (
-    <div className="inline-flex items-center rounded-full bg-white/10 p-0.5 text-[11px] font-semibold gap-0.5">
+    <div className="inline-flex items-center rounded-full bg-surface-panel p-0.5 text-[11px] font-semibold gap-0.5">
       {locales.map((l) => (
         <button
           key={l}
@@ -32,7 +32,7 @@ export default function LanguageSwitcher({ locale }: { locale: Locale }) {
           disabled={isPending}
           aria-pressed={locale === l}
           className={`px-2 py-1 rounded-full uppercase transition-colors ${
-            locale === l ? "bg-accent text-[#0b3b2e]" : "text-white/70 hover:text-white"
+            locale === l ? "bg-surface text-ink shadow-sm" : "text-ink-muted hover:text-ink"
           }`}
         >
           {l}

@@ -28,7 +28,7 @@ export default function LinkSelect({
         for (const k of clear ?? []) params.delete(k);
         router.push(`${pathname}?${params.toString()}`, { scroll: false });
       }}
-      className="rounded-lg border border-border-strong bg-surface px-2.5 py-1 text-sm text-ink cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand/30"
+      className="rounded-lg bg-surface-sunken px-2.5 py-1 text-xs font-medium text-ink-muted cursor-pointer ring-1 ring-border focus:outline-none focus:ring-2 focus:ring-brand/40 hover:text-ink hover:ring-border-strong transition-colors"
     >
       {options.map((o) => (
         <option key={o.value} value={o.value}>{o.label}</option>

@@ -50,7 +50,7 @@ export function haloFill(color: string) {
  */
 export function withHaloStyle(datasets: LineDatasets): LineDatasets {
   return datasets.map((ds: LineDataset) => {
-    const color = typeof ds.borderColor === "string" ? ds.borderColor : "#16755c";
+    const color = typeof ds.borderColor === "string" ? ds.borderColor : "#15803d";
     return {
       ...ds,
       fill: ds.fill ?? true,

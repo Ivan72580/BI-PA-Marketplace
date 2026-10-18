@@ -22,8 +22,8 @@ export type LandingBubble = {
   href: string; // destino al enfocar (misma página con ?focus=)
 };
 
-const OK = "#16755c";
-const LOW = "#cc3c29";
+const OK = "#15803d";
+const LOW = "#dc2626";
 
 export default function LandingMap({
   bubbles,

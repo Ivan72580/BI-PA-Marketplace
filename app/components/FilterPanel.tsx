@@ -1,26 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
+import CollapsibleFilter from "./CollapsibleFilter";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { resolvePeriod, shiftAnchor, todayISO, type Granularity } from "../lib/period";
 import type { Locale } from "@/i18n/config";
-
-function FilterIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polygon points="3 4 21 4 14 12.5 14 19 10 21 10 12.5 3 4" />
-    </svg>
-  );
-}
-function ChevronIcon({ open }: { open: boolean }) {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${open ? "rotate-180" : ""}`}>
-      <polyline points="6 9 12 15 18 9" />
-    </svg>
-  );
-}
 
 type Option = { id: string; name: string; regionId?: string; marketId?: string };
 
@@ -66,6 +51,7 @@ export default function FilterPanel({
   hasFilter = false,
   clearHref,
   bare = false,
+  defaultOpen = false,
 }: {
   regions: Option[];
   markets: Option[];
@@ -86,17 +72,13 @@ export default function FilterPanel({
   // (ej. el banner de selección de Trends) y no debe generar una caja
   // dentro de otra caja.
   bare?: boolean;
+  defaultOpen?: boolean;
 }) {
   const t = useTranslations("FilterPanel");
   const locale = useLocale() as Locale;
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  // Colapsado por default en anchos angostos (<lg): el botón de abajo lo
-  // despliega. En bare (Trends) no aplica — ahí el set de controles ya es
-  // chico (2 selects) y vive dentro de otro contenedor propio.
-  const [mobileExpanded, setMobileExpanded] = useState(false);
-
   const regionId = searchParams.get("regionId") ?? "All";
   const marketId = searchParams.get("marketId") ?? "All";
   const facilityId = searchParams.get("facilityId") ?? "All";
@@ -126,16 +108,22 @@ export default function FilterPanel({
   }
 
   const selectClass =
-    "rounded-md border border-border bg-surface/60 px-2 py-0.5 text-xs text-ink-muted cursor-pointer focus:outline-none focus:ring-1 focus:ring-brand/30 hover:border-border-strong hover:text-ink transition-colors";
+    "rounded-lg bg-surface-sunken px-2.5 py-1 text-xs font-medium text-ink-muted cursor-pointer ring-1 ring-border focus:outline-none focus:ring-2 focus:ring-brand/40 hover:text-ink hover:ring-border-strong transition-colors";
 
-  const controlsRowClass = bare
-    ? "flex flex-wrap items-center gap-2"
-    : `flex-wrap items-center gap-1.5 ${mobileExpanded ? "flex" : "hidden"} lg:flex`;
+  const controlsRowClass = "flex flex-wrap items-center gap-2";
+
+  // Texto del período para el estado colapsado: es contexto que no se puede esconder (todo número de la
+  // página depende de él), así que se queda visible junto al ícono aunque el resto del filtro se oculte.
+  const periodText = !showTimeControls
+    ? null
+    : granularity === "all"
+      ? t("granularity.all")
+      : granularity === "custom"
+        ? customFrom && customTo ? `${customFrom} → ${customTo}` : t("granularity.custom")
+        : period?.label ?? null;
 
   const controls = (
     <>
-      {!bare && <span className="hidden lg:inline text-[10px] text-ink-faint mr-0.5 uppercase tracking-wide">{t("filterLabel")}</span>}
-
       {showGeo && (
         <>
         <select
@@ -177,7 +165,7 @@ export default function FilterPanel({
 
       {showTimeControls && (
         <>
-          <span className="w-px h-3.5 bg-border mx-0.5" />
+          <span className="w-px h-4 bg-border mx-0.5" />
 
           <select
             className={selectClass}
@@ -208,7 +196,7 @@ export default function FilterPanel({
 
           {granularity !== "custom" && granularity !== "all" && period && (
             <span className="flex items-center gap-1">
-              <button type="button" onClick={() => update({ period: prevAnchor })} className="text-ink-faint hover:text-brand text-sm px-0.5 leading-none">‹</button>
+              <button type="button" onClick={() => update({ period: prevAnchor })} className="text-ink-faint hover:text-ink text-base px-1 leading-none rounded-md hover:bg-surface-sunken" aria-label="‹">‹</button>
               {granularity === "month" && (
                 <input type="month" value={anchor.slice(0, 7)} onChange={(e) => update({ period: `${e.target.value}-01` })} className={selectClass} />
               )}
@@ -226,14 +214,14 @@ export default function FilterPanel({
               {granularity !== "month" && granularity !== "day" && granularity !== "week" && (
                 <span className="text-xs text-ink-muted min-w-[90px] text-center">{period.label}</span>
               )}
-              <button type="button" onClick={() => update({ period: nextAnchor })} className="text-ink-faint hover:text-brand text-sm px-0.5 leading-none">›</button>
+              <button type="button" onClick={() => update({ period: nextAnchor })} className="text-ink-faint hover:text-ink text-base px-1 leading-none rounded-md hover:bg-surface-sunken" aria-label="›">›</button>
             </span>
           )}
         </>
       )}
 
       {hasFilter && clearHref && (
-        <Link href={clearHref} className="text-[11px] text-ink-faint hover:text-brand ml-auto shrink-0">
+        <Link href={clearHref} className="text-xs text-ink-faint hover:text-ink shrink-0 px-1">
           {t("clear")}
         </Link>
       )}
@@ -245,22 +233,8 @@ export default function FilterPanel({
   }
 
   return (
-    <div className="border-b border-border/70 px-1 py-1.5 mb-5">
-      {/* Header solo <lg: un botón resume el estado del filtro y lo
-          despliega/colapsa, en vez de mostrar siempre los 3-6 selects. */}
-      <button
-        type="button"
-        onClick={() => setMobileExpanded((v) => !v)}
-        aria-expanded={mobileExpanded}
-        className="lg:hidden flex items-center gap-1.5 w-full py-0.5 text-xs text-ink-muted"
-      >
-        <FilterIcon />
-        <span className="uppercase tracking-wide">{t("filterLabel")}</span>
-        {hasFilter && <span className="w-1.5 h-1.5 rounded-full bg-brand" aria-hidden="true" />}
-        <ChevronIcon open={mobileExpanded} />
-      </button>
-
-      <div className={controlsRowClass}>{controls}</div>
-    </div>
+    <CollapsibleFilter label={t("filterLabel")} summary={periodText} active={hasFilter} defaultOpen={defaultOpen}>
+      {controls}
+    </CollapsibleFilter>
   );
 }

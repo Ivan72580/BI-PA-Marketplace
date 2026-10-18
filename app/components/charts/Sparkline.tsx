@@ -13,7 +13,7 @@
 export default function Sparkline({
   values,
   height = 44,
-  color = "#16755c", // mismo verde que ya usa LineChart/ExecutiveReportDocument para "evolution"
+  color = "#15803d", // mismo verde que ya usa LineChart/ExecutiveReportDocument para "evolution"
   fill = true,
 }: {
   values: number[];

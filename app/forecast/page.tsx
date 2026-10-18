@@ -22,6 +22,7 @@ import { weekdayLabel, weekdayPlural } from "../lib/db/weekday";
 import type { Locale } from "@/i18n/config";
 import { todayISO } from "../lib/period";
 import FilterPanel from "../components/FilterPanel";
+import PageHeader from "../components/PageHeader";
 import GroupSection from "../components/GroupSection";
 import ForecastWatchlist from "../components/ForecastWatchlist";
 import Glossary from "../components/Glossary";
@@ -228,57 +229,29 @@ export default async function ForecastPage({ searchParams }: { searchParams: Pro
 
   return (
     <div className="space-y-5">
-      <div>
-        {/* Mismo patrón de breadcrumb que /market: recorre región > market >
-            facility, cada nivel clickeable para "subir" un escalón. */}
-        <div className="flex flex-wrap gap-1.5 text-sm mb-2">
-          <Link href={buildForecastQuery(sp, { regionId: undefined, marketId: undefined, facilityId: undefined })} className={sp.regionId ? "text-brand" : "text-ink font-medium"}>
-            {t("allNetwork")}
-          </Link>
-          {names.regionName && (
-            <>
-              <span className="text-ink-faint">›</span>
-              <Link href={buildForecastQuery(sp, { marketId: undefined, facilityId: undefined })} className={sp.marketId ? "text-brand" : "text-ink font-medium"}>
-                {names.regionName}
-              </Link>
-            </>
-          )}
-          {names.marketName && (
-            <>
-              <span className="text-ink-faint">›</span>
-              <Link href={buildForecastQuery(sp, { facilityId: undefined })} className={sp.facilityId ? "text-brand" : "text-ink font-medium"}>
-                {names.marketName}
-              </Link>
-            </>
-          )}
-          {names.facilityName && (
-            <>
-              <span className="text-ink-faint">›</span>
-              <span className="text-ink font-medium">{names.facilityName}</span>
-            </>
-          )}
-        </div>
-
-        <h1 className="font-display text-3xl font-bold text-ink mb-1">{t("pageTitle")}</h1>
-        <div className="text-sm text-ink-faint max-w-2xl">{t("subtitle")}</div>
-      </div>
-
-      <FilterPanel
-        regions={filterOptions.regions}
-        markets={filterOptions.markets}
-        facilities={filterOptions.facilities}
-        showTimeControls={false}
-        hasFilter={hasFilter}
-        clearHref={buildForecastQuery(sp, { regionId: undefined, marketId: undefined, facilityId: undefined })}
+      <PageHeader
+        scope={names.facilityName ?? names.marketName ?? names.regionName}
+        title={t("pageTitle")}
+        subtitle={t("subtitle")}
+        filter={
+          <FilterPanel
+            regions={filterOptions.regions}
+            markets={filterOptions.markets}
+            facilities={filterOptions.facilities}
+            showTimeControls={false}
+            hasFilter={hasFilter}
+            clearHref={buildForecastQuery(sp, { regionId: undefined, marketId: undefined, facilityId: undefined })}
+          />
+        }
       />
 
-      <div className="flex items-center gap-2">
+      <div className="inline-flex gap-0.5 rounded-full bg-surface-panel p-1 self-start">
         {(["week", "month"] as ForecastRange[]).map((r) => (
           <Link
             key={r}
             href={buildForecastQuery(sp, { range: r === "week" ? undefined : r })}
-            className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
-              range === r ? "bg-brand text-white" : "bg-surface-sunken text-ink-muted hover:bg-brand-soft"
+            className={`rounded-full px-4 py-1.5 text-sm transition-colors ${
+              range === r ? "bg-surface text-ink font-semibold shadow-sm" : "text-ink-muted font-medium hover:text-ink"
             }`}
           >
             {t(r === "week" ? "rangeWeek" : "rangeMonth")}

@@ -249,17 +249,17 @@ export default function TopNav({
   }, [mobileOpen]);
 
   const inlineClass = (active: boolean) =>
-    `relative flex items-center gap-2 px-4 py-2.5 text-sm whitespace-nowrap rounded-t-xl transition-colors ${
-      active ? "text-ink font-bold" : "text-white/75 font-medium hover:text-white hover:bg-white/5"
+    `relative flex items-center gap-2 px-3.5 py-1.5 text-sm whitespace-nowrap rounded-full transition-colors ${
+      active ? "text-ink font-semibold" : "text-white/70 font-medium hover:text-white hover:bg-white/10"
     }`;
   const stackedClass = (active: boolean) =>
     `flex items-center gap-2.5 px-3 py-2.5 text-sm rounded-lg transition-colors ${
-      active ? "text-ink font-bold bg-[#f5fffa]" : "text-white/75 font-medium hover:text-white hover:bg-white/5"
+      active ? "text-ink font-semibold bg-white" : "text-white/70 font-medium hover:text-white hover:bg-white/10"
     }`;
   const activeBg = (
     <motion.span
       layoutId="topnav-active-bg"
-      className="absolute inset-0 rounded-t-xl bg-[#f5fffa]"
+      className="absolute inset-0 rounded-full bg-white"
       transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
     />
   );
@@ -293,7 +293,7 @@ export default function TopNav({
         }
         const open = openGroup === g.key;
         return (
-          <div key={g.key} className="relative flex items-end self-stretch">
+          <div key={g.key} className="relative flex items-center">
             <button
               type="button"
               aria-expanded={open}
@@ -307,7 +307,7 @@ export default function TopNav({
               </span>
             </button>
             {open && (
-              <div className="absolute left-0 top-full mt-0 w-72 rounded-xl bg-[#0b3b2e] border border-white/10 shadow-xl p-1.5 z-50">
+              <div className="absolute left-0 top-full mt-2 w-72 rounded-2xl bg-surface shadow-xl p-1.5 z-50">
                 {g.children.map((c) => {
                   const Icon = c.icon;
                   const childActive = isLinkActive(pathname, c.href);
@@ -315,12 +315,12 @@ export default function TopNav({
                     <Link
                       key={c.href}
                       href={c.href}
-                      className={`flex items-start gap-3 rounded-lg px-3 py-2 transition-colors ${childActive ? "bg-white/10" : "hover:bg-white/5"}`}
+                      className={`flex items-start gap-3 rounded-xl px-3 py-2 transition-colors ${childActive ? "bg-surface-sunken" : "hover:bg-surface-sunken"}`}
                     >
-                      <span className="mt-0.5 text-white/80"><Icon /></span>
+                      <span className="mt-0.5 text-ink-muted"><Icon /></span>
                       <span>
-                        <span className={`block text-sm ${childActive ? "text-white font-bold" : "text-white/90 font-medium"}`}>{t(c.labelKey)}</span>
-                        <span className="block text-[11px] leading-snug text-white/55">{t(`desc.${c.labelKey}`)}</span>
+                        <span className={`block text-sm ${childActive ? "text-ink font-semibold" : "text-ink font-medium"}`}>{t(c.labelKey)}</span>
+                        <span className="block text-[11px] leading-snug text-ink-faint">{t(`desc.${c.labelKey}`)}</span>
                       </span>
                     </Link>
                   );
@@ -334,14 +334,14 @@ export default function TopNav({
   );
 
   return (
-    <div className="sticky top-0 z-40 bg-[#0b3b2e]/95 backdrop-blur-xl">
+    <div className="sticky top-0 z-40 bg-[#07271f]/95 backdrop-blur-xl">
       <div className="flex items-center gap-1 px-4 md:px-6">
         {/* eslint-disable-next-line @next/next/no-img-element -- SVG de marca, next/image no optimiza SVGs sin habilitar dangerouslyAllowSVG */}
         <img src="/logo/plei-mark.svg" alt="Plei" width={32} height={32} className="pr-4 shrink-0 h-8 w-auto" />
 
         {/* lg+ : nav inline completo, como antes. Por debajo, se reemplaza
             por el botón de menú de más abajo — nunca los dos a la vez. */}
-        <nav ref={navRef} className="hidden lg:flex items-end self-stretch gap-1 flex-1 min-w-0">
+        <nav ref={navRef} className="hidden lg:flex items-center gap-1 flex-1 min-w-0 py-2">
           {navLinks("inline")}
         </nav>
         <div className="flex-1 min-w-0 lg:hidden" />

@@ -105,7 +105,7 @@ export default async function SeasonalityCalendar({
               <div className="flex items-center justify-between gap-1 mb-1.5">
                 <span className="text-xs font-semibold text-ink">{m.monthLabel}</span>
                 {m.status === "current" && (
-                  <span className="text-[9px] uppercase tracking-wide bg-warning text-white px-1.5 py-0.5 rounded-full shrink-0">
+                  <span className="text-[9px] uppercase tracking-wide bg-warning-soft text-warning px-1.5 py-0.5 rounded-full shrink-0">
                     {t("calendar.current")}
                   </span>
                 )}

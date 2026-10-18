@@ -544,7 +544,8 @@
         "noChangesWordCancelled": "problemáticos"
       }
     },
-    "headerAllFacilities": "Todas las facilities"
+    "headerAllFacilities": "Todas las facilities",
+    "filter": "Filtro"
   },
   "ChangeBadge": {
     "noPriorData": "sin dato del período anterior",
@@ -740,7 +741,8 @@
       "title": "Concentración de confirmados — {region}",
       "subtitle": "Pareto 80/20 — clickeá para ver el detalle completo",
       "summary": "{total} confirmados en total · {n} facilities concentran el {pct}"
-    }
+    },
+    "filter": "Filtro"
   },
   "Overview": {
     "pageTitle": "Overview",
@@ -755,7 +757,8 @@
       "revenueLabel": "Revenue (proy.)",
       "basedOn": "En base a {total} partidos jugados hasta hoy — {confirmed} confirmados ({confirmedRate}) y {cancelled} cancelados ({cancelledRate}) — en {elapsed} de {daysInMonth} días, con {revenue} de revenue acumulado.",
       "notYetAvailable": "Proyección de {month} disponible desde el día {day}",
-      "priorBasis": "Mes anterior completo: {priorConfirmed} partidos confirmados y {priorRevenue} de revenue — la base de la variación de arriba."
+      "priorBasis": "Mes anterior completo: {priorConfirmed} partidos confirmados y {priorRevenue} de revenue — la base de la variación de arriba.",
+      "how": "Cómo se calcula"
     },
     "tabs": {
       "summary": "Resumen",

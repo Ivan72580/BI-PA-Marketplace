@@ -27,8 +27,8 @@ const COLORS = {
   inkFaint: "#94a39d",
   surfaceSunken: "#f3faf7",
   border: "#dceae5",
-  brand: "#16755c",
-  danger: "#cc3c29",
+  brand: "#15803d",
+  danger: "#dc2626",
 };
 
 type KpiTile = { label: string; value: string; changeLabel: string | null; invert?: boolean };

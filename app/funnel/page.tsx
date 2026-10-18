@@ -49,8 +49,8 @@ export default function FunnelPage() {
       {
         label: "Retention %",
         data: data.cohortSeries,
-        borderColor: "#f97316",
-        backgroundColor: "rgba(249, 115, 22, 0.2)",
+        borderColor: "#f59e0b",
+        backgroundColor: "rgba(245, 158, 11, 0.2)",
         tension: 0.4,
       },
     ],

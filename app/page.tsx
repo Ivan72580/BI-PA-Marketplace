@@ -5,6 +5,7 @@ import { resolvePeriod, resolveComparisonPeriod, shiftAnchor, todayISO, type Gra
 import type { Locale } from "@/i18n/config";
 import { buildQuery, type SP } from "./lib/searchParams";
 import FilterPanel from "./components/FilterPanel";
+import PageHeader from "./components/PageHeader";
 import NetworkOverview from "./components/NetworkOverview";
 import FacilityDetailView from "./components/FacilityDetailView";
 import CancellationReasonRanking from "./components/CancellationReasonRanking";
@@ -93,12 +94,13 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-4 flex-wrap mb-6 pb-5 border-b border-border">
-        <h1 className="font-display text-3xl font-bold text-ink shrink-0">
-          {names.facilityName ?? t("pageTitle")}
-        </h1>
+      <PageHeader
+        scope={names.facilityName ?? names.marketName ?? names.regionName}
+        title={t("pageTitle")}
+        filter={<FilterPanel regions={filterOptions.regions} markets={filterOptions.markets} facilities={filterOptions.facilities} hasFilter={hasFilter} clearHref={buildQuery(sp, { regionId: undefined, marketId: undefined, facilityId: undefined })} />}
+      />
 
-        <div className="rounded-2xl bg-brand-soft border border-brand/20 px-5 py-3 shrink-0">
+        <div className="rounded-2xl bg-surface shadow-sm px-5 py-4 mb-6 w-fit max-w-full">
           {monthProjection.available ? (
             <>
               <div className="text-xs font-medium text-brand mb-2">{t("projection.title", { month: monthProjection.monthLabel })}</div>
@@ -118,7 +120,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
                     </div>
                   )}
                 </div>
-                <div className="w-px bg-brand/20" />
+                <div className="w-px bg-border" />
                 <div>
                   <div className="flex items-baseline gap-1.5">
                     <div className="font-display text-xl font-bold text-ink">{formatUSD(monthProjection.projectedRevenue!)}</div>
@@ -127,34 +129,37 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
                   <div className="text-[11px] text-ink-faint mt-0.5">{t("projection.revenueLabel")}</div>
                 </div>
               </div>
-              <div className="text-[11px] text-ink-faint mt-2 pt-2 border-t border-brand/15 space-y-0.5">
-                <div>{monthProjection.method === "weekday" ? t("projection.methodWeekday") : t("projection.methodRuleOf3")}</div>
-                {/* Detalle real detrás de la proyección (hallazgo 2 del mapeo
-                    de lógica no expuesta, 3/10/26): getMonthProjection ya
-                    calculaba totalSoFar/cancelledSoFar/confirmationRateSoFar/
-                    cancellationRateSoFar/revenueSoFar/priorConfirmedGames/
-                    priorRevenue y ninguna pantalla los leía — acá se muestra
-                    de qué acumulado real sale la proyección y contra qué
-                    base concreta (no solo el %) se compara. */}
-                <div>
-                  {t("projection.basedOn", {
-                    total: monthProjection.totalSoFar.toLocaleString("en-US"),
-                    confirmed: monthProjection.confirmedSoFar.toLocaleString("en-US"),
-                    confirmedRate: formatRate(monthProjection.confirmationRateSoFar),
-                    cancelled: monthProjection.cancelledSoFar.toLocaleString("en-US"),
-                    cancelledRate: formatRate(monthProjection.cancellationRateSoFar),
-                    revenue: formatUSD(monthProjection.revenueSoFar),
-                    elapsed: monthProjection.daysElapsed,
-                    daysInMonth: monthProjection.daysInMonth,
-                  })}
+              <details className="mt-2 group">
+                <summary className="cursor-pointer select-none text-[11px] text-ink-faint hover:text-ink list-none">{t("projection.how")}</summary>
+              <div className="text-[11px] text-ink-faint mt-2 space-y-0.5">
+                  <div>{monthProjection.method === "weekday" ? t("projection.methodWeekday") : t("projection.methodRuleOf3")}</div>
+                  {/* Detalle real detrás de la proyección (hallazgo 2 del mapeo
+                      de lógica no expuesta, 3/10/26): getMonthProjection ya
+                      calculaba totalSoFar/cancelledSoFar/confirmationRateSoFar/
+                      cancellationRateSoFar/revenueSoFar/priorConfirmedGames/
+                      priorRevenue y ninguna pantalla los leía — acá se muestra
+                      de qué acumulado real sale la proyección y contra qué
+                      base concreta (no solo el %) se compara. */}
+                  <div>
+                    {t("projection.basedOn", {
+                      total: monthProjection.totalSoFar.toLocaleString("en-US"),
+                      confirmed: monthProjection.confirmedSoFar.toLocaleString("en-US"),
+                      confirmedRate: formatRate(monthProjection.confirmationRateSoFar),
+                      cancelled: monthProjection.cancelledSoFar.toLocaleString("en-US"),
+                      cancelledRate: formatRate(monthProjection.cancellationRateSoFar),
+                      revenue: formatUSD(monthProjection.revenueSoFar),
+                      elapsed: monthProjection.daysElapsed,
+                      daysInMonth: monthProjection.daysInMonth,
+                    })}
+                  </div>
+                  <div>
+                    {t("projection.priorBasis", {
+                      priorConfirmed: monthProjection.priorConfirmedGames.toLocaleString("en-US"),
+                      priorRevenue: formatUSD(monthProjection.priorRevenue),
+                    })}
+                  </div>
                 </div>
-                <div>
-                  {t("projection.priorBasis", {
-                    priorConfirmed: monthProjection.priorConfirmedGames.toLocaleString("en-US"),
-                    priorRevenue: formatUSD(monthProjection.priorRevenue),
-                  })}
-                </div>
-              </div>
+              </details>
             </>
           ) : (
             <div className="text-sm text-ink-muted">
@@ -162,12 +167,10 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
             </div>
           )}
         </div>
-      </div>
 
-      <FilterPanel regions={filterOptions.regions} markets={filterOptions.markets} facilities={filterOptions.facilities} hasFilter={hasFilter} clearHref={buildQuery(sp, { regionId: undefined, marketId: undefined, facilityId: undefined })} />
 
       {compare && comparePeriod?.label && (
-        <div className="text-xs text-ink-faint mb-4 -mt-3">{t("comparePeriodAvailable", { period: comparePeriod.label })}</div>
+        <div className="text-xs text-ink-faint mb-4">{t("comparePeriodAvailable", { period: comparePeriod.label })}</div>
       )}
 
       {isCancellationCategory(sp.cancellationReason) ? (

@@ -28,7 +28,7 @@ const BAND_TONE: Record<CellBand, string> = {
   red: "bg-danger-soft text-danger",
   thin: "text-ink-faint",
 };
-const BAND_DOT: Record<CellBand, string> = { green: "bg-accent", amber: "bg-warning", red: "bg-danger", thin: "bg-surface-sunken border border-border" };
+const BAND_DOT: Record<CellBand, string> = { green: "bg-accent", amber: "bg-warning-fill", red: "bg-danger", thin: "bg-surface-sunken border border-border" };
 const TIER_TONE = { better: "bg-brand-soft text-brand", weaker: "bg-warning-soft text-warning", typical: "", insufficient: "text-ink-faint" } as const;
 
 function shortDate(iso: string, locale: Locale) {
@@ -95,7 +95,7 @@ export default function FacilityMonthPlan({
             <div key={d.dayOfWeek} className="grid grid-cols-[3.2rem_1fr_auto] sm:grid-cols-[4rem_1fr_17rem] items-center gap-3 text-sm">
               <span className="font-medium text-ink">{weekdayAbbr(d.dayOfWeek, locale)}</span>
               <div className="relative h-3 rounded-full bg-surface-sunken" title={d.rate !== null ? `${pct(d.rate)} · ${d.confirmed}/${d.base}` : undefined}>
-                {d.rate !== null && <div className={`h-3 rounded-full ${d.tier === "weaker" ? "bg-warning" : "bg-brand"}`} style={{ width: `${Math.max(2, d.rate * 100)}%` }} />}
+                {d.rate !== null && <div className={`h-3 rounded-full ${d.tier === "weaker" ? "bg-warning-fill" : "bg-brand"}`} style={{ width: `${Math.max(2, d.rate * 100)}%` }} />}
                 {overall !== null && <div className="absolute top-[-3px] h-[18px] w-px bg-ink" style={{ left: `${overall * 100}%` }} aria-hidden="true" />}
               </div>
               <div className="flex items-center justify-end gap-2 text-xs">

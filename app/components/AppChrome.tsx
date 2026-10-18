@@ -29,10 +29,7 @@ export default function AppChrome({
           PDF resultante. Se resuelve acá (una sola vez) en vez de en cada
           página nueva que use impresión. */}
       <div className="print:hidden">{topNav}</div>
-      <main
-        className="flex-1 min-w-0 px-4 py-6 md:px-8 md:py-8 print:p-0"
-        style={{ background: "linear-gradient(160deg, #f5fffa 0%, #eff9f4 100%)" }}
-      >
+      <main className="flex-1 min-w-0 bg-white px-4 py-6 md:px-8 md:py-8 print:p-0">
         {children}
       </main>
     </div>

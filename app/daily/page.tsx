@@ -532,7 +532,7 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
       {
         label: t("evolution.legendLabel"),
         data: evolution.map((p) => Math.round(p.confirmationRate * 1000) / 10),
-        borderColor: "#16755c",
+        borderColor: "#15803d",
       },
     ],
   };

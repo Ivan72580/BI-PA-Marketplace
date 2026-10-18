@@ -19,7 +19,6 @@ import PieChart from "./charts/PieChart";
 import Glossary from "./Glossary";
 import ChangeBadge from "./ChangeBadge";
 import Tabs from "./Tabs";
-import TabFilters from "./TabFilters";
 import RegionConcentrationPies from "./RegionConcentrationPies";
 import PriceTable from "./PriceTable";
 import EngagementTable from "./EngagementTable";
@@ -166,11 +165,10 @@ function monthRange(month: string): { dateFrom: Date; dateTo: Date } {
   return { dateFrom: new Date(Date.UTC(y, m - 1, 1)), dateTo: new Date(Date.UTC(y, m, 0, 23, 59, 59)) };
 }
 
-const PIE_COLORS = ["#0b3b2e","#104834","#15543b","#1a6141","#1e6d47","#237a4e","#288654","#2d935a","#329f60","#37ac67","#3bb86d","#40c573","#45d17a","#4ade80","#a7e7cf","#7c8ba1"];
+const PIE_COLORS = ["#0b3b2e","#0c4430","#0e4c32","#0f5534","#105e36","#116637","#126f39","#14773b","#15803d","#329156","#50a26e","#6db386","#8ac49f","#a8d5b8","#9aa6a8","#394447"];
 
 export default async function MarketDashboard({
   sp,
-  filterOptions,
   month,
   buildQuery,
   activeTab,
@@ -228,7 +226,6 @@ export default async function MarketDashboard({
   // ---------- Concentración ----------
   const concentracionContent = (
     <div className="space-y-5">
-      <TabFilters regions={filterOptions.regions} markets={filterOptions.markets} />
       {!sp.regionId ? (
         <SectionCard title={t("concentration.byRegionTitle")} subtitle={t("concentration.byRegionSubtitle", { month })}>
           <RegionConcentrationPies filters={monthFilters} buildHref={(regionId) => buildQuery({ regionId })} />
@@ -359,7 +356,6 @@ export default async function MarketDashboard({
 
   const marketShareContent = (
     <div className="space-y-5">
-      <TabFilters regions={filterOptions.regions} markets={filterOptions.markets} />
       <div className="flex flex-wrap items-center gap-3">
         {viewToggle}
         {shareView === "map" && shareUnmapped > 0 && <span className="text-xs text-ink-faint">{t("share.map.unmapped", { n: shareUnmapped })}</span>}
@@ -446,7 +442,6 @@ export default async function MarketDashboard({
   }));
   const reputacionContent = (
     <div className="space-y-5">
-      <TabFilters regions={filterOptions.regions} markets={filterOptions.markets} />
       <SectionCard title={t("reputation.title")} subtitle={t("reputation.subtitle", { month })}>
         <ReputationTable rows={reputationTableRows} />
         <Glossary
@@ -463,7 +458,6 @@ export default async function MarketDashboard({
   // ---------- Precio ----------
   const precioContent = (
     <div className="space-y-5">
-      <TabFilters regions={filterOptions.regions} markets={filterOptions.markets} />
       <SectionCard title={t("price.title")} subtitle={t("price.subtitle", { month })}>
         <PriceTable rows={priceRows} />
         <Glossary
@@ -481,7 +475,6 @@ export default async function MarketDashboard({
   // ---------- Engagement ----------
   const engagementContent = (
     <div className="space-y-5">
-      <TabFilters regions={filterOptions.regions} markets={filterOptions.markets} />
       <div className="rounded-xl bg-surface-panel border border-border px-5 py-3 text-sm text-ink">
         {t.rich("engagement.nearMissSummary", {
           totalNearMiss: totalNearMiss.toLocaleString("en-US"),

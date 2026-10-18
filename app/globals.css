@@ -2,42 +2,58 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #0b3b2e;
+  --foreground: #000000;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
 
-  /* Ink — verde muy oscuro de la paleta en vez de negro puro (más cálido,
-     on-brand), con los tonos apagados derivados del mismo verde en vez de
-     gris neutro, para que hasta lo "callado" siga siendo parte de la marca */
-  --color-ink: #0b3b2e;
-  --color-ink-muted: #5c6b65;
-  --color-ink-faint: #94a39d;
+  /* Identidad visual (Oct 2026): blanco + grises fríos + verde marca, estética tipo iOS/macOS —
+     superficies planas, bordes de 1 px y sombras muy suaves en vez de bloques de color.
+     Paleta de la marca: blanco #FFFFFF, negro #000000, grises #F9FBFB / #E3E7E8 / #394447,
+     verdes #0B3B2E / #07271F / #15803D / #052E16, rojos #DC2626 / #991B1B, ámbar #FBBF24 / #F59E0B.
+     Los valores marcados "derivado" no están en la paleta: son tintes del mismo tono, necesarios
+     para texto secundario con contraste AA y para fondos suaves de estado. */
 
-  /* Superficies */
+  /* Texto */
+  --color-ink: #000000;
+  --color-ink-muted: #394447;
+  --color-ink-faint: #6b787b; /* derivado: gris de #394447 aclarado, 4.6:1 sobre blanco */
+
+  /* Superficies y líneas */
   --color-surface: #ffffff;
-  --color-surface-sunken: #f3faf7;
-  --color-surface-panel: #e6faf5;
-  --color-border: #dceae5;
-  --color-border-strong: #bfd9d0;
+  --color-surface-sunken: #f9fbfb;
+  --color-surface-panel: #f1f4f4; /* derivado */
+  --color-border: #e3e7e8;
+  --color-border-strong: #c9d0d2; /* derivado */
 
-  /* Semántico — paleta de la marca (4 verdes + B&N) más un rojo puntual
-     reservado solo para cancelación/negativo, por legibilidad.
-     --color-accent (#4ADE80) es el verde "enérgico": se usa como fondo,
-     en gráficos, badges y acentos — no como texto fino sobre blanco, donde
-     no tendría contraste suficiente. Para valores/KPIs que deben resaltar,
-     se usa tamaño y peso tipográfico en --color-ink o --color-brand. */
-  --color-brand: #16755c;
-  --color-brand-soft: #e6faf5;
-  --color-accent: #4ade80;
-  --color-accent-soft: #dffcea;
-  --color-danger: #cc3c29;
-  --color-danger-soft: #ffece8;
-  --color-danger-fill: #ff4b33;
-  --color-warning: #b45309;
-  --color-warning-soft: #fdf1e2;
+  /* Verde: brand = acción/positivo; deep = barra superior y rellenos fuertes */
+  --color-brand: #15803d;
+  --color-brand-deep: #0b3b2e;
+  --color-brand-ink: #052e16;
+  --color-brand-soft: #eaf5ee; /* derivado */
+  --color-accent: #15803d;
+  --color-accent-soft: #eaf5ee; /* derivado */
+
+  /* Estados: rojo = cancelación/negativo; ámbar = a revisar. El ámbar de la paleta
+     (#F59E0B / #FBBF24) no da contraste como texto sobre blanco, así que se usa solo como
+     relleno (barras, puntos, fondos); para texto de advertencia, --color-warning. */
+  --color-danger: #dc2626;
+  --color-danger-deep: #991b1b;
+  --color-danger-soft: #fdeded; /* derivado */
+  --color-danger-fill: #dc2626;
+  --color-warning: #b45309; /* derivado: ámbar oscuro para texto, 5:1 sobre blanco */
+  --color-warning-fill: #f59e0b;
+  --color-warning-soft: #fef6df; /* derivado de #FBBF24 */
+
+  /* Profundidad: todas las sombras llevan un aro de 1 px (#E3E7E8) además del difuminado, así que
+     cualquier tarjeta con shadow-* queda delimitada sobre fondo blanco sin necesitar un border. */
+  --shadow-xs: 0 0 0 1px #e3e7e8;
+  --shadow-sm: 0 0 0 1px #e3e7e8, 0 1px 2px rgb(0 0 0 / 0.04);
+  --shadow-md: 0 0 0 1px #e3e7e8, 0 4px 14px rgb(0 0 0 / 0.05);
+  --shadow-lg: 0 0 0 1px #e3e7e8, 0 8px 28px -6px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 0 0 1px #e3e7e8, 0 18px 44px -10px rgb(0 0 0 / 0.16);
 
   --font-display: var(--font-space-grotesk);
   --font-sans: var(--font-inter);

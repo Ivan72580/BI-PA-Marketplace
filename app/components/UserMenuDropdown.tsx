@@ -53,20 +53,20 @@ export default function UserMenuDropdown({
         title={displayName}
         aria-label={displayName}
         aria-expanded={open}
-        className="w-8 h-8 rounded-full bg-accent text-[#0b3b2e] flex items-center justify-center text-xs font-bold shrink-0"
+        className="w-8 h-8 rounded-full bg-white text-[#07271f] flex items-center justify-center text-xs font-bold shrink-0"
       >
         {initials}
       </button>
 
       {open && (
-        <div className="absolute right-0 top-[calc(100%+8px)] w-56 rounded-xl bg-[#0b3b2e] border border-white/10 shadow-xl py-2 z-50">
-          <div className="px-3 pb-2 mb-1 border-b border-white/10">
-            <div className="text-sm font-medium text-white truncate">{displayName}</div>
-            {email && <div className="text-xs text-white/50 truncate">{email}</div>}
+        <div className="absolute right-0 top-[calc(100%+8px)] w-56 rounded-2xl bg-surface shadow-xl py-2 z-50">
+          <div className="px-3 pb-2 mb-1 border-b border-border">
+            <div className="text-sm font-medium text-ink truncate">{displayName}</div>
+            {email && <div className="text-xs text-ink-faint truncate">{email}</div>}
           </div>
 
           <div className="flex items-center justify-between px-3 py-1.5">
-            <span className="text-xs text-white/70">{t("language")}</span>
+            <span className="text-xs text-ink-muted">{t("language")}</span>
             <LanguageSwitcher locale={locale} />
           </div>
 
@@ -79,7 +79,7 @@ export default function UserMenuDropdown({
           <Link
             href="/reports"
             onClick={() => setOpen(false)}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm text-white/80 hover:bg-white/10 transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 text-sm text-ink-muted hover:text-ink hover:bg-surface-sunken transition-colors"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M6 2h9l5 5v15H6z" />
@@ -94,7 +94,7 @@ export default function UserMenuDropdown({
             <Link
               href="/admin/users"
               onClick={() => setOpen(false)}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm text-white/80 hover:bg-white/10 transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 text-sm text-ink-muted hover:text-ink hover:bg-surface-sunken transition-colors"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="3" />
@@ -105,11 +105,11 @@ export default function UserMenuDropdown({
           )}
 
           {hasSession && (
-            <div className="border-t border-white/10 mt-1 pt-1">
+            <div className="border-t border-border mt-1 pt-1">
               <form action={signOutAction}>
                 <button
                   type="submit"
-                  className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-white/80 hover:bg-white/10 transition-colors text-left"
+                  className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-ink-muted hover:text-ink hover:bg-surface-sunken transition-colors text-left"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />

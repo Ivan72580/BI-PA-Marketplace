@@ -2,16 +2,14 @@
 
 import { useState } from "react";
 
-// accent cambia solo el puntito junto al título (bg-accent de siempre, o
-// bg-warning para secciones "no 100% reales" como Predicción) — el fondo
-// de la tarjeta (bg-surface) es siempre el mismo, a propósito: la idea no
-// es que parezca un borrador aparte, sino una tarjeta más con un matiz de
-// color, tipo semáforo.
+// accent cambia solo el puntito junto al título (verde de siempre, o ámbar para secciones "no 100 %
+// reales" como Predicción). Sin tarjeta de fondo: la sección es un título con una línea fina y su
+// contenido; las tarjetas de adentro son las que llevan borde y sombra, así no hay cajas dentro de cajas.
 type Accent = "accent" | "warning";
 
 const ACCENT_DOT: Record<Accent, string> = {
   accent: "bg-accent",
-  warning: "bg-warning",
+  warning: "bg-warning-fill",
 };
 
 export default function GroupSection({
@@ -26,21 +24,14 @@ export default function GroupSection({
   children: React.ReactNode;
   defaultOpen?: boolean;
   accent?: Accent;
-  // Tag chico junto al título (ej. "Predicción") — mismo lugar donde antes
-  // vivía a mano en cada página que lo necesitaba.
+  // Tag chico junto al título (ej. "Predicción").
   badge?: string;
   id?: string;
 }) {
   const [open, setOpen] = useState(defaultOpen);
-  // defaultOpen puede depender de qué día se esté mirando (ver Predicción
-  // en app/daily/page.tsx: colapsada cuando ya hay datos reales para ese
-  // día, abierta cuando no). Sin este ajuste, un cambio de defaultOpen en
-  // un re-render (navegación client-side, sin remount) no movería `open`
-  // porque useState solo lee su valor inicial una vez — mismo patrón de
-  // "ajustar estado durante el render" ya usado en TopNav para cerrar el
-  // menú mobile al cambiar de ruta, en vez de un efecto con setState
-  // síncrono. Un toggle manual del usuario se respeta mientras defaultOpen
-  // no cambie de nuevo.
+  // defaultOpen puede depender de qué día se esté mirando (ver Predicción en app/daily/page.tsx). Sin este
+  // ajuste, un cambio de defaultOpen en un re-render (navegación client-side, sin remount) no movería
+  // `open` porque useState solo lee su valor inicial: patrón de "ajustar estado durante el render".
   const [lastDefaultOpen, setLastDefaultOpen] = useState(defaultOpen);
   if (defaultOpen !== lastDefaultOpen) {
     setLastDefaultOpen(defaultOpen);
@@ -48,16 +39,17 @@ export default function GroupSection({
   }
 
   return (
-    <div id={id} className="rounded-3xl bg-surface p-4 shadow-md">
+    <section id={id}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center gap-2 mb-3 px-1 group"
+        aria-expanded={open}
+        className={`w-full flex items-center gap-2 pb-2.5 border-b border-border group text-left ${open ? "mb-4" : ""}`}
       >
-        <span className={`w-1 h-4 rounded-full ${ACCENT_DOT[accent]} shrink-0`} aria-hidden="true" />
-        <div className="font-display text-sm font-semibold text-ink group-hover:text-brand transition-colors">{title}</div>
+        <span className={`w-1.5 h-1.5 rounded-full ${ACCENT_DOT[accent]} shrink-0`} aria-hidden="true" />
+        <h2 className="font-display text-sm font-semibold text-ink group-hover:text-brand transition-colors">{title}</h2>
         {badge && (
-          <span className="text-[10px] font-bold uppercase tracking-wide bg-warning text-white px-1.5 py-0.5 rounded-full">
+          <span className="text-[10px] font-semibold uppercase tracking-wide bg-warning-soft text-warning px-2 py-0.5 rounded-full">
             {badge}
           </span>
         )}
@@ -76,6 +68,6 @@ export default function GroupSection({
         </svg>
       </button>
       {open && <div className="space-y-5">{children}</div>}
-    </div>
+    </section>
   );
 }

@@ -44,7 +44,7 @@ export default function Sparkline({
   const last = coords[coords.length - 1];
 
   const rising = values[values.length - 1] >= values[0];
-  const color = rising ? "#16755c" : "#ff4b33";
+  const color = rising ? "#15803d" : "#dc2626";
 
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="overflow-visible shrink-0">

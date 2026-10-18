@@ -15,7 +15,7 @@ import type { Locale } from "@/i18n/config";
 
 type T = (key: string, values?: Record<string, string | number>) => string;
 
-const DOT: Record<Light, string> = { green: "bg-accent", amber: "bg-warning", red: "bg-danger", gray: "bg-ink-faint" };
+const DOT: Record<Light, string> = { green: "bg-accent", amber: "bg-warning-fill", red: "bg-danger", gray: "bg-ink-faint" };
 const TEXT: Record<Light, string> = { green: "text-brand", amber: "text-warning", red: "text-danger", gray: "text-ink-muted" };
 const TINT: Record<Light, string> = { green: "bg-brand-soft/60", amber: "bg-warning-soft", red: "bg-danger-soft", gray: "bg-surface" };
 const BAR: Record<Light, string> = { green: "border-accent", amber: "border-warning", red: "border-danger", gray: "border-ink-faint" };
