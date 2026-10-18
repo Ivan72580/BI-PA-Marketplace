@@ -49,6 +49,7 @@ model Facility {
   // completo desde el día uno.
   profile  FacilityProfile?
   weeklyLogEntries WeeklyLogEntry[]
+  logEntries       FacilityLogEntry[]
 
   @@unique([name, marketId])
   @@index([marketId])
@@ -491,6 +492,9 @@ model User {
   lastLoginAt DateTime?
   weeklyLogEntries WeeklyLogEntry[]
   moduleAccess     UserModuleAccess[]
+  logEntries       FacilityLogEntry[]
+  logReactions     FacilityLogReaction[]
+  logReplies       FacilityLogReply[]
 
   @@map("users")
 }
@@ -517,4 +521,123 @@ model WeeklyLogEntry {
   @@index([date])
   @@index([facilityId])
   @@map("weekly_log_entries")
+}
+
+// ---------- Bitácora de Facilities ----------
+// Lo que el equipo va registrando sobre la relación con cada facility. Se registran HECHOS, no etiquetas:
+// "conflictivo" o "fiable" no se cargan, se derivan más adelante (Fase 2) de estos aportes. Modelo conceptual:
+// docs del proyecto "Facility Relationship Tracking". Reemplaza a FacilityRelationshipEvent (quedó con sus filas
+// copiadas, ver la migración; la tabla vieja ya no se escribe).
+//
+// Tres tipos de aporte (`kind`): Evento (algo que pasó, con catálogo de tipos), Observación (tema + valoración)
+// e Insight (qué esperar / cómo trabajar con ellos / qué mejorar). Los catálogos de subtipos y resoluciones viven en
+// código (app/lib/facilityLog.ts), no como enums, para poder ajustarlos sin migrar; el tipo de evento sí es enum
+// porque el cálculo del estado se apoya en él.
+enum FacilityLogKind {
+  EVENT
+  OBSERVATION
+  INSIGHT
+}
+
+enum FacilityEventType {
+  RETIRO_SLOT // la facility pide cancelar o mover un partido ya publicado
+  LIBERACION_TARDIA // retiene disponibilidad hasta último momento
+  OFERTA_RESIDUAL // solo ofrece sobrantes
+  PEDIDO // pide algo (publicar todo, más partidos, cambio de horario, precio)
+  TRATO_INADECUADO
+  SIN_RESPUESTA
+  POSITIVO
+  QUEJA_JUGADOR
+  INCUMPLIMIENTO_PLEI // incumplimiento nuestro
+}
+
+enum FacilityLogTone {
+  CORDIAL
+  TENSE
+  HOSTILE
+}
+
+enum FacilityLogSentiment {
+  POSITIVE
+  NEUTRAL
+  NEGATIVE
+}
+
+enum FacilityInsightKind {
+  EXPECT // qué esperar
+  HOW_TO_WORK // cómo trabajar con ellos
+  IMPROVE // qué mejorar
+}
+
+model FacilityLogEntry {
+  id         String          @id @default(cuid())
+  facilityId String
+  facility   Facility        @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  // Nullable: las filas migradas desde FacilityRelationshipEvent pueden no tener autor conocido, y si se borra la
+  // cuenta de quien escribió, el aporte se conserva.
+  authorId   String?
+  author     User?           @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  kind       FacilityLogKind
+  occurredAt DateTime        @db.Date // día en que pasó (no cuándo se cargó)
+  text       String
+
+  // --- EVENT ---
+  eventType           FacilityEventType?
+  subtype             String? // catálogo según el tipo (app/lib/facilityLog.ts)
+  tone                FacilityLogTone?
+  resolution          String? // solo PEDIDO
+  usedData            Boolean? // solo PEDIDO rechazado: ¿argumentamos con datos?
+  committedSlot       Boolean? // solo RETIRO_SLOT: ¿el slot era un compromiso?
+  hours               Int? // RETIRO_SLOT / LIBERACION_TARDIA: anticipación del aviso; SIN_RESPUESTA: horas sin respuesta
+  hoursSincePublished Int? // solo RETIRO_SLOT
+  playersSigned       Int? // jugadores anotados al momento del hecho
+  severity            Int? // solo TRATO_INADECUADO, 1 a 3
+  gameId              Int? // partido afectado, si lo hay (sin FK: puede no estar importado)
+
+  // --- OBSERVATION ---
+  topic     String?
+  sentiment FacilityLogSentiment?
+
+  // --- INSIGHT ---
+  insightKind FacilityInsightKind?
+
+  evidenceUrl String?
+  // Id de la fila de FacilityRelationshipEvent de la que se copió (null en aportes nuevos).
+  legacyId    String? @unique
+
+  reactions FacilityLogReaction[]
+  replies   FacilityLogReply[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([facilityId, occurredAt])
+  @@index([occurredAt])
+  @@map("facility_log_entries")
+}
+
+// "Coincido" / "No coincido" sobre el aporte de otra persona: una reacción por persona y aporte.
+model FacilityLogReaction {
+  entryId String
+  entry   FacilityLogEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  userId  String
+  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agrees  Boolean
+  createdAt DateTime       @default(now())
+
+  @@id([entryId, userId])
+  @@map("facility_log_reactions")
+}
+
+model FacilityLogReply {
+  id        String           @id @default(cuid())
+  entryId   String
+  entry     FacilityLogEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  text      String
+  createdAt DateTime         @default(now())
+
+  @@index([entryId, createdAt])
+  @@map("facility_log_replies")
 }

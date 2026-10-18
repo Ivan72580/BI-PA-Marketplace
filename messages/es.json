@@ -30,7 +30,8 @@
       "market": "Concentración, reputación, precio y engagement.",
       "map": "Dónde opera Plei y qué zonas tienen más volumen.",
       "inventory": "Qué partidos publica cada facility y cómo rinde cada uno.",
-      "weeklyLog": "Notas del equipo en la semana y reporte para el jueves."
+      "weeklyLog": "Notas del equipo en la semana y reporte para el jueves.",
+      "facilityLog": "Relación con cada facility: hechos, observaciones, qué esperar"
     },
     "groups": {
       "performance": "Rendimiento",
@@ -40,7 +41,8 @@
     "inventory": "Inventario",
     "dataThrough": "Datos al {date}",
     "dataThroughStale": "Hace {days} días sin datos nuevos: revisá el import",
-    "weeklyLog": "Registro semanal"
+    "weeklyLog": "Registro semanal",
+    "facilityLog": "Bitácora de Facilities"
   },
   "FilterPanel": {
     "filterLabel": "Filtro",
@@ -1307,6 +1309,11 @@
       "PER_HOUR": "Por hora",
       "PER_PLAYER": "Por jugador",
       "FLAT_FEE": "Monto fijo"
+    },
+    "relationship": {
+      "movedTitle": "Historial de relación",
+      "movedSubtitle": "Los eventos, acuerdos y pendientes de esta facility ahora viven en la Bitácora de Facilities, junto con las observaciones y los insights del equipo.",
+      "movedLink": "Abrir la bitácora"
     }
   },
   "PlayerSatisfaction": {
@@ -2175,6 +2182,217 @@
     "noAccess": {
       "title": "Todavía no tenés acceso",
       "body": "Tu cuenta existe pero no tiene acceso a ningún módulo de la app. Pedile a un Admin que te lo habilite desde Usuarios."
+    }
+  },
+  "FacilityLog": {
+    "title": "Bitácora de Facilities",
+    "subtitle": "Lo que el equipo va registrando sobre la relación con cada facility: hechos, observaciones y qué esperar de ellas.",
+    "noUser": "Tu cuenta no está lista todavía. Cerrá sesión y volvé a entrar.",
+    "stats": {
+      "entries": "Aportes",
+      "people": "Personas que aportaron",
+      "recent": "Últimos 90 días",
+      "recentValue": "{neg} negativos · {pos} positivos",
+      "last": "Último aporte",
+      "none": "—"
+    },
+    "kindFilter": {
+      "all": "Todos",
+      "EVENT": "Eventos",
+      "OBSERVATION": "Observaciones",
+      "INSIGHT": "Insights"
+    },
+    "kinds": {
+      "EVENT": "Evento",
+      "OBSERVATION": "Observación",
+      "INSIGHT": "Insight"
+    },
+    "kindHints": {
+      "EVENT": "Algo que pasó: un retiro de slot, un pedido, un mal trato, un gesto positivo.",
+      "OBSERVATION": "Algo que notaste, con un tema y si es positivo, neutral o negativo.",
+      "INSIGHT": "Lo que sabés de la facility: qué esperar, cómo trabajar con ellos o qué mejorar."
+    },
+    "eventTypes": {
+      "RETIRO_SLOT": "Retiro de slot",
+      "LIBERACION_TARDIA": "Liberación tardía",
+      "OFERTA_RESIDUAL": "Oferta residual",
+      "PEDIDO": "Pedido de la facility",
+      "TRATO_INADECUADO": "Trato inadecuado",
+      "SIN_RESPUESTA": "Sin respuesta",
+      "POSITIVO": "Positivo",
+      "QUEJA_JUGADOR": "Queja de jugadores",
+      "INCUMPLIMIENTO_PLEI": "Incumplimiento nuestro"
+    },
+    "eventTypeHints": {
+      "RETIRO_SLOT": "Piden cancelar o mover un partido ya publicado.",
+      "LIBERACION_TARDIA": "Retienen la disponibilidad hasta último momento.",
+      "OFERTA_RESIDUAL": "Solo ofrecen sobrantes.",
+      "PEDIDO": "Piden algo: publicar todo, más partidos, otro horario, precio.",
+      "TRATO_INADECUADO": "Descortesía, trato despectivo o escalada.",
+      "SIN_RESPUESTA": "Demoras en responder un tema operativo.",
+      "POSITIVO": "Resolvieron algo, ofrecieron un slot extra, avisaron a tiempo.",
+      "QUEJA_JUGADOR": "Jugadores se quejan del staff, la instalación o la cancha.",
+      "INCUMPLIMIENTO_PLEI": "Cancelamos tarde, pago atrasado, no respondimos."
+    },
+    "subtypes": {
+      "RETIRO_SLOT": {
+        "RENTED_PRIVATE": "Lo rentó un privado",
+        "SUBSTITUTION": "Quiere tapar otro hueco (sustitución)",
+        "MAINTENANCE": "Mantenimiento",
+        "BOOKING_ERROR": "Error de reserva",
+        "OTHER": "Otro motivo"
+      },
+      "OFERTA_RESIDUAL": {
+        "ONLY_LEFTOVERS": "Solo ofrecen sobrantes",
+        "NEVER_REPEATS": "Nunca repiten un slot",
+        "MAX_ONE_PER_DAY": "Máximo un slot por día",
+        "OTHER": "Otro"
+      },
+      "PEDIDO": {
+        "PUBLISH_ALL": "Publicar todo lo que ofrecen",
+        "MORE_GAMES": "Más partidos",
+        "CHANGE_SLOT": "Cambiar horario o cancha",
+        "PRICE": "Precio",
+        "OTHER": "Otro"
+      },
+      "POSITIVO": {
+        "SOLVED_PROBLEM": "Resolvió un problema",
+        "EXTRA_SLOT": "Ofreció un slot útil extra",
+        "EARLY_NOTICE": "Avisó con anticipación",
+        "ACCEPTED_NO": "Aceptó bien una negativa",
+        "OTHER": "Otro"
+      },
+      "QUEJA_JUGADOR": {
+        "STAFF": "Staff",
+        "FACILITY": "Instalación",
+        "FIELD": "Cancha"
+      },
+      "INCUMPLIMIENTO_PLEI": {
+        "LATE_CANCEL": "Cancelamos tarde",
+        "LATE_PAYMENT": "Pago atrasado",
+        "NO_REPLY": "No respondimos",
+        "OTHER": "Otro"
+      }
+    },
+    "resolutions": {
+      "ACCEPTED": "Aceptamos",
+      "REJECTED_ACCEPTED": "Rechazamos y lo aceptaron",
+      "REJECTED_INSISTED_ACCEPTED": "Rechazamos, insistieron y lo aceptaron",
+      "REJECTED_REACTED_BADLY": "Rechazamos y reaccionaron mal",
+      "IMPOSED_CONDITION": "Impusieron una condición"
+    },
+    "tones": {
+      "CORDIAL": "Cordial",
+      "TENSE": "Tenso",
+      "HOSTILE": "Hostil"
+    },
+    "toneHints": {
+      "CORDIAL": "Intercambio normal, aunque haya desacuerdo.",
+      "TENSE": "Reclamo o molestia explícita, sin faltar el respeto.",
+      "HOSTILE": "Trato despectivo, amenazas o condicionamientos."
+    },
+    "sentiments": {
+      "POSITIVE": "Positiva",
+      "NEUTRAL": "Neutral",
+      "NEGATIVE": "Negativa"
+    },
+    "insightKinds": {
+      "EXPECT": "Qué esperar",
+      "HOW_TO_WORK": "Cómo trabajar con ellos",
+      "IMPROVE": "Qué mejorar"
+    },
+    "severities": {
+      "1": "1 · Descortesía puntual",
+      "2": "2 · Trato despectivo o amenaza",
+      "3": "3 · Escalada que afecta la operación"
+    },
+    "fields": {
+      "facility": "Facility",
+      "facilityPlaceholder": "Elegí una facility",
+      "date": "Fecha del hecho",
+      "text": "Detalle",
+      "topic": "Tema",
+      "topicPlaceholder": "Ej. Pagos, Cancha 2, Comunicación",
+      "sentiment": "Valoración",
+      "eventType": "Tipo de evento",
+      "subtype": "Motivo",
+      "subtypePlaceholder": "Elegí un motivo",
+      "tone": "Tono",
+      "tonePlaceholder": "Sin indicar",
+      "resolution": "Cómo se resolvió",
+      "resolutionPlaceholder": "Sin indicar",
+      "usedData": "¿Usamos datos para argumentar?",
+      "committedSlot": "¿Era un slot comprometido?",
+      "yes": "Sí",
+      "no": "No",
+      "unknown": "No sé",
+      "hours": {
+        "RETIRO_SLOT": "Aviso con cuántas horas de anticipación",
+        "LIBERACION_TARDIA": "Liberaron con cuántas horas de anticipación",
+        "SIN_RESPUESTA": "Horas sin respuesta"
+      },
+      "hoursSincePublished": "Horas desde que se publicó",
+      "playersSigned": "Jugadores anotados",
+      "severity": "Severidad",
+      "severityPlaceholder": "Elegí una severidad",
+      "gameId": "Partido afectado (ID, opcional)",
+      "evidenceUrl": "Link de evidencia (opcional)",
+      "insightKind": "Qué tipo de insight",
+      "textPlaceholder": {
+        "EVENT": "Qué pasó, con qué contexto y qué respondimos.",
+        "OBSERVATION": "Qué notaste.",
+        "INSIGHT": "Qué sabés que otras personas del equipo deberían saber."
+      }
+    },
+    "detail": {
+      "committedYes": "Slot comprometido",
+      "committedNo": "Slot no comprometido",
+      "notice": "Aviso con {n} h",
+      "sincePublished": "{n} h tras publicar",
+      "signed": "{n} anotados",
+      "noReply": "{n} h sin respuesta",
+      "severity": "Severidad {n}",
+      "usedData": "Usamos datos",
+      "noData": "Sin datos",
+      "game": "Partido #{id}",
+      "evidence": "Ver evidencia",
+      "resolution": "Resolución: {value}"
+    },
+    "actions": {
+      "new": "Nuevo aporte",
+      "save": "Guardar",
+      "saving": "Guardando…",
+      "cancel": "Cancelar",
+      "edit": "Editar",
+      "delete": "Borrar",
+      "confirmDelete": "¿Borrar este aporte? También se borran sus respuestas.",
+      "agree": "Coincido",
+      "disagree": "No coincido",
+      "ownEntry": "No podés coincidir con tu propio aporte",
+      "reply": "Responder",
+      "replyPlaceholder": "Sumá contexto o tu perspectiva…",
+      "send": "Enviar",
+      "showReplies": "{n, plural, =0 {Responder} one {# respuesta} other {# respuestas}}",
+      "hideReplies": "Ocultar",
+      "loadMore": "Ver más aportes",
+      "deleteReply": "Borrar respuesta",
+      "you": "vos",
+      "unknownAuthor": "Autor sin identificar"
+    },
+    "list": {
+      "empty": "Todavía no hay aportes para este alcance.",
+      "emptyFacility": "Todavía no hay aportes sobre esta facility. Sé la primera persona en anotar algo.",
+      "emptyFiltered": "No hay aportes de este tipo en el alcance elegido."
+    },
+    "weekly": {
+      "title": "Del Registro semanal",
+      "subtitle": "Notas de los últimos 90 días vinculadas a esta facility.",
+      "empty": "No hay notas del Registro semanal vinculadas a esta facility."
+    },
+    "errors": {
+      "unauthorized": "No tenés permiso para hacer esto.",
+      "invalid": "Revisá los datos: falta algo obligatorio o hay un valor fuera de rango.",
+      "generic": "No se pudo guardar. Probá de nuevo."
     }
   }
 }

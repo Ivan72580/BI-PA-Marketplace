@@ -36,9 +36,9 @@ export const MODULES: Record<AppModule, ModuleDef> = {
   },
   TEAM: {
     home: "/weekly-log",
-    routes: ["/weekly-log"],
+    routes: ["/weekly-log", "/facility-log"],
     defaultLevel: "EDIT",
-    levels: ["NONE", "VIEW", "EDIT"], // EDIT = anotar en el Registro semanal
+    levels: ["NONE", "VIEW", "EDIT"], // EDIT = anotar en el Registro semanal y en la Bitácora de Facilities
   },
   EXECUTIVE: {
     home: "/panel-ejecutivo",

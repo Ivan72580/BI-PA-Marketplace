@@ -113,6 +113,16 @@ function WeeklyLogIcon() {
     </svg>
   );
 }
+function FacilityLogIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 21h18" />
+      <path d="M5 21V7l7-4 7 4v14" />
+      <path d="M9 21v-6h6v6" />
+      <path d="M9 10h.01M12 10h.01M15 10h.01" />
+    </svg>
+  );
+}
 function LeadershipIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -128,7 +138,7 @@ function LeadershipIcon() {
 // quedaba apretada en pantallas medianas, y Reportes no es una vista que
 // se consulte con la misma frecuencia que el resto — vive ahora como link
 // dentro del menú de usuario, con su propio selector Operativo/Ejecutivo.
-type NavKey = "overview" | "trends" | "market" | "map" | "inventory" | "daily" | "forecast" | "seasonality" | "weeklyLog" | "panelEjecutivo";
+type NavKey = "overview" | "trends" | "market" | "map" | "inventory" | "daily" | "forecast" | "seasonality" | "weeklyLog" | "facilityLog" | "panelEjecutivo";
 type NavLink = { href: string; labelKey: NavKey; icon: () => ReactNode };
 type GroupKey = "performance" | "market" | "team";
 
@@ -157,11 +167,14 @@ const groups: { key: GroupKey; module: AppModule; children: NavLink[] }[] = [
     ],
   },
   // EQUIPO: lo que el equipo carga a mano (no sale del import de partidos).
-  // Arranca con el Registro semanal; la Bitácora de Facilities va a vivir acá.
+  // Registro semanal y Bitácora de Facilities.
   {
     key: "team",
     module: "TEAM",
-    children: [{ href: "/weekly-log", labelKey: "weeklyLog", icon: WeeklyLogIcon }],
+    children: [
+      { href: "/weekly-log", labelKey: "weeklyLog", icon: WeeklyLogIcon },
+      { href: "/facility-log", labelKey: "facilityLog", icon: FacilityLogIcon },
+    ],
   },
 ];
 

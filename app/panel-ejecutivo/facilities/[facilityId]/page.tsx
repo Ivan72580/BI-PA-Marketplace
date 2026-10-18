@@ -4,7 +4,6 @@ import { getTranslations } from "next-intl/server";
 import { getFacilityProfileDetail } from "../../../lib/db/queries";
 import type { FacilityProfileInput, PeakWindowInput } from "../../../lib/actions/facilityProfile";
 import FacilityProfileForm from "./FacilityProfileForm";
-import RelationshipHistoryPanel from "./RelationshipHistoryPanel";
 
 function formatUSD(n: number) {
   return n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
@@ -64,16 +63,6 @@ export default async function FacilityProfileDetailPage({
   const initialPeakWindows: PeakWindowInput[] =
     profile?.peakWindows.map((w) => ({ dayOfWeek: w.dayOfWeek, startHour: w.startHour, endHour: w.endHour })) ?? [];
 
-  const events =
-    profile?.events.map((e) => ({
-      id: e.id,
-      type: e.type,
-      date: e.date.toISOString().slice(0, 10),
-      note: e.note,
-      status: e.status,
-      attachmentUrl: e.attachmentUrl,
-    })) ?? [];
-
   return (
     <div>
       <div className="mb-5">
@@ -103,7 +92,18 @@ export default async function FacilityProfileDetailPage({
       <FacilityProfileForm facilityId={facilityId} initial={initial} initialPeakWindows={initialPeakWindows} ratesVerifiedAt={ratesVerifiedAt} />
 
       <div className="mt-6">
-        <RelationshipHistoryPanel facilityId={facilityId} initialEvents={events} />
+        {/* El historial de relación (eventos, acuerdos, pendientes) pasó a la Bitácora de Facilities: ahí quedaron
+            copiadas las filas anteriores y se cargan los aportes nuevos. */}
+        <Link
+          href={`/facility-log?facilityId=${facilityId}`}
+          className="flex items-center justify-between gap-4 rounded-2xl bg-surface shadow-sm hover:shadow-md transition-shadow px-5 py-4"
+        >
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-ink">{t("relationship.movedTitle")}</div>
+            <div className="text-xs text-ink-faint">{t("relationship.movedSubtitle")}</div>
+          </div>
+          <span className="shrink-0 text-sm font-medium text-brand">{t("relationship.movedLink")} →</span>
+        </Link>
       </div>
     </div>
   );
