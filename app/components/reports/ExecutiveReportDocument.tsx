@@ -177,7 +177,7 @@ export default function ExecutiveReportDocument({ core, t, scopeLabel }: { core:
                   ? rowsForComparison(item.comparison, { first: t("opportunity.compare.hour"), second: t("opportunity.compare.facilityAvg") })
                   : null;
               return (
-                <li key={i} className="rounded-xl border border-dashed border-brand/40 bg-surface-sunken/40 p-3 print:rounded-none print:border-0 print:border-b print:pb-2">
+                <li key={i} className="rounded-xl border border-border bg-surface-sunken/40 p-3 print:rounded-none print:border-0 print:border-b print:pb-2">
                   <div className="font-display text-sm font-semibold text-ink mb-1 print:text-[9.5pt]">{item.entityLabel}</div>
                   <p className="text-sm text-ink-muted print:text-[9pt]">{t(item.findingTextKey, item.findingValues)}</p>
                   {compare && <MiniCompareBars rows={compare.rows} formatValue={formatPct} />}

@@ -8,6 +8,7 @@ import { getRecentWeeklyLogTopics, getWeeklyLogEntries } from "../lib/db/weeklyL
 import { todayISO } from "../lib/period";
 import { addDaysISO, formatDay, isISODate, weekRange } from "../lib/weeklyLog";
 import WeeklyLogBoard from "./WeeklyLogBoard";
+import PageHeader from "../components/PageHeader";
 
 // Registro semanal: notas sueltas del equipo durante la semana (viernes a
 // jueves) y un reporte armado a partir de ellas. ?week=<cualquier día de la
@@ -36,15 +37,14 @@ export default async function WeeklyLogPage({ searchParams }: { searchParams: Pr
   const rangeLabel = t("range", { from: fmt(range.from), to: fmt(range.to) });
   const marketName = new Map(filterOptions.markets.map((m) => [m.id, m.name]));
 
-  const navBtn = "rounded-md border border-border bg-surface px-2.5 py-1 text-sm text-ink hover:border-border-strong transition-colors";
+  const navBtn = "rounded-full bg-surface px-3 py-1 text-sm text-ink shadow-sm hover:shadow-md transition-shadow";
 
   return (
     <div className="max-w-6xl mx-auto space-y-5">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="font-display text-2xl font-bold text-ink">{t("title")}</h1>
-          <p className="text-sm text-ink-muted">{t("subtitle")}</p>
-        </div>
+      <PageHeader
+        title={t("title")}
+        subtitle={t("subtitle")}
+        actions={
         <nav className="flex items-center gap-2" aria-label={t("weekNav")}>
           <Link href={`/weekly-log?week=${addDaysISO(range.from, -7)}`} className={navBtn} aria-label={t("prevWeek")}>‹</Link>
           <span className="font-display text-base font-semibold text-ink px-1">{rangeLabel}</span>
@@ -53,7 +53,8 @@ export default async function WeeklyLogPage({ searchParams }: { searchParams: Pr
             <Link href="/weekly-log" className={navBtn}>{t("thisWeek")}</Link>
           )}
         </nav>
-      </header>
+        }
+      />
 
       {!user ? (
         <p className="rounded-2xl bg-surface shadow-sm p-5 text-sm text-ink-muted">{t("noUser")}</p>

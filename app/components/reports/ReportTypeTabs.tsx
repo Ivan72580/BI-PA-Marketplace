@@ -33,13 +33,13 @@ export default function ReportTypeTabs({ hasExecutiveAccess }: { hasExecutiveAcc
   ];
 
   return (
-    <div className="flex items-center gap-1 rounded-lg bg-surface-sunken/60 p-1">
+    <div className="inline-flex items-center gap-0.5 rounded-full bg-surface-panel p-1">
       {tabs.map((tab) => (
         <Link
           key={tab.type}
           href={hrefFor(tab.type)}
-          className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-            activeType === tab.type ? "bg-white text-ink shadow-sm" : "text-ink-muted hover:text-ink"
+          className={`px-4 py-1.5 text-sm font-medium rounded-full transition-colors ${
+            activeType === tab.type ? "bg-surface text-ink font-semibold shadow-sm" : "text-ink-muted hover:text-ink"
           }`}
         >
           {t(tab.labelKey)}

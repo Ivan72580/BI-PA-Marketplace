@@ -6,6 +6,7 @@ import { hasLevel } from "../lib/module";
 import { todayISO } from "../lib/period";
 import type { Locale } from "@/i18n/config";
 import FilterPanel from "../components/FilterPanel";
+import PageHeader from "../components/PageHeader";
 import DownloadPdfButton from "../components/reports/DownloadPdfButton";
 import ReportTypeTabs from "../components/reports/ReportTypeTabs";
 import OpsReportDocument from "../components/reports/OpsReportDocument";
@@ -69,21 +70,27 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
 
   return (
     <div className="space-y-5">
-      <div className="print:hidden flex flex-wrap items-end justify-between gap-3">
-        <h1 className="font-display text-3xl font-bold text-ink mb-1">{title}</h1>
-        <ReportTypeTabs hasExecutiveAccess={hasExecutiveAccess && hasOpsAccess} />
-      </div>
-
-      <div className="print:hidden flex flex-wrap items-end justify-between gap-3 pb-4 border-b border-border">
-        <FilterPanel
-          regions={filterOptions.regions}
-          markets={filterOptions.markets}
-          facilities={filterOptions.facilities}
-          granularityOptions={["month", "week"]}
-          hasFilter={hasFilter}
-          clearHref="/reports"
+      <div className="print:hidden">
+        <PageHeader
+          scope={names.facilityName ?? names.marketName ?? names.regionName}
+          title={title}
+          actions={
+            <>
+              <ReportTypeTabs hasExecutiveAccess={hasExecutiveAccess && hasOpsAccess} />
+              <DownloadPdfButton />
+            </>
+          }
+          filter={
+            <FilterPanel
+              regions={filterOptions.regions}
+              markets={filterOptions.markets}
+              facilities={filterOptions.facilities}
+              granularityOptions={["month", "week"]}
+              hasFilter={hasFilter}
+              clearHref="/reports"
+            />
+          }
         />
-        <DownloadPdfButton />
       </div>
 
       <div className="max-w-[860px] mx-auto bg-white rounded-2xl p-6 shadow-md print:shadow-none print:rounded-none print:p-0 print:max-w-none print:mx-0">

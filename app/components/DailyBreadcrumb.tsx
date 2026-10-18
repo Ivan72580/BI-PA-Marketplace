@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import type { ReactNode } from "react";
+import CollapsibleFilter from "./CollapsibleFilter";
 
 type Option = { id: string; name: string; regionId?: string; marketId?: string };
 
@@ -25,6 +27,9 @@ export default function DailyBreadcrumb({
   sp,
   marketPlaceholder,
   facilityPlaceholder,
+  collapsible = true,
+  filterLabel,
+  children,
 }: {
   regions: Option[];
   markets: Option[];
@@ -32,6 +37,12 @@ export default function DailyBreadcrumb({
   sp: { regionId?: string; marketId?: string; facilityId?: string; date?: string };
   marketPlaceholder?: string;
   facilityPlaceholder?: string;
+  // true (default): vive colapsado en el ícono de filtro del encabezado. false: fila siempre visible, para
+  // la pantalla de selección inicial, donde elegir la facility ES la tarea.
+  collapsible?: boolean;
+  filterLabel?: string;
+  // Contenido extra dentro del filtro abierto (el buscador de facilities).
+  children?: ReactNode;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -78,10 +89,10 @@ export default function DailyBreadcrumb({
   }
 
   const selectClass =
-    "rounded-md border-none bg-transparent px-0.5 text-sm font-medium text-brand cursor-pointer focus:outline-none hover:text-brand/80 transition-colors";
+    "rounded-lg bg-surface-sunken px-2.5 py-1 text-xs font-medium text-ink-muted cursor-pointer ring-1 ring-border focus:outline-none focus:ring-2 focus:ring-brand/40 hover:text-ink hover:ring-border-strong transition-colors";
 
-  return (
-    <div className="flex flex-wrap items-center gap-1 text-sm mb-2">
+  const selects = (
+    <>
       <select
         className={selectClass}
         value={draftRegionId}
@@ -94,7 +105,6 @@ export default function DailyBreadcrumb({
           <option key={r.id} value={r.id}>{r.name}</option>
         ))}
       </select>
-      <span className="text-ink-faint">›</span>
       <select
         className={selectClass}
         value={draftMarketId}
@@ -105,9 +115,8 @@ export default function DailyBreadcrumb({
           <option key={m.id} value={m.id}>{m.name}</option>
         ))}
       </select>
-      <span className="text-ink-faint">›</span>
       <select
-        className={`${selectClass} text-ink`}
+        className={`${selectClass} `}
         value={facilitySelectValue}
         onChange={(e) => {
           if (e.target.value) goToFacility(e.target.value);
@@ -118,6 +127,15 @@ export default function DailyBreadcrumb({
           <option key={f.id} value={f.id}>{f.name}</option>
         ))}
       </select>
-    </div>
+    </>
+  );
+
+  if (!collapsible) return <div className="flex flex-wrap items-center gap-2">{selects}</div>;
+
+  return (
+    <CollapsibleFilter label={filterLabel ?? "Filtro"}>
+      {children}
+      {selects}
+    </CollapsibleFilter>
   );
 }

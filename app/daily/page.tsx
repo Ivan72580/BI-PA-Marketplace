@@ -28,6 +28,7 @@ import type { Locale } from "@/i18n/config";
 import FacilitySearch from "../components/FacilitySearch";
 import DailyRiskFacilities from "../components/DailyRiskFacilities";
 import DailyBreadcrumb from "../components/DailyBreadcrumb";
+import PageHeader from "../components/PageHeader";
 import GroupSection from "../components/GroupSection";
 import ChangeBadge from "../components/ChangeBadge";
 import Glossary from "../components/Glossary";
@@ -434,14 +435,13 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
     // terminar ahí mismo con el tercer selector — no se vuelve "a cero".
     return (
       <div>
-        <DailyBreadcrumb regions={filterOptions.regions} markets={filterOptions.markets} facilities={filterOptions.facilities} sp={sp} marketPlaceholder={t("breadcrumb.marketPlaceholder")} facilityPlaceholder={t("breadcrumb.facilityPlaceholder")} />
-        <h1 className="font-display text-3xl font-bold text-ink mb-1">{t("title")}</h1>
-        <div className="text-sm text-ink-faint mb-4 max-w-2xl">{t("subtitle")}</div>
+        <PageHeader title={t("title")} subtitle={t("subtitle")} />
 
-        <div className="rounded-2xl bg-brand-soft/50 border border-brand/25 px-5 py-3 flex items-center justify-between gap-4 flex-wrap">
+        <div className="rounded-2xl bg-surface shadow-sm px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
           <div className="min-w-0">
             <div className="text-sm font-semibold text-ink">{t("selectPromptTitle")}</div>
-            <div className="text-xs text-ink-muted">{t("selectPromptSubtitle")}</div>
+            <div className="text-xs text-ink-muted mb-3">{t("selectPromptSubtitle")}</div>
+            <DailyBreadcrumb collapsible={false} regions={filterOptions.regions} markets={filterOptions.markets} facilities={filterOptions.facilities} sp={sp} marketPlaceholder={t("breadcrumb.marketPlaceholder")} facilityPlaceholder={t("breadcrumb.facilityPlaceholder")} />
           </div>
           <div className="w-full sm:w-80 shrink-0">
             <FacilitySearch
@@ -687,29 +687,32 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
 
   return (
     <div className="space-y-5">
-      <div>
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <DailyBreadcrumb regions={filterOptions.regions} markets={filterOptions.markets} facilities={filterOptions.facilities} sp={sp} marketPlaceholder={t("breadcrumb.marketPlaceholder")} facilityPlaceholder={t("breadcrumb.facilityPlaceholder")} />
-          {/* Mismo buscador que la pantalla de selección inicial — antes
-              desaparecía apenas se elegía una facility, y la única forma de
-              cambiar a otra pasaba a ser el selector del breadcrumb (sin
-              texto libre, sin cruzar markets/regiones de un tirón). */}
-          <div className="w-full sm:w-72 shrink-0">
-            <FacilitySearch
-              facilities={filterOptions.facilities}
-              markets={filterOptions.markets}
-              variant="panel"
-              placeholder={t("facilitySearch.placeholder")}
-              emptyMessageTemplate={t("facilitySearch.empty", { query: "{query}" })}
-              basePath="/daily"
-              extraParams={{ date: sp.date }}
-            />
-          </div>
-        </div>
-        <h1 className="font-display text-3xl font-bold text-ink mb-1">{t("title")}</h1>
-        <div className="text-sm text-ink-faint">{summary.dayLabel} {dateISO} — {summary.facilityName}</div>
-        <Link href={inventoryHref} className="inline-block mt-2 text-xs font-medium text-brand hover:underline">{t("viewInventory")}</Link>
-      </div>
+      <PageHeader
+        scope={summary.facilityName}
+        title={t("title")}
+        subtitle={
+          <>
+            {summary.dayLabel} {dateISO}
+            <span className="mx-1.5 text-border-strong">·</span>
+            <Link href={inventoryHref} className="font-medium text-brand hover:underline">{t("viewInventory")}</Link>
+          </>
+        }
+        filter={
+          <DailyBreadcrumb regions={filterOptions.regions} markets={filterOptions.markets} facilities={filterOptions.facilities} sp={sp} marketPlaceholder={t("breadcrumb.marketPlaceholder")} facilityPlaceholder={t("breadcrumb.facilityPlaceholder")} filterLabel={t("filter")}>
+            <div className="w-64">
+              <FacilitySearch
+                facilities={filterOptions.facilities}
+                markets={filterOptions.markets}
+                variant="panel"
+                placeholder={t("facilitySearch.placeholder")}
+                emptyMessageTemplate={t("facilitySearch.empty", { query: "{query}" })}
+                basePath="/daily"
+                extraParams={{ date: sp.date }}
+              />
+            </div>
+          </DailyBreadcrumb>
+        }
+      />
 
       <div className="rounded-2xl bg-surface shadow-sm p-4 flex flex-wrap items-center gap-3">
         <span className="text-xs text-ink-faint shrink-0">{t("dayPickerLabel")}</span>

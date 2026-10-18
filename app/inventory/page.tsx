@@ -8,6 +8,7 @@ import { resolvePeriod, todayISO, type Granularity, type ResolvedPeriod } from "
 import { type SP } from "../lib/searchParams";
 import type { Locale } from "@/i18n/config";
 import FilterPanel from "../components/FilterPanel";
+import PageHeader from "../components/PageHeader";
 import ScheduleBoard from "../components/ScheduleBoard";
 
 type InvSP = SP & { sort?: string; day?: string; limit?: string; view?: string };
@@ -127,24 +128,25 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
 
   return (
     <div>
-      <div className="mb-5">
-        <h1 className="font-display text-3xl font-bold text-ink">{t("title")}</h1>
-        <div className="text-sm text-ink-faint mt-1">
-          {view === "schedule" ? t("schedule.subtitle", { scope }) : t("subtitle", { scope, period: period.label })}
-        </div>
-        <div className="mt-3 inline-flex items-center rounded-full bg-surface-sunken p-1 text-sm font-medium gap-1">
-          <Link href={href(sp, { view: undefined, limit: undefined })} className={`px-4 py-1.5 rounded-full transition-colors ${view === "slots" ? "bg-brand text-white shadow-sm" : "text-ink-muted hover:text-ink"}`}>{t("views.slots")}</Link>
-          <Link href={href(sp, { view: "schedule", limit: undefined, sort: undefined })} className={`px-4 py-1.5 rounded-full transition-colors ${view === "schedule" ? "bg-brand text-white shadow-sm" : "text-ink-muted hover:text-ink"}`}>{t("views.schedule")}</Link>
-        </div>
-      </div>
-
-      <FilterPanel
-        regions={filterOptions.regions}
-        markets={filterOptions.markets}
-        facilities={filterOptions.facilities}
-        hasFilter={hasFilter}
-        clearHref="/inventory"
+      <PageHeader
+        scope={names.facilityName ?? names.marketName ?? names.regionName}
+        title={t("title")}
+        subtitle={view === "schedule" ? t("schedule.subtitle", { scope }) : t("subtitle", { scope, period: period.label })}
+        filter={
+          <FilterPanel
+            regions={filterOptions.regions}
+            markets={filterOptions.markets}
+            facilities={filterOptions.facilities}
+            hasFilter={hasFilter}
+            clearHref="/inventory"
+          />
+        }
       />
+
+      <div className="inline-flex gap-0.5 rounded-full bg-surface-panel p-1 text-sm">
+        <Link href={href(sp, { view: undefined, limit: undefined })} className={`px-4 py-1.5 rounded-full transition-colors ${view === "slots" ? "bg-surface text-ink font-semibold shadow-sm" : "text-ink-muted font-medium hover:text-ink"}`}>{t("views.slots")}</Link>
+        <Link href={href(sp, { view: "schedule", limit: undefined, sort: undefined })} className={`px-4 py-1.5 rounded-full transition-colors ${view === "schedule" ? "bg-surface text-ink font-semibold shadow-sm" : "text-ink-muted font-medium hover:text-ink"}`}>{t("views.schedule")}</Link>
+      </div>
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4 text-xs">
         {view === "schedule" && (

@@ -323,7 +323,8 @@
         }
       }
     },
-    "viewInventory": "See this facility's inventory →"
+    "viewInventory": "See this facility's inventory →",
+    "filter": "Filter"
   },
   "Trends": {
     "title": "Trends",

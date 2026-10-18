@@ -323,7 +323,8 @@
         }
       }
     },
-    "viewInventory": "Ver inventario de esta facility →"
+    "viewInventory": "Ver inventario de esta facility →",
+    "filter": "Filtro"
   },
   "Trends": {
     "title": "Tendencias",

@@ -5,6 +5,7 @@ import { prisma } from "../../lib/db/prisma";
 import UserRoleTable from "./UserRoleTable";
 import { resolveAccess } from "../../lib/module";
 import RefreshDataButton from "./RefreshDataButton";
+import PageHeader from "../../components/PageHeader";
 
 export default async function AdminUsersPage() {
   const admin = await requireAdmin();
@@ -28,8 +29,7 @@ export default async function AdminUsersPage() {
 
   return (
     <div className="max-w-5xl">
-      <h1 className="text-lg font-semibold text-ink mb-1">{t("usersTitle")}</h1>
-      <p className="text-sm text-ink-muted mb-6">{t("usersSubtitle")}</p>
+      <PageHeader title={t("usersTitle")} subtitle={t("usersSubtitle")} />
       <RefreshDataButton />
       <UserRoleTable
         users={users.map(({ moduleAccess, ...u }) => ({

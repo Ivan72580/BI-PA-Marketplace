@@ -6,6 +6,7 @@ import { resolvePeriod, todayISO, type Granularity, type ResolvedPeriod } from "
 import { type SP } from "../lib/searchParams";
 import type { Locale } from "@/i18n/config";
 import FilterPanel from "../components/FilterPanel";
+import PageHeader from "../components/PageHeader";
 import ZoneMap, { type ZoneMapLabels } from "../components/ZoneMap";
 
 function resolve(sp: SP, locale: Locale, customLabel: string): ResolvedPeriod {
@@ -59,18 +60,20 @@ export default async function MapPage({ searchParams }: { searchParams: Promise<
 
   return (
     <div>
-      <div className="mb-5">
-        <h1 className="font-display text-3xl font-bold text-ink">{t("title")}</h1>
-        <div className="text-sm text-ink-faint mt-1">{t("subtitle", { scope, period: period.label })}</div>
-      </div>
-
-      <FilterPanel
-        regions={filterOptions.regions}
-        markets={filterOptions.markets}
-        facilities={filterOptions.facilities}
-        showFacility={false}
-        hasFilter={hasFilter}
-        clearHref={`/map${carryQuery(sp)}`}
+      <PageHeader
+        scope={names.marketName ?? names.regionName}
+        title={t("title")}
+        subtitle={t("subtitle", { scope, period: period.label })}
+        filter={
+          <FilterPanel
+            regions={filterOptions.regions}
+            markets={filterOptions.markets}
+            facilities={filterOptions.facilities}
+            showFacility={false}
+            hasFilter={hasFilter}
+            clearHref={`/map${carryQuery(sp)}`}
+          />
+        }
       />
 
       {data.zones.length === 0 ? (

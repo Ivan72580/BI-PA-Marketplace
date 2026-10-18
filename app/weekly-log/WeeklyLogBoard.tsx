@@ -237,7 +237,7 @@ export default function WeeklyLogBoard({
 
         {/* Lista */}
         {byDay.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-border-strong p-6 text-sm text-ink-muted">{entries.length ? t("emptyFiltered") : t("empty")}</p>
+          <p className="rounded-2xl bg-surface-sunken p-6 text-sm text-ink-muted">{entries.length ? t("emptyFiltered") : t("empty")}</p>
         ) : (
           <div className="rounded-2xl bg-surface shadow-sm divide-y divide-surface-sunken">
             {byDay.map(([day, items]) => (
