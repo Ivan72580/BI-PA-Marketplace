@@ -4,14 +4,15 @@ import {
   getFilterOptions,
   resolveFilterNames,
   getNetworkForecast,
-  getForecastRiskFacilities,
+  getForecastWatch,
   getFacilityPlan,
   getSeasonPlan,
   LOOKBACK_BLOCKS,
   MIN_BLOCKS_FOR_PREDICTION,
   type ForecastRange,
   type NetworkForecast,
-  type ForecastRiskFacility,
+  type ForecastWatch,
+  type WatchItem,
   type FacilityPlan,
   type SeasonPlanData,
 } from "../lib/db/queries";
@@ -21,7 +22,8 @@ import { weekdayLabel, weekdayPlural } from "../lib/db/weekday";
 import type { Locale } from "@/i18n/config";
 import { todayISO } from "../lib/period";
 import FilterPanel from "../components/FilterPanel";
-import ChangeBadge from "../components/ChangeBadge";
+import GroupSection from "../components/GroupSection";
+import ForecastWatchlist from "../components/ForecastWatchlist";
 import Glossary from "../components/Glossary";
 import InsightsPanel, { type PanelInsight } from "../components/InsightsPanel";
 import FacilityWeekPlan from "../components/FacilityWeekPlan";
@@ -51,26 +53,30 @@ function formatUSD(n: number) {
 function formatNum(n: number) {
   return Math.round(n).toLocaleString("en-US");
 }
-function formatGamesRange(low: number | null, high: number | null): string | undefined {
-  if (low === null || high === null) return undefined;
-  return `${formatNum(low)}–${formatNum(high)}`;
-}
-function formatPctRange(low: number | null, high: number | null): string | undefined {
-  if (low === null || high === null) return undefined;
-  return `${formatPct(low)}–${formatPct(high)}`;
-}
-function formatUSDRange(low: number | null, high: number | null): string | undefined {
-  if (low === null || high === null) return undefined;
-  return `${formatUSD(low)}–${formatUSD(high)}`;
-}
 
-function ForecastTile({ label, value, rangeText, note }: { label: string; value: string; rangeText?: string; note?: string }) {
+// Un valor proyectado se muestra como número absoluto (la tarjeta y la página ya dicen que es una
+// proyección) y sus extremos como alertas: el piso es el escenario a revisar y el techo el que conviene
+// sostener. Los extremos son ± 1 desvío estándar del historial (ver glosario), no una garantía.
+function ForecastTile({ label, value, low, high, t, note }: { label: string; value: string; low?: string; high?: string; t: Translator; note?: string }) {
   return (
-    <div className="rounded-xl bg-surface border border-warning/20 p-3">
+    <div className="rounded-xl bg-surface-sunken p-3">
       <div className="text-xs text-ink-faint mb-1">{label}</div>
       <div className="font-display text-lg font-bold text-ink">{value}</div>
-      {rangeText && <div className="text-[11px] text-ink-muted mt-0.5">{rangeText}</div>}
-      {note && <div className="text-[10px] text-warning mt-1 leading-snug">{note}</div>}
+      {low !== undefined && high !== undefined && (
+        <div className="mt-1.5 space-y-0.5 text-[11px] leading-tight">
+          <div className="flex items-baseline gap-1 text-danger" title={t("bands.lowHint")}>
+            <span aria-hidden="true">▼</span>
+            <span className="font-semibold tabular-nums">{low}</span>
+            <span className="text-ink-muted">{t("bands.low")}</span>
+          </div>
+          <div className="flex items-baseline gap-1 text-brand" title={t("bands.highHint")}>
+            <span aria-hidden="true">▲</span>
+            <span className="font-semibold tabular-nums">{high}</span>
+            <span className="text-ink-muted">{t("bands.high")}</span>
+          </div>
+        </div>
+      )}
+      {note && <div className="text-[10px] text-warning mt-1.5 leading-snug">{note}</div>}
     </div>
   );
 }
@@ -81,7 +87,7 @@ function ForecastTile({ label, value, rangeText, note }: { label: string; value:
 // (confirmación esperada a la baja, radar de riesgo con resultados);
 // "notable" es una señal positiva; "info" es contexto (método usado,
 // comparación YoY, advertencia de revenue).
-function buildForecastInsights(forecast: NetworkForecast, risk: ForecastRiskFacility[], t: Translator): PanelInsight[] {
+function buildForecastInsights(forecast: NetworkForecast, watch: ForecastWatch | null, t: Translator): PanelInsight[] {
   const lines: PanelInsight[] = [];
 
   if (forecast.method === "insufficient") {
@@ -120,8 +126,11 @@ function buildForecastInsights(forecast: NetworkForecast, risk: ForecastRiskFaci
     });
   }
 
-  if (risk.length > 0) {
-    lines.push({ text: t("insights.riskTop", { n: risk.length, name: risk[0].facilityName }), severity: "critical" });
+  if (watch && watch.downCount > 0 && watch.topDownName) {
+    lines.push({ text: t("insights.riskTop", { n: watch.downCount, name: watch.topDownName }), severity: "critical" });
+  }
+  if (watch && watch.scope !== "network" && watch.upCount > 0) {
+    lines.push({ text: t("insights.upCount", { n: watch.upCount }), severity: "notable" });
   }
 
   lines.push({ text: t("insights.revenueCaveat"), severity: "info" });
@@ -199,11 +208,11 @@ export default async function ForecastPage({ searchParams }: { searchParams: Pro
 
   const planFilter = PLAN_FILTERS.find((f) => f === sp.filter);
 
-  const [names, filterOptions, forecast, riskFacilities, facilityPlan, seasonRaw] = await Promise.all([
+  const [names, filterOptions, forecast, watch, facilityPlan, seasonRaw] = await Promise.all([
     resolveFilterNames(sp),
     getFilterOptions(),
     getNetworkForecast(filters, range, today),
-    getForecastRiskFacilities(filters, range, today),
+    getForecastWatch(filters, range, today),
     // Plan por facility: solo cuando hay un facility elegido. Estacionalidad solo para la vista de 30 días.
     sp.facilityId ? getFacilityPlan(sp.facilityId) : Promise.resolve(null),
     sp.facilityId && range === "month" ? getSeasonPlan({ facilityId: sp.facilityId }) : Promise.resolve(null),
@@ -211,6 +220,8 @@ export default async function ForecastPage({ searchParams }: { searchParams: Pro
   const seasonContext = buildSeasonContext(seasonRaw, today);
   // Los links del plan conservan el facility y vuelven siempre a la vista de 7 días.
   const weekHrefFor = (f: PlanFilter | undefined) => buildForecastQuery(sp, { range: undefined, filter: f });
+
+  const facilityHref = (i: WatchItem) => buildForecastQuery(sp, { regionId: i.regionId, marketId: i.marketId, facilityId: i.facilityId });
 
   const hasFilter = Boolean(sp.regionId || sp.marketId || sp.facilityId);
   const rangeLabelKey = range === "week" ? "rangeWeek" : "rangeMonth";
@@ -275,49 +286,51 @@ export default async function ForecastPage({ searchParams }: { searchParams: Pro
         ))}
       </div>
 
-      {/* Bloque de predicción — mismo lenguaje visual que la sección de
-          Diario (borde punteado + badge "Predicción"), a propósito: es la
-          misma naturaleza de dato (estimado, no real) en toda la app, así
-          que se ve igual en toda la app. */}
-      <div className="rounded-2xl border-2 border-dashed border-warning/40 bg-warning-soft/40 p-5">
-        <div className="flex items-center gap-2 mb-1 flex-wrap">
-          <span className="text-base leading-none" aria-hidden="true">🔮</span>
-          <h3 className="text-sm font-semibold text-ink">{t("windowLabel", { n: forecast.windowDays })}</h3>
-          <span className="text-[10px] font-bold uppercase tracking-wide bg-warning text-white px-1.5 py-0.5 rounded-full">{t("badge")}</span>
-        </div>
-        <p className="text-xs text-ink-muted mb-4 max-w-3xl">{t("disclaimer", { n: forecast.occurrences, lookback: LOOKBACK_BLOCKS })}</p>
+      {/* Bloque de predicción: una GroupSection más (mismo fondo y borde que el resto de la app, sin
+          línea punteada). El matiz "esto es una estimación" queda en el puntito y la etiqueta
+          Predicción en warning, igual que en Diario. */}
+      <GroupSection title={`🔮 ${t("windowLabel", { n: forecast.windowDays })}`} accent="warning" badge={t("badge")}>
+        <p className="text-xs text-ink-muted max-w-3xl -mt-1">{t("disclaimer", { n: forecast.occurrences, lookback: LOOKBACK_BLOCKS })}</p>
 
         {forecast.method === "insufficient" ? (
           <div className="text-sm text-ink-faint">{t("methodInsufficient", { min: MIN_BLOCKS_FOR_PREDICTION, n: forecast.occurrences })}</div>
         ) : (
           <>
-            {forecast.method === "average" && <div className="text-xs text-ink-faint mb-3">{t("methodAverage", { n: forecast.occurrences })}</div>}
+            {forecast.method === "average" && <div className="text-xs text-ink-faint">{t("methodAverage", { n: forecast.occurrences })}</div>}
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <ForecastTile
+                t={t}
                 label={t("games.label")}
-                value={forecast.games.predicted !== null ? `~${formatNum(forecast.games.predicted)}` : "—"}
-                rangeText={formatGamesRange(forecast.games.low, forecast.games.high)}
+                value={forecast.games.predicted !== null ? formatNum(forecast.games.predicted) : "—"}
+                low={forecast.games.low !== null ? formatNum(forecast.games.low) : undefined}
+                high={forecast.games.high !== null ? formatNum(forecast.games.high) : undefined}
               />
               <ForecastTile
+                t={t}
                 label={t("confirmation.label")}
-                value={forecast.confirmationRate.predicted !== null ? `~${formatPct(forecast.confirmationRate.predicted)}` : "—"}
-                rangeText={formatPctRange(forecast.confirmationRate.low, forecast.confirmationRate.high)}
+                value={forecast.confirmationRate.predicted !== null ? formatPct(forecast.confirmationRate.predicted) : "—"}
+                low={forecast.confirmationRate.low !== null ? formatPct(forecast.confirmationRate.low) : undefined}
+                high={forecast.confirmationRate.high !== null ? formatPct(forecast.confirmationRate.high) : undefined}
               />
               <ForecastTile
+                t={t}
                 label={t("occupancy.label")}
-                value={forecast.occupancyRate.predicted !== null ? `~${formatPct(forecast.occupancyRate.predicted)}` : "—"}
-                rangeText={formatPctRange(forecast.occupancyRate.low, forecast.occupancyRate.high)}
+                value={forecast.occupancyRate.predicted !== null ? formatPct(forecast.occupancyRate.predicted) : "—"}
+                low={forecast.occupancyRate.low !== null ? formatPct(forecast.occupancyRate.low) : undefined}
+                high={forecast.occupancyRate.high !== null ? formatPct(forecast.occupancyRate.high) : undefined}
               />
               <ForecastTile
+                t={t}
                 label={t("revenue.label")}
-                value={forecast.revenue.predicted !== null ? `~${formatUSD(forecast.revenue.predicted)}` : "—"}
-                rangeText={formatUSDRange(forecast.revenue.low, forecast.revenue.high)}
+                value={forecast.revenue.predicted !== null ? formatUSD(forecast.revenue.predicted) : "—"}
+                low={forecast.revenue.low !== null ? formatUSD(forecast.revenue.low) : undefined}
+                high={forecast.revenue.high !== null ? formatUSD(forecast.revenue.high) : undefined}
                 note={t("revenue.lowConfidence")}
               />
             </div>
 
-            <div className="mt-4 pt-4 border-t border-warning/20">
+            <div className="pt-4 border-t border-border">
               <div className="text-xs font-medium text-ink mb-2">{t("breakdown.title")}</div>
               {forecast.predictedConfirmedGames !== null && forecast.predictedCancelledGames !== null && forecast.predictedConfirmedGames + forecast.predictedCancelledGames > 0 ? (
                 <div>
@@ -342,13 +355,13 @@ export default async function ForecastPage({ searchParams }: { searchParams: Pro
             </div>
 
             {forecast.sameWindowLastYear && (
-              <div className="mt-3 text-xs text-ink-faint">
+              <div className="text-xs text-ink-faint">
                 {t("yoy.value", { games: formatNum(forecast.sameWindowLastYear.totalGames), pct: formatPct(forecast.sameWindowLastYear.confirmationRate) })}
               </div>
             )}
           </>
         )}
-      </div>
+      </GroupSection>
 
       {sp.facilityId && (
         facilityPlan ? (
@@ -362,28 +375,7 @@ export default async function ForecastPage({ searchParams }: { searchParams: Pro
         )
       )}
 
-      {!sp.facilityId && (
-        <div className="rounded-2xl bg-surface shadow-sm p-5">
-          <h3 className="text-sm font-medium text-ink mb-0.5">{t("risk.title")}</h3>
-          <p className="text-xs text-ink-faint mb-4">{t("risk.subtitle", { range: t(rangeLabelKey) })}</p>
-          {riskFacilities.length === 0 ? (
-            <div className="text-sm text-ink-faint">{t("risk.empty")}</div>
-          ) : (
-            <div className="space-y-3">
-              {riskFacilities.map((r) => (
-                <div key={r.facilityId} className="flex items-center justify-between gap-2 text-sm">
-                  <span className="text-ink font-medium truncate">{r.facilityName}</span>
-                  <span className="flex items-center gap-2 shrink-0 text-ink-faint text-xs">
-                    {r.predictedCancelledGames !== null && <span>{t("risk.cancelledLabel", { n: r.predictedCancelledGames })}</span>}
-                    {r.confirmationRateDelta !== null && <ChangeBadge value={r.confirmationRateDelta} unit="pts" />}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-          <Glossary items={[{ term: t("glossary.risk.term"), def: t("glossary.risk.def") }]} />
-        </div>
-      )}
+      {watch && <ForecastWatchlist watch={watch} t={t} locale={locale} rangeLabel={t(rangeLabelKey)} hrefFor={facilityHref} />}
 
       <Glossary
         items={[
@@ -394,7 +386,7 @@ export default async function ForecastPage({ searchParams }: { searchParams: Pro
 
       <InsightsPanel
         title={t("insights.panelTitle")}
-        insights={[...buildForecastInsights(forecast, riskFacilities, t), ...(facilityPlan ? buildFacilityInsights(facilityPlan, seasonContext, range, t, locale) : [])]}
+        insights={[...buildForecastInsights(forecast, watch, t), ...(facilityPlan ? buildFacilityInsights(facilityPlan, seasonContext, range, t, locale) : [])]}
       />
     </div>
   );

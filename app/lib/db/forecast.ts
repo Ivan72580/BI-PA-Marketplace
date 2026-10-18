@@ -20,10 +20,10 @@ import { buildWhere, average, stdDev, linearRegression, type OverviewFilters } f
 // período que todavía no empezó, no una extrapolación del que está a mitad
 // de camino.
 
-function parseISODate(iso: string): Date {
+export function parseISODate(iso: string): Date {
   return new Date(`${iso}T00:00:00.000Z`);
 }
-function addDaysUTC(d: Date, delta: number): Date {
+export function addDaysUTC(d: Date, delta: number): Date {
   const r = new Date(d);
   r.setUTCDate(r.getUTCDate() + delta);
   return r;
@@ -32,14 +32,14 @@ function addDaysUTC(d: Date, delta: number): Date {
 export type ForecastRange = "week" | "month";
 export type ForecastMethod = "regression" | "average" | "insufficient";
 
-const RANGE_DAYS: Record<ForecastRange, number> = { week: 7, month: 30 };
+export const RANGE_DAYS: Record<ForecastRange, number> = { week: 7, month: 30 };
 // Exportados: app/forecast/page.tsx los necesita para el texto del
 // disclaimer y del estado "sin historial suficiente" — un solo número
 // fuente de verdad, mismo criterio que MIN_OCCURRENCES_FOR_PREDICTION
 // en daily.ts.
 export const LOOKBACK_BLOCKS = 12;
 export const MIN_BLOCKS_FOR_PREDICTION = 3;
-const MIN_BLOCKS_FOR_TREND = 5;
+export const MIN_BLOCKS_FOR_TREND = 5;
 
 export type ForecastMetric = {
   predicted: number | null;
@@ -48,7 +48,7 @@ export type ForecastMetric = {
   avg: number | null; // promedio simple de esos mismos bloques, como referencia
 };
 
-function buildMetric(historicalValues: number[], n: number, method: ForecastMethod, clamp: [number, number] | null): ForecastMetric {
+export function buildMetric(historicalValues: number[], n: number, method: ForecastMethod, clamp: [number, number] | null): ForecastMetric {
   if (method === "insufficient" || historicalValues.length === 0) {
     return { predicted: null, low: null, high: null, avg: null };
   }
@@ -70,7 +70,7 @@ function buildMetric(historicalValues: number[], n: number, method: ForecastMeth
   return { predicted: clampFn(predicted), low, high, avg };
 }
 
-type BlockTotals = {
+export type BlockTotals = {
   totalGames: number; // publicados (volumen de oferta)
   demandBase: number; // confirmados + cancelados por demanda: denominador de la tasa de demanda
   confirmedGames: number;
@@ -79,7 +79,7 @@ type BlockTotals = {
   revenue: number;
 };
 
-function emptyBlock(): BlockTotals {
+export function emptyBlock(): BlockTotals {
   return { totalGames: 0, demandBase: 0, confirmedGames: 0, sumFinalConfirmed: 0, sumMaxConfirmed: 0, revenue: 0 };
 }
 

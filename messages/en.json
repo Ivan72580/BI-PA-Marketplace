@@ -1399,24 +1399,24 @@
     "rangeMonth": "Next 30 days",
     "windowLabel": "Next {n} days",
     "badge": "Forecast",
-    "disclaimer": "Estimate from linear regression over comparable historical blocks ({n} of the last {lookback} available) — not real data or games already scheduled. Each metric's range shows the margin of error (±1 historical standard deviation).",
+    "disclaimer": "Estimate from linear regression over comparable historical blocks ({n} of the last {lookback} available) — not real data or games already scheduled. Under each value, the floor marks the scenario to review and the ceiling the one to sustain (±1 historical standard deviation).",
     "methodAverage": "Not enough history to estimate a trend — used the simple average of the last {n} comparable blocks.",
     "methodInsufficient": "Not enough comparable history for this filter and range (at least {min} blocks needed, {n} available).",
     "games": {
-      "label": "Scheduled games expected"
+      "label": "Scheduled games projected"
     },
     "confirmation": {
-      "label": "Confirmation expected"
+      "label": "Confirmation projected"
     },
     "occupancy": {
-      "label": "Occupancy expected"
+      "label": "Occupancy projected"
     },
     "revenue": {
-      "label": "Revenue expected",
+      "label": "Revenue projected",
       "lowConfidence": "Lower confidence: combines price, players and volume, all three uncertain."
     },
     "breakdown": {
-      "title": "Expected breakdown",
+      "title": "Projected breakdown",
       "confirmed": "Confirmed",
       "cancelled": "Cancelled"
     },
@@ -1427,7 +1427,7 @@
       "title": "Facilities to watch",
       "subtitle": "Own trend projected forward ({range}) — only the ones showing signs of decline.",
       "empty": "No facility in this filter shows a projected declining trend.",
-      "cancelledLabel": "{n} cancellations expected"
+      "cancelledLabel": "{n} cancellations projected"
     },
     "glossary": {
       "regression": {
@@ -1435,12 +1435,12 @@
         "def": "fits a trend line over the comparable historical blocks and projects one step forward — not a flat average, it reflects whether the metric has been trending up or down."
       },
       "range": {
-        "term": "Range (margin of error)",
-        "def": "± 1 standard deviation of those same historical blocks — the more irregular the history, the wider the range."
+        "term": "Floor and ceiling",
+        "def": "± 1 standard deviation of the same historical blocks: the floor is the low scenario, to review if it materializes; the ceiling is the high scenario, positive and worth sustaining. The more irregular the history, the further apart they are."
       },
       "risk": {
         "term": "Facilities to watch",
-        "def": "facilities whose own recent trend, projected forward, worsens — same ranking criteria as Daily's risk radar, but looking forward instead of back."
+        "def": "facilities whose projected demand rate falls at least 1 point below their own average, or that project many cancellations with confirmed games below their average. Rising ones project confirmed games above their average without the rate dropping."
       }
     },
     "insights": {
@@ -1454,7 +1454,8 @@
       "yoyUp": "Expected volume is {pct}% above what actually happened in the same period last year.",
       "yoyDown": "Expected volume is {pct}% below what actually happened in the same period last year.",
       "riskTop": "{n} facilities show a projected declining trend — the most pronounced is {name}.",
-      "revenueCaveat": "Expected revenue is the least reliable number in this forecast: it combines price, players and volume, all three uncertain."
+      "revenueCaveat": "Expected revenue is the least reliable number in this forecast: it combines price, players and volume, all three uncertain.",
+      "upCount": "{n} facilities project more confirmed games than their average: worth sustaining what is working for them."
     },
     "plan": {
       "noData": "This facility has no games in the recent window, so there is nothing to build the plan from.",
@@ -1499,7 +1500,9 @@
         "definition": "Traffic light by the slot demand rate in the window, with at least {sample} editions. Green: {green} or more (confirms without issues); if the most recent part of the window fell below {green}, it turns amber. Amber: between {floor} and {green} (variable: neither secured nor to remove). Red: {floor} or less. Secure field: lost to field unavailability in the last {days} days, with healthy demand or, with a small sample, at least two losses; it is a separate mark from the color. Trend is a difference of {delta} points or more between the first and second half of the window. Demand rate = confirmed / (confirmed + cancelled for lack of players). Each card context shows the last {last} editions.",
         "limit": "The database has no future games: the calendar says what is worth having, not what is still missing.",
         "stripSecure": "{n} to secure",
-        "thin": "{n, plural, one {# slot with fewer than {min} editions is not classified.} other {# slots with fewer than {min} editions are not classified.}}"
+        "thin": "{n, plural, one {# slot with fewer than {min} editions is not classified.} other {# slots with fewer than {min} editions are not classified.}}",
+        "today": "Today",
+        "detailToggle": "See the detail of each slot (cards)"
       },
       "month": {
         "title": "Next 30 days at a glance",
@@ -1605,6 +1608,67 @@
         "badge": "Secure field",
         "desc": "Lost to field unavailability in the last {days} days: worth booking the field in advance."
       }
+    },
+    "bands": {
+      "low": "risk · to review",
+      "high": "positive · to sustain",
+      "lowHint": "Projection floor (−1 historical standard deviation). If the real value ends up near this number, something needs review.",
+      "highHint": "Projection ceiling (+1 historical standard deviation). Reaching this number is a positive signal to sustain."
+    },
+    "watch": {
+      "regionTitle": "Facilities to watch · {region}",
+      "regionEmpty": "No {region} facility projects a decline.",
+      "noDriver": "Not enough data from the last period to explain the change.",
+      "downSummary": "Last {days} days vs. the previous {days}: {confirmedRecent} confirmed (before {confirmedPrior}) and {cancelledRecent} cancelled (before {cancelledPrior}).",
+      "upSummary": "Last {days} days vs. the previous {days}: {confirmedRecent} confirmed (before {confirmedPrior}); projected demand rate {rate}.",
+      "supply": "Fewer games were published ({prior} → {recent}): the drop comes from less supply.",
+      "reasonsGrowing": "Cancellations that grew the most: {list}.",
+      "reasonsTop": "Most frequent cancellation reasons: {list}.",
+      "slotsLost": "Slots that lost the most confirmed games: {list}.",
+      "slotsGained": "Slots that contributed the most: {list}.",
+      "suggestionLabel": "Suggestion:",
+      "reasonUnspecified": "No reason recorded",
+      "confirmedDelta": "{n} confirmed vs. their average",
+      "suggest": {
+        "NOT_ENOUGH_PLAYERS": "Review pricing and promotion for the times with fewer sign-ups and concentrate supply on the slots that do confirm.",
+        "FACILITY_UNAVAILABLE": "Confirm field availability with the facility before publishing and secure critical slots with an advance booking.",
+        "WEATHER": "Define an alternative (covered field or another time) for bad-weather days and warn players in advance.",
+        "MAINTENANCE": "Ask the facility for its maintenance calendar and do not publish those dates.",
+        "HOLIDAY": "Check the holiday calendar and adjust supply for those days before publishing.",
+        "OTHER": "Review the reasons recorded as Other case by case to see whether one cause repeats.",
+        "PLUGIN": "Coordinate with the team that runs the plugin on why these games are cancelled.",
+        "UNSPECIFIED": "Record the reason for each cancellation: without a reason there is no way to know what to fix.",
+        "supply": "Talk to the facility about why fewer games are published and recover the times that stopped being offered.",
+        "generic": "Review the facility slots one by one in its Forecast calendar.",
+        "up": "Sustain these published times and secure the field in advance so they are not lost."
+      },
+      "up": {
+        "title": "Rising facilities",
+        "subtitle": "They project more confirmed games than their own average ({range}), without their demand rate dropping.",
+        "empty": "No facility in this filter projects a rise."
+      },
+      "breakdown": {
+        "title": "Facilities that weigh most in the projection",
+        "subtitle": "The ones pushing their projected confirmed games the most above or below their own average. Scheduled = confirmed + cancelled.",
+        "facility": "Facility",
+        "scheduled": "Scheduled proj.",
+        "confirmed": "Confirmed proj.",
+        "vsAvg": "vs. average",
+        "rate": "Proj. rate",
+        "leadTime": "Confirmation lead time",
+        "leadTimeHint": "Average hours between confirmation and the game in the last period, and its change against the previous one. If it drops, players confirm closer to game time: a possible sign of lower engagement."
+      },
+      "glossary": {
+        "vsAvg": {
+          "term": "vs. average",
+          "def": "projected confirmed games minus the facility historical average of confirmed games per block."
+        },
+        "leadTime": {
+          "term": "Confirmation lead time",
+          "def": "a hint, not proof: it can drop from lower engagement or from more last-minute demand, so read it together with the rate."
+        }
+      },
+      "projDown": "{delta} confirmed vs. their average · {n} cancellations projected"
     }
   },
   "Seasonality": {

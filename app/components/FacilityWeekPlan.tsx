@@ -8,16 +8,17 @@ import {
 import { MUST_SCHEDULE_MIN_RATE, MUST_SCHEDULE_MIN_SAMPLE, MUST_SCHEDULE_WINDOW_MONTHS } from "../lib/mustSchedule";
 import type { Locale } from "@/i18n/config";
 
-// "Próximos 7 días" de Pronóstico cuando hay un facility elegido: un calendario con una tarjeta
-// por slot (mismo lenguaje visual que "A agendar" de Inventario) y un semáforo por tasa de
-// demanda. Las definiciones viven en app/lib/slotPlanCalc.ts.
+// "Próximos 7 días" de Pronóstico cuando hay un facility elegido: un calendario semanal clásico
+// (una columna por fecha, un renglón compacto por slot) con el semáforo por tasa de demanda. El
+// detalle completo de cada slot (las tarjetas de siempre) queda un clic más abajo. Las
+// definiciones viven en app/lib/slotPlanCalc.ts.
 
 type T = (key: string, values?: Record<string, string | number>) => string;
 
-const LIGHTS: Light[] = ["green", "amber", "red"];
 const DOT: Record<Light, string> = { green: "bg-accent", amber: "bg-warning", red: "bg-danger", gray: "bg-ink-faint" };
 const TEXT: Record<Light, string> = { green: "text-brand", amber: "text-warning", red: "text-danger", gray: "text-ink-muted" };
 const TINT: Record<Light, string> = { green: "bg-brand-soft/60", amber: "bg-warning-soft", red: "bg-danger-soft", gray: "bg-surface" };
+const BAR: Record<Light, string> = { green: "border-accent", amber: "border-warning", red: "border-danger", gray: "border-ink-faint" };
 const TREND_GLYPH = { up: "▲", down: "▼", flat: "▬" } as const;
 const TREND_TONE = { up: "text-brand", down: "text-danger", flat: "text-ink-faint" } as const;
 
@@ -127,6 +128,39 @@ function Card({ c, t, locale }: { c: ClassifiedSlot; t: T; locale: Locale }) {
   );
 }
 
+// Renglón compacto del calendario: hora, tasa de demanda con su tendencia, cancha y formato. El
+// semáforo va en la barra lateral, el puntito y el texto oculto (nunca solo color); el detalle
+// completo está en el tooltip y en las tarjetas de más abajo.
+function Chip({ c, t }: { c: ClassifiedSlot; t: T }) {
+  const detail = [
+    `${c.time} · ${c.fieldName ?? t("plan.card.fieldUnknown")} · ${c.gameSize ?? "—"}`,
+    `${t(`plan.lights.${c.light}.label`)} · ${t("plan.card.demandRate")} ${pct(c.rate)} (${c.confirmed}/${c.base})`,
+    c.secure ? t("plan.secure.badge") : "",
+  ].filter(Boolean).join("\n");
+  return (
+    <div className={`rounded-lg border-l-[3px] px-2 py-1.5 ${TINT[c.light]} ${BAR[c.light]}`} title={detail}>
+      <div className="flex items-center justify-between gap-1">
+        <span className="inline-flex items-center gap-1 font-display text-sm font-bold text-ink leading-none">
+          <i className={`inline-block h-2 w-2 rounded-full ${DOT[c.light]}`} aria-hidden="true" />
+          {c.time}
+          <span className="sr-only">{t(`plan.lights.${c.light}.label`)}</span>
+        </span>
+        <span className={`text-xs font-semibold tabular-nums ${TEXT[c.light]}`}>
+          {pct(c.rate)}
+          <span className={`ml-0.5 text-[9px] ${TREND_TONE[c.trend]}`} title={t(`plan.trend.${c.trend}`)}>{TREND_GLYPH[c.trend]}</span>
+        </span>
+      </div>
+      <div className="mt-0.5 flex items-center justify-between gap-1 text-[10px] text-ink-muted">
+        <span className="truncate">{c.fieldName ?? "—"}</span>
+        <span className="shrink-0">{c.gameSize ?? ""}</span>
+      </div>
+      {c.secure && (
+        <span className="mt-1 inline-block rounded-full bg-ink text-white text-[9px] font-bold uppercase tracking-wide px-1.5 py-px">{t("plan.secure.badge")}</span>
+      )}
+    </div>
+  );
+}
+
 const matches = (s: ClassifiedSlot, f: PlanFilter | undefined) => !f || (f === "secure" ? s.secure : s.light === f);
 
 export default function FacilityWeekPlan({
@@ -141,8 +175,6 @@ export default function FacilityWeekPlan({
   const total = plan.slots.length;
   const count = (f: PlanFilter) => plan.slots.filter((s) => matches(s, f)).length;
   const days = plan.week.map((d) => ({ ...d, shown: d.slots.filter((s) => matches(s, filter)) }));
-  const dayLight = (d: (typeof days)[number], l: Light) => d.slots.filter((s) => s.light === l).length;
-  const daySecure = (d: (typeof days)[number]) => d.slots.filter((s) => s.secure).length;
   const dayLabel = (iso: string, dow: string) => `${weekdayLabel(dow, locale)} ${shortDate(iso, locale)}`;
 
   return (
@@ -168,37 +200,46 @@ export default function FacilityWeekPlan({
         ))}
       </div>
 
-      {/* Tira de la semana: cuántos slots de cada color toca cada fecha. */}
-      <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
-        {days.map((d) => (
-          <a key={d.dateISO} href={`#d-${d.dateISO}`} className="rounded-xl bg-surface-sunken hover:bg-brand-soft transition-colors px-2.5 py-2 text-center">
-            <div className="text-xs font-semibold text-ink">{weekdayAbbr(d.dayOfWeek, locale)}</div>
-            <div className="text-[10px] text-ink-faint mb-1">{shortDate(d.dateISO, locale)}</div>
-            <div className="flex justify-center gap-2 text-[11px] font-semibold text-ink">
-              {LIGHTS.map((l) => (
-                <span key={l} className="inline-flex items-center gap-0.5" title={t(`plan.lights.${l}.label`)}>
-                  <i className={`inline-block h-2 w-2 rounded-full ${DOT[l]}`} aria-hidden="true" />{dayLight(d, l)}
-                </span>
-              ))}
-            </div>
-            {daySecure(d) > 0 && <div className="mt-1 text-[10px] font-bold text-ink">{t("plan.week.stripSecure", { n: daySecure(d) })}</div>}
-          </a>
-        ))}
-      </div>
-
       {total === 0 ? (
         <div className="text-sm text-ink-faint py-6 text-center">{t("plan.week.empty")}</div>
       ) : (
-        days.filter((d) => d.shown.length > 0).map((d) => (
-          <div key={d.dateISO} id={`d-${d.dateISO}`} className="scroll-mt-20">
-            <h4 className="font-display text-base font-bold text-ink mb-2 capitalize">
-              {dayLabel(d.dateISO, d.dayOfWeek)} <span className="text-xs font-normal text-ink-faint">· {d.shown.length}</span>
-            </h4>
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {d.shown.map((c) => <Card key={`${d.dateISO}|${c.key}`} c={c} t={t} locale={locale} />)}
+        <>
+          {/* Calendario: una columna por fecha; en pantallas angostas se desliza horizontalmente. */}
+          <div className="overflow-x-auto -mx-1 px-1 pb-1">
+            <div className="grid grid-cols-7 gap-2 min-w-[980px]">
+              {days.map((d, i) => (
+                <div key={d.dateISO} id={`d-${d.dateISO}`} className="flex flex-col gap-1.5 scroll-mt-20">
+                  <div className={`rounded-lg px-2 py-1.5 text-center ${i === 0 ? "bg-brand text-white" : "bg-surface-sunken text-ink"}`}>
+                    <div className="text-xs font-semibold capitalize">{weekdayAbbr(d.dayOfWeek, locale)}{i === 0 ? ` · ${t("plan.week.today")}` : ""}</div>
+                    <div className={`text-[10px] ${i === 0 ? "text-white/80" : "text-ink-faint"}`}>{shortDate(d.dateISO, locale)}</div>
+                  </div>
+                  {d.shown.length === 0 ? (
+                    <div className="text-center text-xs text-ink-faint py-2">—</div>
+                  ) : (
+                    d.shown.map((c) => <Chip key={`${d.dateISO}|${c.key}`} c={c} t={t} />)
+                  )}
+                </div>
+              ))}
             </div>
           </div>
-        ))
+
+          {/* Detalle: las tarjetas completas de cada slot, plegadas para no ensuciar el calendario. */}
+          <details className="group rounded-xl bg-surface-sunken px-4 py-3">
+            <summary className="cursor-pointer select-none text-sm font-medium text-ink">{t("plan.week.detailToggle")}</summary>
+            <div className="mt-4 space-y-5">
+              {days.filter((d) => d.shown.length > 0).map((d) => (
+                <div key={d.dateISO}>
+                  <h4 className="font-display text-base font-bold text-ink mb-2 capitalize">
+                    {dayLabel(d.dateISO, d.dayOfWeek)} <span className="text-xs font-normal text-ink-faint">· {d.shown.length}</span>
+                  </h4>
+                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                    {d.shown.map((c) => <Card key={`${d.dateISO}|${c.key}`} c={c} t={t} locale={locale} />)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </details>
+        </>
       )}
 
       {plan.thinCount > 0 && <p className="text-xs text-ink-faint">{t("plan.week.thin", { n: plan.thinCount, min: MUST_SCHEDULE_MIN_SAMPLE })}</p>}

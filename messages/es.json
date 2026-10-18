@@ -1399,24 +1399,24 @@
     "rangeMonth": "Próximos 30 días",
     "windowLabel": "Próximos {n} días",
     "badge": "Predicción",
-    "disclaimer": "Estimación por regresión lineal sobre bloques históricos comparables ({n} de los últimos {lookback} disponibles) — no es un dato real ni partidos ya agendados. El rango de cada métrica muestra el margen de error (±1 desvío estándar histórico).",
+    "disclaimer": "Estimación por regresión lineal sobre bloques históricos comparables ({n} de los últimos {lookback} disponibles) — no es un dato real ni partidos ya agendados. Debajo de cada valor, el piso marca el escenario a revisar y el techo el que conviene sostener (± 1 desvío estándar histórico).",
     "methodAverage": "Poco historial para estimar tendencia — se usó el promedio simple de los últimos {n} bloques comparables.",
     "methodInsufficient": "Sin suficiente historial comparable para este filtro y este rango (se necesitan al menos {min} bloques, hay {n}).",
     "games": {
-      "label": "Partidos agendados esperados"
+      "label": "Partidos agendados proyectados"
     },
     "confirmation": {
-      "label": "Confirmación esperada"
+      "label": "Confirmación proyectada"
     },
     "occupancy": {
-      "label": "Ocupación esperada"
+      "label": "Ocupación proyectada"
     },
     "revenue": {
-      "label": "Revenue esperado",
+      "label": "Revenue proyectado",
       "lowConfidence": "Menor confiabilidad: combina precio, jugadores y volumen, las tres inciertas."
     },
     "breakdown": {
-      "title": "Desglose esperado",
+      "title": "Desglose proyectado",
       "confirmed": "Confirmados",
       "cancelled": "Cancelados"
     },
@@ -1427,7 +1427,7 @@
       "title": "Facilities a vigilar",
       "subtitle": "Tendencia propia proyectada hacia adelante ({range}) — solo las que muestran señales de deterioro.",
       "empty": "Ninguna facility de este filtro muestra una tendencia de deterioro proyectada.",
-      "cancelledLabel": "{n} cancelados esperados"
+      "cancelledLabel": "{n} cancelados proyectados"
     },
     "glossary": {
       "regression": {
@@ -1435,12 +1435,12 @@
         "def": "ajusta una línea de tendencia sobre los bloques históricos comparables y proyecta un paso más adelante — no es un promedio plano, refleja si la métrica viene subiendo o bajando."
       },
       "range": {
-        "term": "Rango (margen de error)",
-        "def": "± 1 desvío estándar de esos mismos bloques históricos — cuanto más irregular fue el historial, más ancho el rango."
+        "term": "Piso y techo",
+        "def": "± 1 desvío estándar de los mismos bloques históricos: el piso es el escenario bajo, a revisar si se materializa; el techo es el escenario alto, positivo y a sostener. Cuanto más irregular fue el historial, más separados están."
       },
       "risk": {
         "term": "Facilities a vigilar",
-        "def": "facilities cuya propia tendencia reciente, proyectada hacia adelante, empeora — mismo criterio de ranking que el radar de riesgo de Diario, pero mirando hacia adelante en vez de hacia atrás."
+        "def": "facilities cuya tasa de demanda proyectada cae al menos 1 punto bajo su propio promedio, o que proyectan muchos cancelados con confirmados por debajo de su promedio. Las de alza son las que proyectan confirmados por encima de su promedio sin caer la tasa."
       }
     },
     "insights": {
@@ -1454,7 +1454,8 @@
       "yoyUp": "El volumen esperado está {pct}% por encima de lo que pasó real en el mismo período el año pasado.",
       "yoyDown": "El volumen esperado está {pct}% por debajo de lo que pasó real en el mismo período el año pasado.",
       "riskTop": "{n} facilities muestran una tendencia de deterioro proyectada — la más marcada es {name}.",
-      "revenueCaveat": "El revenue esperado es el número menos confiable de este pronóstico: combina precio, jugadores y volumen, las tres inciertas."
+      "revenueCaveat": "El revenue esperado es el número menos confiable de este pronóstico: combina precio, jugadores y volumen, las tres inciertas.",
+      "upCount": "{n} facilities proyectan más confirmados que su promedio: conviene sostener lo que les está funcionando."
     },
     "plan": {
       "noData": "Este facility no tiene partidos en la ventana reciente: no hay base para armar el plan.",
@@ -1499,7 +1500,9 @@
         "definition": "Semáforo por tasa de demanda del slot en la ventana, con al menos {sample} ediciones. Verde: {green} o más (confirma sin problemas); si lo más reciente de la ventana cayó por debajo de {green}, pasa a ámbar. Ámbar: entre {floor} y {green} (variable: ni asegurado ni para sacar). Rojo: {floor} o menos. Asegurar cancha: se perdió por cancha no disponible en los últimos {days} días, con demanda sana o, si hay poca muestra, al menos dos pérdidas; es una marca aparte del color. La tendencia es la diferencia de {delta} puntos o más entre la primera y la segunda mitad de la ventana. Tasa de demanda = confirmados / (confirmados + cancelados por falta de jugadores). El contexto de cada tarjeta muestra las últimas {last} ediciones.",
         "limit": "La base no incluye partidos futuros: el calendario dice qué conviene tener, no qué falta publicar.",
         "stripSecure": "{n} asegurar",
-        "thin": "{n, plural, one {# slot con menos de {min} ediciones no se clasifica.} other {# slots con menos de {min} ediciones no se clasifican.}}"
+        "thin": "{n, plural, one {# slot con menos de {min} ediciones no se clasifica.} other {# slots con menos de {min} ediciones no se clasifican.}}",
+        "today": "Hoy",
+        "detailToggle": "Ver el detalle de cada slot (tarjetas)"
       },
       "month": {
         "title": "Panorama de los próximos 30 días",
@@ -1605,6 +1608,67 @@
         "badge": "Asegurar cancha",
         "desc": "Se perdió por cancha no disponible en los últimos {days} días: conviene reservar la cancha con anticipación."
       }
+    },
+    "bands": {
+      "low": "riesgo · a revisar",
+      "high": "positivo · a sostener",
+      "lowHint": "Piso de la proyección (−1 desvío estándar del historial). Si el valor real termina cerca de este número, hay algo para revisar.",
+      "highHint": "Techo de la proyección (+1 desvío estándar del historial). Si se llega a este número es una señal positiva a sostener."
+    },
+    "watch": {
+      "regionTitle": "Facilities a vigilar · {region}",
+      "regionEmpty": "Ninguna facility de {region} proyecta una baja.",
+      "noDriver": "Sin datos suficientes del último período para explicar el cambio.",
+      "downSummary": "Últimos {days} días vs. los {days} anteriores: {confirmedRecent} confirmados (antes {confirmedPrior}) y {cancelledRecent} cancelados (antes {cancelledPrior}).",
+      "upSummary": "Últimos {days} días vs. los {days} anteriores: {confirmedRecent} confirmados (antes {confirmedPrior}); tasa de demanda proyectada {rate}.",
+      "supply": "Se publicaron menos partidos ({prior} → {recent}): la merma viene de menos oferta.",
+      "reasonsGrowing": "Cancelaciones que más crecieron: {list}.",
+      "reasonsTop": "Motivos de cancelación más frecuentes: {list}.",
+      "slotsLost": "Slots que más confirmados perdieron: {list}.",
+      "slotsGained": "Slots que más aportaron: {list}.",
+      "suggestionLabel": "Sugerencia:",
+      "reasonUnspecified": "Sin motivo cargado",
+      "confirmedDelta": "{n} confirmados vs. su promedio",
+      "suggest": {
+        "NOT_ENOUGH_PLAYERS": "Revisar precio y promoción de los horarios con menos inscriptos y concentrar la oferta en los slots que sí confirman.",
+        "FACILITY_UNAVAILABLE": "Confirmar la disponibilidad de cancha con la facility antes de publicar y asegurar con reserva anticipada los slots críticos.",
+        "WEATHER": "Definir una alternativa (cancha techada u otro horario) para los días de mal clima y avisar a los jugadores con anticipación.",
+        "MAINTENANCE": "Pedir a la facility su calendario de mantenimiento y no publicar esas fechas.",
+        "HOLIDAY": "Revisar el calendario de feriados y ajustar la oferta de esos días antes de publicarla.",
+        "OTHER": "Revisar caso por caso los motivos cargados como Otro para ver si hay una causa que se repite.",
+        "PLUGIN": "Coordinar con el equipo que maneja el plugin por qué se cancelan estos partidos.",
+        "UNSPECIFIED": "Cargar el motivo de cada cancelación: sin motivo no se puede saber qué corregir.",
+        "supply": "Hablar con la facility sobre por qué se publica menos y recuperar los horarios que se dejaron de ofrecer.",
+        "generic": "Revisar los slots de la facility uno por uno en su calendario de Pronóstico.",
+        "up": "Sostener estos horarios publicados y asegurar la cancha con anticipación para no perderlos."
+      },
+      "up": {
+        "title": "Facilities en alza",
+        "subtitle": "Proyectan más confirmados que su propio promedio ({range}), sin que baje su tasa de demanda.",
+        "empty": "Ninguna facility de este filtro proyecta un alza."
+      },
+      "breakdown": {
+        "title": "Facilities con más peso en la proyección",
+        "subtitle": "Las que más empujan sus confirmados proyectados por encima o por debajo de su propio promedio. Agendados = confirmados + cancelados.",
+        "facility": "Facility",
+        "scheduled": "Agendados proy.",
+        "confirmed": "Confirmados proy.",
+        "vsAvg": "vs. promedio",
+        "rate": "Tasa proy.",
+        "leadTime": "Tiempo de confirmación",
+        "leadTimeHint": "Horas promedio entre la confirmación y el partido en el último período, y su variación contra el anterior. Si baja, los jugadores confirman más cerca del partido: posible señal de menor engagement."
+      },
+      "glossary": {
+        "vsAvg": {
+          "term": "vs. promedio",
+          "def": "confirmados proyectados menos el promedio de confirmados por bloque del historial de esa facility."
+        },
+        "leadTime": {
+          "term": "Tiempo de confirmación",
+          "def": "es un indicio, no una prueba: puede bajar por menos engagement o por más demanda de último momento, así que se lee junto con la tasa."
+        }
+      },
+      "projDown": "{delta} confirmados vs. su promedio · {n} cancelados proyectados"
     }
   },
   "Seasonality": {
