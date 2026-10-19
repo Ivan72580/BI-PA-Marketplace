@@ -2717,6 +2717,59 @@
     "forecast": {
       "title": "Forecast",
       "disclaimer": "Projection based on the facility's history; not confirmed data."
+    },
+    "deep": {
+      "window": "last {n} days",
+      "vsPrior": "before: {n}"
+    },
+    "slots": {
+      "heatEmpty": "No games in the window.",
+      "cellTip": "{day} {hour}h · {n} published, {conf} confirmed · demand {rate} · facility unavailable: {field}",
+      "fieldMark": "Had facility unavailable",
+      "lowSample": "sample < {n}",
+      "field": "Field",
+      "fieldUnknown": "No field data",
+      "heatTitle": "Slot map",
+      "heatSub": "Demand rate by day and hour over the last {n} days; below, the published count.",
+      "fieldTitle": "By field",
+      "fieldSub": "How each field performs and how much is lost to facility unavailable.",
+      "boardTitle": "To schedule, secure and avoid",
+      "boardSub": "Slots worth keeping scheduled or avoiding, based on the last 3 months.",
+      "stat": {
+        "fields": "Fields",
+        "slots": "Distinct slots",
+        "slotsSub": "day × hour",
+        "published": "Published",
+        "fieldSub": "of published"
+      }
+    },
+    "demand": {
+      "ofN": "of {n}",
+      "format": "Format",
+      "noCancel": "No cancellations in the window.",
+      "reasonsTitle": "Why games get cancelled",
+      "reasonsSub": "Cancellations by reason, against the previous 90 days. Facility unavailable is highlighted.",
+      "weekdayTitle": "Demand by weekday",
+      "weekdaySub": "Demand rate; bar colour follows the traffic light.",
+      "formatTitle": "By format",
+      "statVs": "before: {pct}",
+      "waitlistSub": "players waiting for a spot",
+      "droppedSub": "left the game"
+    },
+    "price": {
+      "month": "Month",
+      "partial": "partial",
+      "noPrice": "No prices loaded.",
+      "vsPrior": "vs prior 90 d",
+      "perGame": "Revenue per game",
+      "perGameSub": "confirmed",
+      "playersPerGame": "Players per game",
+      "monthlyTitle": "Revenue and ticket by month",
+      "monthlySub": "Last 13 months; the latest month runs up to the reference date.",
+      "formatTitle": "Ticket by format",
+      "formatSub": "Change vs the previous 90 days.",
+      "hourTitle": "Ticket by hour",
+      "caveat": "Estimated revenue = price × final players of confirmed games; not actual billing."
     }
   }
 }

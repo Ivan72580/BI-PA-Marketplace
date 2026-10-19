@@ -2717,6 +2717,59 @@
     "forecast": {
       "title": "Pronóstico",
       "disclaimer": "Proyección según el historial del facility; no es un dato confirmado."
+    },
+    "deep": {
+      "window": "últimos {n} días",
+      "vsPrior": "antes: {n}"
+    },
+    "slots": {
+      "heatEmpty": "Sin partidos en la ventana.",
+      "cellTip": "{day} {hour}h · {n} publicados, {conf} confirmados · demanda {rate} · cancha no disponible: {field}",
+      "fieldMark": "Hubo cancha no disponible",
+      "lowSample": "muestra < {n}",
+      "field": "Cancha",
+      "fieldUnknown": "Sin dato de cancha",
+      "heatTitle": "Mapa de slots",
+      "heatSub": "Tasa de demanda por día y hora en los últimos {n} días; abajo, la cantidad publicada.",
+      "fieldTitle": "Por cancha",
+      "fieldSub": "Cómo rinde cada cancha y cuánto se pierde por cancha no disponible.",
+      "boardTitle": "A agendar, asegurar y evitar",
+      "boardSub": "Slots que, según los últimos 3 meses, conviene mantener agendados o evitar.",
+      "stat": {
+        "fields": "Canchas",
+        "slots": "Slots distintos",
+        "slotsSub": "día × hora",
+        "published": "Publicados",
+        "fieldSub": "de lo publicado"
+      }
+    },
+    "demand": {
+      "ofN": "de {n}",
+      "format": "Formato",
+      "noCancel": "Sin cancelaciones en la ventana.",
+      "reasonsTitle": "Por qué se cancela",
+      "reasonsSub": "Cancelaciones por motivo, contra los 90 días anteriores. Cancha no disponible va resaltado.",
+      "weekdayTitle": "Demanda por día de la semana",
+      "weekdaySub": "Tasa de demanda; la barra se colorea con el semáforo.",
+      "formatTitle": "Por formato",
+      "statVs": "antes: {pct}",
+      "waitlistSub": "jugadores esperando lugar",
+      "droppedSub": "se bajaron del partido"
+    },
+    "price": {
+      "month": "Mes",
+      "partial": "parcial",
+      "noPrice": "Sin precios cargados.",
+      "vsPrior": "vs 90 d previos",
+      "perGame": "Revenue por partido",
+      "perGameSub": "confirmados",
+      "playersPerGame": "Jugadores por partido",
+      "monthlyTitle": "Revenue y ticket por mes",
+      "monthlySub": "Últimos 13 meses; el último mes llega hasta la fecha de referencia.",
+      "formatTitle": "Ticket por formato",
+      "formatSub": "Cambio contra los 90 días anteriores.",
+      "hourTitle": "Ticket por hora",
+      "caveat": "Revenue estimado = precio × jugadores finales de partidos confirmados; no es facturación real."
     }
   }
 }

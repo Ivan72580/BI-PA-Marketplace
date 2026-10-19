@@ -11,9 +11,9 @@ import DatePicker from "./DatePicker";
 export const LAYERS = [
   { id: "ahora", key: "now", built: true },
   { id: "pronostico", key: "forecast", built: true },
-  { id: "slots", key: "slots", built: false },
-  { id: "demanda", key: "demand", built: false },
-  { id: "precio", key: "price", built: false },
+  { id: "slots", key: "slots", built: true },
+  { id: "demanda", key: "demand", built: true },
+  { id: "precio", key: "price", built: true },
   { id: "tendencia", key: "trend", built: false },
   { id: "posicion", key: "position", built: false },
   { id: "relacion", key: "relation", built: false },
