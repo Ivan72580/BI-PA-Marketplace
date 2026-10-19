@@ -361,10 +361,9 @@
     "landing": {
       "pickPrompt": "Elegí una región y un market para ver el detalle",
       "pickHint": "Mezclar mercados muy distintos entre sí no aporta información accionable.",
-      "networkSectionTitle": "Así viene {scope} en general",
-      "networkSectionHint": "Resumen rápido de este alcance — no reemplaza el detalle de abajo, es contexto para decidir dónde mirar primero.",
-      "topMoversTitle": "Markets que más se movieron este mes",
-      "topMoversSubtitle": "Variación de tasa de confirmación vs. mes anterior — hacé clic para ver el detalle",
+      "networkSectionTitle": "{scope}",
+      "topMoversTitle": "Markets",
+      "topMoversSubtitle": "tasa del mes · vs. mes anterior",
       "topMoversEmpty": "Sin datos suficientes este mes.",
       "confirmationOf": "{pct} de confirmación · {n} partidos",
       "bestDayTitle": "Mejor día para confirmar",
@@ -378,19 +377,25 @@
       "occupancyShort": "Ocup.",
       "conversionShort": "Conv.",
       "map": {
-        "title": "Dónde mirar",
-        "subtitle": "Un círculo por market, este mes. Tocá uno para ver su mejor día, horario y formato al lado (mínimo {n} partidos por fila).",
         "rateLabel": "Tasa de demanda",
         "gamesLabel": "publicados",
         "legendOk": "Tasa de demanda por encima de {pct}%",
         "legendLow": "Tasa de demanda de {pct}% o menos",
         "sizeHint": "Tamaño: partidos publicados del mes. Borde punteado: ubicación aproximada.",
-        "panelTitle": "Mejor día, horario y formato — {scope}",
-        "panelHint": "Sin market enfocado: se muestra el alcance completo. Tocá un círculo para acotarlo.",
-        "panelFocusHint": "Solo este market. Mejor = mayor tasa de demanda (mínimo {n} partidos).",
         "openMarket": "Abrir Trends de {market} →",
         "clearFocus": "Quitar selección"
-      }
+      },
+      "focusing": "Mostrando solo {market}",
+      "kpi": {
+        "rate": "Tasa de demanda del mes",
+        "rateSub": "▲ {up} markets · ▼ {down} markets",
+        "bestDay": "Mejor día",
+        "bestDaySub": "{pct} · peor: {worst} ({worstPct})",
+        "bestHour": "Mejor horario",
+        "bestFormat": "Mejor formato",
+        "rateGames": "{pct} · {n} partidos"
+      },
+      "detailNote": "Mejor día, horario y formato: histórico completo, mínimo {n} partidos por fila (formatos y horarios: top 6). Mejor = mayor tasa de demanda."
     },
     "quarterInsight": {
       "noVariation": "{label}: sin variación relevante entre trimestres.",

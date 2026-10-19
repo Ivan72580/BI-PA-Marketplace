@@ -103,5 +103,5 @@ export default function LandingMap({
     }
   }, [bubbles, selectedKey, rateLabel, gamesLabel, router, mapReady]);
 
-  return <div ref={containerRef} className="h-[380px] w-full rounded-xl overflow-hidden z-0" />;
+  return <div ref={containerRef} className="h-[400px] w-full rounded-xl overflow-hidden z-0" />;
 }

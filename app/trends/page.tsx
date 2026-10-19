@@ -40,6 +40,7 @@ import DatePicker from "../components/DatePicker";
 import LinkSelect from "../components/LinkSelect";
 import Tabs from "../components/Tabs";
 import GroupSection from "../components/GroupSection";
+import StatStrip, { type Stat } from "../components/StatStrip";
 import Glossary from "../components/Glossary";
 import DetalleTable from "../components/DetalleTable";
 import ChangeBadge from "../components/ChangeBadge";
@@ -306,7 +307,6 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
         const regionMeta = new Map<string, RegionMeta>(
           filterOptions.regions.map((r: RegionMeta): [string, RegionMeta] => [r.id, r])
         );
-        const topMovers = marketMovers.filter((m: { marketId: string }) => marketMeta.has(m.marketId)).slice(0, 10);
         const hourRows = [...hourPattern]
           .filter((h) => h.totalGames >= MIN_SAMPLE_FOR_RATE_BAR)
           .sort((a, b) => b.confirmationRate - a.confirmationRate)
@@ -341,118 +341,109 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
           }
         }
 
+        // Indicadores de arriba: la tasa del mes sale del mismo ranking de markets (ponderada por partidos
+        // publicados); mejor día/horario/formato son históricos (mínimo de muestra por fila, igual que las barras).
+        const ranked = marketMovers.filter((m: { marketId: string }) => marketMeta.has(m.marketId));
+        const gamesTotal = ranked.reduce((acc: number, m: { totalGames: number }) => acc + m.totalGames, 0);
+        const monthRate = gamesTotal > 0 ? ranked.reduce((acc: number, m: { totalGames: number; confirmationRate: number }) => acc + m.confirmationRate * m.totalGames, 0) / gamesTotal : null;
+        const upCount = ranked.filter((m: { changePts: number | null }) => m.changePts !== null && m.changePts >= 0.01).length;
+        const downCount = ranked.filter((m: { changePts: number | null }) => m.changePts !== null && m.changePts <= -0.01).length;
+        const dayRanked = [...dayPattern].filter((d) => d.totalGames >= MIN_SAMPLE_FOR_RATE_BAR).sort((x, y) => y.confirmationRate - x.confirmationRate);
+        const bestDay = dayRanked[0];
+        const worstDay = dayRanked.length > 1 ? dayRanked[dayRanked.length - 1] : undefined;
+        const landingStats: Stat[] = [];
+        if (!hasMarket && monthRate !== null) {
+          landingStats.push({ label: t("landing.kpi.rate"), value: formatPct(monthRate), sub: t("landing.kpi.rateSub", { up: upCount, down: downCount }) });
+        }
+        if (bestDay) {
+          landingStats.push({ label: t("landing.kpi.bestDay"), value: bestDay.label, tone: "good", sub: t("landing.kpi.bestDaySub", { pct: formatPct(bestDay.confirmationRate), worst: worstDay?.label ?? "—", worstPct: worstDay ? formatPct(worstDay.confirmationRate) : "—" }) });
+        }
+        if (hourRows[0]) landingStats.push({ label: t("landing.kpi.bestHour"), value: hourRows[0].label, tone: "good", sub: t("landing.kpi.rateGames", { pct: formatPct(hourRows[0].confirmationRate), n: hourRows[0].totalGames.toLocaleString("en-US") }) });
+        if (formatRows[0]) landingStats.push({ label: t("landing.kpi.bestFormat"), value: formatRows[0].label, tone: "good", sub: t("landing.kpi.rateGames", { pct: formatPct(formatRows[0].confirmationRate), n: formatRows[0].totalGames.toLocaleString("en-US") }) });
+
         return (
-          <GroupSection title={t("landing.networkSectionTitle", { scope: scopeLabel })}>
-            <p className="text-xs text-ink-faint -mt-1">{t("landing.networkSectionHint")}</p>
+          <GroupSection title={t("landing.networkSectionTitle", { scope: patternScopeLabel })}>
+            {focusMarket && (
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+                <span className="text-ink-muted">{t("landing.focusing", { market: focusMarket.name })}</span>
+                <Link href={buildTrendsQuery(sp, { regionId: focusMarket.regionId, marketId: focusMarket.id, focus: undefined })} className="text-brand hover:underline">{t("landing.map.openMarket", { market: focusMarket.name })}</Link>
+                <Link href={buildTrendsQuery(sp, { focus: undefined })} className="text-ink-faint hover:underline">{t("landing.map.clearFocus")}</Link>
+              </div>
+            )}
 
-            {/* Ranking entre markets + clima trimestral: solo tienen sentido
-                mirando más de un market a la vez (red completa o región) —
-                una vez que ya se eligió un market puntual, Panorama ya
-                muestra su propio QuarterClimate en el header de abajo, así
-                que acá no se repite. */}
+            {landingStats.length > 0 && <StatStrip stats={landingStats} />}
+
+            {/* Mapa + ranking de markets, a la misma altura (el ranking scrollea por dentro). Solo con más de un market. */}
             {!hasMarket && (
-              <div className="grid grid-cols-1 lg:grid-cols-[1.6fr_1fr] gap-5">
-                <SectionCard title={t("landing.topMoversTitle")} subtitle={t("landing.topMoversSubtitle")}>
-                  {topMovers.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
-                      {topMovers.map((m) => {
-                        const market = marketMeta.get(m.marketId)!;
-                        const region = regionMeta.get(market.regionId);
-                        const href = buildTrendsQuery(sp, { regionId: market.regionId, marketId: m.marketId });
-                        return (
-                          <Link
-                            key={m.marketId}
-                            href={href}
-                            className="flex items-center justify-between gap-3 rounded-xl px-2 py-2.5 -mx-2 hover:bg-surface-sunken transition-colors"
-                          >
-                            <div className="min-w-0">
-                              <div className="text-sm font-medium text-ink truncate">
-                                {market.name} {region && <span className="text-ink-faint font-normal">· {region.name}</span>}
-                              </div>
-                              <div className="text-xs text-ink-faint">
-                                {t("landing.confirmationOf", { pct: formatPct(m.confirmationRate), n: m.totalGames.toLocaleString("en-US") })}
-                              </div>
-                            </div>
-                            <ChangeBadge
-                              value={m.changePts}
-                              unit="pts"
-                              secondary={m.priorConfirmationRate !== null ? t("landing.vsPriorRate", { pct: formatPct(m.priorConfirmationRate) }) : undefined}
-                            />
-                          </Link>
-                        );
-                      })}
+              <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-4">
+                {landingBubbles.length > 0 && (
+                  <div className="rounded-2xl bg-surface shadow-sm p-3">
+                    <LandingMap bubbles={landingBubbles} selectedKey={focusMarket?.id ?? null} rateLabel={t("landing.map.rateLabel")} gamesLabel={t("landing.map.gamesLabel")} />
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-[11px] text-ink-faint" title={t("landing.map.sizeHint")}>
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-brand" aria-hidden="true" />{t("landing.map.legendOk", { pct: Math.round(MUST_SCHEDULE_MIN_RATE * 100) })}</span>
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-danger" aria-hidden="true" />{t("landing.map.legendLow", { pct: Math.round(MUST_SCHEDULE_MIN_RATE * 100) })}</span>
                     </div>
-                  ) : (
-                    <div className="text-sm text-ink-faint">{t("landing.topMoversEmpty")}</div>
-                  )}
-                </SectionCard>
-
-                <div className="space-y-3">
-                  <div className="flex justify-center">
-                    <QuarterClimate points={climatePoints} />
                   </div>
-                  {quarterInsights.length > 0 && (
-                    <ul className="text-[11px] text-ink-faint space-y-1 max-w-[220px] mx-auto list-disc pl-4">
-                      {quarterInsights.map((line) => (
-                        <li key={line}>{line}</li>
-                      ))}
-                    </ul>
-                  )}
+                )}
+                <div className={`relative ${landingBubbles.length > 0 ? "lg:min-h-[300px]" : ""}`}>
+                  <div className={`rounded-2xl bg-surface shadow-sm p-4 flex flex-col ${landingBubbles.length > 0 ? "lg:absolute lg:inset-0" : ""}`}>
+                    <div className="flex items-baseline justify-between gap-2 mb-2">
+                      <h3 className="text-sm font-medium text-ink">{t("landing.topMoversTitle")}</h3>
+                      <span className="text-[11px] text-ink-faint">{t("landing.topMoversSubtitle")}</span>
+                    </div>
+                    {ranked.length > 0 ? (
+                      <div className="flex-1 min-h-0 max-h-[420px] lg:max-h-none overflow-y-auto -mx-2 px-2">
+                        {ranked.map((m: { marketId: string; confirmationRate: number; totalGames: number; changePts: number | null }) => {
+                          const market = marketMeta.get(m.marketId)!;
+                          const region = regionMeta.get(market.regionId);
+                          const href = buildTrendsQuery(sp, { regionId: market.regionId, marketId: m.marketId });
+                          return (
+                            <Link
+                              key={m.marketId}
+                              href={href}
+                              title={t("landing.confirmationOf", { pct: formatPct(m.confirmationRate), n: m.totalGames.toLocaleString("en-US") })}
+                              className={`block rounded-xl px-2 py-2 hover:bg-surface-sunken transition-colors ${focusMarket?.id === m.marketId ? "bg-surface-sunken" : ""}`}
+                            >
+                              <div className="flex items-center justify-between gap-3">
+                                <span className="text-sm text-ink truncate">{market.name}{region && <span className="text-ink-faint text-xs"> · {region.name}</span>}</span>
+                                <span className="flex items-center gap-2 shrink-0">
+                                  <span className="text-sm font-semibold text-ink">{formatPct(m.confirmationRate)}</span>
+                                  <ChangeBadge value={m.changePts} unit="pts" />
+                                </span>
+                              </div>
+                              <div className="h-1 rounded-full bg-surface-sunken mt-1.5">
+                                <div className={`h-1 rounded-full ${m.confirmationRate > MUST_SCHEDULE_MIN_RATE ? "bg-brand" : "bg-danger"}`} style={{ width: `${Math.min(100, m.confirmationRate * 100)}%` }} />
+                              </div>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-ink-faint">{t("landing.topMoversEmpty")}</div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
 
-            {hasMarket || landingBubbles.length === 0 ? (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-                <SectionCard title={t("landing.bestDayTitle")} subtitle={t("landing.bestDaySubtitle", { scope: scopeLabel })}>
-                  <RateBarList rows={dayPattern} emptyLabel={t("rateBarEmpty")} occupancyLabel={t("landing.occupancyShort")} conversionLabel={t("landing.conversionShort")} />
-                </SectionCard>
-                <SectionCard title={t("landing.bestHourTitle")} subtitle={t("landing.bestHourSubtitle", { scope: scopeLabel, n: MIN_SAMPLE_FOR_RATE_BAR })}>
-                  <RateBarList rows={hourRows} emptyLabel={t("rateBarEmpty")} occupancyLabel={t("landing.occupancyShort")} conversionLabel={t("landing.conversionShort")} />
-                </SectionCard>
-                <SectionCard title={t("landing.bestFormatTitle")} subtitle={t("landing.bestFormatSubtitle", { scope: scopeLabel, n: MIN_SAMPLE_FOR_RATE_BAR })}>
-                  <RateBarList rows={formatRows} emptyLabel={t("rateBarEmpty")} />
-                </SectionCard>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-5">
-                <SectionCard title={t("landing.map.title")} subtitle={t("landing.map.subtitle", { n: MIN_SAMPLE_FOR_RATE_BAR })}>
-                  <LandingMap bubbles={landingBubbles} selectedKey={focusMarket?.id ?? null} rateLabel={t("landing.map.rateLabel")} gamesLabel={t("landing.map.gamesLabel")} />
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-[11px] text-ink-faint">
-                    <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-brand" aria-hidden="true" />{t("landing.map.legendOk", { pct: Math.round(MUST_SCHEDULE_MIN_RATE * 100) })}</span>
-                    <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-danger" aria-hidden="true" />{t("landing.map.legendLow", { pct: Math.round(MUST_SCHEDULE_MIN_RATE * 100) })}</span>
-                    <span>{t("landing.map.sizeHint")}</span>
-                  </div>
-                </SectionCard>
-                <SectionCard
-                  title={t("landing.map.panelTitle", { scope: patternScopeLabel })}
-                  subtitle={focusMarket ? t("landing.map.panelFocusHint", { n: MIN_SAMPLE_FOR_RATE_BAR }) : t("landing.map.panelHint")}
-                  action={
-                    focusMarket ? (
-                      <div className="flex flex-col items-end gap-0.5 text-xs">
-                        <Link href={buildTrendsQuery(sp, { regionId: focusMarket.regionId, marketId: focusMarket.id, focus: undefined })} className="text-brand hover:underline">{t("landing.map.openMarket", { market: focusMarket.name })}</Link>
-                        <Link href={buildTrendsQuery(sp, { focus: undefined })} className="text-ink-faint hover:underline">{t("landing.map.clearFocus")}</Link>
-                      </div>
-                    ) : undefined
-                  }
-                >
-                  <div className="space-y-5">
-                    <div>
-                      <div className="text-xs font-semibold text-ink mb-2">{t("landing.bestDayTitle")}</div>
-                      <RateBarList rows={dayPattern} emptyLabel={t("rateBarEmpty")} occupancyLabel={t("landing.occupancyShort")} conversionLabel={t("landing.conversionShort")} />
-                    </div>
-                    <div>
-                      <div className="text-xs font-semibold text-ink mb-2">{t("landing.bestHourTitle")}</div>
-                      <RateBarList rows={hourRows} emptyLabel={t("rateBarEmpty")} occupancyLabel={t("landing.occupancyShort")} conversionLabel={t("landing.conversionShort")} />
-                    </div>
-                    <div>
-                      <div className="text-xs font-semibold text-ink mb-2">{t("landing.bestFormatTitle")}</div>
-                      <RateBarList rows={formatRows} emptyLabel={t("rateBarEmpty")} />
-                    </div>
-                  </div>
-                </SectionCard>
-              </div>
-            )}
+            {/* Detalle compacto: día, horario, formato y (con más de un market) clima por trimestre. */}
+            <div className={`grid grid-cols-1 sm:grid-cols-2 ${hasMarket ? "lg:grid-cols-3" : "lg:grid-cols-4"} gap-4`}>
+              <SectionCard title={t("landing.bestDayTitle")}>
+                <RateBarList rows={dayPattern} emptyLabel={t("rateBarEmpty")} />
+              </SectionCard>
+              <SectionCard title={t("landing.bestHourTitle")}>
+                <RateBarList rows={hourRows.slice(0, 6)} emptyLabel={t("rateBarEmpty")} />
+              </SectionCard>
+              <SectionCard title={t("landing.bestFormatTitle")}>
+                <RateBarList rows={formatRows.slice(0, 6)} emptyLabel={t("rateBarEmpty")} />
+              </SectionCard>
+              {!hasMarket && (
+                <div className="flex justify-center items-start" title={quarterInsights.join(" · ")}>
+                  <QuarterClimate points={climatePoints} />
+                </div>
+              )}
+            </div>
+            <p className="text-[11px] text-ink-faint">{t("landing.detailNote", { n: MIN_SAMPLE_FOR_RATE_BAR })}</p>
           </GroupSection>
         );
       })();
