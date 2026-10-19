@@ -16,6 +16,7 @@ import { parse } from "csv-parse/sync";
 import { extractFieldName } from "./lib/fieldName";
 import { categorizeCancellation } from "./lib/cancellation";
 import fs from "fs";
+import path from "path";
 import { notifyRevalidate } from "./lib/revalidate";
 
 const prisma = new PrismaClient();
@@ -111,7 +112,34 @@ function toFloatOrNull(v: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+
+// Antes de leer el CSV: ¿la base tiene el esquema que este código espera? Un import contra una base a la que le
+// faltan migraciones fallaba recién en el createMany (enum sin el valor nuevo) después de leer y procesar todo el
+// archivo. Los valores de enum que faltan son fatales (el import no puede escribir); las migraciones pendientes
+// en general solo avisan, porque no todas afectan al import.
+async function checkSchema() {
+  const labels = (await prisma.$queryRaw<{ label: string }[]>`SELECT unnest(enum_range(NULL::"CancellationCategory"))::text AS label`).map((r) => r.label);
+  const missing = Object.values(CancellationCategory).filter((v) => !labels.includes(v));
+  let pending: string[] = [];
+  try {
+    const applied = new Set((await prisma.$queryRaw<{ migration_name: string }[]>`SELECT migration_name FROM _prisma_migrations WHERE finished_at IS NOT NULL`).map((r) => r.migration_name));
+    const dir = path.join(__dirname, "..", "prisma", "migrations");
+    pending = fs.readdirSync(dir, { withFileTypes: true }).filter((d) => d.isDirectory() && !applied.has(d.name)).map((d) => d.name).sort();
+  } catch {
+    // sin tabla de migraciones (base no gestionada por migrate): no se puede comparar
+  }
+  if (pending.length > 0) {
+    console.warn(`AVISO: a la base le faltan ${pending.length} migración(es): ${pending.join(", ")}.`);
+  }
+  if (missing.length > 0) {
+    console.error(`La base no tiene los valores ${missing.join(", ")} del enum CancellationCategory: está desactualizada respecto del código.`);
+    console.error(`Aplicá las migraciones a ESA base y volvé a correr el import:  npx prisma migrate deploy  (con su DATABASE_URL / DIRECT_URL).`);
+    process.exit(1);
+  }
+}
+
 async function main() {
+  await checkSchema();
   const path = process.argv[2];
   if (!path) {
     console.error("Uso: npx tsx scripts/import-csv.ts /ruta/al/archivo.csv");
