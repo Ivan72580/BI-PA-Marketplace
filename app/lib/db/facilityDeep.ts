@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { prisma } from "./prisma";
 import { cached } from "./cache";
 import { getLatestDataDate } from "./freshness";
@@ -71,9 +72,9 @@ async function getFacilityDeepImpl(facilityId: string, refISO: string): Promise<
 
 const getFacilityDeepCached = cached("getFacilityDeep", getFacilityDeepImpl);
 
-export async function getFacilityDeep(facilityId: string, requestedRef?: string): Promise<FacilityDeep | null> {
+export const getFacilityDeep = cache(async function getFacilityDeep(facilityId: string, requestedRef?: string): Promise<FacilityDeep | null> {
   const latest = await getLatestDataDate();
   if (!latest) return null;
   const ref = requestedRef && /^\d{4}-\d{2}-\d{2}$/.test(requestedRef) && requestedRef <= latest ? requestedRef : latest;
   return getFacilityDeepCached(facilityId, ref);
-}
+});

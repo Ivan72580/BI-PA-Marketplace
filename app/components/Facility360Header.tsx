@@ -14,9 +14,9 @@ export const LAYERS = [
   { id: "slots", key: "slots", built: true },
   { id: "demanda", key: "demand", built: true },
   { id: "precio", key: "price", built: true },
-  { id: "tendencia", key: "trend", built: false },
-  { id: "posicion", key: "position", built: false },
-  { id: "relacion", key: "relation", built: false },
+  { id: "tendencia", key: "trend", built: true },
+  { id: "posicion", key: "position", built: true },
+  { id: "relacion", key: "relation", built: true },
 ] as const;
 
 export default async function Facility360Header({

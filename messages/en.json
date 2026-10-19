@@ -2770,6 +2770,56 @@
       "formatSub": "Change vs the previous 90 days.",
       "hourTitle": "Ticket by hour",
       "caveat": "Estimated revenue = price × final players of confirmed games; not actual billing."
+    },
+    "trend": {
+      "windowNote": "Last 13 months; the trend compares the last 3 full months against the 3 before.",
+      "stat": {
+        "demand": "Demand (3 months)",
+        "published": "Published (3 months)",
+        "revenue": "Estimated revenue (3 months)",
+        "noPrior": "no prior period"
+      },
+      "monthlyTitle": "Monthly evolution",
+      "seasonTitle": "Facility seasonality",
+      "seasonSub": "Demand index by month (1.00 = average). Above 1.10 is high season; below 0.90, low.",
+      "seasonNone": "Not enough history yet ({n} full months) to compute seasonality.",
+      "seasonProvisional": "Provisional index: only {n} full months.",
+      "seasonTip": "Index {index} · facility unavailable {unavail}",
+      "high": "High",
+      "mid": "Mid",
+      "low": "Low",
+      "fieldMonth": "month with facility unavailable ≥ 10%"
+    },
+    "position": {
+      "note": "Within the market, last {n} days.",
+      "none": "No games for this facility in the period.",
+      "share": "Market weight",
+      "shareSub": "{pct} of confirmed · {market}",
+      "rankConfirmed": "Rank by confirmed",
+      "rankSub": "{n} confirmed",
+      "demandVsMarket": "Demand",
+      "vs": "Market: {market} ({diff} pts)",
+      "fieldVsMarket": "Facility unavailable",
+      "vsField": "Market: {market}",
+      "rating": "Rating",
+      "ratingRank": "#{rank} of {of} · {n} reviews",
+      "ratingN": "{n} reviews (too few to rank)",
+      "noRating": "no reviews",
+      "price": "Average ticket",
+      "priceSub": "Market: {market}",
+      "rankingTitle": "{market} ranking",
+      "rankingSub": "By confirmed games; on the right, the demand rate.",
+      "rankFoot": "By demand: #{d} of {df} · by lowest facility unavailable: #{f} of {ff} (only facilities with enough sample)."
+    },
+    "relation": {
+      "noReviews": "No player reviews for this facility yet.",
+      "logTitle": "Log",
+      "openLog": "Open Log →",
+      "logEmpty": "No entries yet.",
+      "logMore": "There are more entries in the Log.",
+      "notesTitle": "Weekly log notes (90 days)",
+      "openProfile": "See profile →",
+      "notesEmpty": "No linked notes."
     }
   }
 }

@@ -2770,6 +2770,56 @@
       "formatSub": "Cambio contra los 90 días anteriores.",
       "hourTitle": "Ticket por hora",
       "caveat": "Revenue estimado = precio × jugadores finales de partidos confirmados; no es facturación real."
+    },
+    "trend": {
+      "windowNote": "Los últimos 13 meses; la tendencia compara los últimos 3 meses completos contra los 3 anteriores.",
+      "stat": {
+        "demand": "Demanda (3 meses)",
+        "published": "Publicados (3 meses)",
+        "revenue": "Revenue estimado (3 meses)",
+        "noPrior": "sin período previo"
+      },
+      "monthlyTitle": "Evolución mensual",
+      "seasonTitle": "Estacionalidad de la facility",
+      "seasonSub": "Índice de demanda por mes (1.00 = promedio). Más de 1.10 es temporada alta; menos de 0.90, baja.",
+      "seasonNone": "Todavía no hay historial suficiente ({n} meses completos) para calcular la estacionalidad.",
+      "seasonProvisional": "Índice provisional: hay solo {n} meses completos.",
+      "seasonTip": "Índice {index} · cancha no disponible {unavail}",
+      "high": "Alta",
+      "mid": "Media",
+      "low": "Baja",
+      "fieldMonth": "mes con cancha no disponible ≥ 10%"
+    },
+    "position": {
+      "note": "Dentro del market, últimos {n} días.",
+      "none": "Sin partidos de la facility en el período.",
+      "share": "Peso en el market",
+      "shareSub": "{pct} de los confirmados · {market}",
+      "rankConfirmed": "Ranking por confirmados",
+      "rankSub": "{n} confirmados",
+      "demandVsMarket": "Demanda",
+      "vs": "Market: {market} ({diff} pts)",
+      "fieldVsMarket": "Cancha no disponible",
+      "vsField": "Market: {market}",
+      "rating": "Rating",
+      "ratingRank": "#{rank} de {of} · {n} reviews",
+      "ratingN": "{n} reviews (pocas para rankear)",
+      "noRating": "sin reviews",
+      "price": "Ticket promedio",
+      "priceSub": "Market: {market}",
+      "rankingTitle": "Ranking de {market}",
+      "rankingSub": "Por partidos confirmados; a la derecha, la tasa de demanda.",
+      "rankFoot": "Por demanda: #{d} de {df} · por menor cancha no disponible: #{f} de {ff} (solo facilities con muestra suficiente)."
+    },
+    "relation": {
+      "noReviews": "Todavía no hay reviews de jugadores para esta facility.",
+      "logTitle": "Bitácora",
+      "openLog": "Abrir Bitácora →",
+      "logEmpty": "Sin entradas todavía.",
+      "logMore": "Hay más entradas en la Bitácora.",
+      "notesTitle": "Notas del Registro semanal (90 días)",
+      "openProfile": "Ver perfil →",
+      "notesEmpty": "Sin notas vinculadas."
     }
   }
 }

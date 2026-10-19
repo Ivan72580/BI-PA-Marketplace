@@ -6,6 +6,9 @@ import Facility360Header from "../components/Facility360Header";
 import Facility360Now from "../components/Facility360Now";
 import Facility360Forecast from "../components/Facility360Forecast";
 import Facility360Deep from "../components/Facility360Deep";
+import Facility360Trend from "../components/Facility360Trend";
+import Facility360Position from "../components/Facility360Position";
+import Facility360Relation from "../components/Facility360Relation";
 import LayerSkeleton from "../components/LayerSkeleton";
 
 type SP = { facilityId?: string; regionId?: string; marketId?: string; date?: string; fc?: string; pf?: string };
@@ -39,6 +42,15 @@ export default async function FacilityPage({ searchParams }: { searchParams: Pro
         </Suspense>
         <Suspense fallback={<LayerSkeleton id="slots" />}>
           <Facility360Deep facilityId={sp.facilityId} date={sp.date} />
+        </Suspense>
+        <Suspense fallback={<LayerSkeleton id="tendencia" />}>
+          <Facility360Trend facilityId={sp.facilityId} date={sp.date} />
+        </Suspense>
+        <Suspense fallback={<LayerSkeleton id="posicion" />}>
+          <Facility360Position facilityId={sp.facilityId} date={sp.date} />
+        </Suspense>
+        <Suspense fallback={<LayerSkeleton id="relacion" />}>
+          <Facility360Relation facilityId={sp.facilityId} date={sp.date} />
         </Suspense>
       </div>
     </div>
