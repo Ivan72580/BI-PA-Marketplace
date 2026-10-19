@@ -2713,6 +2713,10 @@
         "confirmed": "Confirmado",
         "truncated": "Se muestran los más recientes."
       }
+    },
+    "forecast": {
+      "title": "Pronóstico",
+      "disclaimer": "Proyección según el historial del facility; no es un dato confirmado."
     }
   }
 }

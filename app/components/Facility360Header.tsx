@@ -10,7 +10,7 @@ import DatePicker from "./DatePicker";
 
 export const LAYERS = [
   { id: "ahora", key: "now", built: true },
-  { id: "pronostico", key: "forecast", built: false },
+  { id: "pronostico", key: "forecast", built: true },
   { id: "slots", key: "slots", built: false },
   { id: "demanda", key: "demand", built: false },
   { id: "precio", key: "price", built: false },
@@ -67,7 +67,7 @@ export default async function Facility360Header({
               basePath="/facility"
               extraParams={{ date: dateParam }}
             />
-            <Link href={overviewHref} className="block text-right text-xs text-ink-faint hover:text-brand">{t("header.overview")} →</Link>
+            <Link href={overviewHref} className="block text-right text-xs text-ink-faint hover:text-brand">{t("header.overview")}</Link>
           </div>
         </div>
       </header>
