@@ -608,17 +608,13 @@
       }
     },
     "share": {
-      "byMarketTitle": "Markets by confirmed games",
-      "byMarketSubtitle": "{month} — click a market to see its facilities' share",
       "confirmedGamesLabel": "confirmed games",
-      "byFacilityTitle": "Share by facility",
-      "byFacilitySubtitle": "{month} — % of this market's confirmed games that each facility represents. Click a facility to see its schedule consistency in Trends",
       "confirmedCount": "{n} confirmed",
       "empty": "No confirmed games in this market for the selected month.",
       "map": {
         "listTitleMarkets": "Markets",
         "listTitleFacilities": "Facilities",
-        "clickHint": "Tap a bubble or a name for details. Size is the month's confirmed-game volume.",
+        "clickHint": "Tap a bubble or a card to highlight it. Size is the month's confirmed-game volume.",
         "seeMarket": "See its facilities' share",
         "seeFacility": "See facility detail",
         "approximate": "Dashed border: approximate location (ZIP or city center).",

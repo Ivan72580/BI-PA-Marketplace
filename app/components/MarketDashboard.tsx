@@ -312,57 +312,54 @@ export default async function MarketDashboard({
   // ---------- Market share ----------
   const marketShareTarget = sp.marketId ? summary.filter((f) => f.marketId === sp.marketId).sort((a, b) => b.marketSharePct - a.marketSharePct) : [];
 
-  // Vista de mapa del tab: mismas cifras que las tarjetas (marketRanking / summary / facilityShareCompare),
-  // solo cambia la forma de mostrarlas. Se calcula únicamente cuando se pide, para no sumar la consulta del mapa.
   const changeText = (value: number | null, unit: "pct" | "pts", secondary?: string): { text: string | null; tone: ShareBubble["changeTone"] } => {
     if (value === null) return { text: null, tone: null };
     const arrow = value === 0 ? "→" : value > 0 ? "↑" : "↓";
     const body = `${arrow} ${Math.abs(value * 100).toFixed(1)}${unit === "pts" ? ` ${tc("ptsSuffix")}` : "%"}`;
     return { text: secondary ? `${body} (${secondary})` : body, tone: value === 0 ? "flat" : value > 0 ? "up" : "down" };
   };
-  const shareBubbles: ShareBubble[] = [];
-  let shareUnmapped = 0;
-  {
-    const mapData = await getMapData(monthFilters);
-    shareUnmapped = mapData.unmapped.facilities;
-    const mapped = mapData.zones.flatMap((z) => z.facilities);
-    if (!sp.marketId) {
-      // Una burbuja por market, ubicada en el centro (ponderado por partidos confirmados) de sus facilities.
-      const byMarket = new Map<string, { lat: number; lng: number; w: number; approx: number; n: number }>();
-      for (const f of mapped) {
-        const w = f.confirmedGames > 0 ? f.confirmedGames : 1;
-        const e = byMarket.get(f.marketId) ?? { lat: 0, lng: 0, w: 0, approx: 0, n: 0 };
-        e.lat += f.latitude * w; e.lng += f.longitude * w; e.w += w; e.n += 1; if (f.approximate) e.approx += 1;
-        byMarket.set(f.marketId, e);
-      }
-      for (const m of marketRanking) {
-        const e = byMarket.get(m.marketId);
-        if (!e) continue;
-        const diff = m.priorMonthConfirmedGames !== null ? m.confirmedGames - m.priorMonthConfirmedGames : null;
-        const ch = changeText(m.changePct, "pct", diff !== null ? `${diff >= 0 ? "+" : ""}${diff}` : undefined);
-        shareBubbles.push({
-          key: m.marketId, label: m.marketName, latitude: e.lat / e.w, longitude: e.lng / e.w,
-          value: m.confirmedGames, headline: m.confirmedGames.toLocaleString("en-US"), headlineCaption: t("share.confirmedGamesLabel"),
-          change: ch.text, changeTone: ch.tone, detail: perPeriod(m.confirmedGames) ?? null,
-          approximate: e.approx / e.n > 0.5, href: buildQuery({ marketId: m.marketId, tab: "share" }),
-        });
-      }
-    } else {
-      // Market elegido: una burbuja por facility con su participación dentro del market.
-      const summaryById = new Map(summary.map((r) => [r.facilityId, r]));
-      for (const f of mapped) {
-        const row = summaryById.get(f.id);
-        if (!row || row.marketId !== sp.marketId) continue;
-        const prior = facilityShareCompare?.get(f.id) ?? null;
-        const ch = changeText(prior !== null ? row.marketSharePct - prior : null, "pts");
-        shareBubbles.push({
-          key: f.id, label: f.name, latitude: f.latitude, longitude: f.longitude,
-          value: row.confirmedGames, headline: formatPct(row.marketSharePct),
-          headlineCaption: t("share.confirmedCount", { n: row.confirmedGames.toLocaleString("en-US") }),
-          change: ch.text, changeTone: ch.tone, detail: perPeriod(row.confirmedGames) ?? null,
-          approximate: f.approximate, href: facilityDetailHref(row.facilityId, row.marketId, row.regionId),
-        });
-      }
+  // Una sola lista de entradas (markets o, con un market elegido, facilities) para el mapa y las tarjetas:
+  // misma cifra en los dos lados. Las que no tienen ubicación aparecen igual como tarjeta, solo sin burbuja.
+  const shareItems: ShareBubble[] = [];
+  const mapData = await getMapData(monthFilters);
+  const shareUnmapped = mapData.unmapped.facilities;
+  const mapped = mapData.zones.flatMap((z) => z.facilities);
+  if (!sp.marketId) {
+    // Burbuja por market, ubicada en el centro (ponderado por partidos confirmados) de sus facilities.
+    const byMarket = new Map<string, { lat: number; lng: number; w: number; approx: number; n: number }>();
+    for (const f of mapped) {
+      const w = f.confirmedGames > 0 ? f.confirmedGames : 1;
+      const e = byMarket.get(f.marketId) ?? { lat: 0, lng: 0, w: 0, approx: 0, n: 0 };
+      e.lat += f.latitude * w; e.lng += f.longitude * w; e.w += w; e.n += 1; if (f.approximate) e.approx += 1;
+      byMarket.set(f.marketId, e);
+    }
+    for (const m of marketRanking) {
+      const e = byMarket.get(m.marketId);
+      const diff = m.priorMonthConfirmedGames !== null ? m.confirmedGames - m.priorMonthConfirmedGames : null;
+      const ch = changeText(m.changePct, "pct", diff !== null ? `${diff >= 0 ? "+" : ""}${diff}` : undefined);
+      shareItems.push({
+        key: m.marketId, label: m.marketName, latitude: e ? e.lat / e.w : null, longitude: e ? e.lng / e.w : null,
+        value: m.confirmedGames, headline: m.confirmedGames.toLocaleString("en-US"), headlineCaption: t("share.confirmedGamesLabel"),
+        change: ch.text, changeTone: ch.tone, detail: perPeriod(m.confirmedGames) ?? null,
+        approximate: e ? e.approx / e.n > 0.5 : false, href: buildQuery({ marketId: m.marketId, tab: "share" }),
+      });
+    }
+  } else {
+    // Market elegido: una entrada por facility con su participación dentro del market.
+    const mappedById = new Map(mapped.map((f) => [f.id, f]));
+    for (const row of marketShareTarget) {
+      const f = mappedById.get(row.facilityId);
+      const prior = facilityShareCompare?.get(row.facilityId) ?? null;
+      // Puntos de share ganados/perdidos, no un "%-del-%" (una facility que pasó de 2% a 3% ganó 1 punto,
+      // no "50% más de share").
+      const ch = changeText(prior !== null ? row.marketSharePct - prior : null, "pts");
+      shareItems.push({
+        key: row.facilityId, label: row.name, latitude: f?.latitude ?? null, longitude: f?.longitude ?? null,
+        value: row.confirmedGames, headline: formatPct(row.marketSharePct),
+        headlineCaption: t("share.confirmedCount", { n: row.confirmedGames.toLocaleString("en-US") }),
+        change: ch.text, changeTone: ch.tone, detail: perPeriod(row.confirmedGames) ?? null,
+        approximate: f?.approximate ?? false, href: facilityDetailHref(row.facilityId, row.marketId, row.regionId),
+      });
     }
   }
   const shareMapLabels: ShareMapLabels = {
@@ -375,69 +372,13 @@ export default async function MarketDashboard({
     legendHigh: t("share.map.legendHigh"),
   };
   const marketShareContent = (
-    <div className="space-y-5">
-      {shareBubbles.length > 0 ? (
-        <ShareMap bubbles={shareBubbles} labels={shareMapLabels} />
+    <div className="space-y-4">
+      {shareItems.length > 0 ? (
+        <ShareMap items={shareItems} labels={shareMapLabels} />
       ) : (
-        <div className="rounded-2xl bg-surface shadow-sm p-8 text-center text-sm text-ink-muted">{t("share.map.empty")}</div>
+        <div className="rounded-2xl bg-surface shadow-sm p-8 text-center text-sm text-ink-muted">{t("share.empty")}</div>
       )}
-      {shareUnmapped > 0 && <p className="text-xs text-ink-faint -mt-3">{t("share.map.unmapped", { n: shareUnmapped })}</p>}
-
-      {!sp.marketId && (
-        <SectionCard title={t("share.byMarketTitle")} subtitle={t("share.byMarketSubtitle", { month })}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {marketRanking.map((m) => (
-              <Link key={m.marketId} href={buildQuery({ marketId: m.marketId })} className="block rounded-2xl bg-surface shadow-sm hover:shadow-lg transition-shadow p-4">
-                <div className="text-sm font-medium text-brand">{m.marketName}</div>
-                <div className="flex items-baseline gap-2 mt-2">
-                  <div className="font-display text-xl font-semibold text-ink">{m.confirmedGames.toLocaleString("en-US")}</div>
-                  <ChangeBadge
-                    value={m.changePct}
-                    secondary={
-                      m.priorMonthConfirmedGames !== null
-                        ? `${m.confirmedGames - m.priorMonthConfirmedGames >= 0 ? "+" : ""}${m.confirmedGames - m.priorMonthConfirmedGames}`
-                        : undefined
-                    }
-                  />
-                </div>
-                <div className="text-xs text-ink-faint mt-0.5">
-                  {t("share.confirmedGamesLabel")}
-                  {perPeriod(m.confirmedGames) ? ` · ${perPeriod(m.confirmedGames)}` : ""}
-                </div>
-              </Link>
-            ))}
-          </div>
-        </SectionCard>
-      )}
-
-      {sp.marketId && (
-        <SectionCard title={t("share.byFacilityTitle")} subtitle={t("share.byFacilitySubtitle", { month })}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {marketShareTarget.map((f) => {
-              const priorShare = facilityShareCompare?.get(f.facilityId) ?? null;
-              // Puntos de share ganados/perdidos, no un "%-del-%" (una
-              // facility que pasó de 2% a 3% de share ganó 1 punto, no
-              // "50% más de share" — esa segunda lectura es la que estaba
-              // antes y confundía variación relativa con puntos).
-              const shareChangePts = priorShare !== null ? f.marketSharePct - priorShare : null;
-              return (
-                <Link key={f.facilityId} href={facilityDetailHref(f.facilityId, f.marketId, f.regionId)} className="block rounded-2xl bg-surface shadow-sm hover:shadow-lg transition-shadow p-4">
-                  <div className="text-sm font-medium text-brand">{f.name}</div>
-                  <div className="flex items-baseline gap-2 mt-2">
-                    <div className="font-display text-xl font-semibold text-ink">{formatPct(f.marketSharePct)}</div>
-                    <ChangeBadge value={shareChangePts} unit="pts" />
-                  </div>
-                  <div className="text-xs text-ink-faint mt-0.5">
-                    {t("share.confirmedCount", { n: f.confirmedGames.toLocaleString("en-US") })}
-                    {perPeriod(f.confirmedGames) ? ` · ${perPeriod(f.confirmedGames)}` : ""}
-                  </div>
-                </Link>
-              );
-            })}
-            {marketShareTarget.length === 0 && <div className="text-sm text-ink-faint">{t("share.empty")}</div>}
-          </div>
-        </SectionCard>
-      )}
+      {shareUnmapped > 0 && <p className="text-xs text-ink-faint">{t("share.map.unmapped", { n: shareUnmapped })}</p>}
       <Glossary items={[{ term: t("glossary.vsAnteriorMonth.term"), def: t("glossary.vsAnteriorMonth.def") }]} />
     </div>
   );

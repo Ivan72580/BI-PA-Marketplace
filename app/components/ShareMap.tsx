@@ -13,8 +13,8 @@ import { TILE_URL, TILE_ATTRIBUTION, heatColor } from "./ZoneMap";
 export type ShareBubble = {
   key: string;
   label: string;
-  latitude: number;
-  longitude: number;
+  latitude: number | null; // null = sin ubicación: aparece como tarjeta pero no como burbuja
+  longitude: number | null;
   value: number; // define tamaño y color
   headline: string; // cifra principal, ej. "412" o "18.4%"
   headlineCaption: string; // ej. "partidos confirmados"
@@ -38,7 +38,9 @@ export type ShareMapLabels = {
 const TONE = { up: "text-brand", down: "text-danger", flat: "text-ink-muted" } as const;
 const norm = (v: number, max: number) => Math.sqrt(Math.max(0, v) / Math.max(1, max));
 
-export default function ShareMap({ bubbles, labels }: { bubbles: ShareBubble[]; labels: ShareMapLabels }) {
+export default function ShareMap({ items, labels }: { items: ShareBubble[]; labels: ShareMapLabels }) {
+  // Solo las entradas con ubicación se dibujan; todas se listan como tarjetas.
+  const bubbles = useMemo(() => items.filter((b) => b.latitude !== null && b.longitude !== null), [items]);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -50,9 +52,9 @@ export default function ShareMap({ bubbles, labels }: { bubbles: ShareBubble[]; 
   const leafletRef = useRef<any>(null);
   const fittedRef = useRef(false);
 
-  const sorted = useMemo(() => [...bubbles].sort((a, b) => b.value - a.value), [bubbles]);
-  const selected = bubbles.find((b) => b.key === selectedKey) ?? null;
-  const max = Math.max(1, ...bubbles.map((b) => b.value));
+  const sorted = useMemo(() => [...items].sort((a, b) => b.value - a.value), [items]);
+  const max = Math.max(1, ...items.map((b) => b.value));
+  const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -84,7 +86,7 @@ export default function ShareMap({ bubbles, labels }: { bubbles: ShareBubble[]; 
     for (const b of bubbles) {
       const heat = heatColor(norm(b.value, max));
       const isSel = b.key === selectedKey;
-      const marker = L.circleMarker([b.latitude, b.longitude], {
+      const marker = L.circleMarker([b.latitude as number, b.longitude as number], {
         radius: 7 + Math.sqrt(b.value / max) * 30,
         color: isSel ? "#1f2937" : heat,
         weight: isSel ? 3 : 1.5,
@@ -100,72 +102,71 @@ export default function ShareMap({ bubbles, labels }: { bubbles: ShareBubble[]; 
       tip.appendChild(document.createElement("br"));
       tip.appendChild(document.createTextNode(`${b.headline} ${b.headlineCaption}`));
       marker.bindTooltip(tip, { direction: "top" });
-      marker.on("click", () => setSelectedKey(b.key));
+      marker.on("click", () => {
+        setSelectedKey(b.key);
+        cardRefs.current[b.key]?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      });
       marker.addTo(layer);
     }
     if (!fittedRef.current && bubbles.length > 0) {
-      map.fitBounds(L.latLngBounds(bubbles.map((b) => [b.latitude, b.longitude])), { padding: [40, 40], maxZoom: 11 });
+      map.fitBounds(L.latLngBounds(bubbles.map((b) => [b.latitude as number, b.longitude as number])), { padding: [40, 40], maxZoom: 11 });
       fittedRef.current = true;
     }
   }, [bubbles, selectedKey, max, mapReady]);
 
   function select(b: ShareBubble) {
     setSelectedKey(b.key);
-    mapRef.current?.flyTo([b.latitude, b.longitude], Math.max(mapRef.current.getZoom(), 9), { duration: 0.6 });
+    if (b.latitude !== null && b.longitude !== null) {
+      mapRef.current?.flyTo([b.latitude, b.longitude], Math.max(mapRef.current.getZoom(), 9), { duration: 0.6 });
+    }
   }
 
+  // Mapa y tarjetas son una sola vista: tocar una burbuja resalta su tarjeta y tocar una tarjeta centra el mapa.
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-      <div className="lg:col-span-2 rounded-2xl bg-surface shadow-sm p-3">
-        <div ref={containerRef} className="h-[440px] w-full rounded-xl overflow-hidden z-0" />
-        <div className="flex items-center gap-2 mt-2 text-[11px] text-ink-faint">
-          <span>{labels.legendLow}</span>
-          <span className="h-2 w-40 rounded-full" style={{ background: `linear-gradient(to right, ${[0, 0.2, 0.4, 0.6, 0.8, 1].map((t) => heatColor(t)).join(",")})` }} aria-hidden="true" />
-          <span>{labels.legendHigh}</span>
+    <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 items-start">
+      <div className="lg:col-span-3 lg:sticky lg:top-4 rounded-2xl bg-surface shadow-sm p-3">
+        <div ref={containerRef} className="h-[420px] lg:h-[560px] w-full rounded-xl overflow-hidden z-0" />
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-[11px] text-ink-faint">
+          <span className="flex items-center gap-2">
+            <span>{labels.legendLow}</span>
+            <span className="h-2 w-32 rounded-full" style={{ background: `linear-gradient(to right, ${[0, 0.2, 0.4, 0.6, 0.8, 1].map((t) => heatColor(t)).join(",")})` }} aria-hidden="true" />
+            <span>{labels.legendHigh}</span>
+          </span>
+          <span>{labels.approximate}</span>
         </div>
-        <p className="text-[11px] text-ink-faint mt-1">{labels.approximate}</p>
       </div>
 
-      <div className="rounded-2xl bg-surface shadow-sm p-4 max-h-[600px] overflow-y-auto">
-        {selected ? (
-          <div>
-            <button type="button" onClick={() => setSelectedKey(null)} className="text-xs text-brand mb-2">← {labels.listTitle}</button>
-            <h3 className="font-display text-lg font-semibold text-ink">{selected.label}</h3>
-            <div className="flex items-baseline gap-2 mt-3">
-              <div className="font-display text-2xl font-semibold text-ink">{selected.headline}</div>
-              {selected.change ? (
-                <span className={`text-sm font-semibold ${selected.changeTone ? TONE[selected.changeTone] : "text-ink-muted"}`}>{selected.change}</span>
-              ) : (
-                <span className="text-xs text-ink-faint">{labels.noPriorData}</span>
-              )}
+      <div className="lg:col-span-2 lg:max-h-[620px] lg:overflow-y-auto pr-1">
+        <div className="text-[11px] text-ink-faint mb-2">{labels.listTitle} · {labels.clickHint}</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">
+          {sorted.map((b) => (
+            <div
+              key={b.key}
+              ref={(el) => { cardRefs.current[b.key] = el; }}
+              onClick={() => select(b)}
+              className={`rounded-2xl bg-surface shadow-sm hover:shadow-lg transition-shadow p-4 cursor-pointer ${selectedKey === b.key ? "ring-2 ring-brand" : ""}`}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <Link href={b.href} onClick={(e) => e.stopPropagation()} className="text-sm font-medium text-brand hover:underline" title={labels.seeDetail}>{b.label} →</Link>
+              </div>
+              <div className="flex items-baseline gap-2 mt-2">
+                <div className="font-display text-xl font-semibold text-ink">{b.headline}</div>
+                {b.change ? (
+                  <span className={`text-xs font-semibold ${b.changeTone ? TONE[b.changeTone] : "text-ink-muted"}`}>{b.change}</span>
+                ) : (
+                  <span className="text-xs text-ink-faint">{labels.noPriorData}</span>
+                )}
+              </div>
+              <div className="text-xs text-ink-faint mt-0.5">
+                {b.headlineCaption}
+                {b.detail ? ` · ${b.detail}` : ""}
+              </div>
+              <div className="h-1 rounded bg-surface-sunken mt-2">
+                <div className="h-1 rounded" style={{ width: `${(b.value / max) * 100}%`, backgroundColor: heatColor(norm(b.value, max)) }} />
+              </div>
             </div>
-            <div className="text-xs text-ink-faint mt-0.5">
-              {selected.headlineCaption}
-              {selected.detail ? ` · ${selected.detail}` : ""}
-            </div>
-            <Link href={selected.href} className="inline-block mt-3 text-sm text-brand hover:underline">{labels.seeDetail} →</Link>
-          </div>
-        ) : (
-          <div>
-            <h3 className="font-display text-base font-semibold text-ink mb-1">{labels.listTitle}</h3>
-            <p className="text-[11px] text-ink-faint mb-3">{labels.clickHint}</p>
-            <ol className="space-y-1">
-              {sorted.map((b, i) => (
-                <li key={b.key}>
-                  <button type="button" onClick={() => select(b)} className="w-full text-left rounded-lg px-2 py-1.5 hover:bg-brand-soft">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <span className="text-sm text-ink truncate"><span className="text-ink-faint mr-1.5">{i + 1}</span>{b.label}</span>
-                      <span className="text-sm font-medium text-ink shrink-0">{b.headline}</span>
-                    </div>
-                    <div className="h-1 rounded bg-surface-sunken mt-1">
-                      <div className="h-1 rounded" style={{ width: `${(b.value / max) * 100}%`, backgroundColor: heatColor(norm(b.value, max)) }} />
-                    </div>
-                  </button>
-                </li>
-              ))}
-            </ol>
-          </div>
-        )}
+          ))}
+        </div>
       </div>
     </div>
   );
