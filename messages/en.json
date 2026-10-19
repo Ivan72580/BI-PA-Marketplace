@@ -33,7 +33,8 @@
       "weeklyLog": "Team notes during the week and Thursday's report.",
       "facilityLog": "Relationship with each facility: facts, observations, what to expect",
       "facilityProfile": "Each facility's data: fields, rates, contact.",
-      "satisfaction": "What players say about each game and facility."
+      "satisfaction": "What players say about each game and facility.",
+      "facility": "Everything about a facility on one page, from most recent to deepest."
     },
     "groups": {
       "performance": "Performance",
@@ -46,7 +47,8 @@
     "weeklyLog": "Weekly log",
     "facilityLog": "Facility Log",
     "facilityProfile": "Facility profiles",
-    "satisfaction": "Satisfaction"
+    "satisfaction": "Satisfaction",
+    "facility": "Facility analysis"
   },
   "FilterPanel": {
     "filterLabel": "Filter",
@@ -1115,7 +1117,8 @@
       "seeMoreDailyDesc": "Games for one specific day, with full detail on each.",
       "seeMoreTrendsTitle": "See trend and filterable detail in Trends →",
       "seeMoreTrendsDesc": "Full evolution, slot consistency, and the filterable game list.",
-      "evolutionLatestSuffix": " confirmation in {label}"
+      "evolutionLatestSuffix": " confirmation in {label}",
+      "open360": "Open full analysis →"
     },
     "customRangeLabel": "Custom range",
     "samePeriodLabel": "{from}–{to} {month} (same stretch)",
@@ -2613,5 +2616,103 @@
   "SatisfactionPage": {
     "title": "Player satisfaction",
     "subtitle": "Game reviews: rating, what players praise and what they complain about. By region, market or facility."
+  },
+  "Facility360": {
+    "landing": {
+      "title": "Facility analysis",
+      "subtitle": "Everything about a facility on one page: most recent first, then the forecast and the rest.",
+      "searchTitle": "Find a facility",
+      "searchPlaceholder": "Type the facility name…",
+      "searchEmpty": "No results for \"{query}\"",
+      "reviewTitle": "Look at these first",
+      "reviewSub": "Facilities with the most recent cancellations.",
+      "cancelledCount": "{n} cancelled",
+      "browseTitle": "Or browse by area",
+      "allRegions": "All regions",
+      "pickRegionHint": "Pick a region to see its markets.",
+      "pickMarketHint": "Pick a market to see its facilities.",
+      "empty": "No facilities in this selection."
+    },
+    "header": {
+      "back": "Pick another facility",
+      "dataAsOf": "Data as of {date}",
+      "refLabel": "View as of",
+      "resetRef": "Back to latest data",
+      "switch": "Switch facility",
+      "overview": "See in Overview →",
+      "notFound": "We couldn't find that facility."
+    },
+    "nav": {
+      "label": "Analysis layers",
+      "now": "Now",
+      "forecast": "Forecast",
+      "slots": "Supply & slots",
+      "demand": "Demand & operations",
+      "price": "Price & revenue",
+      "trend": "Trend",
+      "position": "Position",
+      "relation": "Relationship",
+      "soon": "Coming soon"
+    },
+    "now": {
+      "period": {
+        "day": "Day",
+        "week": "Week",
+        "month": "Month"
+      },
+      "vs": {
+        "day": "vs same weekday last week",
+        "week": "vs previous week (same days)",
+        "month": "vs previous month (same days)"
+      },
+      "field": {
+        "title": "Facility unavailable",
+        "subtitle": "Games that don't happen because the facility has no field: direct friction against confirmed-game growth.",
+        "ofPublished": "{pct} of {n} published",
+        "market": "Market: {pct}",
+        "pp": "pp"
+      },
+      "row": {
+        "demandRate": "Demand rate",
+        "published": "Published",
+        "confirmed": "Confirmed",
+        "cancelled": "Cancelled",
+        "fill": "Fill rate",
+        "rawRate": "Raw rate",
+        "avgPrice": "Average ticket",
+        "revenue": "Estimated revenue",
+        "waitlist": "Waitlist",
+        "dropped": "Drop-outs"
+      },
+      "lowSample": "Low sample ({n} games)",
+      "definitions": "Demand rate = confirmed / (confirmed + cancelled for not enough players). Raw rate = confirmed / published. Market = all other facilities. Estimated revenue = price × final players of confirmed games. Changes compare against the previous period with the same number of days.",
+      "alert": {
+        "field": "{n} games lost to facility unavailable in {days} days ({pct} of published)",
+        "demandDrop": "Weekly demand rate fell from {from} to {to} ({pts} pts)"
+      },
+      "chart": {
+        "title": "Last {n} days",
+        "tip": "{c} confirmed · {dm} not enough players · {f} facility unavailable · {o} other · demand {rate}",
+        "confirmed": "Confirmed",
+        "demand": "Cancelled (demand)",
+        "field": "Facility unavailable",
+        "other": "Other"
+      },
+      "recent": {
+        "title": "Recent games ({n})",
+        "show": "Show",
+        "hide": "Hide",
+        "empty": "No games in recent days.",
+        "date": "Date",
+        "field": "Field",
+        "format": "Format",
+        "status": "Status",
+        "players": "Players",
+        "price": "Price",
+        "cancelled": "Cancelled",
+        "confirmed": "Confirmed",
+        "truncated": "Showing the most recent."
+      }
+    }
   }
 }

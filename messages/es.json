@@ -33,7 +33,8 @@
       "weeklyLog": "Notas del equipo en la semana y reporte para el jueves.",
       "facilityLog": "Relación con cada facility: hechos, observaciones, qué esperar",
       "facilityProfile": "Datos de cada facility: canchas, tarifas, contacto.",
-      "satisfaction": "Qué dicen los jugadores de cada partido y facility."
+      "satisfaction": "Qué dicen los jugadores de cada partido y facility.",
+      "facility": "Todo de una facility en una sola página, de lo más reciente a lo más profundo."
     },
     "groups": {
       "performance": "Rendimiento",
@@ -46,7 +47,8 @@
     "weeklyLog": "Registro semanal",
     "facilityLog": "Bitácora de Facilities",
     "facilityProfile": "Perfil de facilities",
-    "satisfaction": "Satisfacción"
+    "satisfaction": "Satisfacción",
+    "facility": "Análisis de facility"
   },
   "FilterPanel": {
     "filterLabel": "Filtro",
@@ -1115,7 +1117,8 @@
       "seeMoreDailyDesc": "Partidos de un día puntual, con el detalle completo de cada uno.",
       "seeMoreTrendsTitle": "Ver tendencia y detalle filtrable en Trends →",
       "seeMoreTrendsDesc": "Evolución completa, consistencia de slots, y la lista de partidos filtrable.",
-      "evolutionLatestSuffix": " de confirmación en {label}"
+      "evolutionLatestSuffix": " de confirmación en {label}",
+      "open360": "Abrir análisis completo →"
     },
     "customRangeLabel": "Rango personalizado",
     "samePeriodLabel": "{from}–{to} {month} (mismo tramo)",
@@ -2613,5 +2616,103 @@
   "SatisfactionPage": {
     "title": "Satisfacción de jugadores",
     "subtitle": "Reviews de los partidos: rating, qué destacan y qué reclaman. Por región, market o facility."
+  },
+  "Facility360": {
+    "landing": {
+      "title": "Análisis de facility",
+      "subtitle": "Todo lo de una facility en una sola página: lo más reciente primero, después el pronóstico y el resto.",
+      "searchTitle": "Buscá una facility",
+      "searchPlaceholder": "Escribí el nombre de la facility…",
+      "searchEmpty": "Sin resultados para \"{query}\"",
+      "reviewTitle": "Para mirar primero",
+      "reviewSub": "Facilities con más cancelaciones recientes.",
+      "cancelledCount": "{n} cancelados",
+      "browseTitle": "O recorré por zona",
+      "allRegions": "Todas las regiones",
+      "pickRegionHint": "Elegí una región para ver sus markets.",
+      "pickMarketHint": "Elegí un market para ver sus facilities.",
+      "empty": "No hay facilities en esta selección."
+    },
+    "header": {
+      "back": "Elegir otra facility",
+      "dataAsOf": "Datos al {date}",
+      "refLabel": "Mirar al",
+      "resetRef": "Volver al último dato",
+      "switch": "Cambiar de facility",
+      "overview": "Ver en Overview →",
+      "notFound": "No encontramos esa facility."
+    },
+    "nav": {
+      "label": "Capas del análisis",
+      "now": "Ahora",
+      "forecast": "Pronóstico",
+      "slots": "Oferta y slots",
+      "demand": "Demanda y operación",
+      "price": "Precio y revenue",
+      "trend": "Tendencia",
+      "position": "Posición",
+      "relation": "Relación",
+      "soon": "Próximamente"
+    },
+    "now": {
+      "period": {
+        "day": "Día",
+        "week": "Semana",
+        "month": "Mes"
+      },
+      "vs": {
+        "day": "vs mismo día de la semana anterior",
+        "week": "vs semana anterior (mismos días)",
+        "month": "vs mes anterior (mismos días)"
+      },
+      "field": {
+        "title": "Cancha no disponible",
+        "subtitle": "Partidos que no se juegan porque la facility no tiene la cancha: es fricción directa contra el crecimiento de partidos confirmados.",
+        "ofPublished": "{pct} de {n} publicados",
+        "market": "Market: {pct}",
+        "pp": "pp"
+      },
+      "row": {
+        "demandRate": "Tasa de demanda",
+        "published": "Publicados",
+        "confirmed": "Confirmados",
+        "cancelled": "Cancelados",
+        "fill": "Llenado",
+        "rawRate": "Tasa cruda",
+        "avgPrice": "Ticket promedio",
+        "revenue": "Revenue estimado",
+        "waitlist": "Lista de espera",
+        "dropped": "Abandonos"
+      },
+      "lowSample": "Muestra baja ({n} partidos)",
+      "definitions": "Tasa de demanda = confirmados / (confirmados + cancelados por falta de jugadores). Tasa cruda = confirmados / publicados. Market = el resto de las facilities. Revenue estimado = precio × jugadores finales de partidos confirmados. Las variaciones comparan contra el período anterior con la misma cantidad de días.",
+      "alert": {
+        "field": "{n} partidos con cancha no disponible en {days} días ({pct} de lo publicado)",
+        "demandDrop": "Tasa de demanda semanal cayó de {from} a {to} ({pts} pts)"
+      },
+      "chart": {
+        "title": "Últimos {n} días",
+        "tip": "{c} confirmados · {dm} sin jugadores · {f} cancha no disponible · {o} otros · demanda {rate}",
+        "confirmed": "Confirmados",
+        "demand": "Cancelados por demanda",
+        "field": "Cancha no disponible",
+        "other": "Otros"
+      },
+      "recent": {
+        "title": "Partidos recientes ({n})",
+        "show": "Mostrar",
+        "hide": "Ocultar",
+        "empty": "Sin partidos en los últimos días.",
+        "date": "Fecha",
+        "field": "Cancha",
+        "format": "Formato",
+        "status": "Estado",
+        "players": "Jugadores",
+        "price": "Precio",
+        "cancelled": "Cancelado",
+        "confirmed": "Confirmado",
+        "truncated": "Se muestran los más recientes."
+      }
+    }
   }
 }

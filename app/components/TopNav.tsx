@@ -123,6 +123,15 @@ function FacilityLogIcon() {
     </svg>
   );
 }
+function FacilityIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="11" cy="11" r="7" />
+      <path d="M21 21l-4.3-4.3" />
+      <path d="M8 11h6M11 8v6" />
+    </svg>
+  );
+}
 function SatisfactionIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -155,7 +164,7 @@ function LeadershipIcon() {
 // quedaba apretada en pantallas medianas, y Reportes no es una vista que
 // se consulte con la misma frecuencia que el resto — vive ahora como link
 // dentro del menú de usuario, con su propio selector Operativo/Ejecutivo.
-type NavKey = "overview" | "trends" | "market" | "map" | "inventory" | "daily" | "forecast" | "seasonality" | "weeklyLog" | "facilityLog" | "facilityProfile" | "satisfaction" | "panelEjecutivo";
+type NavKey = "overview" | "trends" | "market" | "map" | "inventory" | "daily" | "forecast" | "seasonality" | "weeklyLog" | "facilityLog" | "facilityProfile" | "satisfaction" | "facility" | "panelEjecutivo";
 type NavLink = { href: string; labelKey: NavKey; icon: () => ReactNode };
 type GroupKey = "performance" | "market" | "team";
 
@@ -168,6 +177,7 @@ const groups: { key: GroupKey; module: AppModule; children: NavLink[] }[] = [
     key: "performance",
     module: "MAGIC",
     children: [
+      { href: "/facility", labelKey: "facility", icon: FacilityIcon },
       { href: "/trends", labelKey: "trends", icon: TrendsIcon },
       { href: "/daily", labelKey: "daily", icon: DailyIcon },
       { href: "/seasonality", labelKey: "seasonality", icon: SeasonalityIcon },

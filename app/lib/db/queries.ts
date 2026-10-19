@@ -47,3 +47,4 @@ export * from "./facilityProfile";
 export * from "./satisfaction";
 export * from "./reports";
 export * from "./mustScheduleBoard";
+export * from "./facilityNow";

@@ -154,6 +154,12 @@ export default async function FacilityDetailView({
 
   return (
     <div className="space-y-5">
+      <Link
+        href={`/facility?facilityId=${facilityId}`}
+        className="flex items-center justify-between rounded-2xl bg-brand-soft text-brand px-5 py-3 text-sm font-semibold hover:shadow-md transition-shadow"
+      >
+        {t("facility.open360")}
+      </Link>
       {/* Estado actual del mes en curso: introduce y contextualiza el resto de la página */}
       <div className="rounded-2xl bg-surface shadow-sm hover:shadow-lg transition-shadow p-5">
         <h3 className="text-sm font-medium text-ink mb-2">{t("facility.statusTitle", { month: monthProjection.monthLabel })}</h3>
