@@ -1280,28 +1280,8 @@
       }
     },
     "history": {
-      "title": "Historial de la relación",
-      "subtitle": "Bitácora de eventos, acuerdos y pendientes — reemplaza lo que estaba pendiente de definir en Relationship History.",
       "gamesHosted": "Partidos confirmados (histórico)",
-      "revenueGenerated": "Revenue generado (histórico)",
-      "empty": "Todavía no hay eventos registrados.",
-      "type": {
-        "EVENT": "Evento",
-        "AGREEMENT": "Acuerdo",
-        "ACTION_ITEM": "Pendiente"
-      },
-      "status": {
-        "OPEN": "Abierto",
-        "CLOSED": "Cerrado"
-      },
-      "attachmentLinkLabel": "Ver archivo adjunto →",
-      "attachmentUrlLabel": "Link al archivo (Drive, Dropbox, etc.)",
-      "attachmentUrlPlaceholder": "https://...",
-      "newType": "Tipo",
-      "newDate": "Fecha",
-      "newNote": "Nota",
-      "addEvent": "Agregar",
-      "delete": "Eliminar"
+      "revenueGenerated": "Revenue generado (histórico)"
     },
     "save": "Guardar cambios",
     "saving": "Guardando...",

@@ -51,7 +51,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             name: profile?.name,
             image: (profile as { picture?: string } | undefined)?.picture,
             role: SEED_ADMIN_EMAILS.has(email) ? "ADMIN" : "MEMBER",
-            canViewLeadership: SEED_ADMIN_EMAILS.has(email), // obsoleto, ver schema.prisma
             // Acceso por módulo (app/lib/module.ts): una cuenta nueva usa los
             // defaults sin filas propias. Las cuentas de ADMIN_EMAILS además
             // arrancan con EDIT en Executive (como antes arrancaban con

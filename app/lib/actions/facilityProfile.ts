@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import type { Amenity, IndoorOutdoor, PricingModel, RateUnit, RelationshipEventStatus, RelationshipEventType } from "@prisma/client";
+import type { Amenity, IndoorOutdoor, PricingModel, RateUnit } from "@prisma/client";
 import { prisma } from "../db/prisma";
 import { requireModule } from "../db/users";
 
@@ -100,68 +100,6 @@ export async function savePeakWindows(facilityId: string, windows: PeakWindowInp
       }),
     ]);
     revalidatePath(`/facility-profile/${facilityId}`);
-    return { ok: true };
-  } catch {
-    return { ok: false, errorKey: "generic" };
-  }
-}
-
-export type RelationshipEventInput = {
-  type: RelationshipEventType;
-  date: string; // ISO date
-  note: string;
-  status: RelationshipEventStatus | null;
-  attachmentUrl: string | null;
-};
-
-export async function addRelationshipEvent(facilityId: string, input: RelationshipEventInput): Promise<ActionResult> {
-  const access = await requireModule("EXECUTIVE", "EDIT");
-  if (!access) return { ok: false, errorKey: "unauthorized" };
-
-  try {
-    const profile = await ensureFacilityProfile(facilityId);
-    await prisma.facilityRelationshipEvent.create({
-      data: {
-        facilityProfileId: profile.id,
-        type: input.type,
-        date: new Date(input.date),
-        note: input.note,
-        status: input.status ?? (input.type === "ACTION_ITEM" ? "OPEN" : null),
-        attachmentUrl: input.attachmentUrl,
-        createdByUserId: access.id,
-      },
-    });
-    revalidatePath(`/panel-ejecutivo/facilities/${facilityId}`);
-    return { ok: true };
-  } catch {
-    return { ok: false, errorKey: "generic" };
-  }
-}
-
-export async function updateRelationshipEventStatus(
-  eventId: string,
-  facilityId: string,
-  status: RelationshipEventStatus
-): Promise<ActionResult> {
-  const access = await requireModule("EXECUTIVE", "EDIT");
-  if (!access) return { ok: false, errorKey: "unauthorized" };
-
-  try {
-    await prisma.facilityRelationshipEvent.update({ where: { id: eventId }, data: { status } });
-    revalidatePath(`/panel-ejecutivo/facilities/${facilityId}`);
-    return { ok: true };
-  } catch {
-    return { ok: false, errorKey: "generic" };
-  }
-}
-
-export async function deleteRelationshipEvent(eventId: string, facilityId: string): Promise<ActionResult> {
-  const access = await requireModule("EXECUTIVE", "EDIT");
-  if (!access) return { ok: false, errorKey: "unauthorized" };
-
-  try {
-    await prisma.facilityRelationshipEvent.delete({ where: { id: eventId } });
-    revalidatePath(`/panel-ejecutivo/facilities/${facilityId}`);
     return { ok: true };
   } catch {
     return { ok: false, errorKey: "generic" };

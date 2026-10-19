@@ -465,16 +465,10 @@ model User {
   name        String?
   image       String?
   role        Role      @default(MEMBER)
-  // OBSOLETO desde la migración 20261016120000_module_access: el acceso a
-  // Executive ahora es UserModuleAccess (module EXECUTIVE). La migración
-  // copió este valor (true -> EDIT) y la app ya no lo lee. Se deja la columna
-  // un tiempo para poder volver atrás; borrarla en una migración posterior.
-  canViewLeadership Boolean @default(false)
   // Opt-out (default true) del mail semanal de reportes (Ops para
   // cualquier cuenta activa, Executive Summary además solo para quienes
-  // tienen canViewLeadership) — se administra desde el mismo panel
-  // /admin/users que el flag de arriba, con el mismo criterio de "un solo
-  // booleano por fila, sin paso de confirmar" (ver UserRoleTable).
+  // tienen Ejecutivo >= Ver) — se administra desde /admin/users, con el
+  // criterio de "un solo booleano por fila, sin paso de confirmar" (ver UserRoleTable).
   receivesWeeklyReport Boolean @default(true)
   // Reemplaza a la vieja UserPreference: mismo dato (idioma elegido), ahora
   // en la misma fila que el resto de la cuenta en vez de una tabla aparte
@@ -485,7 +479,7 @@ model User {
   // hay una cookie en paralelo (ver app/lib/actions/module.ts) para que
   // funcione en el primer request de una sesión nueva sin esperar la
   // consulta a esta fila. Default MAGIC porque es lo que cualquier cuenta
-  // nueva (sin canViewLeadership todavía) ve hoy — el valor es irrelevante
+  // nueva (sin acceso a Ejecutivo) ve hoy — el valor es irrelevante
   // para quien nunca tiene acceso a Executive.
   lastModule  AppModule @default(MAGIC)
   createdAt   DateTime  @default(now())

@@ -1,4 +1,4 @@
-import { GameStatus, type Amenity, type IndoorOutdoor, type PricingModel, type RateUnit, type RelationshipEventStatus, type RelationshipEventType } from "@prisma/client";
+import { GameStatus, type Amenity, type IndoorOutdoor, type PricingModel, type RateUnit } from "@prisma/client";
 import { prisma } from "./prisma";
 import { activeFacilityWhere } from "./facility";
 
@@ -99,14 +99,6 @@ export async function listFacilityProfileStatus(): Promise<FacilityProfileListRo
 // "Revenue generated" del mapa de campos sin duplicar el dato.
 
 type PeakWindowRow = { id: string; dayOfWeek: number; startHour: number; endHour: number };
-type RelationshipEventRow = {
-  id: string;
-  type: RelationshipEventType;
-  date: Date;
-  note: string;
-  status: RelationshipEventStatus | null;
-  attachmentUrl: string | null;
-};
 // Superset de CoreProfileFields con el resto de columnas del perfil + las
 // dos listas hijas — mismo motivo que FacilityStatusRow arriba.
 type FacilityProfileFullRow = CoreProfileFields & {
@@ -134,7 +126,6 @@ type FacilityProfileFullRow = CoreProfileFields & {
   facilityTypes: string[];
   isActive: boolean | null;
   peakWindows: PeakWindowRow[];
-  events: RelationshipEventRow[];
 };
 type FacilityDetailRow = {
   id: string;
@@ -153,7 +144,6 @@ export async function getFacilityProfileDetail(facilityId: string) {
       profile: {
         include: {
           peakWindows: { orderBy: [{ dayOfWeek: "asc" }, { startHour: "asc" }] },
-          events: { orderBy: { date: "desc" } },
         },
       },
     },

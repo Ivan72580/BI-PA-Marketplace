@@ -9,7 +9,6 @@
 //   contribution.ts  - contribución al cambio (comparación entre períodos)
 //   heatmap.ts       - cruce día×hora con desglose de motivos
 //   gamelist.ts      - listado de partidos individuales
-//   composition.ts   - composición Pareto 80/20 de confirmados
 //   projection.ts    - proyección simple del mes en curso
 //   extended.ts       - organizador, satisfacción, demanda, lead time, precio
 //   facility.ts       - contexto, evolución temporal y tabla completa por facility
@@ -31,7 +30,6 @@ export * from "./overview";
 export * from "./contribution";
 export * from "./heatmap";
 export * from "./gamelist";
-export * from "./composition";
 export * from "./projection";
 export * from "./extended";
 export * from "./facility";

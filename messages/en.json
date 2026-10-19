@@ -1280,28 +1280,8 @@
       }
     },
     "history": {
-      "title": "Relationship history",
-      "subtitle": "Log of events, agreements and open items — replaces what was pending definition in Relationship History.",
       "gamesHosted": "Confirmed games (historical)",
-      "revenueGenerated": "Revenue generated (historical)",
-      "empty": "No events logged yet.",
-      "type": {
-        "EVENT": "Event",
-        "AGREEMENT": "Agreement",
-        "ACTION_ITEM": "Action item"
-      },
-      "status": {
-        "OPEN": "Open",
-        "CLOSED": "Closed"
-      },
-      "attachmentLinkLabel": "View attachment →",
-      "attachmentUrlLabel": "File link (Drive, Dropbox, etc.)",
-      "attachmentUrlPlaceholder": "https://...",
-      "newType": "Type",
-      "newDate": "Date",
-      "newNote": "Note",
-      "addEvent": "Add",
-      "delete": "Delete"
+      "revenueGenerated": "Revenue generated (historical)"
     },
     "save": "Save changes",
     "saving": "Saving...",
