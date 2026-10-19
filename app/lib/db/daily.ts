@@ -1339,3 +1339,60 @@ async function getDailyRiskFacilitiesImpl(
 }
 
 export const getDailyRiskFacilities = cached("getDailyRiskFacilities", getDailyRiskFacilitiesImpl);
+
+// ---------- Pulso de la red (landing de /daily, sin facility elegida) ----------
+// Últimos N días calendario de TODA la red, terminando en el último día con datos (≤ la fecha pedida: el dataset no
+// tiene el día en curso, ver más arriba). Mismo criterio de tasa que el resto: demanda = confirmados /
+// (confirmados + cancelados por falta de jugadores); "cancha no disponible" se cuenta aparte.
+
+export type NetworkDayPoint = {
+  dateISO: string;
+  confirmed: number;
+  demandCancelled: number;
+  fieldUnavailable: number;
+  cancelled: number;
+  demandRate: number | null; // null si no hubo base de demanda ese día
+};
+
+export type NetworkPulse = { lastDataISO: string | null; days: NetworkDayPoint[] };
+
+async function getNetworkPulseImpl(untilISO: string, days = 14): Promise<NetworkPulse> {
+  const latest = await prisma.game.aggregate({ where: { date: { lte: parseISODate(untilISO) } }, _max: { date: true } });
+  const last = latest._max.date as Date | null;
+  if (!last) return { lastDataISO: null, days: [] };
+  const from = addDaysUTC(last, -(days - 1));
+  // Cast sobre el valor ya resuelto (ver el comentario de getDailyRiskFacilitiesImpl): sobre la Promise rompe la inferencia de Prisma.
+  const [grouped] = await Promise.all([
+    prisma.game.groupBy({
+      by: ["date", "status", "cancellationCategory"],
+      where: { date: { gte: from, lte: last } },
+      _count: { _all: true },
+    }),
+  ]);
+  const rows = grouped as { date: Date; status: "CONFIRMED" | "CANCELLED"; cancellationCategory: string | null; _count: { _all: number } }[];
+
+  const byDate = new Map<string, NetworkDayPoint>();
+  for (let i = 0; i < days; i++) {
+    const key = isoOf(addDaysUTC(from, i));
+    byDate.set(key, { dateISO: key, confirmed: 0, demandCancelled: 0, fieldUnavailable: 0, cancelled: 0, demandRate: null });
+  }
+  for (const r of rows) {
+    const e = byDate.get(isoOf(r.date));
+    if (!e) continue;
+    const n = Number(r._count._all);
+    if (r.status === "CONFIRMED") e.confirmed += n;
+    else {
+      e.cancelled += n;
+      const b = bucketOf(r.cancellationCategory);
+      if (b === "demand") e.demandCancelled += n;
+      else if (b === "fieldUnavailable") e.fieldUnavailable += n;
+    }
+  }
+  const out = [...byDate.values()].map((d) => {
+    const base = d.confirmed + d.demandCancelled;
+    return { ...d, demandRate: base > 0 ? d.confirmed / base : null };
+  });
+  return { lastDataISO: isoOf(last), days: out };
+}
+
+export const getNetworkPulse = cached("getNetworkPulse", getNetworkPulseImpl);

@@ -330,7 +330,20 @@
       }
     },
     "viewInventory": "Ver inventario de esta facility →",
-    "filter": "Filtro"
+    "filter": "Filtro",
+    "pulse": {
+      "asOf": "Último día con datos: {date}",
+      "confirmed": "Confirmados",
+      "cancelledSub": "{n} cancelados",
+      "rate": "Tasa de demanda",
+      "field": "Cancha no disponible",
+      "fieldSub": "{n} en los últimos 14 días",
+      "review": "Facilities para revisar",
+      "reviewSub": "{n} de severidad alta",
+      "chartTitle": "Tasa de demanda de la red, últimos {n} días",
+      "floor": "piso {pct}%",
+      "chartNote": "Cada barra es un día (último día resaltado); verde por encima del piso del «sí o sí». Pasá el mouse para ver confirmados / cancelados. El dataset llega hasta ayer."
+    }
   },
   "Trends": {
     "title": "Tendencias",

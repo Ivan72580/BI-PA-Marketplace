@@ -47,7 +47,7 @@ export default async function DailyRiskFacilities({
           const row = (
             <div>
               <div className="flex items-center justify-between gap-2 text-xs mb-1">
-                <span className="truncate text-ink font-medium">{r.facilityName}</span>
+                <span className="truncate text-ink font-medium">{r.facilityName} <span className="text-brand">→</span></span>
                 <span className="flex items-center gap-2 shrink-0 text-ink-faint">
                   <span>{t("cancelledCount", { n: r.recentCancelledGames })}</span>
                   <ChangeBadge value={r.confirmationRateDelta} unit="pts" />

@@ -26,7 +26,7 @@ import { weekdaySingular, weekdayPlural } from "../lib/db/weekday";
 import { todayISO } from "../lib/period";
 import type { Locale } from "@/i18n/config";
 import FacilitySearch from "../components/FacilitySearch";
-import DailyRiskFacilities from "../components/DailyRiskFacilities";
+import DailyNetworkPulse from "../components/DailyNetworkPulse";
 import DailyBreadcrumb from "../components/DailyBreadcrumb";
 import PageHeader from "../components/PageHeader";
 import GroupSection from "../components/GroupSection";
@@ -462,8 +462,8 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
           </div>
         </div>
 
-        <div className="mt-5 max-w-xl">
-          <DailyRiskFacilities facilities={filterOptions.facilities} markets={filterOptions.markets} />
+        <div className="mt-5">
+          <DailyNetworkPulse facilities={filterOptions.facilities} markets={filterOptions.markets} />
         </div>
       </div>
     );

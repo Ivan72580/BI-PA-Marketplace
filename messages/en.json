@@ -330,7 +330,20 @@
       }
     },
     "viewInventory": "See this facility's inventory →",
-    "filter": "Filter"
+    "filter": "Filter",
+    "pulse": {
+      "asOf": "Latest day with data: {date}",
+      "confirmed": "Confirmed",
+      "cancelledSub": "{n} cancelled",
+      "rate": "Demand rate",
+      "field": "Field unavailable",
+      "fieldSub": "{n} in the last 14 days",
+      "review": "Facilities to review",
+      "reviewSub": "{n} high severity",
+      "chartTitle": "Network demand rate, last {n} days",
+      "floor": "floor {pct}%",
+      "chartNote": "Each bar is a day (latest day highlighted); green above the must-schedule floor. Hover for confirmed / cancelled. Data runs up to yesterday."
+    }
   },
   "Trends": {
     "title": "Trends",
