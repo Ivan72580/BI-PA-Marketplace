@@ -3,6 +3,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import type { FacilityNow } from "../lib/db/facilityNow";
 import FacilitySearch from "./FacilitySearch";
 import DatePicker from "./DatePicker";
+import LayerNav from "./LayerNav";
 
 // Cabecera fija del análisis de facility: quién es, hasta qué día llegan los datos, selector del día de
 // referencia, cambio rápido de facility y la barra de capas (anclas dentro de la misma página). Las capas que
@@ -72,25 +73,7 @@ export default async function Facility360Header({
         </div>
       </header>
 
-      <nav aria-label={t("nav.label")} className="sticky top-16 z-30 -mx-1 px-1 py-2 bg-canvas/90 backdrop-blur border-b border-border mb-6 overflow-x-auto">
-        <ul className="flex items-center gap-1.5 min-w-max">
-          {LAYERS.map((l, i) =>
-            l.built ? (
-              <li key={l.id}>
-                <a href={`#${l.id}`} className="inline-flex items-center gap-1.5 rounded-full bg-surface shadow-sm px-3.5 py-1.5 text-sm font-medium text-ink hover:text-brand">
-                  <span className="text-[10px] text-ink-faint">{i + 1}</span>{t(`nav.${l.key}`)}
-                </a>
-              </li>
-            ) : (
-              <li key={l.id}>
-                <span title={t("nav.soon")} className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm text-ink-faint/70 cursor-default">
-                  <span className="text-[10px]">{i + 1}</span>{t(`nav.${l.key}`)}
-                </span>
-              </li>
-            )
-          )}
-        </ul>
-      </nav>
+      <LayerNav layers={LAYERS.map((l) => ({ id: l.id, label: t(`nav.${l.key}`), built: l.built }))} label={t("nav.label")} soon={t("nav.soon")} />
     </>
   );
 }

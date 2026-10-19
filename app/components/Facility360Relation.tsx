@@ -34,7 +34,7 @@ export default async function Facility360Relation({ facilityId, date }: { facili
   const dl = (iso: string) => iso.slice(5).replace("-", "/");
 
   return (
-    <div id="relacion" className="scroll-mt-32">
+    <div id="relacion" className="scroll-mt-[var(--layer-offset,10rem)]">
       <GroupSection title={t("nav.relation")}>
         {sat.summary.totalReviews > 0 ? (
           <GameReviewsPanel summary={sat.summary} complaints={computePlayerComplaintsSummary(sat.summary)} facilityFieldQuality={sat.facilityFieldQuality} recentReviews={sat.recentReviews} showRanking={false} />

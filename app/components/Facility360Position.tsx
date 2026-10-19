@@ -82,7 +82,7 @@ export default async function Facility360Position({ facilityId, date }: { facili
   })();
 
   return (
-    <div id="posicion" className="scroll-mt-32">
+    <div id="posicion" className="scroll-mt-[var(--layer-offset,10rem)]">
       <GroupSection title={t("nav.position")}>
         <p className="text-xs text-ink-muted max-w-3xl -mt-1">{t("position.note", { n: 90 })}</p>
         {body}

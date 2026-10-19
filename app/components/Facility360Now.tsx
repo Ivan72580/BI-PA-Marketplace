@@ -263,7 +263,7 @@ export default async function Facility360Now({ data }: { data: FacilityNow }) {
   const t = tr as unknown as T;
   const lc = locale === "en" ? "en-US" : "es-AR";
   return (
-    <div id="ahora" className="scroll-mt-32">
+    <div id="ahora" className="scroll-mt-[var(--layer-offset,10rem)]">
       <GroupSection title={t("nav.now")}>
         <AlertChips alerts={data.alerts} t={t} />
         <FieldFriction data={data} t={t} lc={lc} />

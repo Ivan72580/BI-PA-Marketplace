@@ -91,7 +91,7 @@ export default async function Facility360Forecast({ p }: { p: ForecastParams }) 
   const tr = t as unknown as T;
   const f = forecast;
   return (
-    <div id="pronostico" className="scroll-mt-32">
+    <div id="pronostico" className="scroll-mt-[var(--layer-offset,10rem)]">
       <GroupSection title={`🔮 ${t360("title")}`} accent="warning" badge={t("badge")}>
         <div className="inline-flex gap-0.5 rounded-full bg-surface-panel p-1 self-start">
           {(["week", "month"] as const).map((r) => (

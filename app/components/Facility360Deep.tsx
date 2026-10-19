@@ -279,7 +279,7 @@ export default async function Facility360Deep({ facilityId, date }: { facilityId
 
   return (
     <>
-      <div id="slots" className="scroll-mt-32">
+      <div id="slots" className="scroll-mt-[var(--layer-offset,10rem)]">
         <GroupSection title={t("nav.slots")}>
           <StatStrip stats={slotStats} />
           <Card title={t("slots.heatTitle")} sub={t("slots.heatSub", { n: 90 })}><HeatGrid deep={deep} t={t} locale={locale as Locale} /></Card>
@@ -294,7 +294,7 @@ export default async function Facility360Deep({ facilityId, date }: { facilityId
         </GroupSection>
       </div>
 
-      <div id="demanda" className="scroll-mt-32">
+      <div id="demanda" className="scroll-mt-[var(--layer-offset,10rem)]">
         <GroupSection title={t("nav.demand")}>
           <StatStrip stats={demandStats} />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -305,7 +305,7 @@ export default async function Facility360Deep({ facilityId, date }: { facilityId
         </GroupSection>
       </div>
 
-      <div id="precio" className="scroll-mt-32">
+      <div id="precio" className="scroll-mt-[var(--layer-offset,10rem)]">
         <GroupSection title={t("nav.price")}>
           <StatStrip stats={priceStats} />
           <Card title={t("price.monthlyTitle")} sub={t("price.monthlySub")}><MonthBars monthly={deep.monthly} t={t} lc={lc} /></Card>

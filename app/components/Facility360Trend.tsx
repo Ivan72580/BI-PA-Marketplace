@@ -44,7 +44,7 @@ export default async function Facility360Trend({ facilityId, date }: { facilityI
   const maxIdx = Math.max(1.4, ...idx.map((i) => i.index ?? 0));
 
   return (
-    <div id="tendencia" className="scroll-mt-32">
+    <div id="tendencia" className="scroll-mt-[var(--layer-offset,10rem)]">
       <GroupSection title={t("nav.trend")}>
         <p className="text-xs text-ink-muted max-w-3xl -mt-1">{t("trend.windowNote")}</p>
         <StatStrip stats={stats} />
