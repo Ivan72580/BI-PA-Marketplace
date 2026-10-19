@@ -11,8 +11,9 @@ import { todayISO } from "../lib/period";
 import FilterPanel from "../components/FilterPanel";
 import PageHeader from "../components/PageHeader";
 import { getFacilityStates } from "../lib/db/facilityState";
+import { getFacilityOffer } from "../lib/db/facilityOffer";
 import FacilityLogBoard from "./FacilityLogBoard";
-import { FacilityStateCard, FacilityStateTable } from "./FacilityState";
+import { FacilityStateCard, FacilityStateTable, OfferPanel } from "./FacilityState";
 
 type SP = { regionId?: string; marketId?: string; facilityId?: string; kind?: string; limit?: string };
 
@@ -33,6 +34,7 @@ function href(sp: SP, overrides: Partial<SP>) {
 export default async function FacilityLogPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
   const today = todayISO();
+  const nowMs = Date.parse(`${today}T23:59:59Z`);
   const kind = LOG_KINDS.includes(sp.kind as LogKind) ? (sp.kind as LogKind) : undefined;
   const limit = Math.min(MAX_LIMIT, Math.max(PAGE_SIZE, Number(sp.limit) || PAGE_SIZE));
   const scope = { regionId: sp.regionId, marketId: sp.marketId, facilityId: sp.facilityId };
@@ -47,12 +49,13 @@ export default async function FacilityLogPage({ searchParams }: { searchParams: 
   const user = current?.user ?? null;
   const canEdit = hasLevel(current?.access.TEAM, "EDIT");
 
-  const [{ rows, hasMore }, summaryRows, topics, weeklyNotes, states] = await Promise.all([
+  const [{ rows, hasMore }, summaryRows, topics, weeklyNotes, states, offer] = await Promise.all([
     getFacilityLogEntries(scope, { kind, limit, meId: user?.id ?? null }),
     getFacilityLogSummaryRows(scope),
     getRecentLogTopics(),
     sp.facilityId ? getWeeklyNotesForFacility(sp.facilityId, addDaysISO(today, -90)) : Promise.resolve([]),
     getFacilityStates(scope, today),
+    sp.facilityId ? getFacilityOffer(sp.facilityId, today) : Promise.resolve(null),
   ]);
   const summary = summarizeLog(summaryRows, today);
 
@@ -101,7 +104,7 @@ export default async function FacilityLogPage({ searchParams }: { searchParams: 
       </div>
 
       {sp.facilityId
-        ? states[0] && <FacilityStateCard row={states[0]} />
+        ? <>{states[0] && <FacilityStateCard row={states[0]} />}{offer && <OfferPanel facilityId={sp.facilityId} offer={offer} canEdit={canEdit} dateLocale={locale} now={nowMs} />}</>
         : <FacilityStateTable rows={states} hrefFor={(id) => href(sp, { facilityId: id, kind: undefined, limit: undefined })} />}
 
       <div className="inline-flex gap-0.5 rounded-full bg-surface-panel p-1 text-sm">

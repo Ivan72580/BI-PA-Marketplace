@@ -2502,6 +2502,57 @@
         "truncated": "Mostrando {shown} de {total}. Filtrá por mercado para ver el resto."
       },
       "footnote": "Es una propuesta, no una etiqueta: se deriva de los hechos registrados (pesan más los recientes y los confirmados por otras personas) y de los partidos de los últimos 90 días. Una dimensión necesita evidencia mínima para puntuar. Los umbrales son una primera calibración."
+    },
+    "offer": {
+      "title": "Oferta: declarada vs. observada",
+      "subtitle": "Lo que la facility dice que da, contra lo que efectivamente publica en los últimos 90 días.",
+      "declared": "Declarada",
+      "observed": "Observada",
+      "notDeclared": "Sin declarar",
+      "declaredBy": "{who} · {date}",
+      "unknownAuthor": "autor sin identificar",
+      "othersYes": "hay otros organizadores",
+      "othersNo": "sin otros organizadores",
+      "modalities": {
+        "BLOCKED_RECURRING": "Bloqueada y recurrente",
+        "RECURRING": "Recurrente, no bloqueada",
+        "DAILY_VARIABLE": "Diaria variable",
+        "RESIDUAL_ONLY": "Solo residual (último momento)"
+      },
+      "observedKinds": {
+        "RECURRENT": "Recurrente",
+        "VARIABLE": "Variable",
+        "SPORADIC": "Esporádica",
+        "NO_DATA": "Sin datos suficientes"
+      },
+      "observedDetail": "{games} partidos · {perWeek} por semana · {pct}% en slots que se repiten · {slots} slots distintos",
+      "fewGames": "{count, plural, one {Hay # partido} other {Hay # partidos}} en 90 días: pocos para opinar.",
+      "verdicts": {
+        "MATCH": "Coincide: da lo que dice.",
+        "BELOW": "Da menos de lo que declara. Para argumentar: lo publicado no es tan recurrente como lo prometido.",
+        "ABOVE": "Da más de lo que declara: buena señal, vale la pena sostenerlo."
+      },
+      "reviewName": "Declaraciones distintas",
+      "reviewHint": "Dos personas declararon modalidades distintas en los últimos 60 días. Conviene revisarlo.",
+      "history": "Historial ({count})",
+      "footnote": "Con los partidos no se distingue 'bloqueada' de 'recurrente no bloqueada': el bloqueo es un acuerdo, no se ve en los datos. Un slot cuenta como recurrente si aparece en 4 o más semanas distintas.",
+      "declare": "Declarar modalidad",
+      "update": "Actualizar modalidad",
+      "modalityLabel": "Modalidad que declara",
+      "choose": "Elegí una",
+      "othersLabel": "¿Otros organizadores en la facility?",
+      "unknown": "No se sabe",
+      "yes": "Sí",
+      "no": "No",
+      "noteLabel": "Nota (opcional)",
+      "notePlaceholder": "Qué dijo, quién, en qué contexto.",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "errors": {
+        "unauthorized": "No tenés permiso para editar.",
+        "invalid": "Revisá los datos.",
+        "generic": "No se pudo guardar. Probá de nuevo."
+      }
     }
   }
 }

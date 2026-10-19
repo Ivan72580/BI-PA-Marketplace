@@ -2,6 +2,9 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { DIMENSIONS, type Dimension, type QuadrantKey, type Trend } from "../lib/facilityState";
 import type { FacilityStateRow } from "../lib/db/facilityState";
+import type { OfferDeclarationRow } from "../lib/db/facilityOffer";
+import { compareOffer, hasConflictingDeclarations, type ObservedOffer } from "../lib/facilityOffer";
+import OfferForm from "./OfferForm";
 
 // Estado calculado de la Bitácora (Fase 2). Componentes de servidor: solo muestran lo que ya calculó facilityState.ts.
 
@@ -147,6 +150,72 @@ export async function FacilityStateTable({ rows, hrefFor }: { rows: FacilityStat
         </table>
       </div>
       {rows.length > sorted.length && <p className="mt-2 text-xs text-ink-faint">{t("table.truncated", { shown: sorted.length, total: rows.length })}</p>}
+    </section>
+  );
+}
+
+const VERDICT_STYLE = { MATCH: "bg-brand-soft text-brand-deep", BELOW: "bg-danger-soft text-danger-deep", ABOVE: "bg-brand-soft text-brand-deep" } as const;
+
+/** Oferta declarada vs. observada de UNA facility. Con permiso de edición, deja declarar o actualizar la modalidad. */
+export async function OfferPanel({
+  facilityId, offer, canEdit, dateLocale, now,
+}: {
+  facilityId: string;
+  offer: { declarations: OfferDeclarationRow[]; observed: ObservedOffer };
+  canEdit: boolean;
+  dateLocale: string;
+  now: number;
+}) {
+  const t = await getTranslations("FacilityLog.offer");
+  const { declarations, observed } = offer;
+  const current = declarations[0] ?? null;
+  const verdict = compareOffer(current?.modality ?? null, observed);
+  const review = hasConflictingDeclarations(declarations, now);
+  const fmt = (ms: number) => new Date(ms).toLocaleDateString(dateLocale, { day: "numeric", month: "short", year: "numeric" });
+  return (
+    <section className="rounded-2xl bg-surface shadow-sm p-5 space-y-3" aria-label={t("title")}>
+      <div>
+        <h2 className="font-display text-sm font-semibold text-ink">{t("title")}</h2>
+        <p className="text-xs text-ink-faint">{t("subtitle")}</p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="rounded-xl bg-surface-sunken px-3 py-2.5">
+          <div className="text-[11px] text-ink-faint">{t("declared")}</div>
+          <div className="mt-0.5 text-sm font-semibold text-ink">{current ? t(`modalities.${current.modality}`) : t("notDeclared")}</div>
+          {current && (
+            <div className="mt-0.5 text-xs text-ink-faint">
+              {t("declaredBy", { who: current.authorName ?? t("unknownAuthor"), date: fmt(current.createdAt) })}
+              {current.otherOrganizers !== null && ` · ${current.otherOrganizers ? t("othersYes") : t("othersNo")}`}
+            </div>
+          )}
+          {current?.note && <p className="mt-1 text-xs text-ink-muted">{current.note}</p>}
+        </div>
+        <div className="rounded-xl bg-surface-sunken px-3 py-2.5">
+          <div className="text-[11px] text-ink-faint">{t("observed")}</div>
+          <div className="mt-0.5 text-sm font-semibold text-ink">{t(`observedKinds.${observed.kind}`)}</div>
+          <div className="mt-0.5 text-xs text-ink-faint">
+            {observed.kind === "NO_DATA" ? t("fewGames", { count: observed.games }) : t("observedDetail", { games: observed.games, perWeek: observed.perWeek, pct: observed.recurrentPct, slots: observed.slots })}
+          </div>
+        </div>
+      </div>
+      {verdict && (
+        <p className={`rounded-xl px-3 py-2 text-sm ${VERDICT_STYLE[verdict]}`}>{t(`verdicts.${verdict}`)}</p>
+      )}
+      {review && <p className="rounded-xl bg-warning-soft px-3 py-2 text-xs text-ink"><span className="font-semibold text-warning">{t("reviewName")}:</span> {t("reviewHint")}</p>}
+      {declarations.length > 1 && (
+        <details className="text-xs text-ink-muted">
+          <summary className="cursor-pointer">{t("history", { count: declarations.length })}</summary>
+          <ul className="mt-1.5 space-y-1">
+            {declarations.map((d) => (
+              <li key={d.id}>
+                {fmt(d.createdAt)} · {t(`modalities.${d.modality}`)} · {d.authorName ?? t("unknownAuthor")}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+      <p className="text-xs text-ink-faint">{t("footnote")}</p>
+      {canEdit && <OfferForm key={current?.id ?? "none"} facilityId={facilityId} current={current?.modality ?? null} />}
     </section>
   );
 }

@@ -2502,6 +2502,57 @@
         "truncated": "Showing {shown} of {total}. Filter by market to see the rest."
       },
       "footnote": "A proposal, not a label: derived from the logged facts (recent ones and those confirmed by others weigh more) and from the last 90 days of games. Each dimension needs minimum evidence to score. Thresholds are a first calibration."
+    },
+    "offer": {
+      "title": "Offer: declared vs. observed",
+      "subtitle": "What the facility says it provides, against what it actually publishes over the last 90 days.",
+      "declared": "Declared",
+      "observed": "Observed",
+      "notDeclared": "Not declared",
+      "declaredBy": "{who} · {date}",
+      "unknownAuthor": "unidentified author",
+      "othersYes": "other organizers present",
+      "othersNo": "no other organizers",
+      "modalities": {
+        "BLOCKED_RECURRING": "Blocked and recurring",
+        "RECURRING": "Recurring, not blocked",
+        "DAILY_VARIABLE": "Daily, variable",
+        "RESIDUAL_ONLY": "Residual only (last minute)"
+      },
+      "observedKinds": {
+        "RECURRENT": "Recurring",
+        "VARIABLE": "Variable",
+        "SPORADIC": "Sporadic",
+        "NO_DATA": "Not enough data"
+      },
+      "observedDetail": "{games} games · {perWeek} per week · {pct}% in repeating slots · {slots} distinct slots",
+      "fewGames": "{count, plural, one {# game} other {# games}} in 90 days: too few to judge.",
+      "verdicts": {
+        "MATCH": "Matches: it gives what it says.",
+        "BELOW": "Gives less than it declares. To argue with: what is published is less recurring than what was promised.",
+        "ABOVE": "Gives more than it declares: a good sign, worth sustaining."
+      },
+      "reviewName": "Conflicting declarations",
+      "reviewHint": "Two people declared different modalities in the last 60 days. Worth reviewing.",
+      "history": "History ({count})",
+      "footnote": "Games can't tell 'blocked' from 'recurring, not blocked': blocking is an agreement, not visible in the data. A slot counts as recurring if it shows up in 4 or more distinct weeks.",
+      "declare": "Declare modality",
+      "update": "Update modality",
+      "modalityLabel": "Declared modality",
+      "choose": "Pick one",
+      "othersLabel": "Other organizers at the facility?",
+      "unknown": "Unknown",
+      "yes": "Yes",
+      "no": "No",
+      "noteLabel": "Note (optional)",
+      "notePlaceholder": "What was said, by whom, in what context.",
+      "save": "Save",
+      "cancel": "Cancel",
+      "errors": {
+        "unauthorized": "You don't have permission to edit.",
+        "invalid": "Check the data.",
+        "generic": "Could not save. Try again."
+      }
     }
   }
 }

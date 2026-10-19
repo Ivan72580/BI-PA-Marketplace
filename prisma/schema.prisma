@@ -50,6 +50,7 @@ model Facility {
   profile  FacilityProfile?
   weeklyLogEntries WeeklyLogEntry[]
   logEntries       FacilityLogEntry[]
+  offerDeclarations FacilityOfferDeclaration[]
 
   @@unique([name, marketId])
   @@index([marketId])
@@ -495,6 +496,7 @@ model User {
   logEntries       FacilityLogEntry[]
   logReactions     FacilityLogReaction[]
   logReplies       FacilityLogReply[]
+  offerDeclarations FacilityOfferDeclaration[]
 
   @@map("users")
 }
@@ -640,4 +642,31 @@ model FacilityLogReply {
 
   @@index([entryId, createdAt])
   @@map("facility_log_replies")
+}
+
+// Modalidad de oferta que la facility DICE dar (ver "Bitácora de Facilities"): bloqueada y recurrente / recurrente no
+// bloqueada / diaria variable / solo residual. Se compara contra lo que efectivamente publica (recurrencia de slots).
+enum FacilityOfferModality {
+  BLOCKED_RECURRING
+  RECURRING
+  DAILY_VARIABLE
+  RESIDUAL_ONLY
+}
+
+// Cada cambio es una fila nueva (quién, cuándo, valor, nota): no se pisa el anterior, así queda el historial. La
+// vigente es la más reciente. Si dos personas declaran valores distintos en 60 días, la ficha lo marca para revisar.
+model FacilityOfferDeclaration {
+  id              String                @id @default(cuid())
+  facilityId      String
+  facility        Facility              @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  authorId        String?
+  author          User?                 @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  modality        FacilityOfferModality
+  // ¿Hay otros organizadores compitiendo por el mismo inventario? null = no se sabe.
+  otherOrganizers Boolean?
+  note            String?
+  createdAt       DateTime              @default(now())
+
+  @@index([facilityId, createdAt])
+  @@map("facility_offer_declarations")
 }
