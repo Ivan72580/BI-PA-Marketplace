@@ -9,9 +9,12 @@ import { type SP } from "../lib/searchParams";
 import type { Locale } from "@/i18n/config";
 import FilterPanel from "../components/FilterPanel";
 import PageHeader from "../components/PageHeader";
-import ScheduleBoard from "../components/ScheduleBoard";
+import ScheduleBoard, { type ScheduleOrder } from "../components/ScheduleBoard";
+import type { ScheduleFocus } from "../lib/db/mustScheduleBoard";
 
-type InvSP = SP & { sort?: string; day?: string; limit?: string; view?: string };
+const SCHEDULE_ORDERS: ScheduleOrder[] = ["time", "rateDesc", "rateAsc"];
+
+type InvSP = SP & { sort?: string; day?: string; limit?: string; view?: string; focus?: string; order?: string };
 
 const PAGE_SIZE = 36;
 const MAX_LIMIT = 300;
@@ -114,7 +117,10 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
   const limit = Math.min(MAX_LIMIT, Math.max(PAGE_SIZE, Number(sp.limit) || PAGE_SIZE));
   const filters = { regionId: sp.regionId, marketId: sp.marketId, facilityId: sp.facilityId, dateFrom: period.dateFrom, dateTo: period.dateTo };
 
-  const view: "slots" | "schedule" = sp.view === "schedule" ? "schedule" : "slots";
+  // Vista por defecto: "A agendar". "Publicados" se pide con ?view=slots.
+  const view: "slots" | "schedule" = sp.view === "slots" ? "slots" : "schedule";
+  const focus: ScheduleFocus | undefined = sp.focus === "secure" || sp.focus === "avoid" ? sp.focus : undefined;
+  const order: ScheduleOrder = SCHEDULE_ORDERS.includes(sp.order as ScheduleOrder) ? (sp.order as ScheduleOrder) : "time";
   const [names, filterOptions, inv, board] = await Promise.all([
     resolveFilterNames(sp),
     getFilterOptions(),
@@ -144,8 +150,8 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
       />
 
       <div className="inline-flex gap-0.5 rounded-full bg-surface-panel p-1 text-sm">
-        <Link href={href(sp, { view: undefined, limit: undefined })} className={`px-4 py-1.5 rounded-full transition-colors ${view === "slots" ? "bg-surface text-ink font-semibold shadow-sm" : "text-ink-muted font-medium hover:text-ink"}`}>{t("views.slots")}</Link>
-        <Link href={href(sp, { view: "schedule", limit: undefined, sort: undefined })} className={`px-4 py-1.5 rounded-full transition-colors ${view === "schedule" ? "bg-surface text-ink font-semibold shadow-sm" : "text-ink-muted font-medium hover:text-ink"}`}>{t("views.schedule")}</Link>
+        <Link href={href(sp, { view: undefined, limit: undefined, sort: undefined })} className={`px-4 py-1.5 rounded-full transition-colors ${view === "schedule" ? "bg-surface text-ink font-semibold shadow-sm" : "text-ink-muted font-medium hover:text-ink"}`}>{t("views.schedule")}</Link>
+        <Link href={href(sp, { view: "slots", limit: undefined, focus: undefined, order: undefined })} className={`px-4 py-1.5 rounded-full transition-colors ${view === "slots" ? "bg-surface text-ink font-semibold shadow-sm" : "text-ink-muted font-medium hover:text-ink"}`}>{t("views.slots")}</Link>
       </div>
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4 text-xs">
@@ -157,6 +163,22 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
               <Link key={r.id} href={href(sp, { regionId: r.id, marketId: undefined, facilityId: undefined })} className={`rounded-full px-2.5 py-1 ${sp.regionId === r.id ? "bg-brand text-white" : "bg-surface text-ink-muted hover:text-ink"}`}>{r.name}</Link>
             ))}
           </div>
+        )}
+        {view === "schedule" && (
+          <>
+            <div className="flex flex-wrap items-center gap-1">
+              <span className="text-ink-faint mr-1">{t("schedule.focusLabel")}</span>
+              <Link href={href(sp, { focus: undefined })} className={`rounded-full px-2.5 py-1 ${!focus ? "bg-brand text-white" : "bg-surface text-ink-muted hover:text-ink"}`}>{t("schedule.focus.all")}</Link>
+              <Link href={href(sp, { focus: "secure" })} className={`rounded-full px-2.5 py-1 ${focus === "secure" ? "bg-brand text-white" : "bg-surface text-ink-muted hover:text-ink"}`}>{t("schedule.focus.secure")}{board ? ` · ${board.totalSecure}` : ""}</Link>
+              <Link href={href(sp, { focus: "avoid" })} className={`rounded-full px-2.5 py-1 ${focus === "avoid" ? "bg-danger text-white" : "bg-surface text-ink-muted hover:text-ink"}`}>{t("schedule.focus.avoid")}{board ? ` · ${board.totalAvoid}` : ""}</Link>
+            </div>
+            <div className="flex flex-wrap items-center gap-1">
+              <span className="text-ink-faint mr-1">{t("sortLabel")}</span>
+              {SCHEDULE_ORDERS.map((o) => (
+                <Link key={o} href={href(sp, { order: o === "time" ? undefined : o })} className={`rounded-full px-2.5 py-1 ${order === o ? "bg-brand text-white" : "bg-surface text-ink-muted hover:text-ink"}`}>{t(`schedule.order.${o}`)}</Link>
+              ))}
+            </div>
+          </>
         )}
         {view === "slots" && (
         <div className="flex flex-wrap items-center gap-1">
@@ -179,7 +201,7 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
       </div>
 
       {view === "schedule" ? (
-        <ScheduleBoard board={board} t={t2} locale={locale} day={day} />
+        <ScheduleBoard board={board} t={t2} locale={locale} day={day} focus={focus} order={order} />
       ) : !inv ? null : inv.slots.length === 0 ? (
         <div className="rounded-2xl bg-surface shadow-sm p-8 text-center text-sm text-ink-muted mt-4">
           {sort === "rateAsc" || sort === "rateDesc" || sort === "fillAsc" ? t("emptyRated", { min: MIN_SLOT_SAMPLE }) : t("empty")}

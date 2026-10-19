@@ -2086,7 +2086,7 @@
     "schedule": {
       "subtitle": "Partidos que conviene tener publicados sí o sí en {scope}, según los últimos meses",
       "regionLabel": "Región:",
-      "count": "{shown} de {total} partidos recurrentes a agendar · ventana {from} → {to}",
+      "count": "{shown} de {total} partidos recurrentes · ventana {from} → {to}",
       "empty": "Ningún partido recurrente cumple la definición con estos filtros.",
       "trend": {
         "up": "En alza: la confirmación mejoró en la segunda mitad de la ventana",
@@ -2097,10 +2097,27 @@
         "demandRate": "Tasa de demanda",
         "price": "Precio prom.",
         "summary": "{confirmed} confirmados de {base} con demanda en la ventana",
-        "fieldLost": "Se perdió {n} vez/veces por cancha no disponible: reservar con anticipación."
+        "fieldLost": "Se perdió {n} vez/veces por cancha no disponible: reservar con anticipación.",
+        "weeks": "{n} semanas",
+        "recentCancels": "{n} cancelaciones en los últimos {days} días.",
+        "lowRate": "Tasa de demanda en o por debajo de {rate}."
       },
       "definition": "A agendar = partido recurrente (facility + día + hora + cancha + formato) cuya tasa de demanda en los últimos {months} meses supera {rate}, con al menos {sample} partidos con demanda. Tasa de demanda = confirmados / (confirmados + cancelados por falta de jugadores). La lista se renueva una vez por semana ({week}).",
-      "limit": "No se cruza contra lo que ya está publicado a futuro: la lista muestra qué conviene tener, no qué falta."
+      "limit": "No se cruza contra lo que ya está publicado a futuro: la lista muestra qué conviene tener, no qué falta.",
+      "focusLabel": "Foco:",
+      "focus": {
+        "all": "Todos",
+        "secure": "Asegurar",
+        "avoid": "Evitar",
+        "secureTag": "Asegurar",
+        "avoidTag": "Evitar"
+      },
+      "order": {
+        "time": "Horario",
+        "rateDesc": "Tasa más alta",
+        "rateAsc": "Tasa más baja"
+      },
+      "focusDefinition": "Asegurar = recurrente (apareció en {secureWeeks}+ semanas distintas) con tasa de demanda de {secureRate} o más, sin alertas. Evitar = tasa de demanda de {minRate} o menos con muestra suficiente, o {cancelMin}+ cancelaciones (por demanda o por cancha) en los últimos {cancelDays} días. Evitar tiene prioridad. Ojo: no es lo mismo que “Asegurar cancha” de Pronóstico (reservar la cancha con anticipación)."
     }
   },
   "WeeklyLog": {

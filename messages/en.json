@@ -2086,7 +2086,7 @@
     "schedule": {
       "subtitle": "Games worth having published in {scope}, based on recent months",
       "regionLabel": "Region:",
-      "count": "{shown} of {total} recurring games to schedule · window {from} → {to}",
+      "count": "{shown} of {total} recurring games · window {from} → {to}",
       "empty": "No recurring game meets the definition with these filters.",
       "trend": {
         "up": "Rising: confirmation improved in the second half of the window",
@@ -2097,10 +2097,27 @@
         "demandRate": "Demand rate",
         "price": "Avg price",
         "summary": "{confirmed} confirmed out of {base} with demand in the window",
-        "fieldLost": "Lost {n} time(s) to field unavailability: reserve ahead."
+        "fieldLost": "Lost {n} time(s) to field unavailability: reserve ahead.",
+        "weeks": "{n} weeks",
+        "recentCancels": "{n} cancellations in the last {days} days.",
+        "lowRate": "Demand rate at or below {rate}."
       },
       "definition": "To schedule = recurring game (facility + day + hour + field + format) whose demand rate over the last {months} months is above {rate}, with at least {sample} games with demand. Demand rate = confirmed / (confirmed + cancelled for lack of players). The list refreshes once a week ({week}).",
-      "limit": "It is not cross-checked against what is already published ahead: the list shows what is worth having, not what is missing."
+      "limit": "It is not cross-checked against what is already published ahead: the list shows what is worth having, not what is missing.",
+      "focusLabel": "Focus:",
+      "focus": {
+        "all": "All",
+        "secure": "Secure",
+        "avoid": "Avoid",
+        "secureTag": "Secure",
+        "avoidTag": "Avoid"
+      },
+      "order": {
+        "time": "Time",
+        "rateDesc": "Highest rate",
+        "rateAsc": "Lowest rate"
+      },
+      "focusDefinition": "Secure = recurring (seen in {secureWeeks}+ distinct weeks) with demand rate of {secureRate} or more, no flags. Avoid = demand rate of {minRate} or less with enough sample, or {cancelMin}+ cancellations (demand or field) in the last {cancelDays} days. Avoid takes priority. Note: not the same as “Secure field” in Forecast (reserving the field ahead)."
     }
   },
   "WeeklyLog": {
