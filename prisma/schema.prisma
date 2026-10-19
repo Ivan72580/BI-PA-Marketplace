@@ -465,6 +465,13 @@ model User {
   name        String?
   image       String?
   role        Role      @default(MEMBER)
+  // OBSOLETO desde la migración 20261016120000_module_access: el acceso a
+  // Ejecutivo ahora es UserModuleAccess (module EXECUTIVE). Esa migración copió
+  // este valor (true -> EDIT) y la app ya no lo lee ni lo escribe: es un dato
+  // congelado, NO un permiso vigente. La columna se conserva a propósito (por
+  // si sirve como referencia histórica); se declara acá para que el esquema y
+  // la base coincidan y prisma migrate dev no proponga borrarla.
+  canViewLeadership Boolean @default(false)
   // Opt-out (default true) del mail semanal de reportes (Ops para
   // cualquier cuenta activa, Executive Summary además solo para quienes
   // tienen Ejecutivo >= Ver) — se administra desde /admin/users, con el
