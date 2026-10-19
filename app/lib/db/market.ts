@@ -699,3 +699,58 @@ async function getMarketComparisonImpl(
 }
 
 export const getMarketComparison = cached("getMarketComparison", getMarketComparisonImpl);
+
+// ---------- Historial de precio (pestaña Precio) ----------
+// Ticket promedio (gamePrice) por facility y por mes, los últimos `PRICE_HISTORY_MONTHS` meses terminando en
+// el mes elegido. Mismo criterio que `avgPrice` del resumen (promedio de partidos con precio, publicados),
+// ponderado por cantidad de partidos al juntar los días de un mismo mes. `overall` es el mismo cálculo sobre
+// todo el alcance filtrado.
+
+export const PRICE_HISTORY_MONTHS = 6;
+
+export type PriceHistory = {
+  months: string[]; // YYYY-MM, del más viejo al elegido
+  overall: (number | null)[];
+  byFacility: Record<string, (number | null)[]>;
+};
+
+async function getPriceHistoryImpl(
+  filters: Omit<OverviewFilters, "dateFrom" | "dateTo">,
+  month: string /* YYYY-MM */
+): Promise<PriceHistory> {
+  const [y, m] = month.split("-").map(Number);
+  const months = Array.from({ length: PRICE_HISTORY_MONTHS }, (_, i) => {
+    const d = new Date(Date.UTC(y, m - 1 - (PRICE_HISTORY_MONTHS - 1 - i), 1));
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+  });
+  const dateFrom = new Date(`${months[0]}-01T00:00:00.000Z`);
+  const dateTo = new Date(Date.UTC(y, m, 0, 23, 59, 59));
+  const rows = await prisma.game.groupBy({
+    by: ["facilityId", "date"],
+    where: { ...buildWhere({ ...filters, dateFrom, dateTo }), gamePrice: { not: null } },
+    _avg: { gamePrice: true },
+    _count: { _all: true },
+  });
+
+  const idx = new Map(months.map((mm, i) => [mm, i]));
+  const acc = new Map<string, { sum: number; n: number }[]>();
+  const all = months.map(() => ({ sum: 0, n: 0 }));
+  for (const r of rows) {
+    const i = idx.get(r.date.toISOString().slice(0, 7));
+    const avg = r._avg.gamePrice;
+    if (i === undefined || avg === null) continue;
+    const n = Number(r._count._all);
+    let a = acc.get(r.facilityId);
+    if (!a) { a = months.map(() => ({ sum: 0, n: 0 })); acc.set(r.facilityId, a); }
+    a[i].sum += avg * n; a[i].n += n;
+    all[i].sum += avg * n; all[i].n += n;
+  }
+  const mean = (c: { sum: number; n: number }) => (c.n > 0 ? c.sum / c.n : null);
+  return {
+    months,
+    overall: all.map(mean),
+    byFacility: Object.fromEntries([...acc].map(([id, a]) => [id, a.map(mean)])),
+  };
+}
+
+export const getPriceHistory = cached("getPriceHistory", getPriceHistoryImpl);

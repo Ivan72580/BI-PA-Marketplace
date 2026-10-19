@@ -117,7 +117,7 @@ export default function ShareMap({ bubbles, labels }: { bubbles: ShareBubble[]; 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
       <div className="lg:col-span-2 rounded-2xl bg-surface shadow-sm p-3">
-        <div ref={containerRef} className="h-[520px] w-full rounded-xl overflow-hidden z-0" />
+        <div ref={containerRef} className="h-[440px] w-full rounded-xl overflow-hidden z-0" />
         <div className="flex items-center gap-2 mt-2 text-[11px] text-ink-faint">
           <span>{labels.legendLow}</span>
           <span className="h-2 w-40 rounded-full" style={{ background: `linear-gradient(to right, ${[0, 0.2, 0.4, 0.6, 0.8, 1].map((t) => heatColor(t)).join(",")})` }} aria-hidden="true" />

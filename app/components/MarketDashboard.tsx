@@ -4,6 +4,7 @@ import {
   getMarketFacilitySummary,
   getParetoGroups,
   getMarketRanking,
+  getPriceHistory,
   TIER_CLASS,
   type OverviewFilters,
   type ReputationTier,
@@ -21,6 +22,7 @@ import ChangeBadge from "./ChangeBadge";
 import Tabs from "./Tabs";
 import RegionConcentrationPies from "./RegionConcentrationPies";
 import PriceTable from "./PriceTable";
+import StatStrip, { type Stat } from "./StatStrip";
 import EngagementTable from "./EngagementTable";
 import ReputationTable, { type ReputationRow } from "./ReputationTable";
 import ShareMap, { type ShareBubble, type ShareMapLabels } from "./ShareMap";
@@ -37,6 +39,8 @@ type MarketTranslator = (key: string, values?: Record<string, string | number>) 
 const MIN_VOLUME_CHANGE_PCT = 0.15;
 const MIN_SHARE_CHANGE_PTS = 0.01;
 const MIN_NEAR_MISS_RATIO = 0.3;
+const TOP1_WARN_PCT = 0.25; // una sola facility con 25 %+ del volumen del alcance = dependencia alta
+const PRICE_MOVE_PCT = 0.03; // variación de ticket promedio que cuenta como "subió"/"bajó"
 
 function buildParetoInsights(top80: ParetoFacility[], t: MarketTranslator): PanelInsight[] {
   const withChange = top80.filter((f) => f.changePct !== null);
@@ -126,9 +130,6 @@ function buildEngagementInsights(
 function formatPct(n: number) {
   return `${(n * 100).toFixed(1)}%`;
 }
-function formatUSD(n: number) {
-  return n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
-}
 function formatUSD2(n: number) {
   return n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 });
 }
@@ -173,7 +174,7 @@ export default async function MarketDashboard({
   buildQuery,
   activeTab,
 }: {
-  sp: { regionId?: string; marketId?: string; facilityId?: string; shareView?: string };
+  sp: { regionId?: string; marketId?: string; facilityId?: string };
   filterOptions: { regions: { id: string; name: string }[]; markets: { id: string; name: string; regionId: string }[] };
   month: string;
   buildQuery: (overrides: Record<string, string | undefined>) => string;
@@ -197,10 +198,11 @@ export default async function MarketDashboard({
     return avg ? formatPerPeriod(avg, locale as Locale) : undefined;
   };
 
-  const [summary, pareto, marketRanking] = await Promise.all([
+  const [summary, pareto, marketRanking, priceHistory] = await Promise.all([
     getMarketFacilitySummary(monthFilters),
     getParetoGroups(monthFilters),
     getMarketRanking(baseFilters, month),
+    getPriceHistory(baseFilters, month),
   ]);
 
   // Precio: mercado activo vs. red completa para "vs anterior" facility-level de market share
@@ -218,14 +220,40 @@ export default async function MarketDashboard({
   };
 
   const reputationRows = [...summary].sort((a, b) => (b.reputationScore ?? -1) - (a.reputationScore ?? -1));
-  const priceRows = summary.filter((f) => f.avgPrice !== null);
+  const priceRows = summary
+    .filter((f) => f.avgPrice !== null)
+    .map((f) => {
+      const history = priceHistory.byFacility[f.facilityId] ?? priceHistory.months.map(() => null);
+      const cur = history[history.length - 1];
+      const prev = history[history.length - 2];
+      return { ...f, history, changePct: cur !== null && prev !== null && prev > 0 ? cur / prev - 1 : null };
+    });
   const engagementRows = [...summary].sort((a, b) => b.nearMissCancelledCount - a.nearMissCancelledCount);
   const totalNearMiss = summary.reduce((s, f) => s + f.nearMissCancelledCount, 0);
   const totalCancelled = summary.reduce((s, f) => s + f.cancelledGames, 0);
 
   // ---------- Concentración ----------
+  // Indicadores de arriba: cuánto se concentra el volumen del alcance filtrado. Salen del mismo resumen por
+  // facility (sin consultas nuevas); el "vs mes anterior" suma los markets de marketRanking.
+  const activeRows = summary.filter((f) => f.confirmedGames > 0).sort((a, b) => b.confirmedGames - a.confirmedGames);
+  const totalConfirmed = activeRows.reduce((s, f) => s + f.confirmedGames, 0);
+  const priorTotal = marketRanking.some((m) => m.priorMonthConfirmedGames !== null)
+    ? marketRanking.reduce((s, m) => s + (m.priorMonthConfirmedGames ?? 0), 0)
+    : null;
+  const totalChange = priorTotal !== null && priorTotal > 0 ? totalConfirmed / priorTotal - 1 : null;
+  let n80 = 0;
+  for (let acc = 0; n80 < activeRows.length && acc < 0.8 * totalConfirmed; ) acc += activeRows[n80++].confirmedGames;
+  const top1 = activeRows[0];
+  const top1Pct = top1 && totalConfirmed > 0 ? top1.confirmedGames / totalConfirmed : 0;
+  const concentrationStats: Stat[] = activeRows.length === 0 || sp.facilityId ? [] : [
+    { label: t("concentration.kpi.confirmed"), value: totalConfirmed.toLocaleString("en-US"), sub: <ChangeBadge value={totalChange} secondary={priorTotal !== null ? `${totalConfirmed - priorTotal >= 0 ? "+" : ""}${totalConfirmed - priorTotal}` : undefined} /> },
+    { label: t("concentration.kpi.active"), value: activeRows.length, sub: t("concentration.kpi.activeSub", { n: summary.length }) },
+    { label: t("concentration.kpi.top1"), value: formatPct(top1Pct), tone: top1Pct >= TOP1_WARN_PCT ? "warn" : "default", sub: `${top1.name}${top1Pct >= TOP1_WARN_PCT ? ` · ${t("concentration.kpi.highDependence")}` : ""}` },
+    { label: t("concentration.kpi.top80"), value: `${n80} / ${activeRows.length}`, sub: t("concentration.kpi.top80Sub", { pct: formatPct(n80 / activeRows.length) }) },
+  ];
   const concentracionContent = (
     <div className="space-y-5">
+      {concentrationStats.length > 0 && <StatStrip stats={concentrationStats} />}
       {!sp.regionId ? (
         <SectionCard title={t("concentration.byRegionTitle")} subtitle={t("concentration.byRegionSubtitle", { month })}>
           <RegionConcentrationPies filters={monthFilters} buildHref={(regionId) => buildQuery({ regionId })} />
@@ -286,7 +314,6 @@ export default async function MarketDashboard({
 
   // Vista de mapa del tab: mismas cifras que las tarjetas (marketRanking / summary / facilityShareCompare),
   // solo cambia la forma de mostrarlas. Se calcula únicamente cuando se pide, para no sumar la consulta del mapa.
-  const shareView: "cards" | "map" = sp.shareView === "map" ? "map" : "cards";
   const changeText = (value: number | null, unit: "pct" | "pts", secondary?: string): { text: string | null; tone: ShareBubble["changeTone"] } => {
     if (value === null) return { text: null, tone: null };
     const arrow = value === 0 ? "→" : value > 0 ? "↑" : "↓";
@@ -295,7 +322,7 @@ export default async function MarketDashboard({
   };
   const shareBubbles: ShareBubble[] = [];
   let shareUnmapped = 0;
-  if (shareView === "map") {
+  {
     const mapData = await getMapData(monthFilters);
     shareUnmapped = mapData.unmapped.facilities;
     const mapped = mapData.zones.flatMap((z) => z.facilities);
@@ -317,7 +344,7 @@ export default async function MarketDashboard({
           key: m.marketId, label: m.marketName, latitude: e.lat / e.w, longitude: e.lng / e.w,
           value: m.confirmedGames, headline: m.confirmedGames.toLocaleString("en-US"), headlineCaption: t("share.confirmedGamesLabel"),
           change: ch.text, changeTone: ch.tone, detail: perPeriod(m.confirmedGames) ?? null,
-          approximate: e.approx / e.n > 0.5, href: buildQuery({ marketId: m.marketId, tab: "share", shareView: "map" }),
+          approximate: e.approx / e.n > 0.5, href: buildQuery({ marketId: m.marketId, tab: "share" }),
         });
       }
     } else {
@@ -347,24 +374,15 @@ export default async function MarketDashboard({
     legendLow: t("share.map.legendLow"),
     legendHigh: t("share.map.legendHigh"),
   };
-  const viewToggle = (
-    <div className="inline-flex items-center rounded-full bg-surface-sunken p-1 text-sm font-medium gap-1">
-      <Link href={buildQuery({ tab: "share", shareView: undefined })} className={`px-4 py-1.5 rounded-full transition-colors ${shareView === "cards" ? "bg-brand text-white shadow-sm" : "text-ink-muted hover:text-ink"}`}>{t("share.map.viewCards")}</Link>
-      <Link href={buildQuery({ tab: "share", shareView: "map" })} className={`px-4 py-1.5 rounded-full transition-colors ${shareView === "map" ? "bg-brand text-white shadow-sm" : "text-ink-muted hover:text-ink"}`}>{t("share.map.viewMap")}</Link>
-    </div>
-  );
-
   const marketShareContent = (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center gap-3">
-        {viewToggle}
-        {shareView === "map" && shareUnmapped > 0 && <span className="text-xs text-ink-faint">{t("share.map.unmapped", { n: shareUnmapped })}</span>}
-      </div>
-
-      {shareView === "map" ? (
-        shareBubbles.length > 0 ? <ShareMap bubbles={shareBubbles} labels={shareMapLabels} /> : <div className="rounded-2xl bg-surface shadow-sm p-8 text-center text-sm text-ink-muted">{t("share.map.empty")}</div>
+      {shareBubbles.length > 0 ? (
+        <ShareMap bubbles={shareBubbles} labels={shareMapLabels} />
       ) : (
-        <>
+        <div className="rounded-2xl bg-surface shadow-sm p-8 text-center text-sm text-ink-muted">{t("share.map.empty")}</div>
+      )}
+      {shareUnmapped > 0 && <p className="text-xs text-ink-faint -mt-3">{t("share.map.unmapped", { n: shareUnmapped })}</p>}
+
       {!sp.marketId && (
         <SectionCard title={t("share.byMarketTitle")} subtitle={t("share.byMarketSubtitle", { month })}>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -420,8 +438,6 @@ export default async function MarketDashboard({
           </div>
         </SectionCard>
       )}
-        </>
-      )}
       <Glossary items={[{ term: t("glossary.vsAnteriorMonth.term"), def: t("glossary.vsAnteriorMonth.def") }]} />
     </div>
   );
@@ -456,15 +472,31 @@ export default async function MarketDashboard({
   );
 
   // ---------- Precio ----------
+  // Indicadores: ticket promedio del alcance contra el mes anterior, cuántas facilities movieron precio y el rango.
+  const overallNow = priceHistory.overall[priceHistory.overall.length - 1];
+  const overallPrev = priceHistory.overall[priceHistory.overall.length - 2];
+  const overallChange = overallNow !== null && overallPrev !== null && overallPrev > 0 ? overallNow / overallPrev - 1 : null;
+  const movers = priceRows.filter((f) => f.changePct !== null);
+  const raised = movers.filter((f) => (f.changePct as number) >= PRICE_MOVE_PCT).length;
+  const lowered = movers.filter((f) => (f.changePct as number) <= -PRICE_MOVE_PCT).length;
+  const prices = priceRows.map((f) => f.avgPrice as number);
+  const priceStats: Stat[] = priceRows.length === 0 ? [] : [
+    { label: t("price.kpi.avg"), value: overallNow !== null ? formatUSD2(overallNow) : "—", sub: <ChangeBadge value={overallChange} /> },
+    { label: t("price.kpi.raised"), value: raised, sub: t("price.kpi.moveSub", { pct: Math.round(PRICE_MOVE_PCT * 100), n: movers.length }) },
+    { label: t("price.kpi.lowered"), value: lowered, sub: t("price.kpi.moveSub", { pct: Math.round(PRICE_MOVE_PCT * 100), n: movers.length }) },
+    { label: t("price.kpi.range"), value: `${formatUSD2(Math.min(...prices))} – ${formatUSD2(Math.max(...prices))}`, sub: t("price.kpi.rangeSub", { n: priceRows.length }) },
+  ];
   const precioContent = (
     <div className="space-y-5">
+      {priceStats.length > 0 && <StatStrip stats={priceStats} />}
       <SectionCard title={t("price.title")} subtitle={t("price.subtitle", { month })}>
-        <PriceTable rows={priceRows} />
+        <PriceTable rows={priceRows} months={priceHistory.months} />
         <Glossary
           items={[
             { term: t("price.glossary.avgTicket.term"), def: t("price.glossary.avgTicket.def") },
             { term: t("price.glossary.playersPerGame.term"), def: t("price.glossary.playersPerGame.def") },
             { term: t("price.glossary.gamesPerMonth.term"), def: t("price.glossary.gamesPerMonth.def") },
+            { term: t("price.glossary.vsPrior.term"), def: t("price.glossary.vsPrior.def", { n: priceHistory.months.length }) },
             { term: t("price.glossary.revenue.term"), def: t("price.glossary.revenue.def") },
           ]}
         />

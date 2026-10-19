@@ -596,7 +596,16 @@
       "othersLabel": "Otros ({n} facilities)",
       "viewTop80": "Ver detalle del grupo 80%",
       "facilitiesShare": "{n} facilities · {pct} de los confirmados",
-      "viewOthers": "Ver detalle del grupo «Otros» (20%)"
+      "viewOthers": "Ver detalle del grupo «Otros» (20%)",
+      "kpi": {
+        "confirmed": "Partidos confirmados",
+        "active": "Facilities activas",
+        "activeSub": "de {n} en el filtro",
+        "top1": "Facility #1",
+        "highDependence": "alta dependencia",
+        "top80": "Hacen el 80%",
+        "top80Sub": "{pct} de las facilities activas"
+      }
     },
     "share": {
       "byMarketTitle": "Markets por partidos confirmados",
@@ -607,8 +616,6 @@
       "confirmedCount": "{n} confirmados",
       "empty": "Sin partidos confirmados en este market para el mes elegido.",
       "map": {
-        "viewCards": "Tarjetas",
-        "viewMap": "Mapa",
         "listTitleMarkets": "Markets",
         "listTitleFacilities": "Facilities",
         "clickHint": "Tocá una burbuja o un nombre para ver el detalle. El tamaño es el volumen de partidos confirmados del mes.",
@@ -667,6 +674,10 @@
         "revenue": {
           "term": "Revenue estimado",
           "def": "ticket promedio × jugadores/partido × partidos del mes — cálculo simple, no contempla costos de la facility (no disponibles en esta base)."
+        },
+        "vsPrior": {
+          "term": "vs mes ant. / Últimos meses",
+          "def": "variación del ticket promedio (relativa) contra el mes anterior, y su recorrido en los últimos {n} meses (cada línea con su propia escala; el valor exacto de cada mes está en el tooltip). Es el precio publicado promedio, no mide cambios de precio por slot: un cambio de mezcla de horarios también mueve el promedio."
         }
       },
       "headers": {
@@ -674,9 +685,19 @@
         "avgTicket": "Ticket promedio",
         "playersPerGame": "Jugadores/partido",
         "gamesPerMonth": "Partidos/mes",
-        "revenue": "Revenue estimado"
+        "revenue": "Revenue estimado",
+        "vsPrior": "vs mes ant.",
+        "trend": "Últimos {n} meses"
       },
-      "empty": "Sin datos de precio en este filtro."
+      "empty": "Sin datos de precio en este filtro.",
+      "kpi": {
+        "avg": "Ticket promedio",
+        "raised": "Subieron precio",
+        "lowered": "Bajaron precio",
+        "moveSub": "±{pct}% o más vs mes ant. · de {n}",
+        "range": "Rango entre facilities",
+        "rangeSub": "{n} facilities con precio"
+      }
     },
     "engagement": {
       "title": "Engagement y abandono por facility",

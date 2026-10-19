@@ -596,7 +596,16 @@
       "othersLabel": "Other ({n} facilities)",
       "viewTop80": "View the 80% group's detail",
       "facilitiesShare": "{n} facilities · {pct} of confirmed games",
-      "viewOthers": "View the \"Other\" group's detail (20%)"
+      "viewOthers": "View the \"Other\" group's detail (20%)",
+      "kpi": {
+        "confirmed": "Confirmed games",
+        "active": "Active facilities",
+        "activeSub": "of {n} in the filter",
+        "top1": "Top facility",
+        "highDependence": "high dependence",
+        "top80": "Make up 80%",
+        "top80Sub": "{pct} of active facilities"
+      }
     },
     "share": {
       "byMarketTitle": "Markets by confirmed games",
@@ -607,8 +616,6 @@
       "confirmedCount": "{n} confirmed",
       "empty": "No confirmed games in this market for the selected month.",
       "map": {
-        "viewCards": "Cards",
-        "viewMap": "Map",
         "listTitleMarkets": "Markets",
         "listTitleFacilities": "Facilities",
         "clickHint": "Tap a bubble or a name for details. Size is the month's confirmed-game volume.",
@@ -667,6 +674,10 @@
         "revenue": {
           "term": "Estimated revenue",
           "def": "average ticket × players/game × games this month — a simple calculation that doesn't account for facility costs (not available in this dataset)."
+        },
+        "vsPrior": {
+          "term": "vs prior / Last months",
+          "def": "relative change in average ticket against the prior month, and its path over the last {n} months (each line on its own scale; the exact value of each month is in the tooltip). It is the average published price, not a per-slot price change: a change in time-slot mix also moves the average."
         }
       },
       "headers": {
@@ -674,9 +685,19 @@
         "avgTicket": "Average ticket",
         "playersPerGame": "Players/game",
         "gamesPerMonth": "Games/month",
-        "revenue": "Estimated revenue"
+        "revenue": "Estimated revenue",
+        "vsPrior": "vs prior",
+        "trend": "Last {n} months"
       },
-      "empty": "No price data for this filter."
+      "empty": "No price data for this filter.",
+      "kpi": {
+        "avg": "Average ticket",
+        "raised": "Raised price",
+        "lowered": "Lowered price",
+        "moveSub": "±{pct}% or more vs prior month · of {n}",
+        "range": "Range across facilities",
+        "rangeSub": "{n} facilities with price"
+      }
     },
     "engagement": {
       "title": "Engagement and dropout by facility",
