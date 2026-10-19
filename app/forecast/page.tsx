@@ -29,6 +29,7 @@ import Glossary from "../components/Glossary";
 import InsightsPanel, { type PanelInsight } from "../components/InsightsPanel";
 import FacilityWeekPlan from "../components/FacilityWeekPlan";
 import FacilityMonthPlan, { type SeasonContext } from "../components/FacilityMonthPlan";
+import { ReservePlan } from "../components/SeasonPlan";
 
 type SP = { regionId?: string; marketId?: string; facilityId?: string; range?: string; filter?: string };
 
@@ -216,9 +217,11 @@ export default async function ForecastPage({ searchParams }: { searchParams: Pro
     getForecastWatch(filters, range, today),
     // Plan por facility: solo cuando hay un facility elegido. Estacionalidad solo para la vista de 30 días.
     sp.facilityId ? getFacilityPlan(sp.facilityId) : Promise.resolve(null),
-    sp.facilityId && range === "month" ? getSeasonPlan({ facilityId: sp.facilityId }) : Promise.resolve(null),
+    // Estacionalidad: alimenta el plan de reservas (alcance filtrado) y, con un facility elegido en la vista
+    // de 30 días, también el contexto estacional del plan mensual.
+    getSeasonPlan(filters),
   ]);
-  const seasonContext = buildSeasonContext(seasonRaw, today);
+  const seasonContext = buildSeasonContext(sp.facilityId && range === "month" ? seasonRaw : null, today);
   // Los links del plan conservan el facility y vuelven siempre a la vista de 7 días.
   const weekHrefFor = (f: PlanFilter | undefined) => buildForecastQuery(sp, { range: undefined, filter: f });
 
@@ -347,6 +350,9 @@ export default async function ForecastPage({ searchParams }: { searchParams: Pro
           <div className="rounded-2xl bg-surface shadow-sm p-5 text-sm text-ink-faint">{t("plan.noData")}</div>
         )
       )}
+
+      {/* Plan de reservas a 3 meses: parte de la estacionalidad observada (ver Estacionalidad), pero es una mirada a futuro. */}
+      <ReservePlan data={seasonRaw} badge={t("reservePlanBadge")} />
 
       {watch && <ForecastWatchlist watch={watch} t={t} locale={locale} rangeLabel={t(rangeLabelKey)} hrefFor={facilityHref} />}
 

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 import GroupSection from "./GroupSection";
 import type { SeasonPlanData, SeasonRow, PlanItem } from "../lib/db/seasonPlan";
@@ -22,14 +23,12 @@ const ACTION_STYLE: Record<ActionKind, string> = {
   insufficient: "text-ink-faint",
 };
 
-export default async function SeasonPlan({ data }: { data: SeasonPlanData | null }) {
+export default async function SeasonPlan({ data, forecastHref }: { data: SeasonPlanData | null; forecastHref?: string }) {
   const [t, locale] = await Promise.all([getTranslations("Seasonality.plan"), getLocale()]);
   const lc = locale === "en" ? "en-US" : "es-AR";
   const monthShort = (m: number) => new Date(Date.UTC(2000, m, 1)).toLocaleDateString(lc, { month: "short", timeZone: "UTC" });
-  const monthLong = (y: number, m: number) => new Date(Date.UTC(y, m, 1)).toLocaleDateString(lc, { month: "long", year: "numeric", timeZone: "UTC" });
   const pct0 = new Intl.NumberFormat(lc, { style: "percent", maximumFractionDigits: 0 });
   const pct1 = (v: number | null) => (v === null ? "—" : pct0.format(v));
-  const num0 = new Intl.NumberFormat(lc, { maximumFractionDigits: 0 });
   const idx2 = new Intl.NumberFormat(lc, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const seasonLabel = (months: number[]) => (months.length === 1 ? monthShort(months[0]) : `${monthShort(months[0])}–${monthShort(months[months.length - 1])}`);
   const trendLabel = (pp: number | null) => {
@@ -38,7 +37,6 @@ export default async function SeasonPlan({ data }: { data: SeasonPlanData | null
     if (Math.abs(v) < 0.5) return t("trend.flat");
     return `${v > 0 ? "▲ +" : "▼ "}${new Intl.NumberFormat(lc, { maximumFractionDigits: 1 }).format(v)} pp`;
   };
-  const dateLabel = (isoDate: string) => new Date(`${isoDate}T00:00:00Z`).toLocaleDateString(lc, { day: "numeric", month: "short", timeZone: "UTC" });
 
   if (!data || data.method === null) {
     return (
@@ -123,9 +121,37 @@ export default async function SeasonPlan({ data }: { data: SeasonPlanData | null
           </table>
         </div>
         <div className="text-[11px] text-ink-faint mt-2 max-w-3xl">{t("footnote", { demand: pct0.format(0.55), unavail: pct0.format(0.1) })}</div>
+        {forecastHref && (
+          <Link href={forecastHref} className="inline-block mt-3 text-sm text-brand hover:underline">{t("seePlan")} →</Link>
+        )}
       </GroupSection>
+    </>
+  );
+}
 
-      <GroupSection title={t("planTitle")}>
+// Plan de reservas a futuro (próximos 3 meses). Vive en Pronóstico: parte de la estacionalidad observada
+// (SeasonPlan, arriba) pero es una mirada hacia adelante, no un registro del histórico.
+export async function ReservePlan({ data, badge }: { data: SeasonPlanData | null; badge: string }) {
+  const [t, locale] = await Promise.all([getTranslations("Seasonality.plan"), getLocale()]);
+  const lc = locale === "en" ? "en-US" : "es-AR";
+  const monthLong = (y: number, m: number) => new Date(Date.UTC(y, m, 1)).toLocaleDateString(lc, { month: "long", year: "numeric", timeZone: "UTC" });
+  const pct0 = new Intl.NumberFormat(lc, { style: "percent", maximumFractionDigits: 0 });
+  const pct1 = (v: number | null) => (v === null ? "—" : pct0.format(v));
+  const num0 = new Intl.NumberFormat(lc, { maximumFractionDigits: 0 });
+  const trendLabel = (pp: number | null) => {
+    if (pp === null) return "—";
+    const v = Math.round(pp * 1000) / 10;
+    if (Math.abs(v) < 0.5) return t("trend.flat");
+    return `${v > 0 ? "▲ +" : "▼ "}${new Intl.NumberFormat(lc, { maximumFractionDigits: 1 }).format(v)} pp`;
+  };
+  const dateLabel = (isoDate: string) => new Date(`${isoDate}T00:00:00Z`).toLocaleDateString(lc, { day: "numeric", month: "short", timeZone: "UTC" });
+  const actionText = (a: ActionKind) => t(`action.${a}`);
+
+  if (!data || data.method === null) return null;
+
+  return (
+    <>
+      <GroupSection title={`📅 ${t("planTitle")}`} accent="warning" badge={badge}>
         <div className="text-xs text-ink-faint -mt-1 mb-3 max-w-3xl">{t("planSubtitle")}</div>
         <div className="grid gap-2 sm:grid-cols-3 mb-4">
           {data.planMonths.map((pm) => (

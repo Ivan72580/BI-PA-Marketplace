@@ -322,6 +322,10 @@ export default async function SeasonalityPage({ searchParams }: { searchParams: 
   ]);
 
   const hasFilter = Boolean(sp.regionId || sp.marketId || sp.facilityId);
+  // Link al plan de reservas (ahora en Pronóstico), conservando el filtro de alcance.
+  const forecastParams = new URLSearchParams();
+  for (const [k, v] of [["regionId", sp.regionId], ["marketId", sp.marketId], ["facilityId", sp.facilityId]] as const) if (v) forecastParams.set(k, v);
+  const forecastHref = forecastParams.size > 0 ? `/forecast?${forecastParams.toString()}` : "/forecast";
 
   const monthLabels = Array.from({ length: 12 }, (_, i) =>
     new Date(Date.UTC(2000, i, 1)).toLocaleDateString(locale === "en" ? "en-US" : "es-AR", { month: "short", timeZone: "UTC" })
@@ -497,7 +501,7 @@ export default async function SeasonalityPage({ searchParams }: { searchParams: 
         {chartIsEmpty ? <div className="text-sm text-ink-faint">{t("chart.empty")}</div> : <LineChart data={lineChartData} />}
       </GroupSection>
 
-      <SeasonPlan data={seasonPlan} />
+      <SeasonPlan data={seasonPlan} forecastHref={forecastHref} />
 
       <SeasonalityCalendar
         months={cards}

@@ -1700,7 +1700,8 @@
         }
       },
       "projDown": "{delta} confirmados vs. su promedio · {n} cancelados proyectados"
-    }
+    },
+    "reservePlanBadge": "Plan a futuro"
   },
   "Seasonality": {
     "pageTitle": "Estacionalidad",
@@ -1846,7 +1847,8 @@
       "planEmpty": "Ninguna facility amerita reservar con anticipación en estos meses.",
       "overdue": "Ya pasó la fecha: reservar ahora",
       "weeksBefore": "{n} sem. antes",
-      "planFootnote": "Solo se ve la falta de cancha que canceló un partido ya publicado: un horario que nunca se pudo publicar no deja rastro. Depende de la categorización de cancelaciones."
+      "planFootnote": "Solo se ve la falta de cancha que canceló un partido ya publicado: un horario que nunca se pudo publicar no deja rastro. Depende de la categorización de cancelaciones.",
+      "seePlan": "Ver el plan de reservas de los próximos 3 meses en Pronóstico"
     }
   },
   "Reports": {

@@ -1700,7 +1700,8 @@
         }
       },
       "projDown": "{delta} confirmed vs. their average · {n} cancellations projected"
-    }
+    },
+    "reservePlanBadge": "Forward plan"
   },
   "Seasonality": {
     "pageTitle": "Seasonality",
@@ -1846,7 +1847,8 @@
       "planEmpty": "No facility needs to be reserved ahead in these months.",
       "overdue": "Date has passed: reserve now",
       "weeksBefore": "{n} wk before",
-      "planFootnote": "Only field loss that cancelled an already-published game is visible: a slot that could never be published leaves no trace. Depends on cancellation categorization."
+      "planFootnote": "Only field loss that cancelled an already-published game is visible: a slot that could never be published leaves no trace. Depends on cancellation categorization.",
+      "seePlan": "See the next-3-months reservation plan in Forecast"
     }
   },
   "Reports": {
