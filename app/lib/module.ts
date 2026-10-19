@@ -30,15 +30,15 @@ type ModuleDef = {
 export const MODULES: Record<AppModule, ModuleDef> = {
   MAGIC: {
     home: "/",
-    routes: ["/", "/trends", "/daily", "/seasonality", "/forecast", "/market", "/map", "/inventory", "/funnel"],
+    routes: ["/", "/trends", "/daily", "/seasonality", "/forecast", "/market", "/map", "/inventory", "/funnel", "/satisfaction"],
     defaultLevel: "VIEW",
     levels: ["NONE", "VIEW"], // solo lectura: no hay datos manuales que editar
   },
   TEAM: {
     home: "/weekly-log",
-    routes: ["/weekly-log", "/facility-log"],
+    routes: ["/weekly-log", "/facility-log", "/facility-profile"],
     defaultLevel: "EDIT",
-    levels: ["NONE", "VIEW", "EDIT"], // EDIT = anotar en el Registro semanal y en la Bitácora de Facilities
+    levels: ["NONE", "VIEW", "EDIT"], // EDIT = anotar en el Registro semanal y la Bitácora, y editar el Perfil de facilities
   },
   EXECUTIVE: {
     home: "/panel-ejecutivo",

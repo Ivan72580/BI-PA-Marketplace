@@ -59,7 +59,7 @@ export type FacilityProfileInput = {
 const RATE_FIELDS = ["marketRate", "pricingModel", "fixedRate", "rateUnit", "revenueSharePct", "discountAmount", "discountPct", "freeHoursPerMonth"] as const;
 
 export async function saveFacilityProfile(facilityId: string, input: FacilityProfileInput): Promise<ActionResult> {
-  const access = await requireModule("EXECUTIVE", "EDIT");
+  const access = await requireModule("TEAM", "EDIT");
   if (!access) return { ok: false, errorKey: "unauthorized" };
 
   try {
@@ -74,8 +74,8 @@ export async function saveFacilityProfile(facilityId: string, input: FacilityPro
         ...(confirmRates || ratesChanged ? { ratesVerifiedAt: new Date() } : {}),
       },
     });
-    revalidatePath(`/panel-ejecutivo/facilities/${facilityId}`);
-    revalidatePath("/panel-ejecutivo/facilities");
+    revalidatePath(`/facility-profile/${facilityId}`);
+    revalidatePath("/facility-profile");
     return { ok: true };
   } catch {
     return { ok: false, errorKey: "generic" };
@@ -88,7 +88,7 @@ export type PeakWindowInput = { dayOfWeek: number; startHour: number; endHour: n
 // y el form las manda completas en cada guardado, así que borrar+recrear es
 // más simple que reconciliar altas/bajas/ediciones fila por fila.
 export async function savePeakWindows(facilityId: string, windows: PeakWindowInput[]): Promise<ActionResult> {
-  const access = await requireModule("EXECUTIVE", "EDIT");
+  const access = await requireModule("TEAM", "EDIT");
   if (!access) return { ok: false, errorKey: "unauthorized" };
 
   try {
@@ -99,7 +99,7 @@ export async function savePeakWindows(facilityId: string, windows: PeakWindowInp
         data: windows.map((w) => ({ ...w, facilityProfileId: profile.id })),
       }),
     ]);
-    revalidatePath(`/panel-ejecutivo/facilities/${facilityId}`);
+    revalidatePath(`/facility-profile/${facilityId}`);
     return { ok: true };
   } catch {
     return { ok: false, errorKey: "generic" };

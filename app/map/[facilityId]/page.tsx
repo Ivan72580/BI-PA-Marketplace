@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations, getLocale } from "next-intl/server";
-import { getFacilityProfileDetail } from "../../lib/db/queries";
+import { getFacilityProfileDetail, getGameReviewSatisfaction } from "../../lib/db/queries";
 import { getFacilityInventory, type InventoryRow } from "../../lib/db/map";
 import { getCurrentUserWithAccess } from "../../lib/db/users";
 import { hasLevel } from "../../lib/module";
@@ -10,6 +10,8 @@ import { resolvePeriod, todayISO, type Granularity, type ResolvedPeriod } from "
 import type { SP } from "../../lib/searchParams";
 import type { Locale } from "@/i18n/config";
 import FilterPanel from "../../components/FilterPanel";
+import GameReviewsPanel from "../../components/GameReviewsPanel";
+import { computePlayerComplaintsSummary } from "../../lib/db/satisfaction";
 
 const usd = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 const usd2 = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 });
@@ -33,13 +35,14 @@ function resolve(sp: SP, locale: Locale, customLabel: string): ResolvedPeriod {
 }
 
 export default async function MapFacilityPage({ params, searchParams }: { params: Promise<{ facilityId: string }>; searchParams: Promise<SP> }) {
-  const [{ facilityId }, sp, rawLocale, t, user] = await Promise.all([params, searchParams, getLocale(), getTranslations("MapFacility"), getCurrentUserWithAccess()]);
+  const [{ facilityId }, sp, rawLocale, t, tp, user] = await Promise.all([params, searchParams, getLocale(), getTranslations("MapFacility"), getTranslations("FacilityProfile"), getCurrentUserWithAccess()]);
   const locale = rawLocale as Locale;
   const period = resolve(sp, locale, t("customRangeLabel"));
 
-  const [detail, inventory] = await Promise.all([
+  const [detail, inventory, reviews] = await Promise.all([
     getFacilityProfileDetail(facilityId),
     getFacilityInventory({ facilityId, dateFrom: period.dateFrom, dateTo: period.dateTo }),
+    getGameReviewSatisfaction({ facilityId }),
   ]);
   if (!detail) notFound();
   const { facility, profile } = detail;
@@ -59,8 +62,17 @@ export default async function MapFacilityPage({ params, searchParams }: { params
   const qs = query.toString() ? `?${query.toString()}` : "";
 
   const unit = profile?.rateUnit ? t(`rateUnit.${profile.rateUnit}`) : null;
-  // Editar el Facility Profile = EDIT en Executive (ver app/lib/module.ts).
-  const canEdit = hasLevel(user?.access.EXECUTIVE, "EDIT");
+  // Editar el Perfil de facilities = Equipo = Editar (ver app/lib/module.ts). Ver sus datos básicos acá es de Operativo.
+  const canEdit = hasLevel(user?.access.TEAM, "EDIT");
+  const canOpenProfile = hasLevel(user?.access.TEAM, "VIEW");
+  const basics: [string, string][] = [
+    [t("basics.location"), [profile?.city, profile?.state].filter(Boolean).join(", ")],
+    [t("basics.fields"), profile?.fieldCount != null ? String(profile.fieldCount) : ""],
+    [t("basics.formats"), (profile?.supportedFormats ?? []).join(", ")],
+    [t("basics.setting"), profile?.indoorOutdoor ? tp(`indoorOutdoor.${profile.indoorOutdoor}`) : ""],
+    [t("basics.amenities"), [...(profile?.amenities ?? []).map((a) => tp(`amenity.${a}`)), ...(profile?.amenitiesOther ? [profile.amenitiesOther] : [])].join(", ")],
+  ];
+  const filledBasics = basics.filter(([, v]) => v);
   const verified = profile?.ratesVerifiedAt ? profile.ratesVerifiedAt.toISOString().slice(0, 10) : null;
 
   return (
@@ -95,6 +107,27 @@ export default async function MapFacilityPage({ params, searchParams }: { params
 
       <section className="rounded-2xl bg-surface shadow-sm p-5 mb-4">
         <div className="flex items-center justify-between gap-3 mb-3">
+          <h2 className="font-display text-base font-semibold text-ink">{t("basics.title")}</h2>
+          {canOpenProfile && (
+            <Link href={`/facility-profile/${facilityId}`} className="text-xs text-brand">{canEdit ? t("basics.edit") : t("basics.open")}</Link>
+          )}
+        </div>
+        {filledBasics.length === 0 ? (
+          <div className="text-sm text-ink-faint">{t("basics.none")}</div>
+        ) : (
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
+            {filledBasics.map(([label, value]) => (
+              <div key={label}>
+                <dt className="text-xs text-ink-faint">{label}</dt>
+                <dd className="text-ink">{value}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
+      </section>
+
+      <section className="rounded-2xl bg-surface shadow-sm p-5 mb-4">
+        <div className="flex items-center justify-between gap-3 mb-3">
           <h2 className="font-display text-base font-semibold text-ink">{t("terms.title")}</h2>
           <span className={`text-[11px] ${verified ? "text-ink-faint" : "text-warning"}`}>
             {verified ? t("terms.verifiedOn", { date: verified }) : t("terms.unverified")}
@@ -118,7 +151,7 @@ export default async function MapFacilityPage({ params, searchParams }: { params
           <div className="text-sm text-ink-faint">{t("terms.none")}</div>
         )}
         {canEdit && (
-          <Link href={`/panel-ejecutivo/facilities/${facilityId}`} className="inline-block mt-3 text-xs text-brand">{t("terms.edit")}</Link>
+          <Link href={`/facility-profile/${facilityId}`} className="inline-block mt-3 text-xs text-brand">{t("terms.edit")}</Link>
         )}
       </section>
 
@@ -166,6 +199,24 @@ export default async function MapFacilityPage({ params, searchParams }: { params
           </div>
         )}
         <p className="text-[11px] text-ink-faint mt-3">{t("inventory.note")}</p>
+      </section>
+
+      <section className="mt-6">
+        <div className="mb-3">
+          <h2 className="font-display text-base font-semibold text-ink">{t("satisfaction.title")}</h2>
+          <p className="text-xs text-ink-faint">{t("satisfaction.subtitle")}</p>
+        </div>
+        {reviews.summary.totalReviews === 0 ? (
+          <div className="rounded-2xl bg-surface-sunken p-5 text-sm text-ink-muted">{t("satisfaction.none")}</div>
+        ) : (
+          <GameReviewsPanel
+            summary={reviews.summary}
+            complaints={computePlayerComplaintsSummary(reviews.summary)}
+            facilityFieldQuality={reviews.facilityFieldQuality}
+            recentReviews={reviews.recentReviews}
+            showRanking={false}
+          />
+        )}
       </section>
     </div>
   );

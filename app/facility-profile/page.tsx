@@ -1,19 +1,18 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { listFacilityProfileStatus } from "../../lib/db/queries";
+import { listFacilityProfileStatus } from "../lib/db/queries";
+import { getCurrentUserWithAccess } from "../lib/db/users";
+import { hasLevel } from "../lib/module";
+import PageHeader from "../components/PageHeader";
 
-// El chequeo de acceso ahora vive una sola vez en layout.tsx. El link "volver"
-// también se sacó de acá: la barra de pestañas del layout ya cubre esa
-// navegación.
+// El acceso (módulo Equipo) se valida en layout.tsx.
 export default async function FacilityProfilesPage() {
-  const [rows, t] = await Promise.all([listFacilityProfileStatus(), getTranslations("FacilityProfile")]);
+  const [rows, t, current] = await Promise.all([listFacilityProfileStatus(), getTranslations("FacilityProfile"), getCurrentUserWithAccess()]);
+  const canEdit = hasLevel(current?.access.TEAM, "EDIT");
 
   return (
     <div>
-      <div className="mb-6 pb-5 border-b border-border">
-        <h1 className="font-display text-2xl font-bold text-ink">{t("listTitle")}</h1>
-        <div className="text-sm text-ink-faint mt-1">{t("listSubtitle")}</div>
-      </div>
+      <PageHeader title={t("listTitle")} subtitle={t("listSubtitle")} />
 
       <div className="rounded-2xl bg-surface shadow-sm overflow-hidden">
         <table className="w-full border-collapse text-sm">
@@ -46,8 +45,8 @@ export default async function FacilityProfilesPage() {
                   </div>
                 </td>
                 <td className="py-2 px-4 text-right">
-                  <Link href={`/panel-ejecutivo/facilities/${r.facilityId}`} className="text-xs text-brand hover:underline">
-                    {r.hasProfile ? t("table.edit") : t("table.complete")}
+                  <Link href={`/facility-profile/${r.facilityId}`} className="text-xs text-brand hover:underline">
+                    {canEdit ? (r.hasProfile ? t("table.edit") : t("table.complete")) : t("table.view")}
                   </Link>
                 </td>
               </tr>

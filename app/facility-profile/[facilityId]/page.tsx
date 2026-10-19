@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { getFacilityProfileDetail } from "../../../lib/db/queries";
-import type { FacilityProfileInput, PeakWindowInput } from "../../../lib/actions/facilityProfile";
+import { getFacilityProfileDetail } from "../../lib/db/queries";
+import type { FacilityProfileInput, PeakWindowInput } from "../../lib/actions/facilityProfile";
+import { getCurrentUserWithAccess } from "../../lib/db/users";
+import { hasLevel } from "../../lib/module";
+import PageHeader from "../../components/PageHeader";
 import FacilityProfileForm from "./FacilityProfileForm";
 
 function formatUSD(n: number) {
@@ -16,8 +19,9 @@ export default async function FacilityProfileDetailPage({
 }) {
   const { facilityId } = await params;
 
-  // El chequeo de acceso ahora vive una sola vez en layout.tsx.
-  const [detail, t] = await Promise.all([getFacilityProfileDetail(facilityId), getTranslations("FacilityProfile")]);
+  // El acceso (módulo Equipo) se valida en layout.tsx; editar requiere Equipo = Editar.
+  const [detail, t, current] = await Promise.all([getFacilityProfileDetail(facilityId), getTranslations("FacilityProfile"), getCurrentUserWithAccess()]);
+  const canEdit = hasLevel(current?.access.TEAM, "EDIT");
   if (!detail) notFound();
 
   const { facility, profile, stats } = detail;
@@ -66,17 +70,12 @@ export default async function FacilityProfileDetailPage({
   return (
     <div>
       <div className="mb-5">
-        <Link href="/panel-ejecutivo/facilities" className="text-xs text-ink-faint hover:text-brand">
+        <Link href="/facility-profile" className="text-xs text-ink-faint hover:text-brand">
           {t("backToList")}
         </Link>
       </div>
 
-      <div className="mb-6 pb-5 border-b border-border">
-        <h1 className="font-display text-2xl font-bold text-ink">{facility.name}</h1>
-        <div className="text-sm text-ink-faint mt-1">
-          {facility.marketName} · {facility.regionName}
-        </div>
-      </div>
+      <PageHeader title={facility.name} subtitle={`${facility.marketName} · ${facility.regionName}`} />
 
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="rounded-2xl bg-surface shadow-sm p-4">
@@ -89,7 +88,7 @@ export default async function FacilityProfileDetailPage({
         </div>
       </div>
 
-      <FacilityProfileForm facilityId={facilityId} initial={initial} initialPeakWindows={initialPeakWindows} ratesVerifiedAt={ratesVerifiedAt} />
+      <FacilityProfileForm canEdit={canEdit} facilityId={facilityId} initial={initial} initialPeakWindows={initialPeakWindows} ratesVerifiedAt={ratesVerifiedAt} />
 
       <div className="mt-6">
         {/* El historial de relación (eventos, acuerdos, pendientes) pasó a la Bitácora de Facilities: ahí quedaron

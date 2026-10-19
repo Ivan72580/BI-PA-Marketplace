@@ -90,7 +90,7 @@ export default async function MapPage({ searchParams }: { searchParams: Promise<
             {t("unmapped", { facilities: data.unmapped.facilities, games: data.unmapped.confirmedGames.toLocaleString("en-US") })}
           </summary>
           <div className="mt-2 text-ink-faint">{data.unmapped.names.join(" · ")}</div>
-          <Link href="/panel-ejecutivo/facilities" className="inline-block mt-1 text-brand">{t("unmappedFix")}</Link>
+          <Link href="/facility-profile" className="inline-block mt-1 text-brand">{t("unmappedFix")}</Link>
         </details>
       )}
     </div>

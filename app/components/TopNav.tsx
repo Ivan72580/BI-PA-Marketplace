@@ -123,6 +123,23 @@ function FacilityLogIcon() {
     </svg>
   );
 }
+function SatisfactionIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M8.5 14.5c.9 1.2 2 1.8 3.5 1.8s2.6-.6 3.5-1.8" />
+      <path d="M9 9.5h.01M15 9.5h.01" />
+    </svg>
+  );
+}
+function FacilityProfileIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="4" y="3" width="16" height="18" rx="2" />
+      <path d="M8 8h8M8 12h8M8 16h5" />
+    </svg>
+  );
+}
 function LeadershipIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -138,7 +155,7 @@ function LeadershipIcon() {
 // quedaba apretada en pantallas medianas, y Reportes no es una vista que
 // se consulte con la misma frecuencia que el resto — vive ahora como link
 // dentro del menú de usuario, con su propio selector Operativo/Ejecutivo.
-type NavKey = "overview" | "trends" | "market" | "map" | "inventory" | "daily" | "forecast" | "seasonality" | "weeklyLog" | "facilityLog" | "panelEjecutivo";
+type NavKey = "overview" | "trends" | "market" | "map" | "inventory" | "daily" | "forecast" | "seasonality" | "weeklyLog" | "facilityLog" | "facilityProfile" | "satisfaction" | "panelEjecutivo";
 type NavLink = { href: string; labelKey: NavKey; icon: () => ReactNode };
 type GroupKey = "performance" | "market" | "team";
 
@@ -164,16 +181,18 @@ const groups: { key: GroupKey; module: AppModule; children: NavLink[] }[] = [
       { href: "/market", labelKey: "market", icon: MarketIcon },
       { href: "/map", labelKey: "map", icon: MapIcon },
       { href: "/inventory", labelKey: "inventory", icon: InventoryIcon },
+      { href: "/satisfaction", labelKey: "satisfaction", icon: SatisfactionIcon },
     ],
   },
   // EQUIPO: lo que el equipo carga a mano (no sale del import de partidos).
-  // Registro semanal y Bitácora de Facilities.
+  // Registro semanal, Bitácora de Facilities y Perfil de facilities.
   {
     key: "team",
     module: "TEAM",
     children: [
       { href: "/weekly-log", labelKey: "weeklyLog", icon: WeeklyLogIcon },
       { href: "/facility-log", labelKey: "facilityLog", icon: FacilityLogIcon },
+      { href: "/facility-profile", labelKey: "facilityProfile", icon: FacilityProfileIcon },
     ],
   },
 ];

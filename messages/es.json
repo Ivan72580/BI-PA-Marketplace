@@ -31,7 +31,9 @@
       "map": "Dónde opera Plei y qué zonas tienen más volumen.",
       "inventory": "Qué partidos publica cada facility y cómo rinde cada uno.",
       "weeklyLog": "Notas del equipo en la semana y reporte para el jueves.",
-      "facilityLog": "Relación con cada facility: hechos, observaciones, qué esperar"
+      "facilityLog": "Relación con cada facility: hechos, observaciones, qué esperar",
+      "facilityProfile": "Datos de cada facility: canchas, tarifas, contacto.",
+      "satisfaction": "Qué dicen los jugadores de cada partido y facility."
     },
     "groups": {
       "performance": "Rendimiento",
@@ -42,7 +44,9 @@
     "dataThrough": "Datos al {date}",
     "dataThroughStale": "Hace {days} días sin datos nuevos: revisá el import",
     "weeklyLog": "Registro semanal",
-    "facilityLog": "Bitácora de Facilities"
+    "facilityLog": "Bitácora de Facilities",
+    "facilityProfile": "Perfil de facilities",
+    "satisfaction": "Satisfacción"
   },
   "FilterPanel": {
     "filterLabel": "Filtro",
@@ -1181,7 +1185,8 @@
       "region": "Región",
       "completion": "Completitud",
       "edit": "Editar",
-      "complete": "Completar perfil"
+      "complete": "Completar perfil",
+      "view": "Ver"
     },
     "sections": {
       "basics": "Datos básicos",
@@ -2037,6 +2042,22 @@
       "avgPlayers": "Jugadores prom.",
       "noField": "Sin identificar",
       "note": "Un partido es único por cancha + día + hora + formato: Cancha 1 6v6 y Cancha 3 6v6 a la misma hora cuentan por separado. «Sin identificar» = el origen no trae nombre de cancha."
+    },
+    "basics": {
+      "title": "Datos de la facility",
+      "location": "Ubicación",
+      "fields": "Canchas",
+      "formats": "Formatos",
+      "setting": "Tipo",
+      "amenities": "Servicios",
+      "none": "Todavía no hay datos cargados de esta facility.",
+      "edit": "Editar perfil",
+      "open": "Ver perfil"
+    },
+    "satisfaction": {
+      "title": "Satisfacción de jugadores",
+      "subtitle": "Reviews de los partidos de esta facility.",
+      "none": "Todavía no hay reviews de partidos de esta facility."
     }
   },
   "Inventory": {
@@ -2554,5 +2575,9 @@
         "generic": "No se pudo guardar. Probá de nuevo."
       }
     }
+  },
+  "SatisfactionPage": {
+    "title": "Satisfacción de jugadores",
+    "subtitle": "Reviews de los partidos: rating, qué destacan y qué reclaman. Por región, market o facility."
   }
 }

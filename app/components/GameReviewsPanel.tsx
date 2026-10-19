@@ -25,11 +25,14 @@ export default async function GameReviewsPanel({
   complaints,
   facilityFieldQuality,
   recentReviews,
+  showRanking = true,
 }: {
   summary: GameReviewSummary;
   complaints: PlayerComplaintsSummary;
   facilityFieldQuality: FacilityFieldQualityRow[];
   recentReviews: RecentGameReview[];
+  /** El ranking de calidad de campo compara facilities: con una sola facility elegida no tiene sentido. */
+  showRanking?: boolean;
 }) {
   const t = await getTranslations("PlayerSatisfaction.gameReviews");
   const tTag = await getTranslations("PlayerSatisfaction.gameReviews.tags.labels");
@@ -83,6 +86,7 @@ export default async function GameReviewsPanel({
         </div>
       </div>
 
+      {showRanking && (
       <div className="rounded-2xl bg-surface shadow-sm p-5">
         <h2 className="font-display text-lg font-semibold text-ink mb-1">{t("fieldQuality.title")}</h2>
         <div className="text-xs text-ink-faint mb-4">{t("fieldQuality.subtitle", { min: 5 })}</div>
@@ -120,6 +124,7 @@ export default async function GameReviewsPanel({
           </table>
         </div>
       </div>
+      )}
 
       <RecentGameReviewsList reviews={recentReviews} />
     </div>

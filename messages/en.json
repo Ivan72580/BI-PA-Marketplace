@@ -31,7 +31,9 @@
       "map": "Where Plei operates and which zones have the most volume.",
       "inventory": "Which games each facility publishes and how each performs.",
       "weeklyLog": "Team notes during the week and Thursday's report.",
-      "facilityLog": "Relationship with each facility: facts, observations, what to expect"
+      "facilityLog": "Relationship with each facility: facts, observations, what to expect",
+      "facilityProfile": "Each facility's data: fields, rates, contact.",
+      "satisfaction": "What players say about each game and facility."
     },
     "groups": {
       "performance": "Performance",
@@ -42,7 +44,9 @@
     "dataThrough": "Data as of {date}",
     "dataThroughStale": "{days} days without new data: check the import",
     "weeklyLog": "Weekly log",
-    "facilityLog": "Facility Log"
+    "facilityLog": "Facility Log",
+    "facilityProfile": "Facility profiles",
+    "satisfaction": "Satisfaction"
   },
   "FilterPanel": {
     "filterLabel": "Filter",
@@ -1181,7 +1185,8 @@
       "region": "Region",
       "completion": "Completion",
       "edit": "Edit",
-      "complete": "Complete profile"
+      "complete": "Complete profile",
+      "view": "View"
     },
     "sections": {
       "basics": "Basic info",
@@ -2037,6 +2042,22 @@
       "avgPlayers": "Avg. players",
       "noField": "Unidentified",
       "note": "A game is unique by field + day + time + format: Field 1 6v6 and Field 3 6v6 at the same time count separately. “Unidentified” = the source has no field name."
+    },
+    "basics": {
+      "title": "Facility details",
+      "location": "Location",
+      "fields": "Fields",
+      "formats": "Formats",
+      "setting": "Type",
+      "amenities": "Amenities",
+      "none": "No data loaded for this facility yet.",
+      "edit": "Edit profile",
+      "open": "View profile"
+    },
+    "satisfaction": {
+      "title": "Player satisfaction",
+      "subtitle": "Game reviews for this facility.",
+      "none": "No game reviews for this facility yet."
     }
   },
   "Inventory": {
@@ -2554,5 +2575,9 @@
         "generic": "Could not save. Try again."
       }
     }
+  },
+  "SatisfactionPage": {
+    "title": "Player satisfaction",
+    "subtitle": "Game reviews: rating, what players praise and what they complain about. By region, market or facility."
   }
 }

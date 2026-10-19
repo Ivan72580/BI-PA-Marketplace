@@ -81,7 +81,21 @@ export type RecentGameReview = {
   reviewText: string | null;
 };
 
-async function getGameReviewSatisfactionImpl(): Promise<{
+/** Alcance opcional: una facility, un market o una región. Sin nada = toda la red. */
+export type SatisfactionScope = { regionId?: string; marketId?: string; facilityId?: string };
+
+function reviewWhere(scope: SatisfactionScope) {
+  const facility = scope.facilityId
+    ? { id: scope.facilityId }
+    : scope.marketId
+      ? { marketId: scope.marketId }
+      : scope.regionId
+        ? { market: { regionId: scope.regionId } }
+        : null;
+  return facility ? { game: { facility } } : {};
+}
+
+async function getGameReviewSatisfactionImpl(scope: SatisfactionScope = {}): Promise<{
   summary: GameReviewSummary;
   facilityFieldQuality: FacilityFieldQualityRow[];
   recentReviews: RecentGameReview[];
@@ -99,14 +113,16 @@ async function getGameReviewSatisfactionImpl(): Promise<{
   // consulta chica de facilities + Map, en vez de duplicar el join).
   const [reviews, recent, dateAgg, facilityNames] = await Promise.all([
     prisma.gameReview.findMany({
+      where: reviewWhere(scope),
       select: { rating: true, tags: true, game: { select: { facilityId: true } } },
     }) as unknown as Promise<GameReviewRow[]>,
     prisma.gameReview.findMany({
+      where: reviewWhere(scope),
       orderBy: { date: "desc" },
       take: RECENT_LIMIT,
       select: { id: true, date: true, rating: true, tags: true, reviewText: true, game: { select: { facility: { select: { name: true } } } } },
     }) as unknown as Promise<RecentGameReviewRow[]>,
-    prisma.gameReview.aggregate({ _min: { date: true }, _max: { date: true } }),
+    prisma.gameReview.aggregate({ where: reviewWhere(scope), _min: { date: true }, _max: { date: true } }),
     prisma.facility.findMany({
       select: { id: true, name: true, market: { select: { name: true, region: { select: { name: true } } } } },
     }) as unknown as Promise<FacilityNamesRow[]>,

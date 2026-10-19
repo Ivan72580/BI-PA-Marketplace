@@ -7,9 +7,11 @@ import {
   savePeakWindows,
   type FacilityProfileInput,
   type PeakWindowInput,
-} from "../../../lib/actions/facilityProfile";
+} from "../../lib/actions/facilityProfile";
 
 type Props = {
+  // Sin Equipo = Editar el formulario se ve pero no se puede cambiar ni guardar.
+  canEdit: boolean;
   facilityId: string;
   initial: FacilityProfileInput;
   initialPeakWindows: PeakWindowInput[];
@@ -38,7 +40,7 @@ const inputClass =
   "w-full rounded-md border border-border bg-surface/60 px-3 py-1.5 text-sm text-ink focus:outline-none focus:ring-1 focus:ring-brand/30 hover:border-border-strong transition-colors";
 const labelClass = "block text-xs text-ink-faint mb-1";
 
-export default function FacilityProfileForm({ facilityId, initial, initialPeakWindows, ratesVerifiedAt }: Props) {
+export default function FacilityProfileForm({ facilityId, initial, initialPeakWindows, ratesVerifiedAt, canEdit }: Props) {
   const t = useTranslations("FacilityProfile");
   const [form, setForm] = useState<FacilityProfileInput>(initial);
   const [peakWindows, setPeakWindows] = useState<PeakWindowInput[]>(initialPeakWindows);
@@ -99,7 +101,7 @@ export default function FacilityProfileForm({ facilityId, initial, initialPeakWi
   }
 
   return (
-    <div className="space-y-6">
+    <fieldset disabled={!canEdit} className="space-y-6 min-w-0 border-0 p-0 m-0">
       {/* Datos básicos */}
       <section className="rounded-2xl bg-surface shadow-sm p-5">
         <h2 className="font-display text-base font-semibold text-ink mb-4">{t("sections.basics")}</h2>
@@ -467,6 +469,7 @@ export default function FacilityProfileForm({ facilityId, initial, initialPeakWi
         </button>
       </section>
 
+      {canEdit && (
       <div className="flex items-center gap-3">
         <button
           type="button"
@@ -480,6 +483,7 @@ export default function FacilityProfileForm({ facilityId, initial, initialPeakWi
           <span className={feedback.type === "error" ? "text-xs text-red-600" : "text-xs text-ink-faint"}>{feedback.text}</span>
         )}
       </div>
-    </div>
+      )}
+    </fieldset>
   );
 }

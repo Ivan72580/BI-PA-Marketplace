@@ -17,7 +17,6 @@ type Tab = { href: string; labelKey: "overview" | "facilities" | "satisfaction" 
 
 const tabs: Tab[] = [
   { href: "/panel-ejecutivo", labelKey: "overview" },
-  { href: "/panel-ejecutivo/facilities", labelKey: "facilities" },
   { href: "/panel-ejecutivo/satisfaction", labelKey: "satisfaction" },
 ];
 

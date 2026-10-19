@@ -257,7 +257,7 @@ function buildAlerts(
     alerts.push({
       text: t("alerts.profileCoverageEmpty", { total: scopedProfileTotal }),
       severity: "info",
-      href: "/panel-ejecutivo/facilities",
+      href: "/facility-profile",
     });
   }
 
