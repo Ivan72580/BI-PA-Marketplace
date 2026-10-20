@@ -76,6 +76,11 @@ function Card({ c, t }: { c: ScheduleCard; t: T }) {
         {c.avoidReason === "recentCancels" && <span className="block text-danger">{t("schedule.card.recentCancels", { n: c.recentCancelled, days: RECENT_CANCEL_DAYS })}</span>}
         {c.avoidReason === "lowRate" && <span className="block text-danger">{t("schedule.card.lowRate", { rate: `${Math.round(MUST_SCHEDULE_MIN_RATE * 100)}%` })}</span>}
         {c.fieldUnavailable > 0 && <span className="block text-warning">{t("schedule.card.fieldLost", { n: c.fieldUnavailable })}</span>}
+        {c.reserve && (
+          <span className={`block ${c.reserve.level === "strong" ? "text-ink font-semibold" : "text-ink-muted"}`}>
+            {t(c.reserve.level === "strong" ? "schedule.card.reserveStrong" : "schedule.card.reserveTest", { players: c.reserve.playersAtLoss, usual: c.reserve.baseline.toFixed(1) })}
+          </span>
+        )}
         {!c.fieldName && <span className="block text-warning">{t("card.unknownFieldNote")}</span>}
       </div>
     </div>

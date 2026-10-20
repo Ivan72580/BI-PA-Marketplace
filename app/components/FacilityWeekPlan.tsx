@@ -5,6 +5,7 @@ import {
   GREEN_MIN_RATE, TREND_DELTA, RECENT_EDITIONS, FOLLOW_RECENT_DAYS, PLAN_FILTERS,
   type ClassifiedSlot, type Light, type PlanFilter,
 } from "../lib/slotPlanCalc";
+import { RESERVE_MIN_RATE } from "../lib/reserveAdvice";
 import { MUST_SCHEDULE_MIN_RATE, MUST_SCHEDULE_MIN_SAMPLE, MUST_SCHEDULE_WINDOW_MONTHS } from "../lib/mustSchedule";
 import type { Locale } from "@/i18n/config";
 
@@ -54,8 +55,8 @@ function Card({ c, t, locale }: { c: ClassifiedSlot; t: T; locale: Locale }) {
           {t(`plan.lights.${c.light}.short`)}
         </span>
         {c.secure && (
-          <span className="rounded-full bg-ink text-white text-[10px] font-bold uppercase tracking-wide px-2 py-0.5" title={t("plan.secure.desc", { days: FOLLOW_RECENT_DAYS })}>
-            {t("plan.secure.badge")}
+          <span className={`rounded-full text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 ${c.reserve?.level === "strong" ? "bg-ink text-white" : "border border-ink text-ink"}`} title={t("plan.secure.desc", { days: FOLLOW_RECENT_DAYS, rate: pct(RESERVE_MIN_RATE) })}>
+            {t(c.reserve?.level === "strong" ? "plan.secure.badge" : "plan.secure.badgeTest")}
           </span>
         )}
       </div>
@@ -107,11 +108,13 @@ function Card({ c, t, locale }: { c: ClassifiedSlot; t: T; locale: Locale }) {
 
         {c.light === "gray" && <p>{t("plan.card.gray", { base: c.base })}</p>}
 
-        {c.secure && (
+        {c.secure && c.reserve && (
           <>
             <p className="text-ink">
               {t("plan.card.followLost", { n: c.fieldLost.length })}{" "}
-              {c.light === "gray" ? t("plan.card.followWeak") : t("plan.card.followHealthy")}
+              {t(c.reserve.level === "strong" ? "plan.card.reserveStrong" : "plan.card.reserveTest", {
+                players: c.reserve.playersAtLoss, usual: c.reserve.baseline.toFixed(1), rate: pct(c.rate),
+              })}
             </p>
             <p className="text-ink-faint">
               {t("plan.card.followRefs")}{" "}
@@ -135,7 +138,7 @@ function Chip({ c, t }: { c: ClassifiedSlot; t: T }) {
   const detail = [
     `${c.time} · ${c.fieldName ?? t("plan.card.fieldUnknown")} · ${c.gameSize ?? "—"}`,
     `${t(`plan.lights.${c.light}.label`)} · ${t("plan.card.demandRate")} ${pct(c.rate)} (${c.confirmed}/${c.base})`,
-    c.secure ? t("plan.secure.badge") : "",
+    c.secure ? t(c.reserve?.level === "strong" ? "plan.secure.badge" : "plan.secure.badgeTest") : "",
   ].filter(Boolean).join("\n");
   return (
     <div className={`rounded-lg border-l-[3px] px-2 py-1.5 ${TINT[c.light]} ${BAR[c.light]}`} title={detail}>
@@ -155,7 +158,7 @@ function Chip({ c, t }: { c: ClassifiedSlot; t: T }) {
         <span className="shrink-0">{c.gameSize ?? ""}</span>
       </div>
       {c.secure && (
-        <span className="mt-1 inline-block rounded-full bg-ink text-white text-[9px] font-bold uppercase tracking-wide px-1.5 py-px">{t("plan.secure.badge")}</span>
+        <span className={`mt-1 inline-block rounded-full text-[9px] font-bold uppercase tracking-wide px-1.5 py-px ${c.reserve?.level === "strong" ? "bg-ink text-white" : "border border-ink text-ink"}`}>{t(c.reserve?.level === "strong" ? "plan.secure.badge" : "plan.secure.badgeTest")}</span>
       )}
     </div>
   );
@@ -192,7 +195,7 @@ export default function FacilityWeekPlan({
           {t("plan.filters.all")} · {total}
         </Link>
         {PLAN_FILTERS.map((f) => (
-          <Link key={f} href={hrefFor(f)} title={f === "secure" ? t("plan.secure.desc", { days: FOLLOW_RECENT_DAYS }) : t(`plan.lights.${f}.desc`, { green: pct(GREEN_MIN_RATE), floor: pct(MUST_SCHEDULE_MIN_RATE) })}
+          <Link key={f} href={hrefFor(f)} title={f === "secure" ? t("plan.secure.desc", { days: FOLLOW_RECENT_DAYS, rate: pct(RESERVE_MIN_RATE) }) : t(`plan.lights.${f}.desc`, { green: pct(GREEN_MIN_RATE), floor: pct(MUST_SCHEDULE_MIN_RATE) })}
             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${filter === f ? "bg-brand text-white" : "bg-surface-sunken text-ink-muted hover:bg-brand-soft"}`}>
             {f !== "secure" && <i className={`inline-block h-2.5 w-2.5 rounded-full ${DOT[f]}`} aria-hidden="true" />}
             {f === "secure" ? t("plan.secure.label") : t(`plan.lights.${f}.label`)} · {count(f)}

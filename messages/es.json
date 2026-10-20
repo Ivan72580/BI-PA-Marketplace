@@ -1517,15 +1517,15 @@
           "below": "Precio {price}, {pct} por debajo del promedio del facility en {format} ({avg}). Es poco probable que el precio sea el problema."
         },
         "followLost": "{n, plural, one {Se perdió # vez} other {Se perdió # veces}} por cancha no disponible.",
-        "followHealthy": "Cuando se juega, la demanda es sana: lo que falla es la cancha. Reservala con anticipación y confirmá con el facility antes de sacarlo de la agenda.",
-        "followWeak": "Hay pocas ediciones jugadas para medir la demanda, pero la cancha falló varias veces: reservala y mirá cómo responde antes de decidir.",
         "followRefs": "Cancelaciones consideradas:",
         "noReason": "Sin motivo registrado",
         "green": "{confirmed} de {base} ediciones confirmadas: confirma sin problemas.",
         "amber": "Variable: {confirmed} de {base} ediciones confirmadas; {n} de las últimas {last} se cancelaron por falta de jugadores. No alcanza para darlo por asegurado ni para sacarlo: seguilo y empujá la confirmación.",
         "red": "Confirma poco ({confirmed} de {base} ediciones): no conviene contar con este slot. Antes de sacarlo, revisá precio y horario.",
         "gray": "Pocas ediciones jugadas ({base}): todavía no hay una tasa confiable.",
-        "recentLow": "El promedio de 3 meses es {rate}, pero la segunda mitad de la ventana quedó en {late}: lo más reciente rinde menos."
+        "recentLow": "El promedio de 3 meses es {rate}, pero la segunda mitad de la ventana quedó en {late}: lo más reciente rinde menos.",
+        "reserveStrong": "Tenía {players} jugadores anotados cuando se canceló (lo habitual del slot: {usual}): el partido iba a salir. Reservá la cancha con anticipación y confirmá con el facility antes de sacarlo de la agenda.",
+        "reserveTest": "Tenía {players} jugadores cuando se canceló (lo habitual del slot: {usual}): el slot rinde ({rate} de demanda) pero no se llegó a ver la demanda del día. Probá reservar la cancha y medí cómo responde antes de decidir."
       },
       "week": {
         "title": "Calendario de la semana",
@@ -1607,10 +1607,11 @@
           "low": "{month} suele ser temporada baja para este facility (índice {index}): conviene esperar menos demanda que lo normal."
         },
         "noSeason": "Todavía no hay historia para medir la estacionalidad de este facility (12 meses completos; hay {n}).",
-        "secure": "{n, plural, one {# slot para asegurar la cancha} other {# slots para asegurar la cancha}}: perdieron partidos por cancha no disponible hace poco. Reservalos con anticipación.",
         "amber": "{n, plural, one {# slot en precaución} other {# slots en precaución}}: confirman entre 55 % y 75 %, ni para dar por asegurados ni para sacar. Seguilos y empujá la confirmación.",
         "red": "{n, plural, one {# slot en rojo} other {# slots en rojo}}: confirman poco, no cuentes con ellos.",
-        "green": "{n, plural, one {# slot en verde} other {# slots en verde}} esta semana: confirman sin problemas, no conviene dejarlos sin publicar."
+        "green": "{n, plural, one {# slot en verde} other {# slots en verde}} esta semana: confirman sin problemas, no conviene dejarlos sin publicar.",
+        "secureStrong": "{n, plural, one {# slot para asegurar la cancha} other {# slots para asegurar la cancha}}: rinden bien y se perdieron por cancha no disponible con casi todos los jugadores anotados. Reservalos con anticipación.",
+        "secureTest": "{n, plural, one {# slot para probar la reserva} other {# slots para probar la reserva}}: rinden bien, pero se perdieron por cancha no disponible con pocos jugadores. Probá reservarlos y medí la respuesta."
       },
       "filters": {
         "all": "Todos"
@@ -1640,7 +1641,8 @@
       "secure": {
         "label": "Asegurar cancha",
         "badge": "Asegurar cancha",
-        "desc": "Se perdió por cancha no disponible en los últimos {days} días: conviene reservar la cancha con anticipación."
+        "desc": "Se perdió por cancha no disponible en los últimos {days} días y el slot tiene potencial (demanda de {rate} o más): conviene reservar la cancha con anticipación.",
+        "badgeTest": "Probar reserva"
       }
     },
     "bands": {
@@ -2137,10 +2139,12 @@
         "demandRate": "Tasa de demanda",
         "price": "Precio prom.",
         "summary": "{confirmed} confirmados de {base} con demanda en la ventana",
-        "fieldLost": "Se perdió {n} vez/veces por cancha no disponible: reservar con anticipación.",
+        "fieldLost": "Se perdió {n} vez/veces por cancha no disponible.",
         "weeks": "{n} semanas",
         "recentCancels": "{n} cancelaciones en los últimos {days} días.",
-        "lowRate": "Tasa de demanda en o por debajo de {rate}."
+        "lowRate": "Tasa de demanda en o por debajo de {rate}.",
+        "reserveStrong": "Cancha no disponible con {players} jugadores (habitual: {usual}): reservar con anticipación.",
+        "reserveTest": "Cancha no disponible con {players} jugadores (habitual: {usual}): probar reservarla y medir."
       },
       "definition": "A agendar = partido recurrente (facility + día + hora + cancha + formato) cuya tasa de demanda en los últimos {months} meses supera {rate}, con al menos {sample} partidos con demanda. Tasa de demanda = confirmados / (confirmados + cancelados por falta de jugadores). La lista se renueva una vez por semana ({week}).",
       "limit": "No se cruza contra lo que ya está publicado a futuro: la lista muestra qué conviene tener, no qué falta.",

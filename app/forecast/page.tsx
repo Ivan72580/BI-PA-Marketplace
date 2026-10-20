@@ -168,7 +168,10 @@ function buildFacilityInsights(plan: FacilityPlan, season: SeasonContext | null,
   const secure = plan.slots.filter((s) => s.secure);
 
   if (range === "week") {
-    if (secure.length > 0) out.push({ text: t("plan.insights.secure", { n: secure.length }), severity: "critical" });
+    const strong = secure.filter((x) => x.reserve?.level === "strong");
+    const test = secure.filter((x) => x.reserve?.level !== "strong");
+    if (strong.length > 0) out.push({ text: t("plan.insights.secureStrong", { n: strong.length }), severity: "critical" });
+    if (test.length > 0) out.push({ text: t("plan.insights.secureTest", { n: test.length }), severity: "info" });
     if (amber.length > 0) out.push({ text: t("plan.insights.amber", { n: amber.length }), severity: "info" });
     if (red.length > 0) out.push({ text: t("plan.insights.red", { n: red.length }), severity: "critical" });
     out.push({ text: t("plan.insights.green", { n: green.length }), severity: "notable" });

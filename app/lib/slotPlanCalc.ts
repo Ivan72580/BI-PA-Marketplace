@@ -1,5 +1,6 @@
 import { bucketOf } from "./metrics";
 import { MUST_SCHEDULE_MIN_SAMPLE, isDemandHealthy } from "./mustSchedule";
+import { reserveAdvice, RESERVE_RECENT_DAYS, type ReserveAdvice } from "./reserveAdvice";
 
 // =====================================================================================
 // Cálculo puro (sin base de datos) del plan por facility de Pronóstico:
@@ -21,15 +22,15 @@ import { MUST_SCHEDULE_MIN_SAMPLE, isDemandHealthy } from "./mustSchedule";
 //   debajo de 75 %: el promedio de 3 meses ya no describe cómo se comporta hoy.
 //
 // ASEGURAR CANCHA (marca aparte, independiente del color): el slot se perdió por cancha no
-// disponible hace poco y vale la pena reservarlo con anticipación (ver `isWorthFollowing`).
+// disponible hace poco, tiene potencial (tasa de demanda >= 75 %) y, según cuántos jugadores tenía
+// al cancelarse contra lo habitual del slot, la sugerencia es firme o de prueba (ver reserveAdvice.ts).
 // =====================================================================================
 
 export const GREEN_MIN_RATE = 0.75; // verde: confirma sin problemas (la expectativa es confiable)
 export const TREND_DELTA = 0.1; // 10 puntos entre la primera y la segunda mitad de la ventana
 export const TREND_MIN_HALF_BASE = 2; // partidos con base de demanda mínimos en cada mitad para hablar de tendencia
 export const RECENT_EDITIONS = 6; // últimas N ediciones del slot que se muestran como contexto
-export const FOLLOW_RECENT_DAYS = 28; // la última pérdida por cancha tiene que ser de las últimas 4 semanas
-export const FOLLOW_MIN_LOSSES_WEAK_EVIDENCE = 2; // con poca muestra de demanda, hace falta que sea recurrente
+export const FOLLOW_RECENT_DAYS = RESERVE_RECENT_DAYS; // la pérdida por cancha tiene que ser de las últimas 4 semanas
 export const PRICE_ABOVE_AVG_PCT = 0.1; // precio del slot 10 % sobre el promedio del facility en ese formato
 export const CELL_MIN_BASE = MUST_SCHEDULE_MIN_SAMPLE; // muestra mínima de una celda día × horario
 export const DAY_TIER_DELTA = 0.05; // un día es mejor/peor si se aleja 5 puntos de la tasa del facility
@@ -62,7 +63,8 @@ export type SlotStat = {
   gameSize: string | null;
   confirmed: number;
   demandCancelled: number;
-  fieldLost: { date: string; reason: string | null }[]; // cancelados por cancha no disponible, cronológico
+  fieldLost: { date: string; reason: string | null; players: number }[]; // cancelados por cancha no disponible, cronológico (con los jugadores que tenían)
+  confirmedPlayers: number[]; // jugadores finales de cada edición confirmada, cronológico
   confirmedEarly: number;
   baseEarly: number;
   confirmedLate: number;
@@ -96,7 +98,7 @@ export function buildSlotStats(games: PlanGame[], fromISO: string, toISO: string
     if (!s) {
       s = {
         key, dayOfWeek: g.dayOfWeek, time: g.time, fieldName: g.fieldName, gameSize: g.gameSize,
-        confirmed: 0, demandCancelled: 0, fieldLost: [], confirmedEarly: 0, baseEarly: 0, confirmedLate: 0, baseLate: 0,
+        confirmed: 0, demandCancelled: 0, fieldLost: [], confirmedPlayers: [], confirmedEarly: 0, baseEarly: 0, confirmedLate: 0, baseLate: 0,
         outcomes: [], players: 0, capacity: 0, priceSum: 0, priceN: 0, lastDate: g.date,
       };
       map.set(key, s);
@@ -105,7 +107,7 @@ export function buildSlotStats(games: PlanGame[], fromISO: string, toISO: string
     const isConfirmed = g.status === "CONFIRMED";
     const bucket = isConfirmed ? null : bucketOf(g.category);
     if (bucket === "fieldUnavailable") {
-      s.fieldLost.push({ date: g.date, reason: g.reason });
+      s.fieldLost.push({ date: g.date, reason: g.reason, players: g.players });
       continue;
     }
     if (!isConfirmed && bucket !== "demand") continue; // operativas y plugin: fuera de la tasa
@@ -113,6 +115,7 @@ export function buildSlotStats(games: PlanGame[], fromISO: string, toISO: string
     if (isConfirmed) {
       s.confirmed += 1;
       s.players += g.players;
+      s.confirmedPlayers.push(g.players);
       s.capacity += g.capacity;
       if (g.price !== null) { s.priceSum += g.price; s.priceN += 1; }
       if (early) s.confirmedEarly += 1; else s.confirmedLate += 1;
@@ -157,16 +160,6 @@ export function slotMetrics(s: SlotStat): SlotMetrics {
   };
 }
 
-/** ¿Hay que seguir este slot antes de sacarlo de la agenda por cancha no disponible? */
-export function isWorthFollowing(s: SlotStat, m: SlotMetrics, toISO: string): boolean {
-  if (s.fieldLost.length === 0) return false;
-  const last = s.fieldLost[s.fieldLost.length - 1].date;
-  if (daysBetween(last, toISO) > FOLLOW_RECENT_DAYS) return false;
-  // Con muestra de demanda suficiente, alcanza una pérdida si la demanda es sana; con poca
-  // muestra no se sabe si hay demanda, así que se pide que el problema sea recurrente.
-  return m.base < MUST_SCHEDULE_MIN_SAMPLE ? s.fieldLost.length >= FOLLOW_MIN_LOSSES_WEAK_EVIDENCE : isDemandHealthy(m.rate);
-}
-
 export type PriceNote = {
   slot: number;
   facilityAvg: number;
@@ -177,7 +170,8 @@ export type PriceNote = {
 export type ClassifiedSlot = {
   key: string;
   light: Light;
-  secure: boolean; // asegurar cancha: se perdió hace poco por cancha no disponible y vale la pena reservarlo
+  secure: boolean; // asegurar cancha: hay sugerencia de reserva (firme o de prueba); el detalle está en `reserve`
+  reserve: ReserveAdvice | null;
   dayOfWeek: string;
   time: string;
   fieldName: string | null;
@@ -193,14 +187,14 @@ export type ClassifiedSlot = {
   fillRate: number | null;
   avgPrice: number | null;
   priceNote: PriceNote | null;
-  fieldLost: { date: string; reason: string | null }[];
+  fieldLost: { date: string; reason: string | null; players: number }[];
   recent: { date: string; ok: boolean }[]; // últimas ediciones con base de demanda
   lastDate: string;
 };
 
 export type Classification = {
   slots: ClassifiedSlot[];
-  /** Slots con menos de MUST_SCHEDULE_MIN_SAMPLE ediciones y sin pérdidas recurrentes por cancha: no se clasifican. */
+  /** Slots con menos de MUST_SCHEDULE_MIN_SAMPLE ediciones: no se clasifican. */
   thinCount: number;
 };
 
@@ -236,11 +230,12 @@ export function classifySlots(stats: SlotStat[], toISO: string, byFormat: Map<st
   let thinCount = 0;
   for (const s of stats) {
     const m = slotMetrics(s);
-    const secure = isWorthFollowing(s, m, toISO);
+    const reserve = reserveAdvice({ base: m.base, rate: m.rate, losses: s.fieldLost, confirmedPlayers: s.confirmedPlayers, toISO });
+    const secure = reserve !== null;
     const light = lightOf(m.base, m.rate, m.lateRate) ?? (secure ? "gray" : null);
     if (!light) { thinCount += 1; continue; }
     slots.push({
-      key: s.key, light, secure, dayOfWeek: s.dayOfWeek, time: s.time, fieldName: s.fieldName, gameSize: s.gameSize,
+      key: s.key, light, secure, reserve, dayOfWeek: s.dayOfWeek, time: s.time, fieldName: s.fieldName, gameSize: s.gameSize,
       base: m.base, confirmed: s.confirmed, rate: m.rate, earlyRate: m.earlyRate, lateRate: m.lateRate, trend: m.trend,
       recentCancelled: m.recentCancelled, recentEditions: m.recentEditions, fillRate: m.fillRate, avgPrice: m.avgPrice,
       priceNote: priceNoteOf(m.avgPrice, s.gameSize, byFormat),

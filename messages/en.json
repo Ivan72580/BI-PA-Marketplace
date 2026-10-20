@@ -1517,15 +1517,15 @@
           "below": "Price {price}, {pct} below the facility average for {format} ({avg}). Price is unlikely to be the problem."
         },
         "followLost": "{n, plural, one {Lost # time} other {Lost # times}} to field unavailability.",
-        "followHealthy": "When it is played, demand is healthy: the field is what fails. Book it in advance and confirm with the facility before removing it from the schedule.",
-        "followWeak": "Few editions were played to measure demand, but the field failed several times: book it and see how it responds before deciding.",
         "followRefs": "Cancellations considered:",
         "noReason": "No reason recorded",
         "green": "{confirmed} of {base} editions confirmed: confirms without issues.",
         "amber": "Variable: {confirmed} of {base} editions confirmed; {n} of the last {last} were cancelled for lack of players. Not enough to treat it as secured or to remove it: follow it and push confirmation.",
         "red": "Confirms rarely ({confirmed} of {base} editions): do not count on this slot. Before removing it, review price and time of day.",
         "gray": "Few editions played ({base}): no reliable rate yet.",
-        "recentLow": "The 3-month average is {rate}, but the second half of the window sits at {late}: the latest weeks perform worse."
+        "recentLow": "The 3-month average is {rate}, but the second half of the window sits at {late}: the latest weeks perform worse.",
+        "reserveStrong": "It had {players} players signed up when cancelled (slot's usual: {usual}): the game was going to happen. Reserve the field ahead and confirm with the facility before dropping it from the schedule.",
+        "reserveTest": "It had {players} players when cancelled (slot's usual: {usual}): the slot performs ({rate} demand) but the day's demand was never seen. Try reserving the field and measure the response before deciding."
       },
       "week": {
         "title": "This week's calendar",
@@ -1607,10 +1607,11 @@
           "low": "{month} is usually low season for this facility (index {index}): expect less demand than normal."
         },
         "noSeason": "There is not yet enough history to measure seasonality for this facility (12 complete months; {n} so far).",
-        "secure": "{n, plural, one {# slot to secure the field} other {# slots to secure the field}}: they lost games to field unavailability recently. Book them in advance.",
         "amber": "{n, plural, one {# slot in caution} other {# slots in caution}}: they confirm between 55% and 75%, neither secured nor to remove. Follow them and push confirmation.",
         "red": "{n, plural, one {# slot in red} other {# slots in red}}: they rarely confirm, do not count on them.",
-        "green": "{n, plural, one {# slot in green} other {# slots in green}} this week: they confirm without issues, not worth leaving unpublished."
+        "green": "{n, plural, one {# slot in green} other {# slots in green}} this week: they confirm without issues, not worth leaving unpublished.",
+        "secureStrong": "{n, plural, one {# slot to secure the field} other {# slots to secure the field}}: they perform well and were lost to facility unavailable with almost all players signed up. Reserve them ahead.",
+        "secureTest": "{n, plural, one {# slot to test a reservation} other {# slots to test a reservation}}: they perform well, but were lost to facility unavailable with few players. Try reserving them and measure the response."
       },
       "filters": {
         "all": "All"
@@ -1640,7 +1641,8 @@
       "secure": {
         "label": "Secure field",
         "badge": "Secure field",
-        "desc": "Lost to field unavailability in the last {days} days: worth booking the field in advance."
+        "desc": "Lost to facility unavailable in the last {days} days and the slot has potential ({rate} demand or more): worth reserving the field ahead.",
+        "badgeTest": "Test reservation"
       }
     },
     "bands": {
@@ -2137,10 +2139,12 @@
         "demandRate": "Demand rate",
         "price": "Avg price",
         "summary": "{confirmed} confirmed out of {base} with demand in the window",
-        "fieldLost": "Lost {n} time(s) to field unavailability: reserve ahead.",
+        "fieldLost": "Lost {n} time(s) to facility unavailable.",
         "weeks": "{n} weeks",
         "recentCancels": "{n} cancellations in the last {days} days.",
-        "lowRate": "Demand rate at or below {rate}."
+        "lowRate": "Demand rate at or below {rate}.",
+        "reserveStrong": "Facility unavailable with {players} players (usual: {usual}): reserve ahead.",
+        "reserveTest": "Facility unavailable with {players} players (usual: {usual}): try reserving and measure."
       },
       "definition": "To schedule = recurring game (facility + day + hour + field + format) whose demand rate over the last {months} months is above {rate}, with at least {sample} games with demand. Demand rate = confirmed / (confirmed + cancelled for lack of players). The list refreshes once a week ({week}).",
       "limit": "It is not cross-checked against what is already published ahead: the list shows what is worth having, not what is missing.",

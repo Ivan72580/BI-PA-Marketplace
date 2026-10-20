@@ -5,6 +5,7 @@ import { buildWhere } from "./shared";
 import { bucketOf } from "../metrics";
 import { getLatestDataDate } from "./freshness";
 import { todayISO } from "../period";
+import { reserveAdvice, type ReserveAdvice } from "../reserveAdvice";
 import {
   MUST_SCHEDULE_WINDOW_MONTHS,
   MUST_SCHEDULE_MIN_SAMPLE,
@@ -64,6 +65,8 @@ export type ScheduleCard = {
   avoidReason: AvoidReason | null;
   /** Califica como "sí o sí" (las tarjetas "evitar" que no califican solo aparecen al filtrar por Evitar). */
   qualifies: boolean;
+  /** Sugerencia de reservar la cancha (ver reserveAdvice.ts); null si no corresponde. */
+  reserve: ReserveAdvice | null;
   recentCancelled: number; // cancelaciones recientes (demanda o cancha) en los últimos RECENT_CANCEL_DAYS días
   weeks: number; // semanas distintas en que apareció en la ventana
 };
@@ -85,6 +88,7 @@ type Acc = {
   confirmedEarly: number; baseEarly: number; confirmedLate: number; baseLate: number;
   players: number; capacity: number; priceSum: number; priceN: number; last: number;
   weeks: Set<number>; recentCancelled: number;
+  fieldLosses: { date: string; players: number }[]; confirmedPlayers: { t: number; p: number }[];
   occ: { t: number; date: string; status: "CONFIRMED" | "CANCELLED" }[];
 };
 
@@ -125,7 +129,7 @@ async function getMustScheduleBoardImpl(
       a = {
         facilityId: g.facilityId, dayOfWeek: g.dayOfWeek, time: g.time, fieldName: g.fieldName, gameSize: g.gameSize,
         confirmed: 0, demandCancelled: 0, fieldUnavailable: 0, confirmedEarly: 0, baseEarly: 0, confirmedLate: 0, baseLate: 0,
-        players: 0, capacity: 0, priceSum: 0, priceN: 0, last: 0, weeks: new Set<number>(), recentCancelled: 0, occ: [],
+        players: 0, capacity: 0, priceSum: 0, priceN: 0, last: 0, weeks: new Set<number>(), recentCancelled: 0, fieldLosses: [], confirmedPlayers: [], occ: [],
       };
       acc.set(key, a);
     }
@@ -135,7 +139,7 @@ async function getMustScheduleBoardImpl(
     const isConfirmed = g.status === GameStatus.CONFIRMED;
     const bucket = isConfirmed ? null : bucketOf(g.cancellationCategory);
     if (!isConfirmed && (bucket === "demand" || bucket === "fieldUnavailable") && t >= recentFromT) a.recentCancelled += 1;
-    if (!isConfirmed && bucket === "fieldUnavailable") a.fieldUnavailable += 1;
+    if (!isConfirmed && bucket === "fieldUnavailable") { a.fieldUnavailable += 1; a.fieldLosses.push({ date: g.date.toISOString().slice(0, 10), players: g.finalPlayers }); }
     // Fuera de la tasa (ni numerador ni denominador): todo lo que no habla de demanda (metrics.ts).
     if (!isConfirmed && bucket !== "demand") {
       if (a.occ.length < 8) a.occ.push({ t, date: g.date.toISOString().slice(0, 10), status: "CANCELLED" });
@@ -145,6 +149,7 @@ async function getMustScheduleBoardImpl(
     if (isConfirmed) {
       a.confirmed += 1;
       a.players += g.finalPlayers;
+      a.confirmedPlayers.push({ t, p: g.finalPlayers });
       a.capacity += g.maxPlayers;
       if (g.gamePrice !== null) { a.priceSum += g.gamePrice; a.priceN += 1; }
       if (early) a.confirmedEarly += 1; else a.confirmedLate += 1;
@@ -201,6 +206,7 @@ async function getMustScheduleBoardImpl(
       fillRate: a.capacity > 0 ? a.players / a.capacity : null,
       avgPrice: a.priceN > 0 ? a.priceSum / a.priceN : null,
       fieldUnavailable: a.fieldUnavailable,
+      reserve: reserveAdvice({ base, rate, losses: a.fieldLosses, confirmedPlayers: [...a.confirmedPlayers].sort((x, y) => x.t - y.t).map((x) => x.p), toISO: to }),
       lastDate: new Date(a.last).toISOString().slice(0, 10),
       recent: [...a.occ].sort((x, y) => x.t - y.t).map(({ date, status }) => ({ date, status })),
       focus,
