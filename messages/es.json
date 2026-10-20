@@ -1962,10 +1962,12 @@
         }
       },
       "unavailableSlot": {
-        "finding": "En los últimos {days} días, el horario de las {hour} acumuló {count} cancelaciones por \"Cancha no disponible\" en esta cancha.",
         "option": {
-          "secureAdvance": "Evaluar si conviene asegurar ese slot con anticipación (o reubicarlo) mientras se confirma si el problema de disponibilidad sigue vigente."
-        }
+          "secureAdvance": "Asegurar la cancha de ese slot con anticipación y confirmar con el facility antes de sacarlo de la agenda.",
+          "testReserve": "Probar reservar la cancha de ese slot y medir cómo responde antes de decidir."
+        },
+        "findingStrong": "Los {day} a las {time}: el slot se perdió por \"Cancha no disponible\" con {players} jugadores anotados (lo habitual: {usual}) y confirma el {rate}% de las veces. El partido iba a salir.",
+        "findingTest": "Los {day} a las {time}: el slot se perdió por \"Cancha no disponible\" con {players} jugadores (lo habitual: {usual}). Confirma el {rate}% de las veces, pero no se llegó a ver la demanda del día."
       },
       "decliningSlot": {
         "finding": "El horario de las {hour} tiene una tasa de cancelación del {rate}% y viene perdiendo partidos confirmados en los últimos {periods} períodos consecutivos — además de cancelar mucho, pierde tracción.",

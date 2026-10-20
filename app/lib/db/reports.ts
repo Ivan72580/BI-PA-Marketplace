@@ -9,6 +9,10 @@ import { getRegionComparison, type RegionComparisonRow } from "./region";
 import { getMarketComparison, type MarketComparisonRow } from "./market";
 import { getMetricSeriesInWindow, type MetricSeriesPoint } from "./trends";
 import type { Locale } from "@/i18n/config";
+import { weekdayPlural } from "./weekday";
+import { MUST_SCHEDULE_WINDOW_MONTHS, windowStartISO } from "../mustSchedule";
+import { reserveAdvice, RESERVE_RECENT_DAYS, type ReserveAdvice } from "../reserveAdvice";
+import { buildSlotStats, slotMetrics, slotKey, type PlanGame } from "../slotPlanCalc";
 
 // Nota sobre i18n: a diferencia de generateOverviewInsights (overview.ts),
 // que debe producir strings YA traducidos porque corre dentro de
@@ -797,67 +801,87 @@ async function buildOpportunitySignals(
   return signals.slice(0, 3);
 }
 
-// ---------- "Cancha no disponible" recurrente por franja ----------
-// Ventana FIJA de 14 días corridos (no la del período elegido en el
-// reporte) — mismo criterio que NEW_FACILITY_TENURE_DAYS: "recurrente
-// últimamente" es una pregunta distinta de "cómo viene el período que
-// elegiste ver". Si no hay facility elegida, escanea TODA la red/mercado
-// filtrado (no solo top-revenue) porque acá el objetivo es encontrar el
-// problema esté donde esté, no limitarlo a las canchas que más facturan.
-const UNAVAILABLE_WINDOW_DAYS = 14;
-const UNAVAILABLE_MIN_OCCURRENCES = 2;
+// ---------- "Cancha no disponible": slots donde conviene reservar la cancha ----------
+// Misma regla que Pronóstico (app/lib/reserveAdvice.ts): cancha no disponible NO alcanza por sí sola. El slot
+// (día + hora + cancha + formato) se perdió en los últimos 28 días, tiene potencial (tasa de demanda >= 75 % en
+// la ventana de 3 meses) y la sugerencia es firme o de prueba según los jugadores que tenía al cancelarse contra
+// lo habitual del slot. La ventana es FIJA (no la del período elegido en el reporte): "se perdió hace poco" es
+// una pregunta distinta de "cómo viene el período". Sin facility elegida escanea toda la red/mercado filtrado.
+const UNAVAILABLE_CANDIDATE_LIMIT = 400; // slots con pérdida reciente que se evalúan como máximo
+const UNAVAILABLE_HISTORY_LIMIT = 30000;
 
-async function buildUnavailableSlotSignals(filters: ReportFilters, dateTo: Date): Promise<OpportunitySignal[]> {
-  const windowEnd = dateTo;
-  const windowStart = new Date(windowEnd);
-  windowStart.setUTCDate(windowStart.getUTCDate() - UNAVAILABLE_WINDOW_DAYS);
+async function buildUnavailableSlotSignals(filters: ReportFilters, dateTo: Date, locale: Locale): Promise<OpportunitySignal[]> {
+  const toISO = dateTo.toISOString().slice(0, 10);
+  const lossFrom = new Date(dateTo);
+  lossFrom.setUTCDate(lossFrom.getUTCDate() - RESERVE_RECENT_DAYS);
+  const histFromISO = windowStartISO(toISO, MUST_SCHEDULE_WINDOW_MONTHS);
 
-  const where = buildWhere({ ...filters, dateFrom: windowStart, dateTo: windowEnd });
-  const groups = await prisma.game.groupBy({
-    by: ["facilityId", "time"],
-    where: { ...where, status: GameStatus.CANCELLED, cancellationCategory: "FACILITY_UNAVAILABLE" },
-    _count: { _all: true },
-  });
+  const lost = (await prisma.game.findMany({
+    where: { ...buildWhere({ ...filters, dateFrom: lossFrom, dateTo }), status: GameStatus.CANCELLED, cancellationCategory: "FACILITY_UNAVAILABLE" },
+    select: { facilityId: true, dayOfWeek: true, time: true, fieldName: true, gameSize: true },
+    take: UNAVAILABLE_CANDIDATE_LIMIT,
+  })) as { facilityId: string; dayOfWeek: string; time: string; fieldName: string | null; gameSize: string | null }[];
+  if (lost.length === 0) return [];
 
-  // Varias filas pueden caer en la misma franja con minutos distintos
-  // (ej. "18:00" y "18:30" -> ambas franja "18") — se consolidan antes de
-  // aplicar el piso mínimo de ocurrencias.
-  const byFacilityHour = new Map<string, number>();
-  for (const g of groups) {
-    const hour = g.time?.slice(0, 2);
-    if (!hour) continue;
-    const key = `${g.facilityId}|${hour}`;
-    byFacilityHour.set(key, (byFacilityHour.get(key) ?? 0) + Number(g._count._all));
+  const keyOf = (g: { facilityId: string; dayOfWeek: string; time: string; fieldName: string | null; gameSize: string | null }) => `${g.facilityId}|${slotKey(g)}`;
+  const candidateKeys = new Set(lost.map(keyOf));
+  const facilityIds = [...new Set(lost.map((g) => g.facilityId))];
+  const dows = [...new Set(lost.map((g) => g.dayOfWeek))];
+  const times = [...new Set(lost.map((g) => g.time))];
+
+  const history = (await prisma.game.findMany({
+    where: { facilityId: { in: facilityIds }, dayOfWeek: { in: dows }, time: { in: times }, date: { gte: new Date(`${histFromISO}T00:00:00.000Z`), lte: dateTo } },
+    select: { facilityId: true, date: true, dayOfWeek: true, time: true, fieldName: true, gameSize: true, status: true, cancellationCategory: true, cancellationReasonRaw: true, finalPlayers: true, maxPlayers: true, gamePrice: true },
+    take: UNAVAILABLE_HISTORY_LIMIT,
+  })) as { facilityId: string; date: Date; dayOfWeek: string; time: string; fieldName: string | null; gameSize: string | null; status: string; cancellationCategory: string | null; cancellationReasonRaw: string | null; finalPlayers: number; maxPlayers: number; gamePrice: number | null }[];
+
+  const byFacility = new Map<string, PlanGame[]>();
+  for (const g of history) {
+    if (!candidateKeys.has(keyOf(g))) continue;
+    const arr = byFacility.get(g.facilityId) ?? [];
+    arr.push({
+      date: g.date.toISOString().slice(0, 10), dayOfWeek: g.dayOfWeek, time: g.time, fieldName: g.fieldName, gameSize: g.gameSize,
+      status: g.status === "CONFIRMED" ? "CONFIRMED" : "CANCELLED", category: g.cancellationCategory, reason: g.cancellationReasonRaw,
+      players: g.finalPlayers, capacity: g.maxPlayers, price: g.gamePrice,
+    });
+    byFacility.set(g.facilityId, arr);
   }
 
-  let candidates = Array.from(byFacilityHour.entries())
-    .map(([key, count]) => {
-      const [facilityId, hour] = key.split("|");
-      return { facilityId, hour, count };
-    })
-    .filter((c) => c.count >= UNAVAILABLE_MIN_OCCURRENCES);
+  type Found = { facilityId: string; dayOfWeek: string; time: string; advice: ReserveAdvice; rate: number };
+  const found: Found[] = [];
+  for (const [facilityId, games] of byFacility) {
+    for (const stat of buildSlotStats(games, histFromISO, toISO)) {
+      if (!candidateKeys.has(`${facilityId}|${stat.key}`)) continue;
+      const m = slotMetrics(stat);
+      const advice = reserveAdvice({ base: m.base, rate: m.rate, losses: stat.fieldLost, confirmedPlayers: stat.confirmedPlayers, toISO });
+      if (advice && m.rate !== null) found.push({ facilityId, dayOfWeek: stat.dayOfWeek, time: stat.time, advice, rate: m.rate });
+    }
+  }
+  if (found.length === 0) return [];
 
-  if (candidates.length === 0) return [];
+  // Primero lo firme; dentro de cada nivel, el que tenía más jugadores contra lo habitual y más pérdidas recientes.
+  found.sort((a, b) => (a.advice.level === b.advice.level ? (b.advice.ratio ?? 0) - (a.advice.ratio ?? 0) || b.advice.recentLosses - a.advice.recentLosses : a.advice.level === "strong" ? -1 : 1));
+  const top = found.slice(0, 3);
 
-  candidates.sort((a, b) => b.count - a.count);
-  candidates = candidates.slice(0, 3);
-
-  const facilityIds = Array.from(new Set(candidates.map((c) => c.facilityId)));
   const facilityInfo = await prisma.facility.findMany({
-    where: { id: { in: facilityIds } },
+    where: { id: { in: [...new Set(top.map((c) => c.facilityId))] } },
     select: { id: true, name: true, market: { select: { name: true, region: { select: { name: true } } } } },
   });
   type FacilityInfoRow = { id: string; name: string; market: { name: string; region: { name: string } | null } | null };
   const infoById = new Map((facilityInfo as FacilityInfoRow[]).map((f) => [f.id, f] as const));
 
-  return candidates.map((c) => {
+  return top.map((c) => {
     const info = infoById.get(c.facilityId);
     const entityLabel = info ? (info.market?.region ? `${info.name} (${info.market.region.name})` : info.name) : "—";
+    const strong = c.advice.level === "strong";
     return {
       entityLabel,
-      findingTextKey: "opportunity.unavailableSlot.finding",
-      findingValues: { hour: `${c.hour}h`, count: c.count, days: UNAVAILABLE_WINDOW_DAYS },
-      optionTextKeys: ["opportunity.unavailableSlot.option.secureAdvance"],
+      findingTextKey: strong ? "opportunity.unavailableSlot.findingStrong" : "opportunity.unavailableSlot.findingTest",
+      findingValues: {
+        day: weekdayPlural(c.dayOfWeek, locale), time: c.time, players: c.advice.playersAtLoss, usual: c.advice.baseline.toFixed(1),
+        rate: Math.round(c.rate * 100), days: RESERVE_RECENT_DAYS,
+      },
+      optionTextKeys: [strong ? "opportunity.unavailableSlot.option.secureAdvance" : "opportunity.unavailableSlot.option.testReserve"],
       kind: "unavailableSlot",
     };
   });
@@ -1054,7 +1078,7 @@ async function buildReportCore(filters: ReportFilters, granularity: ReportGranul
   const [facilityFocus, peakWindowSignals, unavailableSlotSignals, decliningSlotSignals] = await Promise.all([
     buildFacilityFocus(filters, current, facilityRows, periods.current.dateFrom, periods.current.dateTo, locale),
     buildOpportunitySignals(filters, current, facilityRows, windowStart, windowEnd, evolution.length),
-    buildUnavailableSlotSignals(filters, periods.current.dateTo),
+    buildUnavailableSlotSignals(filters, periods.current.dateTo, locale),
     buildDecliningCancellationSlotSignals(filters, granularity, windowStart, windowEnd, evolution.length),
   ]);
   // Mismo orden en que se definieron arriba: horario pico (proxy) primero,
