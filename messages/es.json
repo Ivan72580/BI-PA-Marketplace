@@ -2691,7 +2691,6 @@
         "dropped": "Abandonos"
       },
       "lowSample": "Muestra baja ({n} partidos)",
-      "definitions": "Tasa de demanda = confirmados / (confirmados + cancelados por falta de jugadores). Tasa cruda = confirmados / publicados. Market = el resto de las facilities. Revenue estimado = precio × jugadores finales de partidos confirmados. Las variaciones comparan contra el período anterior con la misma cantidad de días.",
       "alert": {
         "field": "{n} partidos con cancha no disponible en {days} días ({pct} de lo publicado)",
         "demandDrop": "Tasa de demanda semanal cayó de {from} a {to} ({pts} pts)"
@@ -2717,7 +2716,45 @@
         "price": "Precio",
         "cancelled": "Cancelado",
         "confirmed": "Confirmado",
-        "truncated": "Se muestran los más recientes."
+        "truncated": "Se muestran los más recientes.",
+        "filter": "Filtrar",
+        "all": "Todos",
+        "count": "{shown} de {total} partidos",
+        "clear": "Quitar filtros",
+        "noMatch": "Ningún partido coincide con los filtros."
+      },
+      "panel": {
+        "title": "Panorama",
+        "period": "Período",
+        "open": "Ver el detalle de este indicador"
+      },
+      "cancel": {
+        "open": "Ver cancelaciones",
+        "composition": "Composición de las cancelaciones",
+        "demand": "Falta de jugadores",
+        "field": "Cancha no disponible",
+        "operational": "Operativas (clima, mantenimiento, otros)",
+        "plugin": "Plugin",
+        "none": "Sin cancelaciones en este período."
+      },
+      "reserve": {
+        "title": "Slots para reservar la cancha",
+        "open": "Ver en Pronóstico",
+        "none": "Ningún slot cumple hoy las condiciones para reservar (se perdió por cancha en las últimas 4 semanas, demanda de 75 % o más).",
+        "strong": "Asegurar cancha",
+        "test": "Probar reserva",
+        "players": "{players} jugadores (habitual {usual})",
+        "more": "+{n} más en Pronóstico."
+      },
+      "gloss": {
+        "demandRate": "Confirmados / (confirmados + cancelados por falta de jugadores). Cancha no disponible y cancelaciones operativas quedan fuera.",
+        "rawRate": "Confirmados / publicados: no descuenta ninguna cancelación.",
+        "revenue": "Precio × jugadores finales de los partidos confirmados; no es facturación real.",
+        "marketTerm": "Market",
+        "market": "El resto de las facilities del mismo market.",
+        "compareTerm": "Variaciones",
+        "compare": "Contra el período anterior con la misma cantidad de días: día vs mismo día de la semana pasada; semana y mes vs los mismos días transcurridos.",
+        "reserve": "Se perdió por cancha no disponible en las últimas 4 semanas y el slot rinde ({rate} de demanda o más). Firme si tenía casi todos los jugadores habituales; de prueba si tenía pocos."
       }
     },
     "forecast": {

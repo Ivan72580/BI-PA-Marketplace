@@ -2691,7 +2691,6 @@
         "dropped": "Drop-outs"
       },
       "lowSample": "Low sample ({n} games)",
-      "definitions": "Demand rate = confirmed / (confirmed + cancelled for not enough players). Raw rate = confirmed / published. Market = all other facilities. Estimated revenue = price × final players of confirmed games. Changes compare against the previous period with the same number of days.",
       "alert": {
         "field": "{n} games lost to facility unavailable in {days} days ({pct} of published)",
         "demandDrop": "Weekly demand rate fell from {from} to {to} ({pts} pts)"
@@ -2717,7 +2716,45 @@
         "price": "Price",
         "cancelled": "Cancelled",
         "confirmed": "Confirmed",
-        "truncated": "Showing the most recent."
+        "truncated": "Showing the most recent.",
+        "filter": "Filter",
+        "all": "All",
+        "count": "{shown} of {total} games",
+        "clear": "Clear filters",
+        "noMatch": "No game matches the filters."
+      },
+      "panel": {
+        "title": "Overview",
+        "period": "Period",
+        "open": "See the detail of this indicator"
+      },
+      "cancel": {
+        "open": "See cancellations",
+        "composition": "Cancellation breakdown",
+        "demand": "Not enough players",
+        "field": "Facility unavailable",
+        "operational": "Operational (weather, maintenance, other)",
+        "plugin": "Plugin",
+        "none": "No cancellations in this period."
+      },
+      "reserve": {
+        "title": "Slots to reserve the field",
+        "open": "See in Forecast",
+        "none": "No slot meets the conditions today (lost to facility unavailable in the last 4 weeks, 75% demand or more).",
+        "strong": "Secure field",
+        "test": "Test reservation",
+        "players": "{players} players (usual {usual})",
+        "more": "+{n} more in Forecast."
+      },
+      "gloss": {
+        "demandRate": "Confirmed / (confirmed + cancelled for not enough players). Facility unavailable and operational cancellations are left out.",
+        "rawRate": "Confirmed / published: no cancellation is discounted.",
+        "revenue": "Price × final players of confirmed games; not actual billing.",
+        "marketTerm": "Market",
+        "market": "All the other facilities in the same market.",
+        "compareTerm": "Changes",
+        "compare": "Against the previous period with the same number of days: day vs same weekday last week; week and month vs the same elapsed days.",
+        "reserve": "Lost to facility unavailable in the last 4 weeks and the slot performs ({rate} demand or more). Firm if it had almost all usual players; test if it had few."
       }
     },
     "forecast": {
