@@ -1536,7 +1536,9 @@
         "stripSecure": "{n} to secure",
         "thin": "{n, plural, one {# slot with fewer than {min} editions is not classified.} other {# slots with fewer than {min} editions are not classified.}}",
         "today": "Today",
-        "detailToggle": "See the detail of each slot (cards)"
+        "detailToggle": "See the detail of each slot (cards)",
+        "glossTerm": "How to read the calendar",
+        "limitTerm": "Scope"
       },
       "month": {
         "title": "Next 30 days at a glance",
@@ -1853,7 +1855,35 @@
       "overdue": "Date has passed: reserve now",
       "weeksBefore": "{n} wk before",
       "planFootnote": "Only field loss that cancelled an already-published game is visible: a slot that could never be published leaves no trace. Depends on cancellation categorization.",
-      "seePlan": "See the next-3-months reservation plan in Forecast"
+      "seePlan": "See the next-3-months reservation plan in Forecast",
+      "ui": {
+        "status": {
+          "overdue": "Reserve now",
+          "reserveBy": "Reserve before {date}",
+          "review": "Review",
+          "ok": "No action"
+        },
+        "season": "{level} season",
+        "seasonHint": "Expected demand level for the month, from the seasonal index",
+        "kind": {
+          "supplyLimited": "Limited supply",
+          "mixed": "Review"
+        },
+        "by": "Before {date}",
+        "chip": {
+          "demand": "Demand {v}",
+          "field": "Facility unavail. {v}",
+          "lost": "{n} lost/yr"
+        },
+        "noneThisMonth": "No facility needs a reservation",
+        "demandLimited": "{n} demand-limited",
+        "gloss": {
+          "advance": "Lead time",
+          "coverage": "Scope",
+          "states": "States",
+          "statesDef": "Reserve now: the suggested date has passed. Reserve before…: there is demand and the field is being lost that month. Review: low demand and the field is also being lost. No action: nothing to reserve."
+        }
+      }
     }
   },
   "Reports": {

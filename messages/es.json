@@ -1536,7 +1536,9 @@
         "stripSecure": "{n} asegurar",
         "thin": "{n, plural, one {# slot con menos de {min} ediciones no se clasifica.} other {# slots con menos de {min} ediciones no se clasifican.}}",
         "today": "Hoy",
-        "detailToggle": "Ver el detalle de cada slot (tarjetas)"
+        "detailToggle": "Ver el detalle de cada slot (tarjetas)",
+        "glossTerm": "Cómo se lee el calendario",
+        "limitTerm": "Alcance"
       },
       "month": {
         "title": "Panorama de los próximos 30 días",
@@ -1853,7 +1855,35 @@
       "overdue": "Ya pasó la fecha: reservar ahora",
       "weeksBefore": "{n} sem. antes",
       "planFootnote": "Solo se ve la falta de cancha que canceló un partido ya publicado: un horario que nunca se pudo publicar no deja rastro. Depende de la categorización de cancelaciones.",
-      "seePlan": "Ver el plan de reservas de los próximos 3 meses en Pronóstico"
+      "seePlan": "Ver el plan de reservas de los próximos 3 meses en Pronóstico",
+      "ui": {
+        "status": {
+          "overdue": "Reservar ya",
+          "reserveBy": "Reservar antes del {date}",
+          "review": "Revisar",
+          "ok": "Sin acción"
+        },
+        "season": "Temporada {level}",
+        "seasonHint": "Nivel de demanda esperado para el mes, según el índice estacional",
+        "kind": {
+          "supplyLimited": "Oferta limitada",
+          "mixed": "Revisar"
+        },
+        "by": "Antes del {date}",
+        "chip": {
+          "demand": "Demanda {v}",
+          "field": "Cancha no disp. {v}",
+          "lost": "{n} perdidos/año"
+        },
+        "noneThisMonth": "Ninguna facility amerita reservar",
+        "demandLimited": "{n} con demanda limitada",
+        "gloss": {
+          "advance": "Anticipación",
+          "coverage": "Alcance",
+          "states": "Estados",
+          "statesDef": "Reservar ya: la fecha sugerida ya pasó. Reservar antes del…: hay demanda y se pierde cancha en ese mes. Revisar: poca demanda y también se pierde cancha. Sin acción: nada que reservar."
+        }
+      }
     }
   },
   "Reports": {

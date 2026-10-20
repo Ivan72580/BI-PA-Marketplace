@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 import GroupSection from "./GroupSection";
+import Glossary from "./Glossary";
 import type { SeasonPlanData, SeasonRow, PlanItem } from "../lib/db/seasonPlan";
 import type { ActionKind, SeasonLevel } from "../lib/seasonPlanCalc";
 
@@ -31,6 +32,7 @@ export default async function SeasonPlan({ data, forecastHref }: { data: SeasonP
   const pct1 = (v: number | null) => (v === null ? "—" : pct0.format(v));
   const idx2 = new Intl.NumberFormat(lc, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const seasonLabel = (months: number[]) => (months.length === 1 ? monthShort(months[0]) : `${monthShort(months[0])}–${monthShort(months[months.length - 1])}`);
+  const actionText = (a: ActionKind) => t(`action.${a}`);
   const trendLabel = (pp: number | null) => {
     if (pp === null) return "—";
     const v = Math.round(pp * 1000) / 10; // puntos porcentuales con 1 decimal
@@ -50,7 +52,6 @@ export default async function SeasonPlan({ data, forecastHref }: { data: SeasonP
   const maxRate = Math.max(0.1, ...data.availability.map((m) => m.rate ?? 0));
   const BAR_H = 88;
 
-  const actionText = (a: ActionKind) => t(`action.${a}`);
 
   return (
     <>
@@ -145,72 +146,76 @@ export async function ReservePlan({ data, badge }: { data: SeasonPlanData | null
     return `${v > 0 ? "▲ +" : "▼ "}${new Intl.NumberFormat(lc, { maximumFractionDigits: 1 }).format(v)} pp`;
   };
   const dateLabel = (isoDate: string) => new Date(`${isoDate}T00:00:00Z`).toLocaleDateString(lc, { day: "numeric", month: "short", timeZone: "UTC" });
-  const actionText = (a: ActionKind) => t(`action.${a}`);
 
   if (!data || data.method === null) return null;
+
+  type State = "overdue" | "reserve" | "review" | "ok";
+  const STATE_CARD: Record<State, string> = {
+    overdue: "bg-danger-soft ring-1 ring-danger/40",
+    reserve: "bg-warning-soft ring-1 ring-warning-fill/50",
+    review: "bg-surface-sunken ring-1 ring-border",
+    ok: "bg-brand-soft/50 ring-1 ring-brand/20",
+  };
+  const STATE_TEXT: Record<State, string> = { overdue: "text-danger", reserve: "text-warning", review: "text-ink-muted", ok: "text-brand" };
+  const STATE_ICON: Record<State, string> = { overdue: "⚠", reserve: "📅", review: "👁", ok: "✓" };
 
   return (
     <>
       <GroupSection title={`📅 ${t("planTitle")}`} accent="warning" badge={badge}>
-        <div className="text-xs text-ink-faint -mt-1 mb-3 max-w-3xl">{t("planSubtitle")}</div>
-        <div className="grid gap-2 sm:grid-cols-3 mb-4">
-          {data.planMonths.map((pm) => (
-            <div key={`${pm.year}-${pm.month}`} className="rounded-lg border border-border px-3 py-2">
-              <div className="flex items-center justify-between gap-2">
-                <div className="text-sm font-medium text-ink capitalize">{monthLong(pm.year, pm.month)}</div>
-                {pm.level && <span className={`rounded-full px-2 py-0.5 text-[11px] ${LEVEL_BADGE[pm.level]}`}>{t(`level.${pm.level}`)}</span>}
+        <div className="grid gap-3 md:grid-cols-3">
+          {data.planMonths.map((pm) => {
+            const its = data.planItems.filter((it: PlanItem) => it.year === pm.year && it.month === pm.month);
+            const state: State = its.some((i) => i.overdue) ? "overdue" : its.some((i) => i.kind === "supplyLimited") ? "reserve" : its.length > 0 ? "review" : "ok";
+            const earliest = its.filter((i) => !i.overdue).map((i) => i.reserveBy).sort()[0];
+            const headline =
+              state === "overdue" ? t("ui.status.overdue")
+              : state === "reserve" ? t("ui.status.reserveBy", { date: dateLabel(earliest ?? its[0].reserveBy) })
+              : state === "review" ? t("ui.status.review")
+              : t("ui.status.ok");
+            return (
+              <div key={`${pm.year}-${pm.month}`} className={`rounded-2xl p-4 flex flex-col gap-3 ${STATE_CARD[state]}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="font-display text-lg font-bold text-ink capitalize">{monthLong(pm.year, pm.month)}</div>
+                  {pm.level && <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${LEVEL_BADGE[pm.level]}`} title={t("ui.seasonHint")}>{t("ui.season", { level: t(`level.${pm.level}`) })}</span>}
+                </div>
+                <div className={`flex items-center gap-2 text-base font-bold ${STATE_TEXT[state]}`}>
+                  <span aria-hidden="true">{STATE_ICON[state]}</span>{headline}
+                </div>
+                {its.length > 0 ? (
+                  <ul className="space-y-2">
+                    {its.map((it: PlanItem) => (
+                      <li key={it.facilityId} className="rounded-xl bg-surface/80 p-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="text-sm font-semibold text-ink min-w-0 truncate">{it.facilityName}</div>
+                          <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${it.kind === "supplyLimited" ? "bg-warning-fill/30 text-warning" : "bg-surface-sunken text-ink-muted"}`}>
+                            {t(`ui.kind.${it.kind}`)}
+                          </span>
+                        </div>
+                        <div className="text-xs mt-1 text-ink-muted">
+                          {it.overdue ? <span className="text-danger font-semibold">{t("overdue")}</span> : <>{t("ui.by", { date: dateLabel(it.reserveBy) })} · {t("weeksBefore", { n: it.leadWeeks })}</>}
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 mt-2 text-[11px]">
+                          <span className="rounded-md bg-brand-soft text-brand px-1.5 py-0.5">{t("ui.chip.demand", { v: pct1(it.demandRate) })}</span>
+                          <span className="rounded-md bg-warning-soft text-warning px-1.5 py-0.5">{t("ui.chip.field", { v: pct1(it.unavailRate) })}</span>
+                          {it.trendPp !== null && <span className={`rounded-md px-1.5 py-0.5 ${it.trendPp > 0 ? "bg-danger-soft text-danger" : "bg-surface-sunken text-ink-muted"}`}>{trendLabel(it.trendPp)}</span>}
+                          <span className="rounded-md bg-surface-sunken text-ink-muted px-1.5 py-0.5">{t("ui.chip.lost", { n: num0.format(Math.round(it.avgLostPerYear)) })}</span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-xs text-ink-muted">{t("ui.noneThisMonth")}{pm.counts.demandLimited > 0 ? ` · ${t("ui.demandLimited", { n: pm.counts.demandLimited })}` : ""}</p>
+                )}
               </div>
-              <div className="text-[11px] text-ink-faint mt-1">
-                {t("countsLine", { supply: pm.counts.supplyLimited, mixed: pm.counts.mixed, demand: pm.counts.demandLimited })}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
-
-        {data.planItems.length === 0 ? (
-          <div className="text-sm text-ink-faint">{t("planEmpty")}</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-ink-faint text-[10px] uppercase tracking-wide">
-                <tr>
-                  <th className="text-left py-1.5 pr-2 font-medium">{t("headers.facility")}</th>
-                  <th className="text-left py-1.5 px-2 font-medium">{t("headers.month")}</th>
-                  <th className="text-right py-1.5 px-2 font-medium">{t("headers.demandRate")}</th>
-                  <th className="text-right py-1.5 px-2 font-medium">{t("headers.unavailRate")}</th>
-                  <th className="text-right py-1.5 px-2 font-medium">{t("headers.trend")}</th>
-                  <th className="text-right py-1.5 px-2 font-medium">{t("headers.lost")}</th>
-                  <th className="text-left py-1.5 pl-3 font-medium">{t("headers.reserveBy")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.planItems.map((it: PlanItem) => (
-                  <tr key={`${it.facilityId}-${it.year}-${it.month}`} className="border-t border-border align-top">
-                    <td className="py-1.5 pr-2 text-ink">
-                      <div className="font-medium">{it.facilityName}</div>
-                      <div className={`text-[11px] ${ACTION_STYLE[it.kind]}`}>{actionText(it.kind)}</div>
-                    </td>
-                    <td className="py-1.5 px-2 text-ink-muted capitalize whitespace-nowrap">{monthLong(it.year, it.month)}</td>
-                    <td className="py-1.5 px-2 text-right text-ink-muted">{pct1(it.demandRate)}</td>
-                    <td className="py-1.5 px-2 text-right text-ink-muted">{pct1(it.unavailRate)}</td>
-                    <td className="py-1.5 px-2 text-right text-ink-muted whitespace-nowrap">{trendLabel(it.trendPp)}</td>
-                    <td className="py-1.5 px-2 text-right text-ink">{num0.format(Math.round(it.avgLostPerYear))}</td>
-                    <td className="py-1.5 pl-3 whitespace-nowrap">
-                      {it.overdue ? (
-                        <span className="text-danger font-medium">{t("overdue")}</span>
-                      ) : (
-                        <span className="text-ink">
-                          {dateLabel(it.reserveBy)} <span className="text-ink-faint text-[11px]">({t("weeksBefore", { n: it.leadWeeks })})</span>
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        <div className="text-[11px] text-ink-faint mt-2 max-w-3xl">{t("planFootnote")}</div>
+        {data.planItems.length === 0 && <div className="text-sm text-ink-faint">{t("planEmpty")}</div>}
+        <Glossary items={[
+          { term: t("ui.gloss.advance"), def: t("planSubtitle") },
+          { term: t("ui.gloss.coverage"), def: t("planFootnote") },
+          { term: t("ui.gloss.states"), def: t("ui.gloss.statesDef") },
+        ]} />
       </GroupSection>
     </>
   );

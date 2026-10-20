@@ -8,6 +8,7 @@ import {
 import { RESERVE_MIN_RATE } from "../lib/reserveAdvice";
 import { MUST_SCHEDULE_MIN_RATE, MUST_SCHEDULE_MIN_SAMPLE, MUST_SCHEDULE_WINDOW_MONTHS } from "../lib/mustSchedule";
 import type { Locale } from "@/i18n/config";
+import Glossary from "./Glossary";
 
 // "Próximos 7 días" de Pronóstico cuando hay un facility elegido: un calendario semanal clásico
 // (una columna por fecha, un renglón compacto por slot) con el semáforo por tasa de demanda. El
@@ -247,12 +248,15 @@ export default function FacilityWeekPlan({
 
       {plan.thinCount > 0 && <p className="text-xs text-ink-faint">{t("plan.week.thin", { n: plan.thinCount, min: MUST_SCHEDULE_MIN_SAMPLE })}</p>}
       {plan.truncated && <p className="text-xs text-warning">{t("plan.truncated")}</p>}
-      <p className="text-xs text-ink-faint max-w-3xl">
-        {t("plan.week.definition", {
-          green: pct(GREEN_MIN_RATE), floor: pct(MUST_SCHEDULE_MIN_RATE), sample: MUST_SCHEDULE_MIN_SAMPLE, days: FOLLOW_RECENT_DAYS, last: RECENT_EDITIONS, delta: Math.round(TREND_DELTA * 100),
-        })}
-      </p>
-      <p className="text-xs text-ink-faint max-w-3xl">{t("plan.week.limit")}</p>
+      <Glossary items={[
+        {
+          term: t("plan.week.glossTerm"),
+          def: t("plan.week.definition", {
+            green: pct(GREEN_MIN_RATE), floor: pct(MUST_SCHEDULE_MIN_RATE), sample: MUST_SCHEDULE_MIN_SAMPLE, days: FOLLOW_RECENT_DAYS, last: RECENT_EDITIONS, delta: Math.round(TREND_DELTA * 100),
+          }),
+        },
+        { term: t("plan.week.limitTerm"), def: t("plan.week.limit") },
+      ]} />
     </section>
   );
 }
