@@ -389,12 +389,13 @@ export default function TopNav({
         <div className="flex-1 min-w-0 lg:hidden" />
 
         <div className="flex items-center gap-3 py-2 shrink-0">
-          {/* El buscador lleva a la ficha de la facility (módulo Operativo). */}
+          {/* El buscador abre el análisis de la facility (/facility). */}
           {showMagic && (
             <div className="w-56 hidden lg:block">
               <FacilitySearch
                 facilities={facilities}
                 markets={markets}
+                basePath="/facility"
                 placeholder={t("facilitySearch.placeholder")}
                 emptyMessageTemplate={t("facilitySearch.empty", { query: "{query}" })}
               />
@@ -423,6 +424,7 @@ export default function TopNav({
             <FacilitySearch
               facilities={facilities}
               markets={markets}
+              basePath="/facility"
               placeholder={t("facilitySearch.placeholder")}
               emptyMessageTemplate={t("facilitySearch.empty", { query: "{query}" })}
             />
