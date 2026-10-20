@@ -2722,7 +2722,8 @@
     },
     "forecast": {
       "title": "Forecast",
-      "disclaimer": "Projection based on the facility's history; not confirmed data."
+      "disclaimer": "Projection based on the facility's history; not confirmed data.",
+      "layerSub": "Projection and reservation plan based on history; an estimate, not data."
     },
     "deep": {
       "window": "last {n} days",
@@ -2742,11 +2743,12 @@
       "boardTitle": "To schedule, secure and avoid",
       "boardSub": "Slots worth keeping scheduled or avoiding, based on the last 3 months.",
       "stat": {
-        "fields": "Fields",
+        "fields": "Fields published",
         "slots": "Distinct slots",
         "slotsSub": "day × hour",
         "published": "Published",
-        "fieldSub": "of published"
+        "fieldSub": "of published",
+        "fieldsSub": "with games in 90 days"
       }
     },
     "demand": {
@@ -2775,7 +2777,8 @@
       "formatTitle": "Ticket by format",
       "formatSub": "Change vs the previous 90 days.",
       "hourTitle": "Ticket by hour",
-      "caveat": "Estimated revenue = price × final players of confirmed games; not actual billing."
+      "caveat": "Estimated revenue = price × final players of confirmed games; not actual billing.",
+      "revenueTerm": "Estimated revenue"
     },
     "trend": {
       "windowNote": "Last 13 months; the trend compares the last 3 full months against the 3 before.",
@@ -2826,6 +2829,18 @@
       "notesTitle": "Weekly log notes (90 days)",
       "openProfile": "See profile →",
       "notesEmpty": "No linked notes."
+    },
+    "layerSub": {
+      "now": "How the facility is doing today, this week and this month, against the previous period and the market.",
+      "slots": "What gets published, where each slot performs and what to schedule or avoid.",
+      "demand": "Why games get cancelled, how demand responds and which formats work.",
+      "price": "Ticket and estimated revenue: evolution, format and hour.",
+      "trend": "Where the facility is heading and how it varies through the year.",
+      "position": "Where the facility stands within its market.",
+      "relation": "What players say and what the team knows about this facility."
     }
+  },
+  "Glossary": {
+    "label": "Glossary"
   }
 }

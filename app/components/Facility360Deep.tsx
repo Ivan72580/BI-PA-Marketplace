@@ -5,9 +5,10 @@ import { weekdayAbbr, weekdayLabel } from "../lib/db/weekday";
 import { opKey, type MonthAgg } from "../lib/facilityDeepCalc";
 import type { Agg } from "../lib/facilityNowCalc";
 import type { Locale } from "@/i18n/config";
-import GroupSection from "./GroupSection";
+import LayerSection from "./LayerSection";
 import StatStrip, { type Stat } from "./StatStrip";
 import ChangeBadge from "./ChangeBadge";
+import Glossary from "./Glossary";
 import ScheduleBoard from "./ScheduleBoard";
 
 // Capas 3, 4 y 5 del análisis de facility: Oferta y slots, Demanda y operación, Precio y revenue. Comparten una
@@ -258,7 +259,7 @@ export default async function Facility360Deep({ facilityId, date }: { facilityId
   const per = t("deep.window", { n: 90 });
 
   const slotStats: Stat[] = [
-    { label: t("slots.stat.fields"), value: String(Object.keys(deep.byField).filter((k) => k).length), sub: per },
+    { label: t("slots.stat.fields"), value: String(Object.keys(deep.byField).filter((k) => k).length), sub: t("slots.stat.fieldsSub") },
     { label: t("slots.stat.slots"), value: String(Object.keys(deep.heat).length), sub: t("slots.stat.slotsSub") },
     { label: t("slots.stat.published"), value: num(cur.published), sub: t("deep.vsPrior", { n: num(prior.published) }) },
     { label: t("now.field.title"), value: cur.fieldUnavailable > 0 ? `${num(cur.fieldUnavailable)} · ${pct(cur.fieldShare)}` : "0", sub: t("slots.stat.fieldSub"), tone: cur.fieldUnavailable > 0 ? "warn" : "default" },
@@ -279,8 +280,7 @@ export default async function Facility360Deep({ facilityId, date }: { facilityId
 
   return (
     <>
-      <div id="slots" className="scroll-mt-[var(--layer-offset,10rem)]">
-        <GroupSection title={t("nav.slots")}>
+      <LayerSection id="slots" title={t("nav.slots")} subtitle={t("layerSub.slots")}>
           <StatStrip stats={slotStats} />
           <Card title={t("slots.heatTitle")} sub={t("slots.heatSub", { n: 90 })}><HeatGrid deep={deep} t={t} locale={locale as Locale} /></Card>
           <Card title={t("slots.fieldTitle")} sub={t("slots.fieldSub")}><FieldTable deep={deep} t={t} /></Card>
@@ -291,31 +291,26 @@ export default async function Facility360Deep({ facilityId, date }: { facilityId
               <ScheduleBoard board={board} t={tInv as unknown as T} locale={locale as Locale} order="time" />
             </div>
           )}
-        </GroupSection>
-      </div>
+        </LayerSection>
 
-      <div id="demanda" className="scroll-mt-[var(--layer-offset,10rem)]">
-        <GroupSection title={t("nav.demand")}>
+      <LayerSection id="demanda" title={t("nav.demand")} subtitle={t("layerSub.demand")}>
           <StatStrip stats={demandStats} />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             <Card title={t("demand.reasonsTitle")} sub={t("demand.reasonsSub")}><Reasons deep={deep} t={t} locale={locale as Locale} /></Card>
             <Card title={t("demand.weekdayTitle")} sub={t("demand.weekdaySub")}><WeekdayBars deep={deep} t={t} locale={locale as Locale} /></Card>
           </div>
           <Card title={t("demand.formatTitle")}><FormatTable deep={deep} t={t} /></Card>
-        </GroupSection>
-      </div>
+        </LayerSection>
 
-      <div id="precio" className="scroll-mt-[var(--layer-offset,10rem)]">
-        <GroupSection title={t("nav.price")}>
+      <LayerSection id="precio" title={t("nav.price")} subtitle={t("layerSub.price")}>
           <StatStrip stats={priceStats} />
           <Card title={t("price.monthlyTitle")} sub={t("price.monthlySub")}><MonthBars monthly={deep.monthly} t={t} lc={lc} /></Card>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             <Card title={t("price.formatTitle")} sub={t("price.formatSub")}><PriceByFormat deep={deep} t={t} /></Card>
             <Card title={t("price.hourTitle")}><PriceByHour deep={deep} t={t} /></Card>
           </div>
-          <p className="text-[11px] text-ink-faint max-w-3xl">{t("price.caveat")}</p>
-        </GroupSection>
-      </div>
+          <Glossary items={[{ term: t("price.revenueTerm"), def: t("price.caveat") }]} />
+        </LayerSection>
     </>
   );
 }

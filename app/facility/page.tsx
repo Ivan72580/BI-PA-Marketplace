@@ -35,7 +35,7 @@ export default async function FacilityPage({ searchParams }: { searchParams: Pro
   return (
     <div>
       <Facility360Header data={data} dateParam={sp.date} facilities={filterOptions.facilities} markets={filterOptions.markets} />
-      <div className="space-y-8">
+      <div className="space-y-14">
         <Facility360Now data={data} />
         <Suspense fallback={<LayerSkeleton id="pronostico" />}>
           <Facility360Forecast p={{ facilityId: sp.facilityId, date: sp.date, fc: sp.fc, pf: sp.pf }} />

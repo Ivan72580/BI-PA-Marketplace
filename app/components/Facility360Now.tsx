@@ -4,7 +4,7 @@ import type { Agg, MarketAgg, NowPeriod, SeriesDay, NowAlert } from "../lib/faci
 import { labelForCancellationCategory } from "../lib/db/shared";
 import { weekdayAbbr } from "../lib/db/weekday";
 import type { Locale } from "@/i18n/config";
-import GroupSection from "./GroupSection";
+import LayerSection from "./LayerSection";
 import ChangeBadge from "./ChangeBadge";
 
 // Capa 1 del análisis de facility: "Ahora". Día, semana y mes lado a lado con variación contra el período
@@ -263,14 +263,12 @@ export default async function Facility360Now({ data }: { data: FacilityNow }) {
   const t = tr as unknown as T;
   const lc = locale === "en" ? "en-US" : "es-AR";
   return (
-    <div id="ahora" className="scroll-mt-[var(--layer-offset,10rem)]">
-      <GroupSection title={t("nav.now")}>
+    <LayerSection id="ahora" title={t("nav.now")} subtitle={t("layerSub.now")}>
         <AlertChips alerts={data.alerts} t={t} />
         <FieldFriction data={data} t={t} lc={lc} />
         <Compare data={data} t={t} lc={lc} />
         <DailyBars series={data.series} t={t} lc={lc} />
         <RecentGames data={data} t={t} locale={locale as Locale} />
-      </GroupSection>
-    </div>
+      </LayerSection>
   );
 }

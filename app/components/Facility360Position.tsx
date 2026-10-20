@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { getFacilityDeep, getFacilityTable, getFacilityContext, type FacilityTableRow } from "../lib/db/queries";
-import GroupSection from "./GroupSection";
+import LayerSection from "./LayerSection";
 import StatStrip, { type Stat } from "./StatStrip";
 
 // Capa 7: Posición. Dónde está la facility dentro de su market en los últimos 90 días: peso (market share),
@@ -82,11 +82,9 @@ export default async function Facility360Position({ facilityId, date }: { facili
   })();
 
   return (
-    <div id="posicion" className="scroll-mt-[var(--layer-offset,10rem)]">
-      <GroupSection title={t("nav.position")}>
+    <LayerSection id="posicion" title={t("nav.position")} subtitle={t("layerSub.position")}>
         <p className="text-xs text-ink-muted max-w-3xl -mt-1">{t("position.note", { n: 90 })}</p>
         {body}
-      </GroupSection>
-    </div>
+      </LayerSection>
   );
 }

@@ -2722,7 +2722,8 @@
     },
     "forecast": {
       "title": "Pronóstico",
-      "disclaimer": "Proyección según el historial del facility; no es un dato confirmado."
+      "disclaimer": "Proyección según el historial del facility; no es un dato confirmado.",
+      "layerSub": "Proyección y plan de reservas según el historial; es una estimación, no un dato."
     },
     "deep": {
       "window": "últimos {n} días",
@@ -2742,11 +2743,12 @@
       "boardTitle": "A agendar, asegurar y evitar",
       "boardSub": "Slots que, según los últimos 3 meses, conviene mantener agendados o evitar.",
       "stat": {
-        "fields": "Canchas",
+        "fields": "Canchas publicadas",
         "slots": "Slots distintos",
         "slotsSub": "día × hora",
         "published": "Publicados",
-        "fieldSub": "de lo publicado"
+        "fieldSub": "de lo publicado",
+        "fieldsSub": "con partidos en 90 días"
       }
     },
     "demand": {
@@ -2775,7 +2777,8 @@
       "formatTitle": "Ticket por formato",
       "formatSub": "Cambio contra los 90 días anteriores.",
       "hourTitle": "Ticket por hora",
-      "caveat": "Revenue estimado = precio × jugadores finales de partidos confirmados; no es facturación real."
+      "caveat": "Revenue estimado = precio × jugadores finales de partidos confirmados; no es facturación real.",
+      "revenueTerm": "Revenue estimado"
     },
     "trend": {
       "windowNote": "Los últimos 13 meses; la tendencia compara los últimos 3 meses completos contra los 3 anteriores.",
@@ -2826,6 +2829,18 @@
       "notesTitle": "Notas del Registro semanal (90 días)",
       "openProfile": "Ver perfil →",
       "notesEmpty": "Sin notas vinculadas."
+    },
+    "layerSub": {
+      "now": "Cómo viene la facility hoy, esta semana y este mes, contra el período anterior y el market.",
+      "slots": "Qué se publica, dónde rinde cada slot y qué conviene agendar o evitar.",
+      "demand": "Por qué se cancela, cómo responde la demanda y qué formatos funcionan.",
+      "price": "Ticket y revenue estimado: evolución, formato y hora.",
+      "trend": "Hacia dónde va la facility y cómo varía a lo largo del año.",
+      "position": "Dónde está la facility dentro de su market.",
+      "relation": "Qué dicen los jugadores y qué sabe el equipo de esta facility."
     }
+  },
+  "Glossary": {
+    "label": "Glosario"
   }
 }

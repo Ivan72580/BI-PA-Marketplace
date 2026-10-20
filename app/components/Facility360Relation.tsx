@@ -6,7 +6,7 @@ import { getGameReviewSatisfaction, computePlayerComplaintsSummary } from "../li
 import { getFacilityLogEntries, getWeeklyNotesForFacility } from "../lib/db/facilityLog";
 import { getFacilityDeep } from "../lib/db/queries";
 import { addDays } from "../lib/facilityNowCalc";
-import GroupSection from "./GroupSection";
+import LayerSection from "./LayerSection";
 import GameReviewsPanel from "./GameReviewsPanel";
 
 // Capa 8: Relación y calidad. Satisfacción de jugadores (para todo el módulo Análisis) y, solo para quien tiene
@@ -34,8 +34,7 @@ export default async function Facility360Relation({ facilityId, date }: { facili
   const dl = (iso: string) => iso.slice(5).replace("-", "/");
 
   return (
-    <div id="relacion" className="scroll-mt-[var(--layer-offset,10rem)]">
-      <GroupSection title={t("nav.relation")}>
+    <LayerSection id="relacion" title={t("nav.relation")} subtitle={t("layerSub.relation")}>
         {sat.summary.totalReviews > 0 ? (
           <GameReviewsPanel summary={sat.summary} complaints={computePlayerComplaintsSummary(sat.summary)} facilityFieldQuality={sat.facilityFieldQuality} recentReviews={sat.recentReviews} showRanking={false} />
         ) : (
@@ -87,7 +86,6 @@ export default async function Facility360Relation({ facilityId, date }: { facili
             </div>
           </div>
         )}
-      </GroupSection>
-    </div>
+      </LayerSection>
   );
 }

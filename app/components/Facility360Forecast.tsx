@@ -12,7 +12,7 @@ import { levelOf } from "../lib/seasonPlanCalc";
 import { addDaysISO, PLAN_FILTERS, type PlanFilter } from "../lib/slotPlanCalc";
 import { todayISO } from "../lib/period";
 import type { Locale } from "@/i18n/config";
-import GroupSection from "./GroupSection";
+import LayerSection from "./LayerSection";
 import FacilityWeekPlan from "./FacilityWeekPlan";
 import FacilityMonthPlan, { type SeasonContext } from "./FacilityMonthPlan";
 import { ReservePlan } from "./SeasonPlan";
@@ -91,8 +91,8 @@ export default async function Facility360Forecast({ p }: { p: ForecastParams }) 
   const tr = t as unknown as T;
   const f = forecast;
   return (
-    <div id="pronostico" className="scroll-mt-[var(--layer-offset,10rem)]">
-      <GroupSection title={`🔮 ${t360("title")}`} accent="warning" badge={t("badge")}>
+    <LayerSection id="pronostico" tone="warning" title={t360("title")} subtitle={t360("layerSub")} badge={t("badge")}>
+      <div className="space-y-5">
         <div className="inline-flex gap-0.5 rounded-full bg-surface-panel p-1 self-start">
           {(["week", "month"] as const).map((r) => (
             <Link
@@ -123,9 +123,9 @@ export default async function Facility360Forecast({ p }: { p: ForecastParams }) 
             )}
           </>
         )}
-      </GroupSection>
+      </div>
 
-      <div className="mt-5 space-y-5">
+      <div className="space-y-5">
         {plan ? (
           range === "week" ? (
             <FacilityWeekPlan plan={plan} t={tr} locale={locale} filter={planFilter} hrefFor={weekHrefFor} />
@@ -137,6 +137,6 @@ export default async function Facility360Forecast({ p }: { p: ForecastParams }) 
         )}
         <ReservePlan data={seasonRaw} badge={t("reservePlanBadge")} />
       </div>
-    </div>
+    </LayerSection>
   );
 }

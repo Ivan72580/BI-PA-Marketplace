@@ -1,7 +1,7 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import { getFacilityDeep, getSeasonPlan } from "../lib/db/queries";
 import { levelOf } from "../lib/seasonPlanCalc";
-import GroupSection from "./GroupSection";
+import LayerSection from "./LayerSection";
 import StatStrip, { type Stat } from "./StatStrip";
 import ChangeBadge from "./ChangeBadge";
 import Sparkline from "./Sparkline";
@@ -13,7 +13,11 @@ type T = (key: string, values?: Record<string, string | number>) => string;
 const pct = (n: number | null) => (n === null ? "—" : `${(n * 100).toFixed(0)}%`);
 const num = (n: number) => n.toLocaleString("en-US");
 const usd = (n: number | null) => (n === null ? "—" : n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }));
-const LEVEL_BAR = { high: "bg-brand", mid: "bg-ink-faint/50", low: "bg-warning-fill" } as const;
+const LEVEL_BAR = {
+  high: "bg-gradient-to-t from-brand to-accent",
+  mid: "bg-gradient-to-t from-ink-faint/70 to-ink-faint/30",
+  low: "bg-gradient-to-t from-warning-fill to-warning-soft",
+} as const;
 
 export default async function Facility360Trend({ facilityId, date }: { facilityId: string; date?: string }) {
   const [tr, locale, deep, season] = await Promise.all([getTranslations("Facility360"), getLocale(), getFacilityDeep(facilityId, date), getSeasonPlan({ facilityId })]);
@@ -44,8 +48,7 @@ export default async function Facility360Trend({ facilityId, date }: { facilityI
   const maxIdx = Math.max(1.4, ...idx.map((i) => i.index ?? 0));
 
   return (
-    <div id="tendencia" className="scroll-mt-[var(--layer-offset,10rem)]">
-      <GroupSection title={t("nav.trend")}>
+    <LayerSection id="tendencia" title={t("nav.trend")} subtitle={t("layerSub.trend")}>
         <p className="text-xs text-ink-muted max-w-3xl -mt-1">{t("trend.windowNote")}</p>
         <StatStrip stats={stats} />
 
@@ -86,15 +89,15 @@ export default async function Facility360Trend({ facilityId, date }: { facilityI
           ) : (
             <>
               {season.method === "provisional" && <p className="text-xs text-warning mt-2">{t("trend.seasonProvisional", { n: season.completeMonths })}</p>}
-              <ul className="mt-3 grid grid-cols-6 sm:grid-cols-12 gap-2 items-end">
+              <ul className="mt-4 grid grid-cols-6 sm:grid-cols-12 gap-2 items-end">
                 {idx.map((i) => {
                   const level = i.index !== null ? levelOf(i.index) : null;
                   const av = season.availability.find((a) => a.month === i.month);
-                  const h = i.index !== null ? Math.max(6, (i.index / maxIdx) * 90) : 6;
+                  const h = i.index !== null ? Math.max(6, (i.index / maxIdx) * 150) : 6;
                   return (
                     <li key={i.month} className={`flex flex-col items-center gap-1 rounded-lg p-1 ${i.month === nowMonth ? "bg-surface-sunken" : ""}`} title={t("trend.seasonTip", { index: i.index?.toFixed(2) ?? "—", unavail: av?.rate != null ? pct(av.rate) : "—" })}>
                       <span className="text-[10px] font-semibold text-ink tabular-nums">{i.index?.toFixed(2) ?? "—"}</span>
-                      <span className="flex items-end h-[90px]"><span className={`w-5 rounded-t ${level ? LEVEL_BAR[level] : "bg-surface-sunken"}`} style={{ height: h }} /></span>
+                      <span className="flex items-end h-[150px]"><span className={`w-8 sm:w-9 rounded-t ${level ? LEVEL_BAR[level] : "bg-surface-sunken"}`} style={{ height: h }} /></span>
                       <span className="text-[10px] text-ink-muted">{mon(`2026-${String(i.month + 1).padStart(2, "0")}`, { month: "short" })}</span>
                       {av?.rate != null && av.rate >= 0.1 && <span className="text-[9px] text-warning">⚠ {pct(av.rate)}</span>}
                     </li>
@@ -102,15 +105,14 @@ export default async function Facility360Trend({ facilityId, date }: { facilityI
                 })}
               </ul>
               <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-[11px] text-ink-muted">
-                <span><span className="inline-block w-2.5 h-2.5 rounded-sm bg-brand mr-1" />{t("trend.high")}</span>
-                <span><span className="inline-block w-2.5 h-2.5 rounded-sm bg-ink-faint/50 mr-1" />{t("trend.mid")}</span>
-                <span><span className="inline-block w-2.5 h-2.5 rounded-sm bg-warning-fill mr-1" />{t("trend.low")}</span>
+                <span><span className="inline-block w-2.5 h-2.5 rounded-sm bg-gradient-to-t from-brand to-accent mr-1" />{t("trend.high")}</span>
+                <span><span className="inline-block w-2.5 h-2.5 rounded-sm bg-gradient-to-t from-ink-faint/70 to-ink-faint/30 mr-1" />{t("trend.mid")}</span>
+                <span><span className="inline-block w-2.5 h-2.5 rounded-sm bg-gradient-to-t from-warning-fill to-warning-soft mr-1" />{t("trend.low")}</span>
                 <span className="text-warning">⚠ {t("trend.fieldMonth")}</span>
               </div>
             </>
           )}
         </div>
-      </GroupSection>
-    </div>
+      </LayerSection>
   );
 }
