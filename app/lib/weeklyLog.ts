@@ -5,9 +5,9 @@
 // calendario, no instantes, así que no deben correrse por el huso de quien
 // mira ni del servidor. "Hoy" sale de todayISO() (huso del negocio).
 
-// La semana del registro va de viernes a jueves: el reporte se manda el
-// jueves y cubre los 7 días que terminan ese día.
-export const WEEK_START_DAY = 5; // 0 = domingo … 5 = viernes
+// La semana del registro va de lunes a domingo: el reporte se arma el domingo a última hora o el lunes
+// a primera hora y cubre los 7 días que terminan el domingo.
+export const WEEK_START_DAY = 1; // 0 = domingo … 1 = lunes
 
 const ISO_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -26,6 +26,11 @@ export function addDaysISO(iso: string, days: number): string {
 export function weekStartISO(iso: string): string {
   const dow = new Date(`${iso}T00:00:00Z`).getUTCDay();
   return addDaysISO(iso, -((dow - WEEK_START_DAY + 7) % 7));
+}
+
+/** Semana que se muestra por defecto: la en curso, salvo el lunes, que se abre la que acaba de terminar (la del reporte). */
+export function defaultWeekAnchor(todayISO: string): string {
+  return new Date(`${todayISO}T00:00:00Z`).getUTCDay() === WEEK_START_DAY ? addDaysISO(todayISO, -1) : todayISO;
 }
 
 export type WeekRange = { from: string; to: string };

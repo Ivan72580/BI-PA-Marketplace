@@ -30,7 +30,7 @@
       "market": "Concentration, reputation, price and engagement.",
       "map": "Where Plei operates and which zones have the most volume.",
       "inventory": "Which games each facility publishes and how each performs.",
-      "weeklyLog": "Team notes during the week and Thursday's report.",
+      "weeklyLog": "Team notes during the week and the weekly report.",
       "facilityLog": "Relationship with each facility: facts, observations, what to expect",
       "facilityProfile": "Each facility's data: fields, rates, contact.",
       "satisfaction": "What players say about each game and facility.",
@@ -2168,7 +2168,7 @@
   },
   "WeeklyLog": {
     "title": "Weekly log",
-    "subtitle": "What happens during the week, noted as it happens. Weeks run Friday to Thursday; the report is put together on Thursday.",
+    "subtitle": "What happens during the week, noted as it happens. Weeks run Monday to Sunday; the report is put together on Sunday night or early Monday (on Mondays the week that just ended opens by default).",
     "range": "Fri {from} – Thu {to}",
     "weekNav": "Change week",
     "prevWeek": "Previous week",

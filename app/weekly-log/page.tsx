@@ -6,17 +6,17 @@ import { getCurrentUserWithAccess } from "../lib/db/users";
 import { hasLevel } from "../lib/module";
 import { getRecentWeeklyLogTopics, getWeeklyLogEntries } from "../lib/db/weeklyLog";
 import { todayISO } from "../lib/period";
-import { addDaysISO, formatDay, isISODate, weekRange } from "../lib/weeklyLog";
+import { addDaysISO, defaultWeekAnchor, formatDay, isISODate, weekRange } from "../lib/weeklyLog";
 import WeeklyLogBoard from "./WeeklyLogBoard";
 import PageHeader from "../components/PageHeader";
 
-// Registro semanal: notas sueltas del equipo durante la semana (viernes a
-// jueves) y un reporte armado a partir de ellas. ?week=<cualquier día de la
-// semana> navega; sin parámetro, la semana en curso.
+// Registro semanal: notas sueltas del equipo durante la semana (lunes a
+// domingo) y un reporte armado a partir de ellas. ?week=<cualquier día de la
+// semana> navega; sin parámetro, la semana en curso (el lunes, la que acaba de terminar).
 export default async function WeeklyLogPage({ searchParams }: { searchParams: Promise<{ week?: string }> }) {
   const sp = await searchParams;
   const today = todayISO();
-  const anchor = isISODate(sp.week) ? sp.week : today;
+  const anchor = isISODate(sp.week) ? sp.week : defaultWeekAnchor(today);
   const range = weekRange(anchor);
   const isCurrentWeek = range.from === weekRange(today).from;
 

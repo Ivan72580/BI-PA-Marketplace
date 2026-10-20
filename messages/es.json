@@ -30,7 +30,7 @@
       "market": "Concentración, reputación, precio y engagement.",
       "map": "Dónde opera Plei y qué zonas tienen más volumen.",
       "inventory": "Qué partidos publica cada facility y cómo rinde cada uno.",
-      "weeklyLog": "Notas del equipo en la semana y reporte para el jueves.",
+      "weeklyLog": "Notas del equipo en la semana y reporte semanal.",
       "facilityLog": "Relación con cada facility: hechos, observaciones, qué esperar",
       "facilityProfile": "Datos de cada facility: canchas, tarifas, contacto.",
       "satisfaction": "Qué dicen los jugadores de cada partido y facility.",
@@ -2168,7 +2168,7 @@
   },
   "WeeklyLog": {
     "title": "Registro semanal",
-    "subtitle": "Lo que pasa durante la semana, anotado en el momento. La semana va de viernes a jueves; el jueves se arma el reporte.",
+    "subtitle": "Lo que pasa durante la semana, anotado en el momento. La semana va de lunes a domingo; el reporte se arma el domingo a la noche o el lunes temprano (los lunes se abre la semana que acaba de terminar).",
     "range": "vie {from} – jue {to}",
     "weekNav": "Cambiar de semana",
     "prevWeek": "Semana anterior",
