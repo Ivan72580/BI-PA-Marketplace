@@ -13,7 +13,6 @@ const ACTIVE: Record<string, string> = {
   pronostico: "bg-warning-fill text-ink border-warning-fill",
 };
 const ACTIVE_DEFAULT = "bg-brand text-white border-brand";
-const LINE: Record<string, string> = { pronostico: "bg-warning-fill" };
 
 export default function LayerNav({ layers, label, soon }: { layers: LayerItem[]; label: string; soon: string }) {
   const barRef = useRef<HTMLElement>(null);
@@ -62,32 +61,31 @@ export default function LayerNav({ layers, label, soon }: { layers: LayerItem[];
       ref={barRef}
       aria-label={label}
       style={{ top }}
-      className="sticky z-30 -mx-4 md:-mx-8 px-4 md:px-8 py-2 mb-6 bg-white/95 backdrop-blur-md border-b border-border shadow-[0_1px_0_rgba(0,0,0,0.02),0_6px_12px_-8px_rgba(0,0,0,0.12)] overflow-x-auto"
+      className="sticky z-30 -mx-4 md:-mx-8 px-4 md:px-8 py-2 mb-6 bg-canvas/90 backdrop-blur border-b border-border overflow-x-auto"
     >
       <ul className="flex items-center gap-1.5 min-w-max">
-        {layers.map((l, i) =>
+        {layers.map((l) =>
           l.built ? (
             <li key={l.id}>
               <a
                 href={`#${l.id}`}
                 aria-current={active === l.id ? "true" : undefined}
-                className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors duration-300 ${
-                  active === l.id ? (ACTIVE[l.id] ?? ACTIVE_DEFAULT) : "border-transparent bg-surface-sunken text-ink-muted hover:text-ink hover:bg-brand-soft"
+                className={`inline-flex items-center rounded-full border shadow-sm px-3.5 py-1.5 text-sm font-medium transition-colors duration-300 ${
+                  active === l.id ? (ACTIVE[l.id] ?? ACTIVE_DEFAULT) : "border-transparent bg-surface text-ink hover:text-brand"
                 }`}
               >
-                <span className={`text-[10px] ${active === l.id ? "opacity-80" : "text-ink-faint"}`}>{i + 1}</span>{l.label}
+                {l.label}
               </a>
             </li>
           ) : (
             <li key={l.id}>
               <span title={soon} className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm text-ink-faint/70 cursor-default">
-                <span className="text-[10px]">{i + 1}</span>{l.label}
+                {l.label}
               </span>
             </li>
           )
         )}
       </ul>
-      <span aria-hidden="true" className={`absolute left-0 bottom-0 h-0.5 w-full transition-colors duration-300 ${LINE[active] ?? "bg-brand"}`} />
     </nav>
   );
 }
