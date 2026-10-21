@@ -1224,7 +1224,17 @@
       "completion": "Completion",
       "edit": "Edit",
       "complete": "Complete profile",
-      "view": "View"
+      "view": "View",
+      "search": "Search facility, market or region…",
+      "all": "All",
+      "count": "{shown} of {total} facilities",
+      "clear": "Clear filters and search",
+      "noMatch": "No facility matches the search or filters.",
+      "status": {
+        "complete": "Complete",
+        "incomplete": "Incomplete",
+        "none": "No profile"
+      }
     },
     "sections": {
       "basics": "Basic info",

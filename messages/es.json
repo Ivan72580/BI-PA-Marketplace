@@ -1224,7 +1224,17 @@
       "completion": "Completitud",
       "edit": "Editar",
       "complete": "Completar perfil",
-      "view": "Ver"
+      "view": "Ver",
+      "search": "Buscar facility, market o región…",
+      "all": "Todos",
+      "count": "{shown} de {total} facilities",
+      "clear": "Quitar filtros y búsqueda",
+      "noMatch": "Ninguna facility coincide con la búsqueda o los filtros.",
+      "status": {
+        "complete": "Completo",
+        "incomplete": "Incompleto",
+        "none": "Sin perfil"
+      }
     },
     "sections": {
       "basics": "Datos básicos",
