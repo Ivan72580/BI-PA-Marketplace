@@ -1125,6 +1125,29 @@
     "regionComparison": {
       "confirmedGames": "Confirmed",
       "confirmationRate": "Confirmation rate (demand)"
+    },
+    "layers": {
+      "navLabel": "Overview layers",
+      "summary": {
+        "title": "Overview",
+        "subtitle": "How the network is doing in the period: indicators, region comparison and composition."
+      },
+      "cancellations": {
+        "title": "Cancellations",
+        "subtitle": "Who cancels, for what reason, and how far above expected."
+      },
+      "confirmations": {
+        "title": "Confirmations",
+        "subtitle": "Who contributes confirmed games and how the schedule is spread."
+      },
+      "gameRating": {
+        "title": "Rating",
+        "subtitle": "How satisfied players are and where ratings are lowest."
+      },
+      "facilities": {
+        "title": "Facilities",
+        "subtitle": "Every facility in scope, sortable by volume, cancellation, rating and price."
+      }
     }
   },
   "Login": {

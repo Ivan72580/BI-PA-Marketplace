@@ -1125,6 +1125,29 @@
     "regionComparison": {
       "confirmedGames": "Confirmados",
       "confirmationRate": "Tasa de confirmación (demanda)"
+    },
+    "layers": {
+      "navLabel": "Capas del resumen general",
+      "summary": {
+        "title": "Panorama",
+        "subtitle": "Cómo está la red en el período: indicadores, comparación entre regiones y composición."
+      },
+      "cancellations": {
+        "title": "Cancelaciones",
+        "subtitle": "Quién cancela, por qué motivo y qué tan por encima de lo esperado."
+      },
+      "confirmations": {
+        "title": "Confirmaciones",
+        "subtitle": "Quién aporta los partidos confirmados y cómo se reparte la agenda."
+      },
+      "gameRating": {
+        "title": "Calificación",
+        "subtitle": "Qué tan satisfechos quedan los jugadores y dónde está la calificación más baja."
+      },
+      "facilities": {
+        "title": "Facilities",
+        "subtitle": "Todas las facilities del alcance, ordenables por volumen, cancelación, rating y precio."
+      }
     }
   },
   "Login": {

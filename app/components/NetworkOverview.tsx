@@ -25,7 +25,9 @@ import Heatmap from "./Heatmap";
 import KpiCard from "./KpiCard";
 import ChangeBadge from "./ChangeBadge";
 import RankingCard, { type RankingRow } from "./RankingCard";
-import Tabs from "./Tabs";
+import LayerNav from "./LayerNav";
+import LayerSection from "./LayerSection";
+import ScrollToTab from "./ScrollToTab";
 import GroupSection from "./GroupSection";
 import Glossary from "./Glossary";
 import RegionConcentrationPies from "./RegionConcentrationPies";
@@ -1102,18 +1104,25 @@ export default async function NetworkOverview({
     insights,
   }));
 
+  const LAYERS = [
+    { id: "resumen", key: "summary", content: resumenContent },
+    { id: "cancellations", key: "cancellations", content: cancellationsContent },
+    { id: "confirmations", key: "confirmations", content: confirmationsContent },
+    { id: "gameRating", key: "gameRating", content: gameRatingContent },
+    { id: "facilities", key: "facilities", content: facilitiesContent },
+  ] as const;
+
   return (
     <>
-      <Tabs
-        defaultActiveId={sp.tab}
-        tabs={[
-          { id: "resumen", label: t("tabs.summary"), content: resumenContent },
-          { id: "cancellations", label: t("tabs.cancellations"), content: cancellationsContent },
-          { id: "confirmations", label: t("tabs.confirmations"), content: confirmationsContent },
-          { id: "gameRating", label: t("tabs.gameRating"), content: gameRatingContent },
-          { id: "facilities", label: t("tabs.facilities"), content: facilitiesContent },
-        ]}
-      />
+      <ScrollToTab />
+      <LayerNav layers={LAYERS.map((l) => ({ id: l.id, label: t(`tabs.${l.key}`), built: true }))} label={t("layers.navLabel")} soon="" />
+      <div className="space-y-10">
+        {LAYERS.map((l) => (
+          <LayerSection key={l.id} id={l.id} title={t(`layers.${l.key}.title`)} subtitle={t(`layers.${l.key}.subtitle`)}>
+            {l.content}
+          </LayerSection>
+        ))}
+      </div>
       <InsightsPanel title={t("autoInsights.title")} groups={insightGroups} />
     </>
   );
