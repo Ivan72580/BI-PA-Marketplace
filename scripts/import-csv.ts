@@ -219,37 +219,49 @@ async function main() {
     const byId = new Map(pendingGames.map((g) => [g.id, g]));
     const safeToDeleteIds = ids.filter((id) => !reviewedIds.has(id));
     const mustUpdateIds = ids.filter((id) => reviewedIds.has(id));
+    let toDeleteNow = safeToDeleteIds;
 
-    if (safeToDeleteIds.length > 0) {
+    if (toDeleteNow.length > 0) {
       // Borrar + reinsertar en UNA transacción: si el createMany falla (ej. un valor de enum que la
       // base todavía no conoce), el delete se revierte y los partidos quedan como estaban. Antes eran
       // dos operaciones sueltas y una falla en la segunda dejaba el lote borrado hasta el próximo import.
-      const [, created] = await prisma.$transaction([
-        prisma.game.deleteMany({ where: { id: { in: safeToDeleteIds } } }),
-        prisma.game.createMany({ data: safeToDeleteIds.map((id) => byId.get(id)!) }),
-      ]);
-      totalSynced += created.count;
+      // Si Postgres rechaza el delete por la FK de game_reviews (una review cargada entre el chequeo de
+      // arriba y el delete, p. ej. otro import corriendo en paralelo), la transacción se revierte entera y
+      // el lote se sincroniza fila por fila con upsert, que nunca borra el id.
+      try {
+        const [, created] = await prisma.$transaction([
+          prisma.game.deleteMany({ where: { id: { in: toDeleteNow } } }),
+          prisma.game.createMany({ data: toDeleteNow.map((id) => byId.get(id)!) }),
+        ]);
+        totalSynced += created.count;
+        toDeleteNow = [];
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (!/game_reviews_gameId_fkey|23001|P2003/.test(msg)) throw err;
+        console.warn(`  AVISO: ${toDeleteNow.length} partidos tienen reviews (FK game_reviews) — se sincronizan fila por fila.`);
+      }
     }
 
-    if (mustUpdateIds.length > 0) {
+    const upsertIds = [...mustUpdateIds, ...toDeleteNow];
+    if (upsertIds.length > 0) {
       // upsert (no update) por si alguna vez aparece una review para un id
       // que todavía no llegó a crearse como Game — no debería pasar en la
       // práctica, pero así no revienta si pasa.
       // En tandas de UPSERT_CONCURRENCY: lanzar ~1000 upserts a la vez contra un pool de ~21 conexiones
       // hace que los últimos esperen más del timeout del pool (P2024) cuando la base responde lento.
-      for (let i = 0; i < mustUpdateIds.length; i += UPSERT_CONCURRENCY) {
+      for (let i = 0; i < upsertIds.length; i += UPSERT_CONCURRENCY) {
         await Promise.all(
-          mustUpdateIds.slice(i, i + UPSERT_CONCURRENCY).map((id) => {
+          upsertIds.slice(i, i + UPSERT_CONCURRENCY).map((id) => {
             const game = byId.get(id)!;
             const { id: _id, ...updateData } = game; // id va en el `where`, no hace falta repetirlo en `update`
             return prisma.game.upsert({ where: { id }, create: game, update: updateData });
           })
         );
       }
-      totalSynced += mustUpdateIds.length;
+      totalSynced += upsertIds.length;
     }
 
-    console.log(`  ${totalSynced} partidos sincronizados... (${mustUpdateIds.length} actualizados fila por fila por tener reviews)`);
+    console.log(`  ${totalSynced} partidos sincronizados... (${upsertIds.length} actualizados fila por fila por tener reviews)`);
     pendingGames.length = 0;
   }
 
