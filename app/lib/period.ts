@@ -30,6 +30,27 @@ export function nowInBusinessTimeZone(): Date {
   return new Date(Date.UTC(get("year"), get("month") - 1, get("day")));
 }
 
+// Los datos llegan por import y nunca incluyen el día de hoy: el último día con datos posible es AYER (huso del negocio).
+// Toda comparación de un período en curso contra el anterior tiene que cortar ahí; si no, el período actual juega con un
+// día menos de datos que el anterior y la variación sale negativa por un día que todavía no existe en la base.
+export const DAY_MS_PERIOD = 86400000;
+
+/** Último día cerrado (ayer) como medianoche UTC; mismo formato que nowInBusinessTimeZone(). */
+export function lastClosedDay(): Date {
+  return new Date(nowInBusinessTimeZone().getTime() - DAY_MS_PERIOD);
+}
+
+/**
+ * Días transcurridos y con datos posibles de un período EN CURSO (desde su inicio hasta ayer, inclusive). Null si el período
+ * no es el que está en curso. Mínimo 1: el primer día de un período todavía no tiene un día cerrado, y se compara ese día
+ * del período anterior contra nada en vez de armar una ventana vacía que rompería las divisiones de más abajo.
+ */
+export function elapsedClosedDays(currentFrom: Date, currentTo: Date): number | null {
+  const now = nowInBusinessTimeZone();
+  if (now.getTime() < currentFrom.getTime() || now.getTime() > currentTo.getTime()) return null;
+  return Math.max(1, Math.floor((now.getTime() - currentFrom.getTime()) / DAY_MS_PERIOD));
+}
+
 export type Granularity = "all" | "year" | "semester" | "quarter" | "month" | "week" | "day" | "custom";
 
 export type ResolvedPeriod = {
@@ -247,15 +268,10 @@ export function resolveComparisonPeriod(
   const fullPrior = resolvePeriod(priorGranularity, priorAnchorISO, undefined, undefined, locale);
   if (!fullPrior.dateFrom || !fullPrior.dateTo) return fullPrior; // "all"/"custom" sin rango no truncan
 
-  const now = nowInBusinessTimeZone();
-  const isCurrent = now.getTime() >= current.dateFrom.getTime() && now.getTime() <= current.dateTo.getTime();
-  if (!isCurrent) return fullPrior;
+  const elapsedDays = elapsedClosedDays(current.dateFrom, current.dateTo);
+  if (elapsedDays === null) return fullPrior;
 
-  // "Hoy" cuenta como día transcurrido completo — no hay forma de saber
-  // cuánto llevamos del día de hoy sin hora exacta, y contarlo entero es
-  // el mismo criterio que ya usaba el parche de mes (now.getUTCDate()).
-  const elapsedDays = Math.floor((now.getTime() - current.dateFrom.getTime()) / 86400000) + 1;
-
+  // Cuenta hasta AYER (ver elapsedClosedDays): hoy no tiene datos todavía y no entra en la comparación.
   const priorStart = fullPrior.dateFrom;
   const partialEnd = new Date(priorStart);
   partialEnd.setUTCDate(priorStart.getUTCDate() + elapsedDays - 1);
@@ -310,7 +326,10 @@ export type PerPeriodAverage = { value: number; unit: "day" | "week" | "month" }
 
 export function gamesPerPeriodAverage(totalGames: number, dateFrom?: Date, dateTo?: Date): PerPeriodAverage | null {
   if (!dateFrom || !dateTo || totalGames <= 0) return null;
-  const days = Math.max(1, Math.round((dateTo.getTime() - dateFrom.getTime()) / 86400000) + 1);
+  // Un período en curso se promedia solo sobre los días ya cerrados: dividir por el mes completo subestimaría el ritmo real.
+  const closed = lastClosedDay().getTime();
+  const effectiveTo = dateTo.getTime() > closed && dateFrom.getTime() <= closed ? new Date(closed) : dateTo;
+  const days = Math.max(1, Math.round((effectiveTo.getTime() - dateFrom.getTime()) / 86400000) + 1);
   // <=10 días: por día tiene sentido (una semana o menos). <=70 días (~10
   // semanas): por semana. Más que eso: por mes — un rango de un año
   // mostrado "por día" sería un número chico y poco intuitivo.
@@ -362,12 +381,11 @@ export function resolveEvolutionWindow(
  * ventana actual cuando ésta todavía está en curso (ej. mes actual a mitad de mes). Sin esto, el
  * mes en curso se compara contra el mes anterior COMPLETO y todo ranking sale con caída falsa.
  * Si la ventana actual ya terminó (o todavía no empezó) devuelve el fin completo sin tocarlo.
- * Mismo criterio que resolveComparisonPeriod: hoy cuenta como día transcurrido.
+ * Mismo criterio que resolveComparisonPeriod: se cuenta hasta ayer; hoy todavía no tiene datos.
  */
 export function clipPriorToElapsed(priorFrom: Date, priorFullTo: Date, currentFrom: Date, currentTo: Date): Date {
-  const now = nowInBusinessTimeZone();
-  if (now.getTime() < currentFrom.getTime() || now.getTime() > currentTo.getTime()) return priorFullTo;
-  const elapsedDays = Math.floor((now.getTime() - currentFrom.getTime()) / 86400000) + 1;
+  const elapsedDays = elapsedClosedDays(currentFrom, currentTo);
+  if (elapsedDays === null) return priorFullTo;
   const partialEnd = new Date(priorFrom);
   partialEnd.setUTCDate(priorFrom.getUTCDate() + elapsedDays - 1);
   partialEnd.setUTCHours(23, 59, 59, 999);

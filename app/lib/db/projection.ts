@@ -36,7 +36,7 @@ async function getMonthProjectionImpl(filters: Omit<OverviewFilters, "dateFrom" 
   // hay datos nuevos), daysElapsed = 0 y no se proyecta.
   const latestISO = await getLatestDataDate();
   const latest = latestISO ? new Date(`${latestISO}T00:00:00Z`) : null;
-  const daysElapsed = latest && latest.getUTCFullYear() === year && latest.getUTCMonth() === month ? Math.min(latest.getUTCDate(), todayDay) : 0;
+  const daysElapsed = latest && latest.getUTCFullYear() === year && latest.getUTCMonth() === month ? Math.min(latest.getUTCDate(), todayDay - 1) : 0; // hoy no cuenta: sus datos no existen todavía
 
   const where = buildWhere({ ...filters, dateFrom: monthStart, dateTo: new Date(Date.UTC(year, month, Math.max(daysElapsed, 1), 23, 59, 59)) });
   const games = daysElapsed > 0 ? await prisma.game.findMany({ where, select: { status: true, cancellationCategory: true, eventRevenue: true, date: true } }) : [];
