@@ -2038,7 +2038,37 @@
       "prior": "Prior period",
       "variation": "Change"
     },
-    "leadershipOnly": "Only available to accounts with Leadership Panel access."
+    "leadershipOnly": "Only available to accounts with Leadership Panel access.",
+    "contribution": {
+      "title": "Contributions and critical points",
+      "intro": "Who explains the period's results and where the risk is. A slot is field + weekday + time.",
+      "noField": "No field",
+      "cancel": {
+        "title": "Who contributes the most cancellations",
+        "empty": "No facility with 2 or more cancellations in the period.",
+        "summary": "{n, plural, one {1 facility accounts} other {# facilities account}} for half of the period's {total} cancellations.",
+        "row": "{share} of the area's cancellations: {cancelled} of {games} games ({rate} cancelled).",
+        "reasons": "Reasons:",
+        "worstSlot": "Most affected slot: {slot} ({cancelled} of {games} cancelled).",
+        "action": "What to do:"
+      },
+      "confirm": {
+        "title": "Who contributes the most confirmations and their strongest slots",
+        "empty": "No confirmations in the period.",
+        "row": "{share} of confirmed games ({confirmed}), demand rate {rate}.",
+        "change": "{pct} vs. prior period.",
+        "noSlots": "No slot reached 2 confirmed games.",
+        "slot": "{slot}: {confirmed} of {games} confirmed ({rate})"
+      },
+      "critical": {
+        "title": "Most critical points",
+        "empty": "No critical points with enough sample in the period.",
+        "slots": "Slots that are often cancelled (3+ games, half or more cancelled)",
+        "facilities": "Facilities above the network",
+        "slotLine": "{facility} · {slot}: {cancelled} of {games} cancelled ({rate}). Main reason: {reason}.",
+        "facilityLine": "{facility}: {rate} cancellation, {gap} points above the network ({networkRate}). Main reason: {reason}."
+      }
+    }
   },
   "Map": {
     "title": "Zone map",

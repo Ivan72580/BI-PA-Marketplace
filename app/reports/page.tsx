@@ -9,6 +9,7 @@ import FilterPanel from "../components/FilterPanel";
 import PageHeader from "../components/PageHeader";
 import DownloadPdfButton from "../components/reports/DownloadPdfButton";
 import ReportTypeTabs from "../components/reports/ReportTypeTabs";
+import { getContributionReport } from "../lib/db/reportContribution";
 import OpsReportDocument from "../components/reports/OpsReportDocument";
 import ExecutiveReportDocument from "../components/reports/ExecutiveReportDocument";
 
@@ -63,6 +64,10 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       ? getExecutiveReportData(filters, granularity, anchorISO, locale)
       : getOpsReportData(filters, granularity, anchorISO, locale),
   ]);
+  // Aportes y puntos críticos (solo Reporte operativo): usa los mismos períodos que el resto del reporte.
+  const contribution = type === "ops"
+    ? await getContributionReport(filters, core.periods.current.dateFrom, core.periods.current.dateTo, core.periods.prior.dateFrom, core.periods.prior.dateTo, locale)
+    : null;
 
   const hasFilter = Boolean(sp.regionId || sp.marketId || sp.facilityId || sp.granularity || sp.period);
   const scopeLabel = names.facilityName ?? names.marketName ?? names.regionName ?? t("scopeNetwork");
@@ -96,9 +101,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       <div className="max-w-[860px] mx-auto bg-white rounded-2xl p-6 shadow-md print:shadow-none print:rounded-none print:p-0 print:max-w-none print:mx-0">
         {type === "executive" ? (
           <ExecutiveReportDocument core={core} t={t} scopeLabel={scopeLabel} />
-        ) : (
-          <OpsReportDocument core={core} t={t} scopeLabel={scopeLabel} />
-        )}
+        ) : contribution ? (
+          <OpsReportDocument core={core} t={t} scopeLabel={scopeLabel} contribution={contribution} locale={locale} />
+        ) : null}
       </div>
     </div>
   );

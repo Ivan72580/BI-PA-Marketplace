@@ -2038,7 +2038,37 @@
       "prior": "Período anterior",
       "variation": "Variación"
     },
-    "leadershipOnly": "Solo disponible para cuentas con acceso a Panel Ejecutivo."
+    "leadershipOnly": "Solo disponible para cuentas con acceso a Panel Ejecutivo.",
+    "contribution": {
+      "title": "Aportes y puntos críticos",
+      "intro": "Quién explica los resultados del período y dónde está el riesgo. Un slot es cancha + día + hora.",
+      "noField": "Sin cancha",
+      "cancel": {
+        "title": "Quiénes aportan más cancelaciones",
+        "empty": "Sin facilities con 2 o más cancelaciones en el período.",
+        "summary": "{n, plural, one {1 facility concentra} other {# facilities concentran}} la mitad de las {total} cancelaciones del período.",
+        "row": "{share} de las cancelaciones de la zona: {cancelled} de {games} partidos ({rate} de cancelación).",
+        "reasons": "Motivos:",
+        "worstSlot": "Slot más afectado: {slot} ({cancelled} de {games} cancelados).",
+        "action": "Qué hacer:"
+      },
+      "confirm": {
+        "title": "Quiénes aportan más confirmaciones y sus slots más fuertes",
+        "empty": "Sin confirmaciones en el período.",
+        "row": "{share} de los confirmados ({confirmed}), tasa de demanda {rate}.",
+        "change": "{pct} vs. período anterior.",
+        "noSlots": "Ningún slot llegó a 2 confirmados.",
+        "slot": "{slot}: {confirmed} de {games} confirmados ({rate})"
+      },
+      "critical": {
+        "title": "Puntos más críticos",
+        "empty": "Sin puntos críticos con muestra suficiente en el período.",
+        "slots": "Slots que se cancelan seguido (3+ partidos, la mitad o más cancelados)",
+        "facilities": "Facilities por encima de la red",
+        "slotLine": "{facility} · {slot}: {cancelled} de {games} cancelados ({rate}). Motivo principal: {reason}.",
+        "facilityLine": "{facility}: {rate} de cancelación, {gap} puntos por encima de la red ({networkRate}). Motivo principal: {reason}."
+      }
+    }
   },
   "Map": {
     "title": "Mapa de zonas",

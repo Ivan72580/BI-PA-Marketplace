@@ -1,5 +1,8 @@
 import type { ReportCore } from "../../lib/db/reports";
 import ReportSection from "./ReportSection";
+import ContributionSection from "./ContributionSection";
+import type { ContributionPayload } from "../../lib/db/reportContribution";
+import type { Locale } from "@/i18n/config";
 import ReportKpiStrip from "./ReportKpiStrip";
 import ScopeBreakdownTable, { normalizeBreakdownRows } from "./ScopeBreakdownTable";
 import BreakdownBars from "./BreakdownBars";
@@ -19,7 +22,7 @@ function formatPct(n: number) {
   return `${(n * 100).toFixed(1)}%`;
 }
 
-export default function OpsReportDocument({ core, t, scopeLabel }: { core: ReportCore; t: Translator; scopeLabel: string }) {
+export default function OpsReportDocument({ core, t, scopeLabel, contribution, locale }: { core: ReportCore; t: Translator; scopeLabel: string; contribution: ContributionPayload; locale: Locale }) {
   const { current, kpis, periods, breakdown, actions, facilityFocus, opportunitySignals, evolution } = core;
 
   // "Foco de la semana" (abajo) ya cubre, con mucho más detalle, la misma
@@ -109,6 +112,8 @@ export default function OpsReportDocument({ core, t, scopeLabel }: { core: Repor
         <BreakdownBars rows={breakdownRows} />
         <ScopeBreakdownTable breakdown={breakdown} t={t} />
       </ReportSection>
+
+      <ContributionSection data={contribution} t={t} locale={locale} />
 
       <ReportSection title={t("facilityFocus.title")}>
         {facilityFocus.length === 0 ? (
