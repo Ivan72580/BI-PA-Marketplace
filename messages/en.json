@@ -2265,7 +2265,8 @@
       "generic": "Couldn't save. Try again in a moment.",
       "copy": "Couldn't copy: select the text and press Ctrl/⌘ + C."
     },
-    "readOnly": "You have view access to the Team module: you can read notes and build the report, but not add notes."
+    "readOnly": "You have view access to the Team module: you can read notes and build the report, but not add notes.",
+    "unassigned": "{n, plural, one {# note this week has no region and is hidden when regions are selected. Choose “All” to see it.} other {# notes this week have no region and are hidden when regions are selected. Choose “All” to see them.}}"
   },
   "Modules": {
     "names": {
@@ -2919,5 +2920,9 @@
   },
   "Glossary": {
     "label": "Glossary"
+  },
+  "TeamRegions": {
+    "label": "Regions",
+    "all": "All"
   }
 }

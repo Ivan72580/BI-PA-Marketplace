@@ -38,7 +38,20 @@ export type LogRow = {
   replies: LogReply[];
 };
 
-export type LogScope = { regionId?: string; marketId?: string; facilityId?: string };
+export type LogScope = { regionId?: string; marketId?: string; facilityId?: string; regionIds?: string[] };
+
+/** Filtro de facilities del alcance. Un filtro explícito (facility, market, región) manda sobre `regionIds`. */
+export function logFacilityWhere(scope: LogScope) {
+  return scope.facilityId
+    ? { id: scope.facilityId }
+    : scope.marketId
+      ? { marketId: scope.marketId }
+      : scope.regionId
+        ? { market: { regionId: scope.regionId } }
+        : scope.regionIds?.length
+          ? { market: { regionId: { in: scope.regionIds } } }
+          : {};
+}
 
 const nameOf = (u: { name: string | null; email: string }) => u.name || u.email.split("@")[0];
 
@@ -47,13 +60,7 @@ export async function getFacilityLogEntries(
   scope: LogScope,
   opts: { kind?: LogKind; limit: number; meId: string | null },
 ): Promise<{ rows: LogRow[]; hasMore: boolean }> {
-  const facilityWhere = scope.facilityId
-    ? { id: scope.facilityId }
-    : scope.marketId
-      ? { marketId: scope.marketId }
-      : scope.regionId
-        ? { market: { regionId: scope.regionId } }
-        : {};
+  const facilityWhere = logFacilityWhere(scope);
   const found = await prisma.facilityLogEntry.findMany({
     where: { facility: facilityWhere, ...(opts.kind ? { kind: opts.kind } : {}) },
     orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }],
@@ -101,13 +108,7 @@ export async function getFacilityLogEntries(
 
 /** Datos mínimos de TODOS los aportes del alcance, para los totales de la ficha (no se trae el texto). */
 export async function getFacilityLogSummaryRows(scope: LogScope) {
-  const facilityWhere = scope.facilityId
-    ? { id: scope.facilityId }
-    : scope.marketId
-      ? { marketId: scope.marketId }
-      : scope.regionId
-        ? { market: { regionId: scope.regionId } }
-        : {};
+  const facilityWhere = logFacilityWhere(scope);
   const rows = await prisma.facilityLogEntry.findMany({
     where: { facility: facilityWhere },
     select: { kind: true, eventType: true, sentiment: true, authorId: true, occurredAt: true },

@@ -1,7 +1,7 @@
 import { prisma } from "./prisma";
 import { bucketOf } from "../metrics";
 import { computeFacilityState, EMPTY_EXPOSURE, WINDOW_DAYS, type FacilityState, type GameExposure, type StateEntry } from "../facilityState";
-import type { LogScope } from "./facilityLog";
+import { logFacilityWhere, type LogScope } from "./facilityLog";
 
 // Estado calculado de las facilities (Fase 2). Sin caché: depende de aportes que se cargan a mano y de
 // partidos de los últimos 90 días; una consulta de aportes + un groupBy de partidos por facility.
@@ -26,13 +26,7 @@ const AVAILABILITY = ["RETIRO_SLOT", "LIBERACION_TARDIA"];
 
 /** Estado de cada facility del alcance que tenga al menos un aporte. */
 export async function getFacilityStates(scope: LogScope, today: string): Promise<FacilityStateRow[]> {
-  const facilityWhere = scope.facilityId
-    ? { id: scope.facilityId }
-    : scope.marketId
-      ? { marketId: scope.marketId }
-      : scope.regionId
-        ? { market: { regionId: scope.regionId } }
-        : {};
+  const facilityWhere = logFacilityWhere(scope);
   const logged = await prisma.facilityLogEntry.findMany({
     where: { facility: facilityWhere },
     select: {

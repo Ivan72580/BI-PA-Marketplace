@@ -4,11 +4,13 @@ import type { Locale } from "@/i18n/config";
 import { getFilterOptions } from "../lib/db/queries";
 import { getCurrentUserWithAccess } from "../lib/db/users";
 import { hasLevel } from "../lib/module";
-import { getRecentWeeklyLogTopics, getWeeklyLogEntries } from "../lib/db/weeklyLog";
+import { countUnassignedWeeklyEntries, getRecentWeeklyLogTopics, getWeeklyLogEntries } from "../lib/db/weeklyLog";
 import { todayISO } from "../lib/period";
 import { addDaysISO, defaultWeekAnchor, formatDay, isISODate, weekRange } from "../lib/weeklyLog";
 import WeeklyLogBoard from "./WeeklyLogBoard";
+import { getTeamRegionIds } from "../lib/db/teamRegions";
 import PageHeader from "../components/PageHeader";
+import TeamRegionBar from "../components/TeamRegionBar";
 
 // Registro semanal: notas sueltas del equipo durante la semana (lunes a
 // domingo) y un reporte armado a partir de ellas. ?week=<cualquier día de la
@@ -20,13 +22,15 @@ export default async function WeeklyLogPage({ searchParams }: { searchParams: Pr
   const range = weekRange(anchor);
   const isCurrentWeek = range.from === weekRange(today).from;
 
-  const [t, rawLocale, current, entries, topics, filterOptions] = await Promise.all([
+  const regionIds = await getTeamRegionIds();
+  const [t, rawLocale, current, entries, topics, filterOptions, unassigned] = await Promise.all([
     getTranslations("WeeklyLog"),
     getLocale(),
     getCurrentUserWithAccess(),
-    getWeeklyLogEntries(range),
+    getWeeklyLogEntries(range, regionIds),
     getRecentWeeklyLogTopics(addDaysISO(today, -84)),
     getFilterOptions(),
+    regionIds.length ? countUnassignedWeeklyEntries(range) : Promise.resolve(0),
   ]);
   const locale = rawLocale as Locale;
   const user = current?.user ?? null;
@@ -55,6 +59,9 @@ export default async function WeeklyLogPage({ searchParams }: { searchParams: Pr
         </nav>
         }
       />
+
+      <TeamRegionBar regions={filterOptions.regions} selected={regionIds} />
+      {unassigned > 0 && <p className="text-xs text-ink-faint">{t("unassigned", { n: unassigned })}</p>}
 
       {!user ? (
         <p className="rounded-2xl bg-surface shadow-sm p-5 text-sm text-ink-muted">{t("noUser")}</p>

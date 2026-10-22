@@ -9,7 +9,9 @@ import { LOG_KINDS, summarizeLog, type LogKind } from "../lib/facilityLog";
 import { addDaysISO, formatDay } from "../lib/weeklyLog";
 import { todayISO } from "../lib/period";
 import FilterPanel from "../components/FilterPanel";
+import { getTeamRegionIds } from "../lib/db/teamRegions";
 import PageHeader from "../components/PageHeader";
+import TeamRegionBar from "../components/TeamRegionBar";
 import { getFacilityStates } from "../lib/db/facilityState";
 import { getFacilityOffer } from "../lib/db/facilityOffer";
 import FacilityLogBoard from "./FacilityLogBoard";
@@ -37,7 +39,8 @@ export default async function FacilityLogPage({ searchParams }: { searchParams: 
   const nowMs = Date.parse(`${today}T23:59:59Z`);
   const kind = LOG_KINDS.includes(sp.kind as LogKind) ? (sp.kind as LogKind) : undefined;
   const limit = Math.min(MAX_LIMIT, Math.max(PAGE_SIZE, Number(sp.limit) || PAGE_SIZE));
-  const scope = { regionId: sp.regionId, marketId: sp.marketId, facilityId: sp.facilityId };
+  const teamRegionIds = await getTeamRegionIds();
+  const scope = { regionId: sp.regionId, marketId: sp.marketId, facilityId: sp.facilityId, regionIds: teamRegionIds };
 
   const [t, rawLocale, current, filterOptions] = await Promise.all([
     getTranslations("FacilityLog"),
@@ -95,6 +98,8 @@ export default async function FacilityLogPage({ searchParams }: { searchParams: 
           />
         }
       />
+
+      <TeamRegionBar regions={filterOptions.regions} selected={teamRegionIds} />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {stat(t("stats.entries"), summary.total.toLocaleString("en-US"))}

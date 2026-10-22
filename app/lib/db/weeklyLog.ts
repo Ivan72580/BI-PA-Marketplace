@@ -17,9 +17,13 @@ export type WeeklyLogRow = {
   createdAt: number;
 };
 
-export async function getWeeklyLogEntries(range: WeekRange): Promise<WeeklyLogRow[]> {
+// `regionIds` vacío = todas las regiones (incluye las notas sin región); con regiones elegidas, solo las de esas regiones.
+export async function getWeeklyLogEntries(range: WeekRange, regionIds: string[] = []): Promise<WeeklyLogRow[]> {
   const rows = await prisma.weeklyLogEntry.findMany({
-    where: { date: { gte: new Date(`${range.from}T00:00:00Z`), lte: new Date(`${range.to}T00:00:00Z`) } },
+    where: {
+      date: { gte: new Date(`${range.from}T00:00:00Z`), lte: new Date(`${range.to}T00:00:00Z`) },
+      ...(regionIds.length ? { regionId: { in: regionIds } } : {}),
+    },
     orderBy: [{ date: "asc" }, { createdAt: "asc" }],
     include: { author: { select: { name: true, email: true } }, facility: { select: { name: true } } },
   });
@@ -47,4 +51,11 @@ export async function getRecentWeeklyLogTopics(sinceISO: string): Promise<string
     take: 50,
   });
   return rows.map((r) => r.topic).filter((t): t is string => !!t);
+}
+
+/** Notas de la semana que no tienen región: no entran en ninguna vista filtrada por región. */
+export async function countUnassignedWeeklyEntries(range: WeekRange): Promise<number> {
+  return prisma.weeklyLogEntry.count({
+    where: { regionId: null, date: { gte: new Date(`${range.from}T00:00:00Z`), lte: new Date(`${range.to}T00:00:00Z`) } },
+  });
 }

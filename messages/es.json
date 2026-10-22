@@ -2265,7 +2265,8 @@
       "generic": "No se pudo guardar. Probá de nuevo en un momento.",
       "copy": "No se pudo copiar: seleccioná el texto y usá Ctrl/⌘ + C."
     },
-    "readOnly": "Tenés acceso de lectura al módulo Equipo: podés ver las notas y armar el reporte, pero no anotar."
+    "readOnly": "Tenés acceso de lectura al módulo Equipo: podés ver las notas y armar el reporte, pero no anotar.",
+    "unassigned": "{n, plural, one {# nota de esta semana no tiene región y no aparece con regiones elegidas. Se ve con «Todas».} other {# notas de esta semana no tienen región y no aparecen con regiones elegidas. Se ven con «Todas».}}"
   },
   "Modules": {
     "names": {
@@ -2919,5 +2920,9 @@
   },
   "Glossary": {
     "label": "Glosario"
+  },
+  "TeamRegions": {
+    "label": "Regiones",
+    "all": "Todas"
   }
 }

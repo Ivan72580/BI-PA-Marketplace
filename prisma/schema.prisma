@@ -23,6 +23,7 @@ model Region {
   id      String   @id @default(cuid())
   name    String   @unique // "East" | "West"
   markets Market[]
+  weeklyLogEntries WeeklyLogEntry[]
 
   @@map("regions")
 }
@@ -516,6 +517,10 @@ model WeeklyLogEntry {
   topic      String?
   facilityId String?
   facility   Facility? @relation(fields: [facilityId], references: [id], onDelete: SetNull)
+  // Región de la nota: la de su facility si la tiene; si no, la que el autor tenía elegida (si era una sola).
+  // Null = nota sin región (solo se ve cuando el selector de regiones está en "Todas").
+  regionId   String?
+  region     Region?   @relation(fields: [regionId], references: [id], onDelete: SetNull)
   authorId   String
   author     User      @relation(fields: [authorId], references: [id])
   createdAt  DateTime  @default(now())
@@ -523,6 +528,7 @@ model WeeklyLogEntry {
 
   @@index([date])
   @@index([facilityId])
+  @@index([regionId])
   @@map("weekly_log_entries")
 }
 
