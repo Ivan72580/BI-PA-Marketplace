@@ -19,7 +19,7 @@ function RankIndicator({ rankChange }: { rankChange: number | null | undefined }
   const up = rankChange > 0;
   return (
     <span
-      className={`text-[11px] font-semibold text-center rounded-full py-0.5 bg-white/70 ${up ? "text-brand" : "text-danger"}`}
+      className={`text-[11px] font-semibold text-center ${up ? "text-brand" : "text-danger"}`}
       title={up ? `Subió ${rankChange} posición(es)` : `Bajó ${Math.abs(rankChange)} posición(es)`}
     >
       {up ? "▲" : "▼"}{Math.abs(rankChange)}
