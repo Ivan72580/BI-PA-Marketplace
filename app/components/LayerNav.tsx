@@ -10,9 +10,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 export type LayerItem = { id: string; label: string; built: boolean };
 
 const ACTIVE: Record<string, string> = {
-  pronostico: "bg-warning-fill text-ink border-warning-fill",
+  pronostico: "bg-warning-fill text-ink",
 };
-const ACTIVE_DEFAULT = "bg-brand text-white border-brand";
+const ACTIVE_DEFAULT = "bg-brand text-white";
 
 export default function LayerNav({ layers, label, soon }: { layers: LayerItem[]; label: string; soon: string }) {
   const barRef = useRef<HTMLElement>(null);
@@ -61,7 +61,7 @@ export default function LayerNav({ layers, label, soon }: { layers: LayerItem[];
       ref={barRef}
       aria-label={label}
       style={{ top }}
-      className="sticky z-30 -mx-4 md:-mx-8 px-4 md:px-8 py-2 mb-6 bg-canvas/90 backdrop-blur border-b border-border overflow-x-auto"
+      className="sticky z-30 -mx-4 md:-mx-8 px-4 md:px-8 py-2.5 mb-6 bg-canvas/90 backdrop-blur shadow-[0_10px_18px_-14px_rgb(0_0_0/0.55)] overflow-x-auto"
     >
       <ul className="flex items-center gap-1.5 min-w-max">
         {layers.map((l) =>
@@ -70,8 +70,8 @@ export default function LayerNav({ layers, label, soon }: { layers: LayerItem[];
               <a
                 href={`#${l.id}`}
                 aria-current={active === l.id ? "true" : undefined}
-                className={`inline-flex items-center rounded-full border shadow-sm px-3.5 py-1.5 text-sm font-medium transition-colors duration-300 ${
-                  active === l.id ? (ACTIVE[l.id] ?? ACTIVE_DEFAULT) : "border-transparent bg-surface text-ink hover:text-brand"
+                className={`inline-flex items-center rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors duration-300 ${
+                  active === l.id ? `${ACTIVE[l.id] ?? ACTIVE_DEFAULT} shadow-md` : "bg-surface text-ink shadow-sm hover:text-brand hover:shadow-md"
                 }`}
               >
                 {l.label}
