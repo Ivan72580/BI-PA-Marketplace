@@ -9,8 +9,8 @@ export type PanelInsight = { text: string; href?: string; severity?: PanelInsigh
 export type PanelInsightGroup = { label?: string; insights: PanelInsight[] };
 
 const SEVERITY_DOT: Record<PanelInsightSeverity, string> = {
-  critical: "bg-danger",
-  notable: "bg-brand",
+  critical: "bg-danger-fill",
+  notable: "bg-brand-fill",
   info: "bg-ink-faint",
 };
 
@@ -90,12 +90,12 @@ export default function InsightsPanel({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 rounded-full bg-brand text-white shadow-lg px-4 py-2.5 hover:brightness-95 transition-[filter]"
+        className="flex items-center gap-2 rounded-full bg-brand-fill text-white shadow-lg px-4 py-2.5 hover:brightness-95 transition-[filter]"
       >
         <span className="text-base leading-none" aria-hidden="true">💬</span>
         <span className="text-sm font-medium">{t("toggleLabel")}</span>
         {criticalCount > 0 && (
-          <span className="flex items-center justify-center min-w-[18px] h-[18px] rounded-full bg-danger text-white text-[10px] font-bold px-1">
+          <span className="flex items-center justify-center min-w-[18px] h-[18px] rounded-full bg-danger-fill text-white text-[10px] font-bold px-1">
             {criticalCount}
           </span>
         )}

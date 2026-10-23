@@ -35,7 +35,7 @@ export default function ReportKpiStrip({ tiles }: { tiles: ReportKpiTile[] }) {
           </div>
           {tile.sparkline && tile.sparkline.length >= 2 && (
             <div className="mt-2 print:mt-1.5">
-              <Sparkline values={tile.sparkline} height={40} color={tile.invert ? "#dc2626" : "#15803d"} />
+              <Sparkline values={tile.sparkline} height={40} color={tile.invert ? "var(--c-series-negative)" : "var(--c-series-positive)"} />
             </div>
           )}
         </div>

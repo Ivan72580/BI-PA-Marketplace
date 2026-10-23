@@ -1,5 +1,7 @@
 "use client";
 
+import "@/app/lib/chartTheme"; // colores de tema (tc) + redibujo al cambiar el tema
+import { tc } from "@/app/lib/themeTokens";
 import {
   Chart as ChartJS,
   ArcElement,
@@ -15,7 +17,9 @@ export default function PieChart({ data, showLegend = true }: { data: ChartData<
   return (
     <div style={{ height: 220 }}>
       <Pie
-        data={data}
+        // Separación entre porciones del color de la tarjeta (blanco en claro,
+        // grafito en oscuro), salvo que el caller defina otro.
+        data={{ ...data, datasets: data.datasets.map((ds) => ({ borderColor: tc("surface"), ...ds })) }}
         options={{
           maintainAspectRatio: false,
           plugins: {

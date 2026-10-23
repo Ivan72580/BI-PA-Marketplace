@@ -1,5 +1,6 @@
 "use client";
 
+import "@/app/lib/chartTheme"; // colores de tema (tc) + redibujo al cambiar el tema
 import {
   Chart as ChartJS,
   CategoryScale,

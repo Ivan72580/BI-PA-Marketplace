@@ -8,7 +8,7 @@ import { useState } from "react";
 type Accent = "accent" | "warning";
 
 const ACCENT_DOT: Record<Accent, string> = {
-  accent: "bg-accent",
+  accent: "bg-brand-fill",
   warning: "bg-warning-fill",
 };
 

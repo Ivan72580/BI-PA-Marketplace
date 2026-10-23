@@ -1,5 +1,7 @@
 "use client";
 
+import "@/app/lib/chartTheme"; // colores de tema (tc) + redibujo al cambiar el tema
+import { themeColor } from "@/app/lib/themeClient";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -30,7 +32,7 @@ const valueLabelsPlugin: Plugin<"line"> = {
         if (raw === null || raw === undefined) return;
         ctx.save();
         ctx.font = "600 10px var(--font-sans), sans-serif";
-        ctx.fillStyle = (dataset.borderColor as string) ?? "#0b3b2e";
+        ctx.fillStyle = (dataset.borderColor as string) ?? themeColor("series-deep");
         ctx.textAlign = "center";
         ctx.fillText(`${raw}%`, point.x, point.y - 8);
         ctx.restore();

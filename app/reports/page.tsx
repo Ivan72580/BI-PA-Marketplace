@@ -12,6 +12,7 @@ import ReportTypeTabs from "../components/reports/ReportTypeTabs";
 import { getContributionReport } from "../lib/db/reportContribution";
 import OpsReportDocument from "../components/reports/OpsReportDocument";
 import ExecutiveReportDocument from "../components/reports/ExecutiveReportDocument";
+import ForceLightTheme from "../components/ForceLightTheme";
 
 // Página única para los dos reportes descargables (antes eran dos rutas:
 // /reports para Ops, /panel-ejecutivo/reports para Executive) — ver
@@ -73,8 +74,11 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const scopeLabel = names.facilityName ?? names.marketName ?? names.regionName ?? t("scopeNetwork");
   const title = type === "executive" ? t("execTitle") : t("opsTitle");
 
+  // Reportes: siempre en claro, sea cual sea la preferencia del usuario
+  // (son lo que se imprime, se captura y se comparte).
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 bg-canvas text-ink" data-theme="light">
+      <ForceLightTheme />
       <div className="print:hidden">
         <PageHeader
           scope={names.facilityName ?? names.marketName ?? names.regionName}
@@ -98,7 +102,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         />
       </div>
 
-      <div className="max-w-[860px] mx-auto bg-white rounded-2xl p-6 shadow-md print:shadow-none print:rounded-none print:p-0 print:max-w-none print:mx-0">
+      <div className="max-w-[860px] mx-auto bg-surface rounded-2xl p-6 shadow-md print:shadow-none print:rounded-none print:p-0 print:max-w-none print:mx-0">
         {type === "executive" ? (
           <ExecutiveReportDocument core={core} t={t} scopeLabel={scopeLabel} />
         ) : contribution ? (

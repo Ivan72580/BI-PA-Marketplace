@@ -42,7 +42,7 @@ type Loc = "es" | "en";
 const inputClass =
   "w-full rounded-lg bg-surface-sunken px-3 py-2 text-sm text-ink placeholder:text-ink-faint ring-1 ring-border focus:outline-none focus:ring-2 focus:ring-brand/40 hover:ring-border-strong transition-colors";
 const labelClass = "block text-xs font-medium text-ink-muted mb-1";
-const primaryBtn = "rounded-full bg-ink text-white text-sm font-medium px-4 py-2 hover:bg-ink/85 disabled:opacity-50 transition-colors";
+const primaryBtn = "rounded-full bg-ink text-surface text-sm font-medium px-4 py-2 hover:bg-ink/85 disabled:opacity-50 transition-colors";
 const ghostBtn = "rounded-full bg-surface text-sm font-medium text-ink px-3.5 py-1.5 shadow-sm hover:shadow-md disabled:opacity-50 transition-shadow";
 const linkBtn = "text-xs text-ink-faint hover:text-ink disabled:opacity-50";
 
@@ -51,7 +51,7 @@ const TONE_CLASS: Record<Tone, string> = {
   TENSE: "bg-warning-soft text-warning",
   HOSTILE: "bg-danger-soft text-danger",
 };
-const SENTIMENT_DOT: Record<Sentiment, string> = { POSITIVE: "bg-brand", NEUTRAL: "bg-ink-faint", NEGATIVE: "bg-danger" };
+const SENTIMENT_DOT: Record<Sentiment, string> = { POSITIVE: "bg-brand-fill", NEUTRAL: "bg-ink-faint", NEGATIVE: "bg-danger-fill" };
 
 // ---------- Formulario (alta y edición) ----------
 

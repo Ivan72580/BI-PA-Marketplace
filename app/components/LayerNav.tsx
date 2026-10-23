@@ -12,7 +12,7 @@ export type LayerItem = { id: string; label: string; built: boolean };
 const ACTIVE: Record<string, string> = {
   pronostico: "bg-warning-fill text-ink",
 };
-const ACTIVE_DEFAULT = "bg-brand text-white";
+const ACTIVE_DEFAULT = "bg-brand-fill text-white";
 
 export default function LayerNav({ layers, label, soon }: { layers: LayerItem[]; label: string; soon: string }) {
   const barRef = useRef<HTMLElement>(null);

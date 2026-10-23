@@ -85,7 +85,7 @@ export default async function SeasonalityCalendar({
         <Link
           href={cardCompareHref}
           className={`text-[11px] rounded-full px-2.5 py-1 font-medium transition-colors ${
-            cardCompare ? "bg-brand text-white" : "bg-surface-sunken text-ink-muted hover:bg-brand-soft"
+            cardCompare ? "bg-brand-fill text-white" : "bg-surface-sunken text-ink-muted hover:bg-brand-soft"
           }`}
         >
           {t(cardCompare ? "calendar.cardCompare.hide" : "calendar.cardCompare.show")}

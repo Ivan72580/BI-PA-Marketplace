@@ -62,7 +62,7 @@ export default function CollapsibleFilter({
       >
         <FilterIcon />
         {summary && <span className="text-xs font-medium text-ink whitespace-nowrap">{summary}</span>}
-        {active && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand" aria-hidden="true" />}
+        {active && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand-fill" aria-hidden="true" />}
       </button>
 
       {open && (

@@ -28,9 +28,9 @@ function Spark({ trend, networkRate, label }: { trend: { label: string; rate: nu
   const last = trend[trend.length - 1];
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} role="img" aria-label={label} className="max-w-full">
-      <line x1="6" x2={W - 6} y1={y(networkRate)} y2={y(networkRate)} stroke="rgb(0 0 0 / 0.35)" strokeDasharray="1.5 4" strokeLinecap="round" strokeWidth="2" />
-      <polyline points={trend.map((p, i) => `${x(i)},${y(p.rate)}`).join(" ")} fill="none" stroke="#dc2626" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={x(trend.length - 1)} cy={y(last.rate)} r="4" fill="#dc2626" stroke="#fff" strokeWidth="2" />
+      <line x1="6" x2={W - 6} y1={y(networkRate)} y2={y(networkRate)} style={{ stroke: "var(--c-rank-ref)" }} strokeDasharray="1.5 4" strokeLinecap="round" strokeWidth="2" />
+      <polyline points={trend.map((p, i) => `${x(i)},${y(p.rate)}`).join(" ")} fill="none" style={{ stroke: "var(--c-series-negative)" }} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={x(trend.length - 1)} cy={y(last.rate)} r="4" style={{ fill: "var(--c-series-negative)", stroke: "var(--c-chart-point-ring)" }} strokeWidth="2" />
     </svg>
   );
 }
@@ -73,7 +73,7 @@ export default function RankingCardRate({
       type="button"
       aria-pressed={filter === k}
       onClick={() => setFilter(k)}
-      className={`rounded-full border px-3 py-1 text-xs transition-colors ${filter === k ? "bg-ink text-white border-ink" : "border-border text-ink-muted hover:text-ink"}`}
+      className={`rounded-full border px-3 py-1 text-xs transition-colors ${filter === k ? "bg-ink text-surface border-ink" : "border-border text-ink-muted hover:text-ink"}`}
     >
       {label}<span className="ml-1.5 opacity-70 font-semibold">{count(k)}</span>
     </button>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import LineChart from "./charts/LineChart";
 import ChangeBadge from "./ChangeBadge";
+import { tc } from "@/app/lib/themeTokens";
 
 function formatPct(n: number) {
   return `${(n * 100).toFixed(1)}%`;
@@ -40,7 +41,7 @@ export default function MetricTrendCard({
             label: comparePeriodLabel,
             data: chartData.labels.map((_, i) => priorSeries!.data[i] ?? null),
             bucketLabels: priorSeries!.labels,
-            borderColor: "#9ca3af",
+            borderColor: tc("series-prior"),
             backgroundColor: "transparent",
             borderDash: [6, 4],
             borderWidth: 2,
@@ -63,7 +64,7 @@ export default function MetricTrendCard({
             type="button"
             onClick={() => setShowCompare((v) => !v)}
             className={`shrink-0 text-[10px] px-2 py-1 rounded-md transition-colors ${
-              showCompare ? "bg-brand text-white" : "bg-surface-sunken text-ink-faint hover:text-ink-muted"
+              showCompare ? "bg-brand-fill text-white" : "bg-surface-sunken text-ink-faint hover:text-ink-muted"
             }`}
           >
             {t("compareVs", { label: comparePeriodLabel })}

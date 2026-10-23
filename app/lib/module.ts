@@ -30,7 +30,7 @@ type ModuleDef = {
 export const MODULES: Record<AppModule, ModuleDef> = {
   MAGIC: {
     home: "/",
-    routes: ["/", "/facility", "/trends", "/daily", "/seasonality", "/forecast", "/market", "/map", "/inventory", "/funnel", "/satisfaction"],
+    routes: ["/", "/facility", "/trends", "/daily", "/seasonality", "/forecast", "/market", "/map", "/inventory", "/satisfaction"],
     defaultLevel: "VIEW",
     levels: ["NONE", "VIEW"], // solo lectura: no hay datos manuales que editar
   },

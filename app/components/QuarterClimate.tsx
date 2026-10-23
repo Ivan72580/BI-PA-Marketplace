@@ -21,7 +21,7 @@ export default async function QuarterClimate({ points }: { points: QuarterClimat
               key={p.quarter}
               title={t("tooltip", { label: p.label, pct: (p.confirmationRate * 100).toFixed(0), n: p.totalGames.toLocaleString("en-US") })}
               className="rounded-lg py-2 text-center"
-              style={{ background: `rgba(22,117,92,${intensity.toFixed(2)})` }}
+              style={{ background: `rgb(var(--c-heat-green) / ${intensity.toFixed(2)})` }}
             >
               <div className="text-[10px] font-semibold text-ink">{p.label}</div>
               <div className="text-[10px] text-ink">{(p.confirmationRate * 100).toFixed(0)}%</div>

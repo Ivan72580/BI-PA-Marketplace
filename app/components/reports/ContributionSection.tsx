@@ -86,7 +86,7 @@ export default function ContributionSection({ data, t, locale }: { data: Contrib
                 <ul className="space-y-1">
                   {data.criticalSlots.map((s, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm print:text-[9pt]">
-                      <span className="w-1.5 h-1.5 rounded-full bg-danger mt-1.5 shrink-0 print:bg-black" aria-hidden="true" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-danger-fill mt-1.5 shrink-0 print:bg-black" aria-hidden="true" />
                       <span className="text-ink">{t("contribution.critical.slotLine", { facility: s.name, slot: slot(s), cancelled: s.cancelled, games: s.games, rate: pct(s.rate), reason: reason(s.dominantCategory) })}</span>
                     </li>
                   ))}
@@ -99,7 +99,7 @@ export default function ContributionSection({ data, t, locale }: { data: Contrib
                 <ul className="space-y-1">
                   {data.criticalFacilities.map((f) => (
                     <li key={f.facilityId} className="flex items-start gap-2 text-sm print:text-[9pt]">
-                      <span className="w-1.5 h-1.5 rounded-full bg-danger mt-1.5 shrink-0 print:bg-black" aria-hidden="true" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-danger-fill mt-1.5 shrink-0 print:bg-black" aria-hidden="true" />
                       <span className="text-ink">{t("contribution.critical.facilityLine", { facility: f.name, rate: pct1(f.rate), gap: (f.gap * 100).toFixed(0), networkRate: pct1(data.totals.cancelRate), reason: reason(f.dominantCategory) })}</span>
                     </li>
                   ))}

@@ -35,14 +35,14 @@ export default function MustScheduleBoard({
           <button
             type="button"
             onClick={() => setMode("confirmed")}
-            className={`px-4 py-1.5 rounded-full transition-colors ${!isCancelled ? "bg-brand text-white shadow-sm" : "text-ink-muted hover:text-ink"}`}
+            className={`px-4 py-1.5 rounded-full transition-colors ${!isCancelled ? "bg-brand-fill text-white shadow-sm" : "text-ink-muted hover:text-ink"}`}
           >
             {t("confirmedTab")}
           </button>
           <button
             type="button"
             onClick={() => setMode("cancelled")}
-            className={`px-4 py-1.5 rounded-full transition-colors ${isCancelled ? "bg-danger text-white shadow-sm" : "text-ink-muted hover:text-ink"}`}
+            className={`px-4 py-1.5 rounded-full transition-colors ${isCancelled ? "bg-danger-fill text-white shadow-sm" : "text-ink-muted hover:text-ink"}`}
           >
             {t("cancelledTab")}
           </button>

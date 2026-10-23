@@ -20,7 +20,7 @@ const QUADRANT_ORDER: Record<QuadrantKey, number> = { OPPORTUNIST_CONFLICT: 0, O
 const TREND_ICON: Record<Trend, string> = { UP: "↑", DOWN: "↓", FLAT: "→" };
 const TREND_STYLE: Record<Trend, string> = { UP: "text-brand", DOWN: "text-danger", FLAT: "text-ink-faint" };
 
-const barColor = (score: number) => (score >= 50 ? "bg-brand" : score >= 35 ? "bg-warning-fill" : "bg-danger");
+const barColor = (score: number) => (score >= 50 ? "bg-brand-fill" : score >= 35 ? "bg-warning-fill" : "bg-danger-fill");
 const pct = (n: number) => `${Math.round(n * 100)}%`;
 
 function QuadrantBadge({ quadrant, label }: { quadrant: QuadrantKey; label: string }) {

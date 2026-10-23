@@ -117,7 +117,7 @@ export default function FacilityProfileTable({ rows, canEdit }: { rows: ProfileR
                 <td className="py-2 px-4">
                   <div className="flex items-center gap-2">
                     <div className="w-20 h-1.5 rounded-full bg-surface-sunken overflow-hidden">
-                      <div className="h-full bg-brand" style={{ width: `${ratio(r) * 100}%` }} />
+                      <div className="h-full bg-brand-fill" style={{ width: `${ratio(r) * 100}%` }} />
                     </div>
                     <span className="text-xs text-ink-faint">{r.coreFieldsFilled}/{r.coreFieldsTotal}</span>
                   </div>

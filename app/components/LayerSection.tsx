@@ -3,7 +3,7 @@
 // la app, porque es una estimación y no un dato. Las anclas respetan el alto del menú y de la barra de capas.
 
 const TONE = {
-  brand: { band: "bg-[#07271f] text-white", bar: "bg-accent", sub: "text-white/70", badge: "bg-white/15 text-white" },
+  brand: { band: "bg-topbar text-white", bar: "bg-brand", sub: "text-white/70", badge: "bg-white/15 text-white" },
   warning: { band: "bg-warning-soft text-ink ring-1 ring-warning-fill/50", bar: "bg-warning-fill", sub: "text-ink-muted", badge: "bg-warning-fill/25 text-warning" },
 } as const;
 

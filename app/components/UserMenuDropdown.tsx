@@ -4,13 +4,16 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import LanguageSwitcher from "./LanguageSwitcher";
+import ThemeSwitcher from "./ThemeSwitcher";
 import type { Locale } from "@/i18n/config";
+import type { Theme } from "../lib/theme";
 
 export default function UserMenuDropdown({
   displayName,
   email,
   initials,
   locale,
+  theme,
   isAdmin,
   hasSession,
   signOutAction,
@@ -19,6 +22,7 @@ export default function UserMenuDropdown({
   email: string | null;
   initials: string;
   locale: Locale;
+  theme: Theme;
   isAdmin: boolean;
   hasSession: boolean;
   signOutAction: () => Promise<void>;
@@ -68,6 +72,11 @@ export default function UserMenuDropdown({
           <div className="flex items-center justify-between px-3 py-1.5">
             <span className="text-xs text-ink-muted">{t("language")}</span>
             <LanguageSwitcher locale={locale} />
+          </div>
+
+          <div className="flex flex-col gap-1.5 px-3 py-1.5">
+            <span className="text-xs text-ink-muted">{t("theme")}</span>
+            <ThemeSwitcher initialTheme={theme} />
           </div>
 
           {/* Reportes (Internal Ops / Executive Summary) vivía antes como

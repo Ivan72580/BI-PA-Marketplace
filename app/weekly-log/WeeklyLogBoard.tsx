@@ -14,7 +14,7 @@ type Me = { id: string; isAdmin: boolean; canEdit: boolean };
 const inputClass =
   "w-full rounded-md border border-border bg-surface-sunken/60 px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-brand/30 hover:border-border-strong transition-colors";
 const labelClass = "block text-xs text-ink-muted mb-1";
-const primaryBtn = "rounded-md bg-brand text-white text-sm font-medium px-3.5 py-2 hover:bg-brand/90 disabled:opacity-50 transition-colors";
+const primaryBtn = "rounded-md bg-brand-fill text-white text-sm font-medium px-3.5 py-2 hover:bg-brand-fill/90 disabled:opacity-50 transition-colors";
 const ghostBtn = "rounded-md border border-border bg-surface text-sm text-ink px-3 py-1.5 hover:border-border-strong disabled:opacity-50 transition-colors";
 const linkBtn = "text-xs text-ink-faint hover:text-ink disabled:opacity-50";
 
@@ -226,7 +226,7 @@ export default function WeeklyLogBoard({
               aria-pressed={who === id}
               onClick={() => setWho(id)}
               className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${
-                who === id ? "bg-brand text-white border-brand" : "bg-surface text-ink-muted border-border hover:border-border-strong"
+                who === id ? "bg-brand-fill text-white border-brand" : "bg-surface text-ink-muted border-border hover:border-border-strong"
               }`}
             >
               {label}

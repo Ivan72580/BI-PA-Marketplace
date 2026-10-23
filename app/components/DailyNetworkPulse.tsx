@@ -30,7 +30,7 @@ function PulseBars({ days, locale, floorLabel }: { days: NetworkDayPoint[]; loca
                 <div className="w-full h-0.5 rounded bg-surface-sunken" />
               ) : (
                 <div
-                  className={`w-full rounded-t-md ${d.demandRate > MUST_SCHEDULE_MIN_RATE ? "bg-brand" : "bg-danger"} ${isLast ? "" : "opacity-60"}`}
+                  className={`w-full rounded-t-md ${d.demandRate > MUST_SCHEDULE_MIN_RATE ? "bg-brand-fill" : "bg-danger-fill"} ${isLast ? "" : "opacity-60"}`}
                   style={{ height: `${Math.max(3, d.demandRate * 100)}%` }}
                 />
               )}

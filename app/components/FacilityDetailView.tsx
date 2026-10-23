@@ -16,6 +16,7 @@ import Sparkline from "./Sparkline";
 import KpiCard from "./KpiCard";
 import GroupSection from "./GroupSection";
 import Glossary from "./Glossary";
+import { tc } from "@/app/lib/themeTokens";
 
 type OverviewTranslator = (key: string, values?: Record<string, string | number>) => string;
 
@@ -127,7 +128,7 @@ export default async function FacilityDetailView({
 
   const cancellationChart = {
     labels: data.cancellationBreakdown.map((c) => c.label),
-    datasets: [{ label: t("facility.cancellationsChartLabel"), data: data.cancellationBreakdown.map((c) => c.count), backgroundColor: "#dc2626" }],
+    datasets: [{ label: t("facility.cancellationsChartLabel"), data: data.cancellationBreakdown.map((c) => c.count), backgroundColor: tc("series-negative") }],
   };
 
   const evolutionUnitLabel = evolutionWindow.unit === "week" ? t("facility.evolutionTitleWeekly") : t("facility.evolutionTitleMonthly");

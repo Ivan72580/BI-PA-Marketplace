@@ -15,7 +15,7 @@ export default function ReportSection({
   return (
     <div className={`rounded-2xl bg-surface p-4 shadow-sm print:shadow-none print:rounded-none print:p-0 print:bg-transparent print:border-b print:border-border print:pb-3 ${className}`}>
       <div className="flex items-center gap-2 mb-3 print:mb-2">
-        <span className="w-1 h-4 rounded-full bg-brand shrink-0 print:hidden" aria-hidden="true" />
+        <span className="w-1 h-4 rounded-full bg-brand-fill shrink-0 print:hidden" aria-hidden="true" />
         <div className="font-display text-sm font-semibold text-ink print:text-[11pt]">{title}</div>
       </div>
       <div className="space-y-3">{children}</div>

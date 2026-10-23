@@ -13,7 +13,7 @@
 export default function Sparkline({
   values,
   height = 44,
-  color = "#15803d", // mismo verde que ya usa LineChart/ExecutiveReportDocument para "evolution"
+  color = "var(--c-series-positive)", // mismo verde que LineChart/ExecutiveReportDocument para "evolution"; acepta var(--c-*)
   fill = true,
 }: {
   values: number[];
@@ -47,9 +47,9 @@ export default function Sparkline({
       role="img"
       aria-label="Tendencia reciente"
     >
-      {fill && <path d={areaPath} fill={color} opacity={0.12} stroke="none" />}
-      <path d={linePath} fill="none" stroke={color} strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-      <circle cx={last.x} cy={last.y} r={2.2} fill={color} />
+      {fill && <path d={areaPath} style={{ fill: color }} opacity={0.12} stroke="none" />}
+      <path d={linePath} fill="none" style={{ stroke: color }} strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+      <circle cx={last.x} cy={last.y} r={2.2} style={{ fill: color }} />
     </svg>
   );
 }

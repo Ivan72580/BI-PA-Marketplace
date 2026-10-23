@@ -10,7 +10,7 @@ import type { ActionKind, SeasonLevel } from "../lib/seasonPlanCalc";
 // cancha no disponible abajo — en vez de un gráfico de doble eje: así se lee de un vistazo
 // "este mes tiene mucha demanda Y se pierde mucha cancha" sin mezclar escalas.
 
-const LEVEL_BAR: Record<SeasonLevel, string> = { high: "bg-brand", mid: "bg-border-strong", low: "bg-ink-faint" };
+const LEVEL_BAR: Record<SeasonLevel, string> = { high: "bg-brand-fill", mid: "bg-border-strong", low: "bg-ink-faint" };
 const LEVEL_BADGE: Record<SeasonLevel, string> = {
   high: "bg-brand-soft text-brand",
   mid: "bg-surface-sunken text-ink-muted",
@@ -80,7 +80,7 @@ export default async function SeasonPlan({ data, forecastHref }: { data: SeasonP
             const h = m.rate === null ? 0 : Math.max(2, (m.rate / maxRate) * 44);
             return (
               <div key={m.month} className="flex flex-col items-center" title={m.rate === null ? t("noData") : `${monthShort(m.month)}: ${pct0.format(m.rate)} · ${trendLabel(m.trendPp)}`}>
-                <div className="w-full max-w-[28px] rounded-b-[4px] bg-danger/80" style={{ height: h }} />
+                <div className="w-full max-w-[28px] rounded-b-[4px] bg-danger-fill/80" style={{ height: h }} />
                 <span className="text-[10px] text-ink-muted mt-0.5">{pct1(m.rate)}</span>
                 <span className="text-[10px] text-ink-faint">{monthShort(m.month)}</span>
               </div>

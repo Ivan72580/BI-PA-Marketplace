@@ -74,7 +74,7 @@ export default function Facility360NowPanel({ periods, windows, refISO, scope, r
   const gap = mk && mk.demandRate !== null && cur.demandRate !== null ? cur.demandRate - mk.demandRate : null;
   const fieldGap = mk && mk.fieldShare !== null && cur.fieldShare !== null ? cur.fieldShare - mk.fieldShare : null;
   const comp = [
-    { k: "demand", n: cur.demandCancelled, cls: "bg-danger" },
+    { k: "demand", n: cur.demandCancelled, cls: "bg-danger-fill" },
     { k: "field", n: cur.fieldUnavailable, cls: "bg-warning-fill" },
     { k: "operational", n: cur.operational, cls: "bg-ink-faint/60" },
     { k: "plugin", n: cur.plugin, cls: "bg-ink-faint/30" },
@@ -95,7 +95,7 @@ export default function Facility360NowPanel({ periods, windows, refISO, scope, r
               role="tab"
               aria-selected={p === x}
               onClick={() => setP(x)}
-              className={`rounded-full px-4 py-1.5 text-sm transition-colors ${p === x ? "bg-brand text-white font-semibold" : "text-ink-muted font-medium hover:text-ink"}`}
+              className={`rounded-full px-4 py-1.5 text-sm transition-colors ${p === x ? "bg-brand-fill text-white font-semibold" : "text-ink-muted font-medium hover:text-ink"}`}
             >
               {t(`now.period.${x}`)}
             </button>
@@ -173,7 +173,7 @@ export default function Facility360NowPanel({ periods, windows, refISO, scope, r
                         <div className="text-sm font-semibold text-ink truncate">{r.day} {r.time}</div>
                         <div className="text-[11px] text-ink-muted truncate">{r.field ?? t("slots.fieldUnknown")}{r.size ? ` · ${r.size}` : ""} · {t("now.reserve.players", { players: r.players, usual: r.usual.toFixed(1) })}</div>
                       </div>
-                      <span className={`shrink-0 rounded-full text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 ${r.level === "strong" ? "bg-ink text-white" : "border border-ink text-ink"}`}>
+                      <span className={`shrink-0 rounded-full text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 ${r.level === "strong" ? "bg-ink text-surface" : "border border-ink text-ink"}`}>
                         {t(r.level === "strong" ? "now.reserve.strong" : "now.reserve.test")}
                       </span>
                     </li>

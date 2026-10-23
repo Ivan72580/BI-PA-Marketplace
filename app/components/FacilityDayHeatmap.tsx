@@ -32,8 +32,8 @@ const MIN_OCCURRENCES = 3;
 // SlotCalendarView — no se comparte el módulo porque ahí vive acoplado a su
 // propio grid de día×hora, pero el criterio visual es el mismo.
 const COLOR = {
-  green: { strong: "bg-brand text-white", soft: "bg-brand-soft text-brand" },
-  red: { strong: "bg-danger text-white", soft: "bg-danger-soft text-danger" },
+  green: { strong: "bg-brand-fill text-white", soft: "bg-brand-soft text-brand" },
+  red: { strong: "bg-danger-fill text-white", soft: "bg-danger-soft text-danger" },
 } as const;
 const HIGHLIGHT_THRESHOLD = 0.75;
 
@@ -65,14 +65,14 @@ export default function FacilityDayHeatmap({
           <button
             type="button"
             onClick={() => setMode("confirmed")}
-            className={`px-2.5 py-1 rounded-md transition-colors ${mode === "confirmed" ? "bg-brand text-white" : "text-ink-muted hover:text-ink"}`}
+            className={`px-2.5 py-1 rounded-md transition-colors ${mode === "confirmed" ? "bg-brand-fill text-white" : "text-ink-muted hover:text-ink"}`}
           >
             {t("toggleConfirmed")}
           </button>
           <button
             type="button"
             onClick={() => setMode("cancelled")}
-            className={`px-2.5 py-1 rounded-md transition-colors ${mode === "cancelled" ? "bg-danger text-white" : "text-ink-muted hover:text-ink"}`}
+            className={`px-2.5 py-1 rounded-md transition-colors ${mode === "cancelled" ? "bg-danger-fill text-white" : "text-ink-muted hover:text-ink"}`}
           >
             {t("toggleCancelled")}
           </button>
