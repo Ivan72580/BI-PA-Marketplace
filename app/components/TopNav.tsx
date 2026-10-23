@@ -244,6 +244,7 @@ export default function TopNav({
     setMobileOpen(false);
   }
   const mobilePanelRef = useRef<HTMLDivElement>(null);
+  const mobileButtonRef = useRef<HTMLButtonElement>(null);
   // Va primero (no al final) cuando el usuario tiene el permiso: es su vista
   // "default" en el sentido de ser la primera que ve, sin necesidad de un
   // redirect automático post-login — ver nota de entrega sobre por qué no
@@ -277,7 +278,11 @@ export default function TopNav({
   useEffect(() => {
     if (!mobileOpen) return;
     function handlePointerDown(e: MouseEvent) {
-      if (mobilePanelRef.current && !mobilePanelRef.current.contains(e.target as Node)) setMobileOpen(false);
+      const target = e.target as Node;
+      // El propio botón queda afuera del panel, pero NO cuenta como "click afuera": lo maneja su onClick (alterna).
+      // Si también cerrara acá, el onClick lo volvería a abrir y el menú nunca se podría cerrar con el mismo botón.
+      if (mobileButtonRef.current?.contains(target)) return;
+      if (mobilePanelRef.current && !mobilePanelRef.current.contains(target)) setMobileOpen(false);
     }
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") setMobileOpen(false);
@@ -405,6 +410,7 @@ export default function TopNav({
           {/* <lg : un solo botón abre un panel con la búsqueda y los links
               apilados — reemplaza tanto el nav como el buscador inline. */}
           <button
+            ref={mobileButtonRef}
             type="button"
             onClick={() => setMobileOpen((v) => !v)}
             aria-label={mobileOpen ? t("menu.close") : t("menu.open")}
