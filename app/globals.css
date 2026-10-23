@@ -18,6 +18,9 @@
    confirmación/cancelación, validadas por contraste y daltonismo en ambos temas (antes ocupación gris y
    conversión verde oscuro eran casi indistinguibles).
 
+   Oscuro: el fondo de la página es más oscuro que las tarjetas (aro de 1 px más visible y sombra
+   marcada), para que cada sección se lea como un bloque propio y no se mezcle con el fondo.
+
    Roles que el oscuro separa (en claro valen lo mismo):
    - brand / danger: color de TEXTO y trazos finos (↑ ↓, links). En oscuro, más claros.
    - brand-fill / danger-fill: RELLENOS con texto blanco encima (botones, barras, chips sólidos).
@@ -55,6 +58,10 @@
   --c-topbar: #07271f;
   --c-topbar-line: transparent;
   --c-ring: #e3e7e8;
+  --c-shadow-1: rgb(0 0 0 / 0.04);
+  --c-shadow-2: rgb(0 0 0 / 0.05);
+  --c-shadow-3: rgb(0 0 0 / 0.1);
+  --c-shadow-4: rgb(0 0 0 / 0.16);
   --c-series-positive: #15803d;
   --c-series-negative: #dc2626;
   --c-series-occupancy: #2a78d6;
@@ -97,19 +104,19 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --c-background: #15191b;
+    --c-background: #0f1314;
     --c-foreground: #edf0f0;
-    --c-canvas: #15191b;
+    --c-canvas: #0f1314;
     --c-ink: #edf0f0;
     --c-ink-muted: #b9c2c4;
-    --c-ink-faint: #8f9a9d;
-    --c-surface: #1d2224;
-    --c-surface-sunken: #191d1f;
-    --c-surface-panel: #262c2e;
-    --c-border: #323a3c;
-    --c-border-strong: #465053;
+    --c-ink-faint: #97a2a5;
+    --c-surface: #222a2d;
+    --c-surface-sunken: #1b2124;
+    --c-surface-panel: #2c3538;
+    --c-border: #384245;
+    --c-border-strong: #4d585c;
     --c-brand: #5cbd84;
-    --c-brand-fill: #1a7f45;
+    --c-brand-fill: #1c874a;
     --c-brand-deep: #9fd6b5;
     --c-brand-ink: #c6ead3;
     --c-brand-soft: #1b3326;
@@ -118,13 +125,17 @@
     --c-danger: #f2817a;
     --c-danger-deep: #f8aaa4;
     --c-danger-soft: #3b2224;
-    --c-danger-fill: #c8322c;
+    --c-danger-fill: #d13a33;
     --c-warning: #eab65a;
     --c-warning-fill: #e9a23b;
     --c-warning-soft: #382d17;
     --c-topbar: #0d382b;
     --c-topbar-line: rgb(255 255 255 / 0.07);
-    --c-ring: #2c3436;
+    --c-ring: #3a4447;
+    --c-shadow-1: rgb(0 0 0 / 0.3);
+    --c-shadow-2: rgb(0 0 0 / 0.35);
+    --c-shadow-3: rgb(0 0 0 / 0.45);
+    --c-shadow-4: rgb(0 0 0 / 0.55);
     --c-series-positive: #2e9a5c;
     --c-series-negative: #e8605a;
     --c-series-occupancy: #4a8de0;
@@ -135,10 +146,10 @@
     --c-series-deep: #9fd6b5;
     --c-chart-text: #b9c2c4;
     --c-chart-grid: rgb(255 255 255 / 0.08);
-    --c-chart-point-ring: #1d2224;
+    --c-chart-point-ring: #222a2d;
     --c-heat-green: 76 184 128;
     --c-heat-red: 240 104 96;
-    --c-heat-empty: #222829;
+    --c-heat-empty: #283033;
     --c-band-danger-from: rgb(232 96 90 / 0.46);
     --c-band-danger-to: rgb(232 96 90 / 0.14);
     --c-band-brand-from: rgb(46 154 92 / 0.5);
@@ -167,19 +178,19 @@
 
 [data-theme="dark"] {
   color-scheme: dark;
-  --c-background: #15191b;
+  --c-background: #0f1314;
   --c-foreground: #edf0f0;
-  --c-canvas: #15191b;
+  --c-canvas: #0f1314;
   --c-ink: #edf0f0;
   --c-ink-muted: #b9c2c4;
-  --c-ink-faint: #8f9a9d;
-  --c-surface: #1d2224;
-  --c-surface-sunken: #191d1f;
-  --c-surface-panel: #262c2e;
-  --c-border: #323a3c;
-  --c-border-strong: #465053;
+  --c-ink-faint: #97a2a5;
+  --c-surface: #222a2d;
+  --c-surface-sunken: #1b2124;
+  --c-surface-panel: #2c3538;
+  --c-border: #384245;
+  --c-border-strong: #4d585c;
   --c-brand: #5cbd84;
-  --c-brand-fill: #1a7f45;
+  --c-brand-fill: #1c874a;
   --c-brand-deep: #9fd6b5;
   --c-brand-ink: #c6ead3;
   --c-brand-soft: #1b3326;
@@ -188,13 +199,17 @@
   --c-danger: #f2817a;
   --c-danger-deep: #f8aaa4;
   --c-danger-soft: #3b2224;
-  --c-danger-fill: #c8322c;
+  --c-danger-fill: #d13a33;
   --c-warning: #eab65a;
   --c-warning-fill: #e9a23b;
   --c-warning-soft: #382d17;
   --c-topbar: #0d382b;
   --c-topbar-line: rgb(255 255 255 / 0.07);
-  --c-ring: #2c3436;
+  --c-ring: #3a4447;
+  --c-shadow-1: rgb(0 0 0 / 0.3);
+  --c-shadow-2: rgb(0 0 0 / 0.35);
+  --c-shadow-3: rgb(0 0 0 / 0.45);
+  --c-shadow-4: rgb(0 0 0 / 0.55);
   --c-series-positive: #2e9a5c;
   --c-series-negative: #e8605a;
   --c-series-occupancy: #4a8de0;
@@ -205,10 +220,10 @@
   --c-series-deep: #9fd6b5;
   --c-chart-text: #b9c2c4;
   --c-chart-grid: rgb(255 255 255 / 0.08);
-  --c-chart-point-ring: #1d2224;
+  --c-chart-point-ring: #222a2d;
   --c-heat-green: 76 184 128;
   --c-heat-red: 240 104 96;
-  --c-heat-empty: #222829;
+  --c-heat-empty: #283033;
   --c-band-danger-from: rgb(232 96 90 / 0.46);
   --c-band-danger-to: rgb(232 96 90 / 0.14);
   --c-band-brand-from: rgb(46 154 92 / 0.5);
@@ -266,10 +281,10 @@
   /* Profundidad: todas las sombras llevan un aro de 1 px (--c-ring) además del difuminado, así que
      cualquier tarjeta con shadow-* queda delimitada sin necesitar un border. */
   --shadow-xs: 0 0 0 1px var(--c-ring);
-  --shadow-sm: 0 0 0 1px var(--c-ring), 0 1px 2px rgb(0 0 0 / 0.04);
-  --shadow-md: 0 0 0 1px var(--c-ring), 0 4px 14px rgb(0 0 0 / 0.05);
-  --shadow-lg: 0 0 0 1px var(--c-ring), 0 8px 28px -6px rgb(0 0 0 / 0.1);
-  --shadow-xl: 0 0 0 1px var(--c-ring), 0 18px 44px -10px rgb(0 0 0 / 0.16);
+  --shadow-sm: 0 0 0 1px var(--c-ring), 0 1px 2px var(--c-shadow-1);
+  --shadow-md: 0 0 0 1px var(--c-ring), 0 4px 14px var(--c-shadow-2);
+  --shadow-lg: 0 0 0 1px var(--c-ring), 0 8px 28px -6px var(--c-shadow-3);
+  --shadow-xl: 0 0 0 1px var(--c-ring), 0 18px 44px -10px var(--c-shadow-4);
 
   --font-display: var(--font-space-grotesk);
   --font-sans: var(--font-inter);
@@ -330,6 +345,10 @@ body {
       --c-topbar: #07271f;
       --c-topbar-line: transparent;
       --c-ring: #e3e7e8;
+      --c-shadow-1: rgb(0 0 0 / 0.04);
+      --c-shadow-2: rgb(0 0 0 / 0.05);
+      --c-shadow-3: rgb(0 0 0 / 0.1);
+      --c-shadow-4: rgb(0 0 0 / 0.16);
       --c-series-positive: #15803d;
       --c-series-negative: #dc2626;
       --c-series-occupancy: #2a78d6;
