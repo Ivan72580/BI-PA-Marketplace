@@ -18,8 +18,9 @@
    confirmación/cancelación, validadas por contraste y daltonismo en ambos temas (antes ocupación gris y
    conversión verde oscuro eran casi indistinguibles).
 
-   Oscuro: el fondo de la página es más oscuro que las tarjetas (aro de 1 px más visible y sombra
-   marcada), para que cada sección se lea como un bloque propio y no se mezcle con el fondo.
+   Oscuro: el fondo de la página es más oscuro que las tarjetas, y las tarjetas llevan "relieve"
+   (brillo superior, degradé leve, sombra marcada; ver más abajo), para que cada sección se lea como
+   un bloque propio sin sumar grises ni usar transparencia.
 
    Roles que el oscuro separa (en claro valen lo mismo):
    - brand / danger: color de TEXTO y trazos finos (↑ ↓, links). En oscuro, más claros.
@@ -62,6 +63,11 @@
   --c-shadow-2: rgb(0 0 0 / 0.05);
   --c-shadow-3: rgb(0 0 0 / 0.1);
   --c-shadow-4: rgb(0 0 0 / 0.16);
+  --c-card-highlight: transparent;
+  --c-surface-sheen: none;
+  --c-canvas-glow: none;
+  --c-drop-sm: 0 1px 2px 0;
+  --c-drop-md: 0 4px 14px 0;
   --c-series-positive: #15803d;
   --c-series-negative: #dc2626;
   --c-series-occupancy: #2a78d6;
@@ -110,7 +116,7 @@
     --c-ink: #edf0f0;
     --c-ink-muted: #b9c2c4;
     --c-ink-faint: #97a2a5;
-    --c-surface: #222a2d;
+    --c-surface: #20282b;
     --c-surface-sunken: #1b2124;
     --c-surface-panel: #2c3538;
     --c-border: #384245;
@@ -131,11 +137,16 @@
     --c-warning-soft: #382d17;
     --c-topbar: #0d382b;
     --c-topbar-line: rgb(255 255 255 / 0.07);
-    --c-ring: #3a4447;
+    --c-ring: #343e41;
     --c-shadow-1: rgb(0 0 0 / 0.3);
     --c-shadow-2: rgb(0 0 0 / 0.35);
     --c-shadow-3: rgb(0 0 0 / 0.45);
     --c-shadow-4: rgb(0 0 0 / 0.55);
+    --c-card-highlight: rgb(255 255 255 / 0.07);
+    --c-surface-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.045) 0%, rgb(255 255 255 / 0) 42%);
+    --c-canvas-glow: radial-gradient(1000px 480px at 12% -120px, rgb(28 135 74 / 0.16), transparent 70%);
+    --c-drop-sm: 0 6px 16px -6px;
+    --c-drop-md: 0 10px 26px -8px;
     --c-series-positive: #2e9a5c;
     --c-series-negative: #e8605a;
     --c-series-occupancy: #4a8de0;
@@ -146,7 +157,7 @@
     --c-series-deep: #9fd6b5;
     --c-chart-text: #b9c2c4;
     --c-chart-grid: rgb(255 255 255 / 0.08);
-    --c-chart-point-ring: #222a2d;
+    --c-chart-point-ring: #20282b;
     --c-heat-green: 76 184 128;
     --c-heat-red: 240 104 96;
     --c-heat-empty: #283033;
@@ -184,7 +195,7 @@
   --c-ink: #edf0f0;
   --c-ink-muted: #b9c2c4;
   --c-ink-faint: #97a2a5;
-  --c-surface: #222a2d;
+  --c-surface: #20282b;
   --c-surface-sunken: #1b2124;
   --c-surface-panel: #2c3538;
   --c-border: #384245;
@@ -205,11 +216,16 @@
   --c-warning-soft: #382d17;
   --c-topbar: #0d382b;
   --c-topbar-line: rgb(255 255 255 / 0.07);
-  --c-ring: #3a4447;
+  --c-ring: #343e41;
   --c-shadow-1: rgb(0 0 0 / 0.3);
   --c-shadow-2: rgb(0 0 0 / 0.35);
   --c-shadow-3: rgb(0 0 0 / 0.45);
   --c-shadow-4: rgb(0 0 0 / 0.55);
+  --c-card-highlight: rgb(255 255 255 / 0.07);
+  --c-surface-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.045) 0%, rgb(255 255 255 / 0) 42%);
+  --c-canvas-glow: radial-gradient(1000px 480px at 12% -120px, rgb(28 135 74 / 0.16), transparent 70%);
+  --c-drop-sm: 0 6px 16px -6px;
+  --c-drop-md: 0 10px 26px -8px;
   --c-series-positive: #2e9a5c;
   --c-series-negative: #e8605a;
   --c-series-occupancy: #4a8de0;
@@ -220,7 +236,7 @@
   --c-series-deep: #9fd6b5;
   --c-chart-text: #b9c2c4;
   --c-chart-grid: rgb(255 255 255 / 0.08);
-  --c-chart-point-ring: #222a2d;
+  --c-chart-point-ring: #20282b;
   --c-heat-green: 76 184 128;
   --c-heat-red: 240 104 96;
   --c-heat-empty: #283033;
@@ -279,12 +295,13 @@
   --color-topbar-line: var(--c-topbar-line);
 
   /* Profundidad: todas las sombras llevan un aro de 1 px (--c-ring) además del difuminado, así que
-     cualquier tarjeta con shadow-* queda delimitada sin necesitar un border. */
+     cualquier tarjeta con shadow-* queda delimitada sin necesitar un border. En oscuro suman un brillo
+     de 1 px en el borde superior (--c-card-highlight) y una sombra más larga (--c-drop-*): "relieve". */
   --shadow-xs: 0 0 0 1px var(--c-ring);
-  --shadow-sm: 0 0 0 1px var(--c-ring), 0 1px 2px var(--c-shadow-1);
-  --shadow-md: 0 0 0 1px var(--c-ring), 0 4px 14px var(--c-shadow-2);
-  --shadow-lg: 0 0 0 1px var(--c-ring), 0 8px 28px -6px var(--c-shadow-3);
-  --shadow-xl: 0 0 0 1px var(--c-ring), 0 18px 44px -10px var(--c-shadow-4);
+  --shadow-sm: inset 0 1px 0 var(--c-card-highlight), 0 0 0 1px var(--c-ring), var(--c-drop-sm) var(--c-shadow-1);
+  --shadow-md: inset 0 1px 0 var(--c-card-highlight), 0 0 0 1px var(--c-ring), var(--c-drop-md) var(--c-shadow-2);
+  --shadow-lg: inset 0 1px 0 var(--c-card-highlight), 0 0 0 1px var(--c-ring), 0 8px 28px -6px var(--c-shadow-3);
+  --shadow-xl: inset 0 1px 0 var(--c-card-highlight), 0 0 0 1px var(--c-ring), 0 18px 44px -10px var(--c-shadow-4);
 
   --font-display: var(--font-space-grotesk);
   --font-sans: var(--font-inter);
@@ -349,6 +366,11 @@ body {
       --c-shadow-2: rgb(0 0 0 / 0.05);
       --c-shadow-3: rgb(0 0 0 / 0.1);
       --c-shadow-4: rgb(0 0 0 / 0.16);
+      --c-card-highlight: transparent;
+      --c-surface-sheen: none;
+      --c-canvas-glow: none;
+      --c-drop-sm: 0 1px 2px 0;
+      --c-drop-md: 0 4px 14px 0;
       --c-series-positive: #15803d;
       --c-series-negative: #dc2626;
       --c-series-occupancy: #2a78d6;
@@ -414,6 +436,14 @@ body {
   border-radius: 2px;
   background: repeating-linear-gradient(to bottom, var(--c-rank-ref) 0 2px, transparent 2px 6px);
 }
+
+/* ---------- Relieve (modo oscuro) ----------
+   Profundidad con luz, no con transparencia: las tarjetas siguen opacas (cada color de dato se ve
+   igual en cualquier lugar de la página) y suman un degradé casi imperceptible de arriba hacia abajo;
+   el fondo de la página, un halo verde suave arriba. En claro ambos tokens valen "none".
+   Fuera de @layer a propósito: solo agregan background-image, que ninguna utilidad combina con estas. */
+.bg-surface { background-image: var(--c-surface-sheen); }
+.bg-canvas { background-image: var(--c-canvas-glow); background-repeat: no-repeat; }
 
 /* ---------- Mapas (Leaflet) ----------
    Las teselas de OpenStreetMap son claras; en oscuro se atenúan un poco en vez de invertirlas
