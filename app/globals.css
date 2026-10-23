@@ -26,17 +26,17 @@
    - brand / danger: color de TEXTO y trazos finos (↑ ↓, links). En oscuro, más claros.
    - brand-fill / danger-fill: RELLENOS con texto blanco encima (botones, barras, chips sólidos).
      En oscuro, más profundos, para que el blanco mantenga 4.5:1.
-   - ink-faint en claro: 4.6:1 sobre blanco; warning (texto): 5:1 sobre blanco. */
+   - ink-faint en claro: 4.6:1 sobre el fondo gris de la página (5.1:1 sobre blanco); warning (texto): 5:1 sobre blanco. */
 
 :root,
 [data-theme="light"] {
   color-scheme: light;
-  --c-background: #ffffff;
+  --c-background: #f3f6f6;
   --c-foreground: #000000;
-  --c-canvas: #ffffff;
+  --c-canvas: #f3f6f6;
   --c-ink: #000000;
   --c-ink-muted: #394447;
-  --c-ink-faint: #6b787b;
+  --c-ink-faint: #637073;
   --c-surface: #ffffff;
   --c-surface-sunken: #f9fbfb;
   --c-surface-panel: #f1f4f4;
@@ -59,15 +59,15 @@
   --c-topbar: #07271f;
   --c-topbar-line: transparent;
   --c-ring: #e3e7e8;
-  --c-shadow-1: rgb(0 0 0 / 0.04);
-  --c-shadow-2: rgb(0 0 0 / 0.05);
+  --c-shadow-1: rgb(0 0 0 / 0.1);
+  --c-shadow-2: rgb(0 0 0 / 0.12);
   --c-shadow-3: rgb(0 0 0 / 0.1);
   --c-shadow-4: rgb(0 0 0 / 0.16);
   --c-card-highlight: transparent;
   --c-surface-sheen: none;
-  --c-canvas-glow: none;
-  --c-drop-sm: 0 1px 2px 0;
-  --c-drop-md: 0 4px 14px 0;
+  --c-canvas-glow: radial-gradient(1000px 420px at 12% -120px, rgb(21 128 61 / 0.07), transparent 70%);
+  --c-drop-sm: 0 4px 12px -6px;
+  --c-drop-md: 0 8px 22px -10px;
   --c-series-positive: #15803d;
   --c-series-negative: #dc2626;
   --c-series-occupancy: #2a78d6;
@@ -440,7 +440,9 @@ body {
 /* ---------- Relieve (modo oscuro) ----------
    Profundidad con luz, no con transparencia: las tarjetas siguen opacas (cada color de dato se ve
    igual en cualquier lugar de la página) y suman un degradé casi imperceptible de arriba hacia abajo;
-   el fondo de la página, un halo verde suave arriba. En claro ambos tokens valen "none".
+   el fondo de la página, un halo verde suave arriba. En claro no se puede iluminar una tarjeta blanca:
+   el relieve sale de bajar el fondo de la página a gris muy claro (#f3f6f6) y de una sombra más larga.
+   Impresión: siempre plana y blanca (ver @media print).
    Fuera de @layer a propósito: solo agregan background-image, que ninguna utilidad combina con estas. */
 .bg-surface { background-image: var(--c-surface-sheen); }
 .bg-canvas { background-image: var(--c-canvas-glow); background-repeat: no-repeat; }
