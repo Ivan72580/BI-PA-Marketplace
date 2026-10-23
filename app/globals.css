@@ -88,3 +88,24 @@ body {
   }
 }
 
+
+/* ---------- Listas de ranking (RankRowView) ----------
+   Banda de fondo proporcional con degradado suave; en "muestra chica" lleva además trazos diagonales muy finos.
+   La marca de referencia (promedio de la red) es una línea punteada fina, más corta que la fila. */
+.rank-band-danger { background: linear-gradient(90deg, rgb(220 38 38 / 0.3), rgb(220 38 38 / 0.09)); }
+.rank-band-brand { background: linear-gradient(90deg, rgb(21 128 61 / 0.3), rgb(21 128 61 / 0.09)); }
+.rank-small::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: repeating-linear-gradient(135deg, rgb(255 255 255 / 0.3) 0 1.5px, transparent 1.5px 7px);
+}
+.rank-ref {
+  position: absolute;
+  top: 9px;
+  bottom: 9px;
+  width: 2px;
+  border-radius: 2px;
+  background: repeating-linear-gradient(to bottom, rgb(0 0 0 / 0.3) 0 2px, transparent 2px 6px);
+}

@@ -1003,7 +1003,54 @@
       "allFacilitiesRegion": "All facilities — {region}",
       "clickToExpand": "({n} — click to expand)",
       "cumulativeSuffix": "{pct} cumul.",
-      "gamesSuffix": "{n} games"
+      "gamesSuffix": "{n} games",
+      "rate": {
+        "noData": "Not enough data.",
+        "empty": "No facility matches this filter in the period.",
+        "games": "{n} games",
+        "refTitle": "Network average: {rate}",
+        "loading": "Loading detail…",
+        "error": "Couldn't load the detail. Try again.",
+        "filters": {
+          "label": "Quick filters",
+          "all": "All",
+          "priority": "Priority",
+          "worse": "Got worse",
+          "small": "Small sample"
+        },
+        "detail": {
+          "trend": "Last {n} periods",
+          "trendAria": "Cancellation rate over recent periods, with the network average as reference",
+          "noPrior": "No comparable prior period",
+          "vsPrior": "{pts} pts vs. prior period",
+          "why": "Why games are cancelled",
+          "noReasons": "No cancellations in the period.",
+          "notInRate": "not in the rate",
+          "open": "Open analysis"
+        },
+        "glossary": {
+          "network": {
+            "term": "Dotted line",
+            "def": "demand-driven cancellation average of the network (or the selected scope) in the period. A band that passes it is above average."
+          },
+          "small": {
+            "term": "Fine-striped bar (small sample)",
+            "def": "the facility has fewer than {n} games in the period: the rate can swing a lot with a single game, so read it as a signal, not a conclusion."
+          },
+          "priority": {
+            "term": "Priority",
+            "def": "{games} games or more and {rate}% or higher cancellation: high volume and high cancellation together, where acting matters most."
+          },
+          "worse": {
+            "term": "Got worse",
+            "def": "the rate rose {pts} points or more versus the prior period."
+          },
+          "scope": {
+            "term": "What counts in the rate",
+            "def": "only demand-driven cancellations (not enough players or no reason recorded). Each row's detail also shows the other cancellations, marked “not in the rate”."
+          }
+        }
+      }
     },
     "facilityTable": {
       "headers": {

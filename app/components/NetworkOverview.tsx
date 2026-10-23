@@ -25,6 +25,9 @@ import Heatmap from "./Heatmap";
 import KpiCard from "./KpiCard";
 import ChangeBadge from "./ChangeBadge";
 import RankingCard, { type RankingRow } from "./RankingCard";
+import { getFacilityDemandCancelRates } from "../lib/db/rankingDetail";
+import RankingCardRate, { type RateRow } from "./RankingCardRate";
+import { SMALL_SAMPLE_GAMES, PRIORITY_MIN_GAMES, PRIORITY_MIN_RATE, WORSE_MIN_DELTA } from "../lib/rankingFlags";
 import LayerNav from "./LayerNav";
 import LayerSection from "./LayerSection";
 import ScrollToTab from "./ScrollToTab";
@@ -156,6 +159,12 @@ export default async function NetworkOverview({
             )
           : [];
 
+      // Tasa del período anterior de las facilities del ranking de peor tasa (alimenta el filtro "Empeoraron").
+      const priorRates: Record<string, number> =
+        compare && comparePeriod?.dateFrom && comparePeriod?.dateTo
+          ? await getFacilityDemandCancelRates(current.worstCancellationRate.map((f) => f.facilityId), comparePeriod.dateFrom.toISOString(), comparePeriod.dateTo.toISOString())
+          : {};
+
       const topReason = current.cancellationBreakdown[0] ?? null;
       const topReasonFacility = topReason ? await getTopCancellationFacilityForReason(scopeFilters, topReason.category) : null;
 
@@ -276,6 +285,7 @@ export default async function NetworkOverview({
         top5: top5WithRank,
         marketTeaser,
         topReasonFacility,
+        priorRates,
       };
     })
   );
@@ -671,7 +681,7 @@ export default async function NetworkOverview({
   // cancelación sin separar.
   const cancellationsContent = (
     <div className="space-y-6">
-      {scopeData.map(({ scope, current, prior, contribution, topReasonFacility }) => {
+      {scopeData.map(({ scope, current, prior, contribution, topReasonFacility, priorRates }) => {
         const priorParetoCancelledOrder = prior?.paretoCancellations.map((f) => f.facilityId) ?? null;
         const priorWorstRateOrder = prior?.worstCancellationRate.map((f) => f.facilityId) ?? null;
         const priorCancelledValue = new Map((prior?.paretoCancellations ?? []).map((f): [string, number] => [f.facilityId, f.value]));
@@ -681,9 +691,9 @@ export default async function NetworkOverview({
           value: f.value, extra: t("rankings.cumulativeSuffix", { pct: formatPct(f.cumulativePct) }), rankChange: f.rankChange,
           delta: prior ? pctDelta(f.value, priorCancelledValue.get(f.facilityId)) ?? null : undefined,
         }));
-        const worstRateRows: RankingRow[] = withRankChange(current.worstCancellationRate, priorWorstRateOrder).map((f) => ({
-          facilityId: f.facilityId, marketId: f.marketId, regionId: f.regionId, label: f.label,
-          value: Math.round(f.rate * 100), extra: t("rankings.gamesSuffix", { n: f.totalGames }), rankChange: f.rankChange,
+        const worstRateRows: RateRow[] = withRankChange(current.worstCancellationRate, priorWorstRateOrder).map((f) => ({
+          facilityId: f.facilityId, label: f.label, href: buildQuery(sp, { facilityId: f.facilityId, marketId: f.marketId, regionId: f.regionId }),
+          rate: f.rate, games: f.totalGames, priorRate: priorRates[f.facilityId] ?? null, rankChange: f.rankChange,
         }));
         const cancelContribRows: RankingRow[] = [...contribution]
           .sort((a, b) => b.excessCancellations - a.excessCancellations)
@@ -726,13 +736,24 @@ export default async function NetworkOverview({
               />
               <Glossary items={[{ term: t("rankings.cumulativePctGlossary.term"), def: t("rankings.cumulativePctGlossary.def") }]} />
 
-              <RankingCard
+              <RankingCardRate
                 title={t("rankings.worstRateTitle")}
                 subtitle={t("rankings.worstRateSubtitle")}
                 rows={worstRateRows}
-                buildHref={(facilityId, marketId, regionId) => buildQuery(sp, { facilityId, marketId, regionId })}
-                formatValue={(v) => `${v}%`}
-                tone="danger"
+                networkRate={current.cancellationRate}
+                detail={{
+                  from: period.dateFrom!.toISOString(), to: period.dateTo!.toISOString(), unit: heroWindow.unit,
+                  windowStart: heroWindow.windowStart.toISOString(), windowEnd: heroWindow.windowEnd.toISOString(), locale,
+                }}
+              />
+              <Glossary
+                items={[
+                  { term: t("rankings.rate.glossary.network.term"), def: t("rankings.rate.glossary.network.def") },
+                  { term: t("rankings.rate.glossary.small.term"), def: t("rankings.rate.glossary.small.def", { n: SMALL_SAMPLE_GAMES }) },
+                  { term: t("rankings.rate.glossary.priority.term"), def: t("rankings.rate.glossary.priority.def", { games: PRIORITY_MIN_GAMES, rate: Math.round(PRIORITY_MIN_RATE * 100) }) },
+                  { term: t("rankings.rate.glossary.worse.term"), def: t("rankings.rate.glossary.worse.def", { pts: Math.round(WORSE_MIN_DELTA * 100) }) },
+                  { term: t("rankings.rate.glossary.scope.term"), def: t("rankings.rate.glossary.scope.def") },
+                ]}
               />
             </GroupSection>
 

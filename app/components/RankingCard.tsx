@@ -1,5 +1,4 @@
-import Link from "next/link";
-import ChangeBadge from "./ChangeBadge";
+import RankRowView, { RankGrid } from "./RankRowView";
 
 export type RankingRow = {
   facilityId: string;
@@ -17,28 +16,6 @@ export type RankingRow = {
   delta?: number | null;
 };
 
-function RankIndicator({ rankChange }: { rankChange: number | null | undefined }) {
-  if (rankChange === undefined) return null;
-  if (rankChange === null) {
-    return <span className="text-[10px] text-ink-faint w-8 shrink-0" title="No estaba en el ranking del período anterior">nuevo</span>;
-  }
-  if (rankChange === 0) {
-    return <span className="text-ink-faint w-4 shrink-0 text-center" title="Se mantuvo en la misma posición">—</span>;
-  }
-  if (rankChange > 0) {
-    return (
-      <span className="text-brand text-xs w-6 shrink-0 flex items-center gap-0.5" title={`Subió ${rankChange} posición(es)`}>
-        ▲{rankChange}
-      </span>
-    );
-  }
-  return (
-    <span className="text-danger text-xs w-6 shrink-0 flex items-center gap-0.5" title={`Bajó ${Math.abs(rankChange)} posición(es)`}>
-      ▼{Math.abs(rankChange)}
-    </span>
-  );
-}
-
 export default function RankingCard({
   title,
   subtitle,
@@ -54,45 +31,33 @@ export default function RankingCard({
   buildHref: (facilityId: string, marketId: string, regionId: string) => string;
   formatValue: (v: number) => string;
   tone?: "brand" | "danger";
-  // Para métricas donde SUBIR es malo (ej. cancelaciones) — invierte el
-  // color/flecha de ChangeBadge, igual que ya se hace en otros lados de
-  // Overview con `<ChangeBadge invert />`. Default false: no cambia nada
-  // para los rankings que ya usan este componente.
+  // Para métricas donde SUBIR es malo (ej. cancelaciones) — invierte el color/flecha de ChangeBadge.
   invertDelta?: boolean;
 }) {
   const max = Math.max(1, ...rows.map((r) => r.value));
-  const barColor = tone === "danger" ? "bg-danger/70" : "bg-brand/70";
 
   return (
     <div className="rounded-2xl bg-surface shadow-sm hover:shadow-lg transition-shadow p-5">
       <h3 className="text-sm font-medium text-ink mb-0.5">{title}</h3>
       {subtitle && <p className="text-xs text-ink-faint mb-4">{subtitle}</p>}
       {rows.length === 0 && <div className="text-sm text-ink-faint">Sin datos suficientes.</div>}
-      <div className="space-y-2.5">
+      <RankGrid>
         {rows.map((item, i) => (
-          <Link
+          <RankRowView
             key={item.facilityId}
+            rank={i + 1}
+            label={item.label}
+            valueText={item.displayValue ?? formatValue(item.value)}
+            extra={item.extra}
+            rankChange={item.rankChange}
+            delta={item.delta}
+            invertDelta={invertDelta}
+            fraction={item.value / max}
+            tone={tone}
             href={buildHref(item.facilityId, item.marketId, item.regionId)}
-            className="block group"
-          >
-            <div className="flex justify-between text-sm mb-1">
-              <span className="flex items-center gap-1.5 min-w-0">
-                <span className="text-ink-faint text-xs w-4 shrink-0">{i + 1}.</span>
-                <RankIndicator rankChange={item.rankChange} />
-                <span className="text-brand group-hover:underline truncate">{item.label}</span>
-              </span>
-              <span className="text-ink font-medium shrink-0 ml-2 flex items-center gap-1.5">
-                {item.displayValue ?? formatValue(item.value)}
-                {item.extra && <span className="text-ink-faint font-normal"> · {item.extra}</span>}
-                {item.delta !== undefined && <ChangeBadge value={item.delta} invert={invertDelta} />}
-              </span>
-            </div>
-            <div className="h-1.5 rounded-full bg-surface-sunken overflow-hidden">
-              <div className={`h-1.5 rounded-full ${barColor}`} style={{ width: `${(item.value / max) * 100}%` }} />
-            </div>
-          </Link>
+          />
         ))}
-      </div>
+      </RankGrid>
     </div>
   );
 }

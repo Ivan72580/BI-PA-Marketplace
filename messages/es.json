@@ -1003,7 +1003,54 @@
       "allFacilitiesRegion": "Todas las facilities — {region}",
       "clickToExpand": "({n} — click para desplegar)",
       "cumulativeSuffix": "{pct} acum.",
-      "gamesSuffix": "{n} partidos"
+      "gamesSuffix": "{n} partidos",
+      "rate": {
+        "noData": "Sin datos suficientes.",
+        "empty": "Ninguna facility cumple este filtro en el período.",
+        "games": "{n} partidos",
+        "refTitle": "Promedio de la red: {rate}",
+        "loading": "Cargando detalle…",
+        "error": "No se pudo cargar el detalle. Probá de nuevo.",
+        "filters": {
+          "label": "Filtros rápidos",
+          "all": "Todas",
+          "priority": "Prioridad",
+          "worse": "Empeoraron",
+          "small": "Muestra chica"
+        },
+        "detail": {
+          "trend": "Últimos {n} períodos",
+          "trendAria": "Tasa de cancelación en los últimos períodos, con el promedio de la red de referencia",
+          "noPrior": "Sin período anterior comparable",
+          "vsPrior": "{pts} pts vs. período anterior",
+          "why": "Por qué se cancela",
+          "noReasons": "Sin cancelaciones en el período.",
+          "notInRate": "no entra en la tasa",
+          "open": "Abrir análisis"
+        },
+        "glossary": {
+          "network": {
+            "term": "Línea punteada",
+            "def": "promedio de cancelación por demanda de la red (o del alcance elegido) en el período. Una banda que la pasa está por encima del promedio."
+          },
+          "small": {
+            "term": "Barra con trazos finos (muestra chica)",
+            "def": "la facility tiene menos de {n} partidos en el período: la tasa puede cambiar mucho con un solo partido, así que conviene leerla como señal y no como conclusión."
+          },
+          "priority": {
+            "term": "Prioridad",
+            "def": "{games} partidos o más y {rate}% o más de cancelación: mucho volumen y mucha cancelación a la vez, donde más conviene intervenir."
+          },
+          "worse": {
+            "term": "Empeoraron",
+            "def": "la tasa subió {pts} puntos o más contra el período anterior."
+          },
+          "scope": {
+            "term": "Qué entra en la tasa",
+            "def": "solo las cancelaciones por demanda (jugadores insuficientes o sin motivo cargado). En el detalle de cada fila se ven también las demás cancelaciones, marcadas como «no entra en la tasa»."
+          }
+        }
+      }
     },
     "facilityTable": {
       "headers": {
