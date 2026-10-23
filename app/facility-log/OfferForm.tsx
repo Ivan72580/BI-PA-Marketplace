@@ -70,7 +70,7 @@ export default function OfferForm({ facilityId, current }: { facilityId: string;
       </div>
       {error && <p role="alert" className="text-xs text-danger">{error}</p>}
       <div className="flex gap-2">
-        <button type="button" disabled={pending || !modality} onClick={submit} className="rounded-full bg-ink px-4 py-2 text-sm font-medium text-white hover:bg-ink/85 disabled:opacity-50 transition-colors">
+        <button type="button" disabled={pending || !modality} onClick={submit} className="rounded-full bg-ink px-4 py-2 text-sm font-medium text-surface hover:bg-ink/85 disabled:opacity-50 transition-colors">
           {t("save")}
         </button>
         <button type="button" disabled={pending} onClick={() => setOpen(false)} className="rounded-full bg-surface px-3.5 py-2 text-sm font-medium text-ink shadow-sm disabled:opacity-50">

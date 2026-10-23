@@ -315,17 +315,17 @@ export default async function ForecastPage({ searchParams }: { searchParams: Pro
                 <div>
                   <div className="h-2.5 rounded-full overflow-hidden bg-surface-sunken flex">
                     <div
-                      className="h-2.5 bg-brand"
+                      className="h-2.5 bg-brand-fill"
                       style={{ width: `${(forecast.predictedConfirmedGames / (forecast.predictedConfirmedGames + forecast.predictedCancelledGames)) * 100}%` }}
                     />
                     <div
-                      className="h-2.5 bg-danger"
+                      className="h-2.5 bg-danger-fill"
                       style={{ width: `${(forecast.predictedCancelledGames / (forecast.predictedConfirmedGames + forecast.predictedCancelledGames)) * 100}%` }}
                     />
                   </div>
                   <div className="flex items-center gap-4 mt-1.5 text-xs text-ink-muted">
-                    <span><span className="inline-block w-2 h-2 rounded-full bg-brand mr-1" />{t("breakdown.confirmed")}: {formatNum(forecast.predictedConfirmedGames)}</span>
-                    <span><span className="inline-block w-2 h-2 rounded-full bg-danger mr-1" />{t("breakdown.cancelled")}: {formatNum(forecast.predictedCancelledGames)}</span>
+                    <span><span className="inline-block w-2 h-2 rounded-full bg-brand-fill mr-1" />{t("breakdown.confirmed")}: {formatNum(forecast.predictedConfirmedGames)}</span>
+                    <span><span className="inline-block w-2 h-2 rounded-full bg-danger-fill mr-1" />{t("breakdown.cancelled")}: {formatNum(forecast.predictedCancelledGames)}</span>
                   </div>
                 </div>
               ) : (

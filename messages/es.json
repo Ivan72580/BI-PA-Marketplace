@@ -73,7 +73,11 @@
     "signOut": "Salir",
     "adminLink": "Administración",
     "reportsLink": "Reportes",
-    "language": "Idioma"
+    "language": "Idioma",
+    "theme": "Apariencia",
+    "themeSystem": "Sistema",
+    "themeLight": "Claro",
+    "themeDark": "Oscuro"
   },
   "Admin": {
     "usersTitle": "Usuarios",

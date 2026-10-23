@@ -21,6 +21,7 @@ import LineChart from "../components/charts/LineChart";
 import InsightsPanel, { type PanelInsight } from "../components/InsightsPanel";
 import SeasonPlan from "../components/SeasonPlan";
 import SeasonalityCalendar, { type SeasonalityMonthCardVM } from "../components/SeasonalityCalendar";
+import { tc } from "@/app/lib/themeTokens";
 
 type MetricKey = "confirmedGames" | "revenue" | "cumulativeGames" | "cumulativeRevenue";
 const METRIC_KEYS: MetricKey[] = ["confirmedGames", "revenue", "cumulativeGames", "cumulativeRevenue"];
@@ -71,14 +72,14 @@ function isHistMetricKey(value: string | undefined): value is HistMetricKey {
 // de diseño no tiene 8 tonos categóricos distintos, así que cada métrica
 // se mira de a una (tabs), no las 8 superpuestas en un mismo gráfico.
 const HIST_METRIC_COLORS: Record<HistMetricKey, string> = {
-  confirmedGames: "#15803d",
-  cancelledGames: "#dc2626",
-  confirmationRate: "#15803d",
-  cancellationRate: "#dc2626",
-  occupancyRate: "#394447",
-  conversionRate: "#0b3b2e",
-  avgWaitlist: "#f59e0b",
-  medianLeadTime: "#0b3b2e",
+  confirmedGames: tc("series-positive"),
+  cancelledGames: tc("series-negative"),
+  confirmationRate: tc("series-positive"),
+  cancellationRate: tc("series-negative"),
+  occupancyRate: tc("series-occupancy"),
+  conversionRate: tc("series-conversion"),
+  avgWaitlist: tc("series-warning"),
+  medianLeadTime: tc("series-deep"),
 };
 
 function histMetricValue(p: SeasonalMonthPoint, key: HistMetricKey): number | null {
@@ -382,9 +383,9 @@ export default async function SeasonalityPage({ searchParams }: { searchParams: 
   const lineChartData = {
     labels: monthLabels,
     datasets: [
-      { label: t("chart.legend", { year }), data: activeSeries.current, borderColor: "#15803d" },
+      { label: t("chart.legend", { year }), data: activeSeries.current, borderColor: tc("series-positive") },
       ...(showCompare
-        ? [{ label: t("chart.legend", { year: year - 1 }), data: activeSeries.prior, borderColor: "#9ca3af", borderDash: [6, 4], fill: false }]
+        ? [{ label: t("chart.legend", { year: year - 1 }), data: activeSeries.prior, borderColor: tc("series-prior"), borderDash: [6, 4], fill: false }]
         : []),
     ],
   };
@@ -481,7 +482,7 @@ export default async function SeasonalityPage({ searchParams }: { searchParams: 
                 key={m}
                 href={buildSeasonalityQuery(sp, { metric: m === "confirmedGames" ? undefined : m })}
                 className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                  metric === m ? "bg-brand text-white" : "bg-surface-sunken text-ink-muted hover:bg-brand-soft"
+                  metric === m ? "bg-brand-fill text-white" : "bg-surface-sunken text-ink-muted hover:bg-brand-soft"
                 }`}
               >
                 {t(`chart.metric.${m}`)}
@@ -491,7 +492,7 @@ export default async function SeasonalityPage({ searchParams }: { searchParams: 
           <Link
             href={buildSeasonalityQuery(sp, { compare: showCompare ? "0" : undefined })}
             className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors shrink-0 ${
-              showCompare ? "bg-brand text-white" : "bg-surface-sunken text-ink-muted hover:bg-brand-soft"
+              showCompare ? "bg-brand-fill text-white" : "bg-surface-sunken text-ink-muted hover:bg-brand-soft"
             }`}
           >
             {t(showCompare ? "compare.hide" : "compare.show")}
@@ -547,7 +548,7 @@ export default async function SeasonalityPage({ searchParams }: { searchParams: 
               key={key}
               href={buildSeasonalityQuery(sp, { histMetric: key === "confirmedGames" ? undefined : key })}
               className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                histMetric === key ? "bg-brand text-white" : "bg-surface-sunken text-ink-muted hover:bg-brand-soft"
+                histMetric === key ? "bg-brand-fill text-white" : "bg-surface-sunken text-ink-muted hover:bg-brand-soft"
               }`}
             >
               {t(`historicalPattern.metric.${key}`)}

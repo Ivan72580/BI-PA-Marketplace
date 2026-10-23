@@ -94,8 +94,8 @@ const ALERT_BG: Record<Severity, string> = {
   info: "bg-surface-sunken",
 };
 const ALERT_DOT: Record<Severity, string> = {
-  critical: "bg-danger",
-  notable: "bg-brand",
+  critical: "bg-danger-fill",
+  notable: "bg-brand-fill",
   info: "bg-ink-faint",
 };
 const SEVERITY_RANK: Record<Severity, number> = { critical: 0, notable: 1, info: 2 };

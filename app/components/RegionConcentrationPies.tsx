@@ -2,11 +2,10 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { getParetoGroups, getFilterOptions, type OverviewFilters } from "../lib/db/queries";
 import PieChart from "./charts/PieChart";
+import { tc } from "@/app/lib/themeTokens";
 
-const PIE_COLORS = [
-  "#0b3b2e", "#0c4430", "#0e4c32", "#0f5534", "#105e36", "#116637", "#126f39", "#14773b",
-  "#15803d", "#329156", "#50a26e", "#6db386", "#8ac49f", "#a8d5b8", "#9aa6a8", "#394447",
-];
+// Escala de verdes por tema (globals.css → --c-ramp-1..16).
+const PIE_COLORS = Array.from({ length: 16 }, (_, i) => tc(`ramp-${i + 1}`));
 
 function formatPct(n: number) {
   return `${(n * 100).toFixed(1)}%`;

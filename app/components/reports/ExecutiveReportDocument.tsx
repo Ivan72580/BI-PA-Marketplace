@@ -7,6 +7,7 @@ import LineChart from "../charts/LineChart";
 import MiniCompareBars from "../charts/MiniCompareBars";
 import Sparkline from "../charts/Sparkline";
 import { rowsForComparison, focusCompareLabels } from "./comparisonRows";
+import { tc } from "@/app/lib/themeTokens";
 
 type Translator = (key: string, values?: Record<string, string | number>) => string;
 
@@ -41,12 +42,12 @@ export default function ExecutiveReportDocument({ core, t, scopeLabel }: { core:
 
   const chartData = {
     labels: evolution.map((p) => p.label),
-    datasets: [{ label: t("evolution.legend"), data: evolution.map((p) => p.confirmedGames), borderColor: "#15803d" }],
+    datasets: [{ label: t("evolution.legend"), data: evolution.map((p) => p.confirmedGames), borderColor: tc("series-positive") }],
   };
 
   return (
     <article className="space-y-4 print:space-y-3">
-      <header className="rounded-2xl bg-ink text-white p-4 print:rounded-none print:p-0 print:pb-2 print:border-b-2 print:border-ink print:bg-transparent print:text-ink">
+      <header className="rounded-2xl bg-ink text-surface p-4 print:rounded-none print:p-0 print:pb-2 print:border-b-2 print:border-ink print:bg-transparent print:text-ink">
         <div className="text-[11px] uppercase tracking-wide text-white/70 print:text-ink-muted mb-0.5 print:text-[8pt]">
           Plei Marketplace Intelligence
         </div>
@@ -122,7 +123,7 @@ export default function ExecutiveReportDocument({ core, t, scopeLabel }: { core:
           <ul className="divide-y divide-border">
             {worstFacilities.map((f, i) => (
               <li key={f.facilityId} className="flex items-center gap-2.5 py-1.5">
-                <span className="w-[18px] h-[18px] rounded-full bg-danger text-white text-[10px] font-bold flex items-center justify-center shrink-0 print:text-[8pt]">
+                <span className="w-[18px] h-[18px] rounded-full bg-danger-fill text-white text-[10px] font-bold flex items-center justify-center shrink-0 print:text-[8pt]">
                   {i + 1}
                 </span>
                 <span className="font-semibold text-ink text-sm flex-1 print:text-[9pt]">{f.label}</span>
@@ -184,7 +185,7 @@ export default function ExecutiveReportDocument({ core, t, scopeLabel }: { core:
                   {item.kind === "decliningSlot" && item.trendSeries && item.trendSeries.length >= 2 && (
                     <div className="mt-2">
                       <div className="text-[10px] text-ink-faint mb-0.5 print:text-[7pt]">{t("opportunity.trend.label")}</div>
-                      <Sparkline values={item.trendSeries} height={32} color="#dc2626" fill={false} />
+                      <Sparkline values={item.trendSeries} height={32} color="var(--c-series-negative)" fill={false} />
                     </div>
                   )}
                   <ul className="mt-1.5 space-y-1 list-disc list-inside">

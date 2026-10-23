@@ -45,6 +45,7 @@ import Glossary from "../components/Glossary";
 import DetalleTable from "../components/DetalleTable";
 import ChangeBadge from "../components/ChangeBadge";
 import QuarterClimate from "../components/QuarterClimate";
+import { tc } from "@/app/lib/themeTokens";
 
 type SP = {
   regionId?: string; marketId?: string; facilityId?: string;
@@ -55,7 +56,8 @@ type SP = {
 };
 
 const TREND_GRANULARITIES: Granularity[] = ["year", "semester", "quarter", "month"];
-const METRIC_COLORS = { confirmation: "#15803d", cancellation: "#dc2626", occupancy: "#394447", conversion: "#0b3b2e" };
+// Tokens de tema (globals.css → --c-series-*): Chart.js los resuelve según claro/oscuro.
+const METRIC_COLORS = { confirmation: tc("series-positive"), cancellation: tc("series-negative"), occupancy: tc("series-occupancy"), conversion: tc("series-conversion") };
 
 function formatPct(n: number) {
   return `${(n * 100).toFixed(1)}%`;
@@ -159,8 +161,8 @@ function RateBarList({
             </span>
           </div>
           <div className="h-1.5 rounded-full overflow-hidden flex bg-surface-sunken">
-            <div className="h-1.5 bg-brand" style={{ width: `${r.confirmationRate * 100}%` }} />
-            <div className="h-1.5 bg-danger" style={{ width: `${r.cancellationRate * 100}%` }} />
+            <div className="h-1.5 bg-brand-fill" style={{ width: `${r.confirmationRate * 100}%` }} />
+            <div className="h-1.5 bg-danger-fill" style={{ width: `${r.cancellationRate * 100}%` }} />
           </div>
           {(r.occupancyRate !== undefined || r.conversionRate !== undefined) && (
             <div className="text-[10px] text-ink-faint/80 mt-0.5">
@@ -380,8 +382,8 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
                   <div className="rounded-2xl bg-surface shadow-sm p-3">
                     <LandingMap bubbles={landingBubbles} selectedKey={focusMarket?.id ?? null} rateLabel={t("landing.map.rateLabel")} gamesLabel={t("landing.map.gamesLabel")} />
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-[11px] text-ink-faint" title={t("landing.map.sizeHint")}>
-                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-brand" aria-hidden="true" />{t("landing.map.legendOk", { pct: Math.round(MUST_SCHEDULE_MIN_RATE * 100) })}</span>
-                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-danger" aria-hidden="true" />{t("landing.map.legendLow", { pct: Math.round(MUST_SCHEDULE_MIN_RATE * 100) })}</span>
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-brand-fill" aria-hidden="true" />{t("landing.map.legendOk", { pct: Math.round(MUST_SCHEDULE_MIN_RATE * 100) })}</span>
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-danger-fill" aria-hidden="true" />{t("landing.map.legendLow", { pct: Math.round(MUST_SCHEDULE_MIN_RATE * 100) })}</span>
                     </div>
                   </div>
                 )}
@@ -412,7 +414,7 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
                                 </span>
                               </div>
                               <div className="h-1 rounded-full bg-surface-sunken mt-1.5">
-                                <div className={`h-1 rounded-full ${m.confirmationRate > MUST_SCHEDULE_MIN_RATE ? "bg-brand" : "bg-danger"}`} style={{ width: `${Math.min(100, m.confirmationRate * 100)}%` }} />
+                                <div className={`h-1 rounded-full ${m.confirmationRate > MUST_SCHEDULE_MIN_RATE ? "bg-brand-fill" : "bg-danger-fill"}`} style={{ width: `${Math.min(100, m.confirmationRate * 100)}%` }} />
                               </div>
                             </Link>
                           );
@@ -593,8 +595,8 @@ export default async function TrendsPage({ searchParams }: { searchParams: Promi
           <SectionCard title={t("metric.cancellation")}><LineChart data={singleLineChart(seasonal.map((p) => Math.round(p.cancellationRate * 1000) / 10), METRIC_COLORS.cancellation)} /></SectionCard>
           <SectionCard title={t("metric.occupancy")}><LineChart data={singleLineChart(seasonal.map((p) => Math.round(p.occupancyRate * 1000) / 10), METRIC_COLORS.occupancy)} /></SectionCard>
           <SectionCard title={t("metric.conversion")}><LineChart data={singleLineChart(seasonal.map((p) => Math.round(p.conversionRate * 1000) / 10), METRIC_COLORS.conversion)} /></SectionCard>
-          <SectionCard title={t("panorama.waitlistTitle")}><LineChart data={singleLineChart(seasonal.map((p) => Math.round(p.avgWaitlist * 10) / 10), "#6b7280")} /></SectionCard>
-          <SectionCard title={t("panorama.leadTimeTitle")}><LineChart data={singleLineChart(seasonal.map((p) => Math.round((p.medianLeadTime ?? 0) * 10) / 10), "#9ca3af")} /></SectionCard>
+          <SectionCard title={t("panorama.waitlistTitle")}><LineChart data={singleLineChart(seasonal.map((p) => Math.round(p.avgWaitlist * 10) / 10), tc("series-neutral"))} /></SectionCard>
+          <SectionCard title={t("panorama.leadTimeTitle")}><LineChart data={singleLineChart(seasonal.map((p) => Math.round((p.medianLeadTime ?? 0) * 10) / 10), tc("series-prior"))} /></SectionCard>
         </div>
       </GroupSection>
     </div>

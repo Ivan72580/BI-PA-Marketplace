@@ -25,7 +25,7 @@ export default function BreakdownBars({ rows }: { rows: NormalizedBreakdownRow[]
           <span className="text-[10px] text-ink-muted w-[120px] shrink-0 truncate print:text-[7pt] print:w-[100px]">{row.name}</span>
           <div className="flex-1 h-[10px] rounded-full bg-surface-sunken overflow-hidden print:bg-transparent print:border print:border-border">
             <div
-              className="h-full rounded-full bg-brand print:bg-ink"
+              className="h-full rounded-full bg-brand-fill print:bg-ink"
               style={{ width: `${Math.max(4, (row.confirmedGames / max) * 100)}%` }}
             />
           </div>

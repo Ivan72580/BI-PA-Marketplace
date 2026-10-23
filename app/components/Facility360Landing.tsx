@@ -13,7 +13,7 @@ type Option = { id: string; name: string };
 type Market = Option & { regionId: string };
 type Facility = Option & { marketId: string };
 
-const chip = (active: boolean) => `rounded-full px-3 py-1.5 text-sm transition-colors ${active ? "bg-brand text-white font-semibold" : "bg-surface text-ink-muted hover:text-ink shadow-sm"}`;
+const chip = (active: boolean) => `rounded-full px-3 py-1.5 text-sm transition-colors ${active ? "bg-brand-fill text-white font-semibold" : "bg-surface text-ink-muted hover:text-ink shadow-sm"}`;
 
 export default async function Facility360Landing({
   sp,
@@ -66,7 +66,7 @@ export default async function Facility360Landing({
             {risk.slice(0, 8).map((r) => (
               <Link key={r.facilityId} href={facilityHref(r.facilityId)} className="rounded-2xl bg-surface shadow-sm hover:shadow-lg transition-shadow p-4 block">
                 <div className="flex items-center gap-2">
-                  <span className={`w-2 h-2 rounded-full shrink-0 ${r.severity === "high" ? "bg-danger" : "bg-warning-fill"}`} aria-hidden="true" />
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${r.severity === "high" ? "bg-danger-fill" : "bg-warning-fill"}`} aria-hidden="true" />
                   <span className="text-sm font-semibold text-ink truncate">{r.facilityName}</span>
                 </div>
                 <div className="flex items-center justify-between gap-2 mt-2 text-xs text-ink-muted">

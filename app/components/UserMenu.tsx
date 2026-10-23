@@ -1,9 +1,11 @@
 import { getLocale, getTranslations } from "next-intl/server";
+import { cookies } from "next/headers";
 import { auth } from "../lib/auth";
 import { getCurrentUser } from "../lib/db/users";
 import { signOutAction } from "../lib/actions/signOut";
 import UserMenuDropdown from "./UserMenuDropdown";
 import type { Locale } from "@/i18n/config";
+import { isTheme, THEME_COOKIE } from "../lib/theme";
 
 function getInitials(name: string | null | undefined, email: string | null | undefined): string {
   if (name && name.trim()) {
@@ -16,12 +18,15 @@ function getInitials(name: string | null | undefined, email: string | null | und
 }
 
 export default async function UserMenu() {
-  const [session, locale, t, currentUser] = await Promise.all([
+  const [session, locale, t, currentUser, cookieStore] = await Promise.all([
     auth(),
     getLocale(),
     getTranslations("UserMenu"),
     getCurrentUser(),
+    cookies(),
   ]);
+  const themeCookie = cookieStore.get(THEME_COOKIE)?.value;
+  const theme = isTheme(themeCookie) ? themeCookie : "system";
   const initials = getInitials(session?.user?.name, session?.user?.email);
   const displayName = session?.user?.name ?? session?.user?.email ?? t("guest");
   const isAdmin = currentUser?.role === "ADMIN";
@@ -32,6 +37,7 @@ export default async function UserMenu() {
       email={session?.user?.email ?? null}
       initials={initials}
       locale={locale as Locale}
+      theme={theme}
       isAdmin={isAdmin}
       hasSession={!!session}
       signOutAction={signOutAction}

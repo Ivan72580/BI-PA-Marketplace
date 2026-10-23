@@ -15,7 +15,7 @@ export default function DownloadPdfButton() {
       <button
         type="button"
         onClick={() => window.print()}
-        className="flex items-center gap-2 rounded-full bg-brand text-white text-sm font-medium px-4 py-2 hover:brightness-95 transition-[filter]"
+        className="flex items-center gap-2 rounded-full bg-brand-fill text-white text-sm font-medium px-4 py-2 hover:brightness-95 transition-[filter]"
       >
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M6 9V2h12v7" />

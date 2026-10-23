@@ -11,7 +11,7 @@ export type CompareRow = { label: string; value: number };
 export default function MiniCompareBars({
   rows,
   formatValue,
-  barColor = "bg-brand print:bg-ink",
+  barColor = "bg-brand-fill print:bg-ink",
 }: {
   rows: CompareRow[];
   formatValue: (n: number) => string;

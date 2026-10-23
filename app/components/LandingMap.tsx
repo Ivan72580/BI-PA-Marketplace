@@ -22,6 +22,8 @@ export type LandingBubble = {
   href: string; // destino al enfocar (misma página con ?focus=)
 };
 
+// Colores fijos a propósito (no de tema): las teselas del mapa son claras en ambos temas
+// (en oscuro solo se atenúan), así que los marcadores se leen igual con los valores de claro.
 const OK = "#15803d";
 const LOW = "#dc2626";
 

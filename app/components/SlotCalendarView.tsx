@@ -28,8 +28,8 @@ function shortSize(formatLabel: string): string {
 }
 
 const COLOR = {
-  green: { chipStrong: "bg-brand text-white", chip: "bg-brand-soft text-brand", panel: "bg-brand/95 border-white/20" },
-  red: { chipStrong: "bg-danger text-white", chip: "bg-danger-soft text-danger", panel: "bg-danger/95 border-white/20" },
+  green: { chipStrong: "bg-brand-fill text-white", chip: "bg-brand-soft text-brand", panel: "bg-brand-fill/95 border-white/20" },
+  red: { chipStrong: "bg-danger-fill text-white", chip: "bg-danger-soft text-danger", panel: "bg-danger-fill/95 border-white/20" },
 } as const;
 
 export default function SlotCalendarView({

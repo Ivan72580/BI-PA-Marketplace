@@ -17,7 +17,7 @@ import Glossary from "./Glossary";
 
 type T = (key: string, values?: Record<string, string | number>) => string;
 
-const DOT: Record<Light, string> = { green: "bg-accent", amber: "bg-warning-fill", red: "bg-danger", gray: "bg-ink-faint" };
+const DOT: Record<Light, string> = { green: "bg-brand-fill", amber: "bg-warning-fill", red: "bg-danger-fill", gray: "bg-ink-faint" };
 const TEXT: Record<Light, string> = { green: "text-brand", amber: "text-warning", red: "text-danger", gray: "text-ink-muted" };
 const TINT: Record<Light, string> = { green: "bg-brand-soft/60", amber: "bg-warning-soft", red: "bg-danger-soft", gray: "bg-surface" };
 const BAR: Record<Light, string> = { green: "border-accent", amber: "border-warning", red: "border-danger", gray: "border-ink-faint" };
@@ -56,7 +56,7 @@ function Card({ c, t, locale }: { c: ClassifiedSlot; t: T; locale: Locale }) {
           {t(`plan.lights.${c.light}.short`)}
         </span>
         {c.secure && (
-          <span className={`rounded-full text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 ${c.reserve?.level === "strong" ? "bg-ink text-white" : "border border-ink text-ink"}`} title={t("plan.secure.desc", { days: FOLLOW_RECENT_DAYS, rate: pct(RESERVE_MIN_RATE) })}>
+          <span className={`rounded-full text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 ${c.reserve?.level === "strong" ? "bg-ink text-surface" : "border border-ink text-ink"}`} title={t("plan.secure.desc", { days: FOLLOW_RECENT_DAYS, rate: pct(RESERVE_MIN_RATE) })}>
             {t(c.reserve?.level === "strong" ? "plan.secure.badge" : "plan.secure.badgeTest")}
           </span>
         )}
@@ -81,7 +81,7 @@ function Card({ c, t, locale }: { c: ClassifiedSlot; t: T; locale: Locale }) {
 
       <div className="flex items-center gap-1" aria-label={t("plan.card.recent")}>
         {c.recent.map((o) => (
-          <span key={o.date} title={`${o.date} · ${o.ok ? t("plan.card.confirmed") : t("plan.card.cancelled")}`} className={`h-2.5 w-2.5 rounded-full ${o.ok ? "bg-accent" : "bg-danger"}`} />
+          <span key={o.date} title={`${o.date} · ${o.ok ? t("plan.card.confirmed") : t("plan.card.cancelled")}`} className={`h-2.5 w-2.5 rounded-full ${o.ok ? "bg-brand-fill" : "bg-danger-fill"}`} />
         ))}
         <span className="ml-auto text-[10px] text-ink-faint">{t("plan.card.lastSeen", { date: shortDate(c.lastDate, locale) })}</span>
       </div>
@@ -159,7 +159,7 @@ function Chip({ c, t }: { c: ClassifiedSlot; t: T }) {
         <span className="shrink-0">{c.gameSize ?? ""}</span>
       </div>
       {c.secure && (
-        <span className={`mt-1 inline-block rounded-full text-[9px] font-bold uppercase tracking-wide px-1.5 py-px ${c.reserve?.level === "strong" ? "bg-ink text-white" : "border border-ink text-ink"}`}>{t(c.reserve?.level === "strong" ? "plan.secure.badge" : "plan.secure.badgeTest")}</span>
+        <span className={`mt-1 inline-block rounded-full text-[9px] font-bold uppercase tracking-wide px-1.5 py-px ${c.reserve?.level === "strong" ? "bg-ink text-surface" : "border border-ink text-ink"}`}>{t(c.reserve?.level === "strong" ? "plan.secure.badge" : "plan.secure.badgeTest")}</span>
       )}
     </div>
   );
@@ -192,12 +192,12 @@ export default function FacilityWeekPlan({
 
       {/* Leyenda y filtro del semáforo: el número es la cantidad de slots semanales del facility. */}
       <div className="flex flex-wrap gap-2">
-        <Link href={hrefFor(undefined)} className={`rounded-full px-3 py-1.5 text-xs font-medium ${!filter ? "bg-brand text-white" : "bg-surface-sunken text-ink-muted hover:bg-brand-soft"}`}>
+        <Link href={hrefFor(undefined)} className={`rounded-full px-3 py-1.5 text-xs font-medium ${!filter ? "bg-brand-fill text-white" : "bg-surface-sunken text-ink-muted hover:bg-brand-soft"}`}>
           {t("plan.filters.all")} · {total}
         </Link>
         {PLAN_FILTERS.map((f) => (
           <Link key={f} href={hrefFor(f)} title={f === "secure" ? t("plan.secure.desc", { days: FOLLOW_RECENT_DAYS, rate: pct(RESERVE_MIN_RATE) }) : t(`plan.lights.${f}.desc`, { green: pct(GREEN_MIN_RATE), floor: pct(MUST_SCHEDULE_MIN_RATE) })}
-            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${filter === f ? "bg-brand text-white" : "bg-surface-sunken text-ink-muted hover:bg-brand-soft"}`}>
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${filter === f ? "bg-brand-fill text-white" : "bg-surface-sunken text-ink-muted hover:bg-brand-soft"}`}>
             {f !== "secure" && <i className={`inline-block h-2.5 w-2.5 rounded-full ${DOT[f]}`} aria-hidden="true" />}
             {f === "secure" ? t("plan.secure.label") : t(`plan.lights.${f}.label`)} · {count(f)}
           </Link>
@@ -213,7 +213,7 @@ export default function FacilityWeekPlan({
             <div className="grid grid-cols-7 gap-2 min-w-[980px]">
               {days.map((d, i) => (
                 <div key={d.dateISO} id={`d-${d.dateISO}`} className="flex flex-col gap-1.5 scroll-mt-20">
-                  <div className={`rounded-lg px-2 py-1.5 text-center ${i === 0 ? "bg-brand text-white" : "bg-surface-sunken text-ink"}`}>
+                  <div className={`rounded-lg px-2 py-1.5 text-center ${i === 0 ? "bg-brand-fill text-white" : "bg-surface-sunken text-ink"}`}>
                     <div className="text-xs font-semibold capitalize">{weekdayAbbr(d.dayOfWeek, locale)}{i === 0 ? ` · ${t("plan.week.today")}` : ""}</div>
                     <div className={`text-[10px] ${i === 0 ? "text-white/80" : "text-ink-faint"}`}>{shortDate(d.dateISO, locale)}</div>
                   </div>

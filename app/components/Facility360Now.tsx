@@ -64,8 +64,8 @@ function DailyBars({ series, t, lc, locale }: { series: SeriesDay[]; t: T; lc: s
                 <div className="flex flex-col-reverse items-stretch justify-start" style={{ height: H }}>
                   {total === 0 ? <div className="h-0.5 rounded bg-surface-sunken" /> : (
                     <>
-                      <div className="bg-brand" style={{ height: seg(d.confirmed) }} />
-                      <div className="bg-danger" style={{ height: seg(d.demandCancelled) }} />
+                      <div className="bg-brand-fill" style={{ height: seg(d.confirmed) }} />
+                      <div className="bg-danger-fill" style={{ height: seg(d.demandCancelled) }} />
                       <div className="bg-warning-fill" style={{ height: seg(d.fieldUnavailable) }} />
                       <div className="bg-ink-faint/50 rounded-t-sm" style={{ height: seg(d.other) }} />
                     </>
@@ -81,8 +81,8 @@ function DailyBars({ series, t, lc, locale }: { series: SeriesDay[]; t: T; lc: s
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-[11px] text-ink-muted">
-        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-brand" aria-hidden="true" />{t("now.chart.confirmed")}</span>
-        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-danger" aria-hidden="true" />{t("now.chart.demand")}</span>
+        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-brand-fill" aria-hidden="true" />{t("now.chart.confirmed")}</span>
+        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-danger-fill" aria-hidden="true" />{t("now.chart.demand")}</span>
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-warning-fill" aria-hidden="true" />{t("now.chart.field")}</span>
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-ink-faint/50" aria-hidden="true" />{t("now.chart.other")}</span>
       </div>

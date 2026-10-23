@@ -1,67 +1,283 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #000000;
+/* ---------- Tema (claro / oscuro) ----------
+   Los valores crudos viven en variables --c-* definidas por tema; @theme inline solo las mapea a
+   utilidades de Tailwind (text-ink, bg-surface, ...). Así un cambio de tema es solo redefinir
+   variables, sin tocar clases. (Con @theme inline y hex literales, Tailwind compilaba el valor
+   directo y redefinirlo no tenía efecto.)
+
+   Resolución del tema: <html data-theme="light|dark"> si el usuario eligió uno (cookie "theme",
+   ver app/lib/theme.ts); sin atributo = "Sistema" (prefers-color-scheme). Cualquier elemento con
+   data-theme="light" fuerza claro en su subárbol (Reportes), y @media print fuerza claro siempre.
+
+   Identidad visual (Oct 2026): blanco + grises fríos + verde marca, estética tipo iOS/macOS.
+   Paleta de la marca: blanco #FFFFFF, negro #000000, grises #F9FBFB / #E3E7E8 / #394447,
+   verdes #0B3B2E / #07271F / #15803D / #052E16, rojos #DC2626 / #991B1B, ámbar #FBBF24 / #F59E0B.
+
+   Series de Tendencias (ocupación azul, conversión magenta): elegidas para distinguirse entre sí y de
+   confirmación/cancelación, validadas por contraste y daltonismo en ambos temas (antes ocupación gris y
+   conversión verde oscuro eran casi indistinguibles).
+
+   Roles que el oscuro separa (en claro valen lo mismo):
+   - brand / danger: color de TEXTO y trazos finos (↑ ↓, links). En oscuro, más claros.
+   - brand-fill / danger-fill: RELLENOS con texto blanco encima (botones, barras, chips sólidos).
+     En oscuro, más profundos, para que el blanco mantenga 4.5:1.
+   - ink-faint en claro: 4.6:1 sobre blanco; warning (texto): 5:1 sobre blanco. */
+
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+  --c-background: #ffffff;
+  --c-foreground: #000000;
+  --c-canvas: #ffffff;
+  --c-ink: #000000;
+  --c-ink-muted: #394447;
+  --c-ink-faint: #6b787b;
+  --c-surface: #ffffff;
+  --c-surface-sunken: #f9fbfb;
+  --c-surface-panel: #f1f4f4;
+  --c-border: #e3e7e8;
+  --c-border-strong: #c9d0d2;
+  --c-brand: #15803d;
+  --c-brand-fill: #15803d;
+  --c-brand-deep: #0b3b2e;
+  --c-brand-ink: #052e16;
+  --c-brand-soft: #eaf5ee;
+  --c-accent: #15803d;
+  --c-accent-soft: #eaf5ee;
+  --c-danger: #dc2626;
+  --c-danger-deep: #991b1b;
+  --c-danger-soft: #fdeded;
+  --c-danger-fill: #dc2626;
+  --c-warning: #b45309;
+  --c-warning-fill: #f59e0b;
+  --c-warning-soft: #fef6df;
+  --c-topbar: #07271f;
+  --c-topbar-line: transparent;
+  --c-ring: #e3e7e8;
+  --c-series-positive: #15803d;
+  --c-series-negative: #dc2626;
+  --c-series-occupancy: #2a78d6;
+  --c-series-conversion: #a2338e;
+  --c-series-prior: #9ca3af;
+  --c-series-neutral: #6b7280;
+  --c-series-warning: #f59e0b;
+  --c-series-deep: #0b3b2e;
+  --c-chart-text: #394447;
+  --c-chart-grid: rgb(0 0 0 / 0.08);
+  --c-chart-point-ring: #ffffff;
+  --c-heat-green: 22 117 92;
+  --c-heat-red: 255 75 51;
+  --c-heat-empty: #f9fbfb;
+  --c-band-danger-from: rgb(204 30 30 / 0.52);
+  --c-band-danger-to: rgb(204 30 30 / 0.2);
+  --c-band-brand-from: rgb(21 128 61 / 0.3);
+  --c-band-brand-to: rgb(21 128 61 / 0.09);
+  --c-band-hatch: rgb(255 255 255 / 0.3);
+  --c-rank-ref: rgb(0 0 0 / 0.3);
+  --c-map-tiles-filter: none;
+  --c-ramp-1: #0b3b2e;
+  --c-ramp-2: #0c4430;
+  --c-ramp-3: #0e4c32;
+  --c-ramp-4: #0f5534;
+  --c-ramp-5: #105e36;
+  --c-ramp-6: #116637;
+  --c-ramp-7: #126f39;
+  --c-ramp-8: #14773b;
+  --c-ramp-9: #15803d;
+  --c-ramp-10: #329156;
+  --c-ramp-11: #50a26e;
+  --c-ramp-12: #6db386;
+  --c-ramp-13: #8ac49f;
+  --c-ramp-14: #a8d5b8;
+  --c-ramp-15: #9aa6a8;
+  --c-ramp-16: #394447;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --c-background: #15191b;
+    --c-foreground: #edf0f0;
+    --c-canvas: #15191b;
+    --c-ink: #edf0f0;
+    --c-ink-muted: #b9c2c4;
+    --c-ink-faint: #8f9a9d;
+    --c-surface: #1d2224;
+    --c-surface-sunken: #191d1f;
+    --c-surface-panel: #262c2e;
+    --c-border: #323a3c;
+    --c-border-strong: #465053;
+    --c-brand: #5cbd84;
+    --c-brand-fill: #1a7f45;
+    --c-brand-deep: #9fd6b5;
+    --c-brand-ink: #c6ead3;
+    --c-brand-soft: #1b3326;
+    --c-accent: #5cbd84;
+    --c-accent-soft: #1b3326;
+    --c-danger: #f2817a;
+    --c-danger-deep: #f8aaa4;
+    --c-danger-soft: #3b2224;
+    --c-danger-fill: #c8322c;
+    --c-warning: #eab65a;
+    --c-warning-fill: #e9a23b;
+    --c-warning-soft: #382d17;
+    --c-topbar: #0d382b;
+    --c-topbar-line: rgb(255 255 255 / 0.07);
+    --c-ring: #2c3436;
+    --c-series-positive: #2e9a5c;
+    --c-series-negative: #e8605a;
+    --c-series-occupancy: #4a8de0;
+    --c-series-conversion: #b84f9e;
+    --c-series-prior: #6f7a7d;
+    --c-series-neutral: #9aa4a7;
+    --c-series-warning: #e9a23b;
+    --c-series-deep: #9fd6b5;
+    --c-chart-text: #b9c2c4;
+    --c-chart-grid: rgb(255 255 255 / 0.08);
+    --c-chart-point-ring: #1d2224;
+    --c-heat-green: 76 184 128;
+    --c-heat-red: 240 104 96;
+    --c-heat-empty: #222829;
+    --c-band-danger-from: rgb(232 96 90 / 0.46);
+    --c-band-danger-to: rgb(232 96 90 / 0.14);
+    --c-band-brand-from: rgb(46 154 92 / 0.5);
+    --c-band-brand-to: rgb(46 154 92 / 0.14);
+    --c-band-hatch: rgb(255 255 255 / 0.12);
+    --c-rank-ref: rgb(255 255 255 / 0.38);
+    --c-map-tiles-filter: brightness(0.85) saturate(0.85);
+    --c-ramp-1: #a8dcbc;
+    --c-ramp-2: #9ed2b2;
+    --c-ramp-3: #94c9a9;
+    --c-ramp-4: #8abf9f;
+    --c-ramp-5: #7fb696;
+    --c-ramp-6: #75ac8c;
+    --c-ramp-7: #6ba382;
+    --c-ramp-8: #619979;
+    --c-ramp-9: #57906f;
+    --c-ramp-10: #4d8665;
+    --c-ramp-11: #427d5c;
+    --c-ramp-12: #387352;
+    --c-ramp-13: #2e6a49;
+    --c-ramp-14: #24603f;
+    --c-ramp-15: #7c878a;
+    --c-ramp-16: #4f5a5d;
+  }
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --c-background: #15191b;
+  --c-foreground: #edf0f0;
+  --c-canvas: #15191b;
+  --c-ink: #edf0f0;
+  --c-ink-muted: #b9c2c4;
+  --c-ink-faint: #8f9a9d;
+  --c-surface: #1d2224;
+  --c-surface-sunken: #191d1f;
+  --c-surface-panel: #262c2e;
+  --c-border: #323a3c;
+  --c-border-strong: #465053;
+  --c-brand: #5cbd84;
+  --c-brand-fill: #1a7f45;
+  --c-brand-deep: #9fd6b5;
+  --c-brand-ink: #c6ead3;
+  --c-brand-soft: #1b3326;
+  --c-accent: #5cbd84;
+  --c-accent-soft: #1b3326;
+  --c-danger: #f2817a;
+  --c-danger-deep: #f8aaa4;
+  --c-danger-soft: #3b2224;
+  --c-danger-fill: #c8322c;
+  --c-warning: #eab65a;
+  --c-warning-fill: #e9a23b;
+  --c-warning-soft: #382d17;
+  --c-topbar: #0d382b;
+  --c-topbar-line: rgb(255 255 255 / 0.07);
+  --c-ring: #2c3436;
+  --c-series-positive: #2e9a5c;
+  --c-series-negative: #e8605a;
+  --c-series-occupancy: #4a8de0;
+  --c-series-conversion: #b84f9e;
+  --c-series-prior: #6f7a7d;
+  --c-series-neutral: #9aa4a7;
+  --c-series-warning: #e9a23b;
+  --c-series-deep: #9fd6b5;
+  --c-chart-text: #b9c2c4;
+  --c-chart-grid: rgb(255 255 255 / 0.08);
+  --c-chart-point-ring: #1d2224;
+  --c-heat-green: 76 184 128;
+  --c-heat-red: 240 104 96;
+  --c-heat-empty: #222829;
+  --c-band-danger-from: rgb(232 96 90 / 0.46);
+  --c-band-danger-to: rgb(232 96 90 / 0.14);
+  --c-band-brand-from: rgb(46 154 92 / 0.5);
+  --c-band-brand-to: rgb(46 154 92 / 0.14);
+  --c-band-hatch: rgb(255 255 255 / 0.12);
+  --c-rank-ref: rgb(255 255 255 / 0.38);
+  --c-map-tiles-filter: brightness(0.85) saturate(0.85);
+  --c-ramp-1: #a8dcbc;
+  --c-ramp-2: #9ed2b2;
+  --c-ramp-3: #94c9a9;
+  --c-ramp-4: #8abf9f;
+  --c-ramp-5: #7fb696;
+  --c-ramp-6: #75ac8c;
+  --c-ramp-7: #6ba382;
+  --c-ramp-8: #619979;
+  --c-ramp-9: #57906f;
+  --c-ramp-10: #4d8665;
+  --c-ramp-11: #427d5c;
+  --c-ramp-12: #387352;
+  --c-ramp-13: #2e6a49;
+  --c-ramp-14: #24603f;
+  --c-ramp-15: #7c878a;
+  --c-ramp-16: #4f5a5d;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--c-background);
+  --color-foreground: var(--c-foreground);
+  --color-canvas: var(--c-canvas);
+  --color-ink: var(--c-ink);
+  --color-ink-muted: var(--c-ink-muted);
+  --color-ink-faint: var(--c-ink-faint);
+  --color-surface: var(--c-surface);
+  --color-surface-sunken: var(--c-surface-sunken);
+  --color-surface-panel: var(--c-surface-panel);
+  --color-border: var(--c-border);
+  --color-border-strong: var(--c-border-strong);
+  --color-brand: var(--c-brand);
+  --color-brand-fill: var(--c-brand-fill);
+  --color-brand-deep: var(--c-brand-deep);
+  --color-brand-ink: var(--c-brand-ink);
+  --color-brand-soft: var(--c-brand-soft);
+  --color-accent: var(--c-accent);
+  --color-accent-soft: var(--c-accent-soft);
+  --color-danger: var(--c-danger);
+  --color-danger-deep: var(--c-danger-deep);
+  --color-danger-soft: var(--c-danger-soft);
+  --color-danger-fill: var(--c-danger-fill);
+  --color-warning: var(--c-warning);
+  --color-warning-fill: var(--c-warning-fill);
+  --color-warning-soft: var(--c-warning-soft);
+  --color-topbar: var(--c-topbar);
+  --color-topbar-line: var(--c-topbar-line);
 
-  /* Identidad visual (Oct 2026): blanco + grises fríos + verde marca, estética tipo iOS/macOS —
-     superficies planas, bordes de 1 px y sombras muy suaves en vez de bloques de color.
-     Paleta de la marca: blanco #FFFFFF, negro #000000, grises #F9FBFB / #E3E7E8 / #394447,
-     verdes #0B3B2E / #07271F / #15803D / #052E16, rojos #DC2626 / #991B1B, ámbar #FBBF24 / #F59E0B.
-     Los valores marcados "derivado" no están en la paleta: son tintes del mismo tono, necesarios
-     para texto secundario con contraste AA y para fondos suaves de estado. */
-
-  /* Texto */
-  --color-ink: #000000;
-  --color-ink-muted: #394447;
-  --color-ink-faint: #6b787b; /* derivado: gris de #394447 aclarado, 4.6:1 sobre blanco */
-
-  /* Superficies y líneas */
-  --color-surface: #ffffff;
-  --color-surface-sunken: #f9fbfb;
-  --color-surface-panel: #f1f4f4; /* derivado */
-  --color-border: #e3e7e8;
-  --color-border-strong: #c9d0d2; /* derivado */
-
-  /* Verde: brand = acción/positivo; deep = barra superior y rellenos fuertes */
-  --color-brand: #15803d;
-  --color-brand-deep: #0b3b2e;
-  --color-brand-ink: #052e16;
-  --color-brand-soft: #eaf5ee; /* derivado */
-  --color-accent: #15803d;
-  --color-accent-soft: #eaf5ee; /* derivado */
-
-  /* Estados: rojo = cancelación/negativo; ámbar = a revisar. El ámbar de la paleta
-     (#F59E0B / #FBBF24) no da contraste como texto sobre blanco, así que se usa solo como
-     relleno (barras, puntos, fondos); para texto de advertencia, --color-warning. */
-  --color-danger: #dc2626;
-  --color-danger-deep: #991b1b;
-  --color-danger-soft: #fdeded; /* derivado */
-  --color-danger-fill: #dc2626;
-  --color-warning: #b45309; /* derivado: ámbar oscuro para texto, 5:1 sobre blanco */
-  --color-warning-fill: #f59e0b;
-  --color-warning-soft: #fef6df; /* derivado de #FBBF24 */
-
-  /* Profundidad: todas las sombras llevan un aro de 1 px (#E3E7E8) además del difuminado, así que
-     cualquier tarjeta con shadow-* queda delimitada sobre fondo blanco sin necesitar un border. */
-  --shadow-xs: 0 0 0 1px #e3e7e8;
-  --shadow-sm: 0 0 0 1px #e3e7e8, 0 1px 2px rgb(0 0 0 / 0.04);
-  --shadow-md: 0 0 0 1px #e3e7e8, 0 4px 14px rgb(0 0 0 / 0.05);
-  --shadow-lg: 0 0 0 1px #e3e7e8, 0 8px 28px -6px rgb(0 0 0 / 0.1);
-  --shadow-xl: 0 0 0 1px #e3e7e8, 0 18px 44px -10px rgb(0 0 0 / 0.16);
+  /* Profundidad: todas las sombras llevan un aro de 1 px (--c-ring) además del difuminado, así que
+     cualquier tarjeta con shadow-* queda delimitada sin necesitar un border. */
+  --shadow-xs: 0 0 0 1px var(--c-ring);
+  --shadow-sm: 0 0 0 1px var(--c-ring), 0 1px 2px rgb(0 0 0 / 0.04);
+  --shadow-md: 0 0 0 1px var(--c-ring), 0 4px 14px rgb(0 0 0 / 0.05);
+  --shadow-lg: 0 0 0 1px var(--c-ring), 0 8px 28px -6px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 0 0 1px var(--c-ring), 0 18px 44px -10px rgb(0 0 0 / 0.16);
 
   --font-display: var(--font-space-grotesk);
   --font-sans: var(--font-inter);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--c-background);
+  color: var(--c-foreground);
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
@@ -82,6 +298,76 @@ body {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
+  /* Impresión siempre en claro, aunque el usuario tenga oscuro. */
+  :root:root:root,
+    [data-theme][data-theme][data-theme] {
+      color-scheme: light;
+      --c-background: #ffffff;
+      --c-foreground: #000000;
+      --c-canvas: #ffffff;
+      --c-ink: #000000;
+      --c-ink-muted: #394447;
+      --c-ink-faint: #6b787b;
+      --c-surface: #ffffff;
+      --c-surface-sunken: #f9fbfb;
+      --c-surface-panel: #f1f4f4;
+      --c-border: #e3e7e8;
+      --c-border-strong: #c9d0d2;
+      --c-brand: #15803d;
+      --c-brand-fill: #15803d;
+      --c-brand-deep: #0b3b2e;
+      --c-brand-ink: #052e16;
+      --c-brand-soft: #eaf5ee;
+      --c-accent: #15803d;
+      --c-accent-soft: #eaf5ee;
+      --c-danger: #dc2626;
+      --c-danger-deep: #991b1b;
+      --c-danger-soft: #fdeded;
+      --c-danger-fill: #dc2626;
+      --c-warning: #b45309;
+      --c-warning-fill: #f59e0b;
+      --c-warning-soft: #fef6df;
+      --c-topbar: #07271f;
+      --c-topbar-line: transparent;
+      --c-ring: #e3e7e8;
+      --c-series-positive: #15803d;
+      --c-series-negative: #dc2626;
+      --c-series-occupancy: #2a78d6;
+      --c-series-conversion: #a2338e;
+      --c-series-prior: #9ca3af;
+      --c-series-neutral: #6b7280;
+      --c-series-warning: #f59e0b;
+      --c-series-deep: #0b3b2e;
+      --c-chart-text: #394447;
+      --c-chart-grid: rgb(0 0 0 / 0.08);
+      --c-chart-point-ring: #ffffff;
+      --c-heat-green: 22 117 92;
+      --c-heat-red: 255 75 51;
+      --c-heat-empty: #f9fbfb;
+      --c-band-danger-from: rgb(204 30 30 / 0.52);
+      --c-band-danger-to: rgb(204 30 30 / 0.2);
+      --c-band-brand-from: rgb(21 128 61 / 0.3);
+      --c-band-brand-to: rgb(21 128 61 / 0.09);
+      --c-band-hatch: rgb(255 255 255 / 0.3);
+      --c-rank-ref: rgb(0 0 0 / 0.3);
+      --c-map-tiles-filter: none;
+      --c-ramp-1: #0b3b2e;
+      --c-ramp-2: #0c4430;
+      --c-ramp-3: #0e4c32;
+      --c-ramp-4: #0f5534;
+      --c-ramp-5: #105e36;
+      --c-ramp-6: #116637;
+      --c-ramp-7: #126f39;
+      --c-ramp-8: #14773b;
+      --c-ramp-9: #15803d;
+      --c-ramp-10: #329156;
+      --c-ramp-11: #50a26e;
+      --c-ramp-12: #6db386;
+      --c-ramp-13: #8ac49f;
+      --c-ramp-14: #a8d5b8;
+      --c-ramp-15: #9aa6a8;
+      --c-ramp-16: #394447;
+  }
   main {
     background: white !important;
     padding: 0 !important;
@@ -92,14 +378,14 @@ body {
 /* ---------- Listas de ranking (RankRowView) ----------
    Banda de fondo proporcional con degradado suave; en "muestra chica" lleva además trazos diagonales muy finos.
    La marca de referencia (promedio de la red) es una línea punteada fina, más corta que la fila. */
-.rank-band-danger { background: linear-gradient(90deg, rgb(204 30 30 / 0.52), rgb(204 30 30 / 0.2)); }
-.rank-band-brand { background: linear-gradient(90deg, rgb(21 128 61 / 0.3), rgb(21 128 61 / 0.09)); }
+.rank-band-danger { background: linear-gradient(90deg, var(--c-band-danger-from), var(--c-band-danger-to)); }
+.rank-band-brand { background: linear-gradient(90deg, var(--c-band-brand-from), var(--c-band-brand-to)); }
 .rank-small::after {
   content: "";
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: repeating-linear-gradient(135deg, rgb(255 255 255 / 0.3) 0 1.5px, transparent 1.5px 7px);
+  background: repeating-linear-gradient(135deg, var(--c-band-hatch) 0 1.5px, transparent 1.5px 7px);
 }
 .rank-ref {
   position: absolute;
@@ -107,5 +393,11 @@ body {
   bottom: 9px;
   width: 2px;
   border-radius: 2px;
-  background: repeating-linear-gradient(to bottom, rgb(0 0 0 / 0.3) 0 2px, transparent 2px 6px);
+  background: repeating-linear-gradient(to bottom, var(--c-rank-ref) 0 2px, transparent 2px 6px);
 }
+
+/* ---------- Mapas (Leaflet) ----------
+   Las teselas de OpenStreetMap son claras; en oscuro se atenúan un poco en vez de invertirlas
+   (invertir da un "negativo" difícil de leer). Solo el panel de teselas: marcadores y overlays
+   quedan con sus colores de tema. */
+.leaflet-tile-pane { filter: var(--c-map-tiles-filter); }

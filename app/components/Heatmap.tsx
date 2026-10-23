@@ -11,8 +11,10 @@ type HeatmapCell = {
 };
 
 function cellColor(intensity: number, tone: "red" | "green") {
-  const rgb = tone === "red" ? "255,75,51" : "22,117,92";
-  return `rgba(${rgb},${intensity.toFixed(2)})`;
+  // Tripletes RGB por tema (globals.css): en oscuro el verde base es más claro,
+  // así la celda con más partidos sigue siendo la que más resalta.
+  const rgb = tone === "red" ? "var(--c-heat-red)" : "var(--c-heat-green)";
+  return `rgb(${rgb} / ${intensity.toFixed(2)})`;
 }
 
 export default function Heatmap({

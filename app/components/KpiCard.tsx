@@ -87,7 +87,7 @@ export default function KpiCard({
             }}
             title="Comparar vs. período anterior"
             className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded transition-colors ${
-              showDelta ? "bg-brand text-white" : "bg-surface-sunken text-ink-faint hover:text-ink-muted"
+              showDelta ? "bg-brand-fill text-white" : "bg-surface-sunken text-ink-faint hover:text-ink-muted"
             }`}
           >
             vs. anterior

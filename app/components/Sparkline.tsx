@@ -44,11 +44,11 @@ export default function Sparkline({
   const last = coords[coords.length - 1];
 
   const rising = values[values.length - 1] >= values[0];
-  const color = rising ? "#15803d" : "#dc2626";
+  const color = rising ? "var(--c-series-positive)" : "var(--c-series-negative)";
 
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="overflow-visible shrink-0">
-      <polyline points={polylinePoints} fill="none" stroke={color} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+      <polyline points={polylinePoints} fill="none" style={{ stroke: color }} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
       {coords.map((c, i) => {
         const shownValue = formatValue ? formatValue(c.value) : `${c.value}`;
         return (
@@ -57,7 +57,7 @@ export default function Sparkline({
           </circle>
         );
       })}
-      <circle cx={last.x} cy={last.y} r={2} fill={color} />
+      <circle cx={last.x} cy={last.y} r={2} style={{ fill: color }} />
     </svg>
   );
 }

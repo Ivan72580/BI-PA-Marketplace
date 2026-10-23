@@ -10,6 +10,8 @@ import ModuleTracker from "./components/ModuleTracker";
 import { GlobalProvider } from "./context/GlobalContext";
 import { getFilterOptions } from "./lib/db/queries";
 import { getCurrentUserWithAccess } from "./lib/db/users";
+import { cookies } from "next/headers";
+import { isTheme, themeAttribute, THEME_COOKIE } from "./lib/theme";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -28,15 +30,20 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [filterOptions, locale, messages, current] = await Promise.all([
+  const [filterOptions, locale, messages, current, cookieStore] = await Promise.all([
     getFilterOptions(),
     getLocale(),
     getMessages(),
     getCurrentUserWithAccess(),
+    cookies(),
   ]);
+  // Tema elegido (cookie): se pone en el HTML inicial para que no haya un
+  // destello del tema equivocado. Sin cookie o "system" = sin atributo.
+  const themeCookie = cookieStore.get(THEME_COOKIE)?.value;
+  const theme = themeAttribute(isTheme(themeCookie) ? themeCookie : undefined);
 
   return (
-    <html lang={locale} className={`${spaceGrotesk.variable} ${inter.variable}`}>
+    <html lang={locale} data-theme={theme} className={`${spaceGrotesk.variable} ${inter.variable}`} suppressHydrationWarning>
       <body className="m-0 antialiased">
         <NextIntlClientProvider locale={locale} messages={messages}>
           <GlobalProvider>

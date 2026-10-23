@@ -18,7 +18,7 @@ export default function TeamRegionBar({ regions, selected }: { regions: { id: st
     const next = selected.includes(id) ? selected.filter((x) => x !== id) : [...selected, id];
     apply(next.length === regions.length ? [] : next);
   };
-  const chip = (on: boolean) => `rounded-full px-3 py-1 text-xs font-medium shadow-sm transition-colors ${on ? "bg-brand text-white" : "bg-surface text-ink-muted hover:text-ink"}`;
+  const chip = (on: boolean) => `rounded-full px-3 py-1 text-xs font-medium shadow-sm transition-colors ${on ? "bg-brand-fill text-white" : "bg-surface text-ink-muted hover:text-ink"}`;
 
   return (
     <div className={`flex flex-wrap items-center gap-2 ${pending ? "opacity-60" : ""}`} role="group" aria-label={t("label")}>

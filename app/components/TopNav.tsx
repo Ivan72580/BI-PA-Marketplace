@@ -297,11 +297,11 @@ export default function TopNav({
 
   const inlineClass = (active: boolean) =>
     `relative flex items-center gap-2 px-3.5 py-1.5 text-sm whitespace-nowrap rounded-full transition-colors ${
-      active ? "text-ink font-semibold" : "text-white/70 font-medium hover:text-white hover:bg-white/10"
+      active ? "text-[#07271f] font-semibold" : "text-white/70 font-medium hover:text-white hover:bg-white/10"
     }`;
   const stackedClass = (active: boolean) =>
     `flex items-center gap-2.5 px-3 py-2.5 text-sm rounded-lg transition-colors ${
-      active ? "text-ink font-semibold bg-white" : "text-white/70 font-medium hover:text-white hover:bg-white/10"
+      active ? "text-[#07271f] font-semibold bg-white" : "text-white/70 font-medium hover:text-white hover:bg-white/10"
     }`;
   const activeBg = (
     <motion.span
@@ -381,7 +381,7 @@ export default function TopNav({
   );
 
   return (
-    <div className="sticky top-0 z-40 bg-[#07271f]/95 backdrop-blur-xl">
+    <div className="sticky top-0 z-40 bg-topbar/95 border-b border-topbar-line backdrop-blur-xl">
       <div className="flex items-center gap-1 px-4 md:px-6">
         {/* eslint-disable-next-line @next/next/no-img-element -- SVG de marca, next/image no optimiza SVGs sin habilitar dangerouslyAllowSVG */}
         <img src="/logo/plei-mark.svg" alt="Plei" width={32} height={32} className="pr-4 shrink-0 h-8 w-auto" />

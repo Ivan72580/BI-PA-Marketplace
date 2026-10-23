@@ -39,6 +39,7 @@ import MustScheduleBoard from "../components/MustScheduleBoard";
 import type { MustScheduleCalendarCell } from "../components/MustScheduleCalendar";
 import WeeklySlotCalendar from "../components/WeeklySlotCalendar";
 import InsightsPanel, { type PanelInsight } from "../components/InsightsPanel";
+import { tc } from "@/app/lib/themeTokens";
 
 type SP = { regionId?: string; marketId?: string; facilityId?: string; date?: string };
 
@@ -532,7 +533,7 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
       {
         label: t("evolution.legendLabel"),
         data: evolution.map((p) => Math.round(p.confirmationRate * 1000) / 10),
-        borderColor: "#15803d",
+        borderColor: tc("series-positive"),
       },
     ],
   };
@@ -723,7 +724,7 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
               key={d.dateISO}
               href={buildDailyQuery(sp, { date: d.dateISO })}
               className={`flex flex-col items-center rounded-lg px-2.5 py-1.5 min-w-[52px] text-center transition-colors ${
-                d.dateISO === dateISO ? "bg-brand text-white" : d.hasData ? "bg-surface-sunken hover:bg-brand-soft text-ink" : "bg-surface-sunken/50 text-ink-faint"
+                d.dateISO === dateISO ? "bg-brand-fill text-white" : d.hasData ? "bg-surface-sunken hover:bg-brand-soft text-ink" : "bg-surface-sunken/50 text-ink-faint"
               }`}
             >
               <span className="text-[10px] font-medium">{d.dayLabel}</span>
@@ -869,7 +870,7 @@ export default async function DailyPage({ searchParams }: { searchParams: Promis
                 <div key={g.id} className={`rounded-xl border p-3 ${g.status === "CONFIRMED" ? "border-brand/25 bg-brand-soft/30" : "border-danger/25 bg-danger-soft/30"}`}>
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <span className="text-sm font-semibold text-ink">{g.time}</span>
-                    <span className={`text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full ${g.status === "CONFIRMED" ? "bg-brand text-white" : "bg-danger text-white"}`}>
+                    <span className={`text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full ${g.status === "CONFIRMED" ? "bg-brand-fill text-white" : "bg-danger-fill text-white"}`}>
                       {g.status === "CONFIRMED" ? t("game.confirmed") : t("game.cancelled")}
                     </span>
                   </div>

@@ -153,7 +153,7 @@ export default function ZoneMap({ zones, labels, detailQuery }: { zones: MapZone
     <button
       type="button"
       onClick={() => setMetric(m)}
-      className={`px-3 py-1 text-xs rounded-md border transition-colors ${metric === m ? "bg-brand text-white border-brand" : "bg-surface text-ink-muted border-border hover:border-border-strong"}`}
+      className={`px-3 py-1 text-xs rounded-md border transition-colors ${metric === m ? "bg-brand-fill text-white border-brand" : "bg-surface text-ink-muted border-border hover:border-border-strong"}`}
     >
       {text}
     </button>

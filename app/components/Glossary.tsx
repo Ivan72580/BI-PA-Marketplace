@@ -7,7 +7,7 @@ export default function Glossary({ items }: { items: { term: string; def: string
   return (
     <details className="group mt-4 flex flex-col items-end">
       <summary className="list-none cursor-pointer select-none inline-flex items-center gap-1.5 rounded-full bg-brand-soft/70 text-brand ring-1 ring-brand/20 px-3 py-1 text-xs font-medium hover:bg-brand-soft transition-colors [&::-webkit-details-marker]:hidden">
-        <span aria-hidden="true" className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-brand text-white text-[10px] font-bold leading-none">i</span>
+        <span aria-hidden="true" className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-brand-fill text-white text-[10px] font-bold leading-none">i</span>
         {t("label")}
         <span aria-hidden="true" className="text-[10px] transition-transform group-open:rotate-180">▾</span>
       </summary>

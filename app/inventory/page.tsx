@@ -88,7 +88,7 @@ function SlotCard({ s, t, locale }: { s: Slot; t: T; locale: Locale }) {
           <span
             key={o.date}
             title={`${o.date} · ${o.status === "CONFIRMED" ? t("card.confirmedShort", { n: o.players }) : t("card.cancelledShort")}`}
-            className={`h-2.5 w-2.5 rounded-full ${o.status === "CONFIRMED" ? "bg-accent" : "bg-danger"}`}
+            className={`h-2.5 w-2.5 rounded-full ${o.status === "CONFIRMED" ? "bg-brand-fill" : "bg-danger-fill"}`}
           />
         ))}
         <span className="ml-auto text-[10px] text-ink-faint">{t("card.lastSeen", { date: s.lastDate })}</span>
@@ -158,9 +158,9 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
         {view === "schedule" && (
           <div className="flex flex-wrap items-center gap-1">
             <span className="text-ink-faint mr-1">{t("schedule.regionLabel")}</span>
-            <Link href={href(sp, { regionId: undefined, marketId: undefined, facilityId: undefined })} className={`rounded-full px-2.5 py-1 ${!sp.regionId ? "bg-brand text-white" : "bg-surface text-ink-muted hover:text-ink"}`}>{t("allDays")}</Link>
+            <Link href={href(sp, { regionId: undefined, marketId: undefined, facilityId: undefined })} className={`rounded-full px-2.5 py-1 ${!sp.regionId ? "bg-brand-fill text-white" : "bg-surface text-ink-muted hover:text-ink"}`}>{t("allDays")}</Link>
             {filterOptions.regions.map((r: { id: string; name: string }) => (
-              <Link key={r.id} href={href(sp, { regionId: r.id, marketId: undefined, facilityId: undefined })} className={`rounded-full px-2.5 py-1 ${sp.regionId === r.id ? "bg-brand text-white" : "bg-surface text-ink-muted hover:text-ink"}`}>{r.name}</Link>
+              <Link key={r.id} href={href(sp, { regionId: r.id, marketId: undefined, facilityId: undefined })} className={`rounded-full px-2.5 py-1 ${sp.regionId === r.id ? "bg-brand-fill text-white" : "bg-surface text-ink-muted hover:text-ink"}`}>{r.name}</Link>
             ))}
           </div>
         )}
@@ -168,14 +168,14 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
           <>
             <div className="flex flex-wrap items-center gap-1">
               <span className="text-ink-faint mr-1">{t("schedule.focusLabel")}</span>
-              <Link href={href(sp, { focus: undefined })} className={`rounded-full px-2.5 py-1 ${!focus ? "bg-brand text-white" : "bg-surface text-ink-muted hover:text-ink"}`}>{t("schedule.focus.all")}</Link>
-              <Link href={href(sp, { focus: "secure" })} className={`rounded-full px-2.5 py-1 ${focus === "secure" ? "bg-brand text-white" : "bg-surface text-ink-muted hover:text-ink"}`}>{t("schedule.focus.secure")}{board ? ` · ${board.totalSecure}` : ""}</Link>
-              <Link href={href(sp, { focus: "avoid" })} className={`rounded-full px-2.5 py-1 ${focus === "avoid" ? "bg-danger text-white" : "bg-surface text-ink-muted hover:text-ink"}`}>{t("schedule.focus.avoid")}{board ? ` · ${board.totalAvoid}` : ""}</Link>
+              <Link href={href(sp, { focus: undefined })} className={`rounded-full px-2.5 py-1 ${!focus ? "bg-brand-fill text-white" : "bg-surface text-ink-muted hover:text-ink"}`}>{t("schedule.focus.all")}</Link>
+              <Link href={href(sp, { focus: "secure" })} className={`rounded-full px-2.5 py-1 ${focus === "secure" ? "bg-brand-fill text-white" : "bg-surface text-ink-muted hover:text-ink"}`}>{t("schedule.focus.secure")}{board ? ` · ${board.totalSecure}` : ""}</Link>
+              <Link href={href(sp, { focus: "avoid" })} className={`rounded-full px-2.5 py-1 ${focus === "avoid" ? "bg-danger-fill text-white" : "bg-surface text-ink-muted hover:text-ink"}`}>{t("schedule.focus.avoid")}{board ? ` · ${board.totalAvoid}` : ""}</Link>
             </div>
             <div className="flex flex-wrap items-center gap-1">
               <span className="text-ink-faint mr-1">{t("sortLabel")}</span>
               {SCHEDULE_ORDERS.map((o) => (
-                <Link key={o} href={href(sp, { order: o === "time" ? undefined : o })} className={`rounded-full px-2.5 py-1 ${order === o ? "bg-brand text-white" : "bg-surface text-ink-muted hover:text-ink"}`}>{t(`schedule.order.${o}`)}</Link>
+                <Link key={o} href={href(sp, { order: o === "time" ? undefined : o })} className={`rounded-full px-2.5 py-1 ${order === o ? "bg-brand-fill text-white" : "bg-surface text-ink-muted hover:text-ink"}`}>{t(`schedule.order.${o}`)}</Link>
               ))}
             </div>
           </>
@@ -185,7 +185,7 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
           <span className="text-ink-faint mr-1">{t("sortLabel")}</span>
           {SLOT_SORTS.map((s) => (
             <Link key={s} href={href(sp, { sort: s === "volume" ? undefined : s, limit: undefined })}
-              className={`rounded-full px-2.5 py-1 ${sort === s ? "bg-brand text-white" : "bg-surface text-ink-muted hover:text-ink"}`}>
+              className={`rounded-full px-2.5 py-1 ${sort === s ? "bg-brand-fill text-white" : "bg-surface text-ink-muted hover:text-ink"}`}>
               {t(`sort.${s}`)}
             </Link>
           ))}
@@ -193,9 +193,9 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
         )}
         <div className="flex flex-wrap items-center gap-1">
           <span className="text-ink-faint mr-1">{t("dayLabel")}</span>
-          <Link href={href(sp, { day: undefined, limit: undefined })} className={`rounded-full px-2.5 py-1 ${!day ? "bg-brand text-white" : "bg-surface text-ink-muted hover:text-ink"}`}>{t("allDays")}</Link>
+          <Link href={href(sp, { day: undefined, limit: undefined })} className={`rounded-full px-2.5 py-1 ${!day ? "bg-brand-fill text-white" : "bg-surface text-ink-muted hover:text-ink"}`}>{t("allDays")}</Link>
           {DAY_ORDER.map((d) => (
-            <Link key={d} href={href(sp, { day: d, limit: undefined })} className={`rounded-full px-2.5 py-1 ${day === d ? "bg-brand text-white" : "bg-surface text-ink-muted hover:text-ink"}`}>{weekdayAbbr(d, locale)}</Link>
+            <Link key={d} href={href(sp, { day: d, limit: undefined })} className={`rounded-full px-2.5 py-1 ${day === d ? "bg-brand-fill text-white" : "bg-surface text-ink-muted hover:text-ink"}`}>{weekdayAbbr(d, locale)}</Link>
           ))}
         </div>
       </div>
@@ -229,8 +229,8 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
       {inv?.truncated && <p className="mt-4 text-xs text-warning">{t("truncated")}</p>}
       {inv && inv.unknownFieldSlots > 0 && <p className="mt-2 text-xs text-ink-faint">{t("unknownFieldFootnote", { n: inv.unknownFieldSlots })}</p>}
       <p className="mt-2 text-xs text-ink-faint flex flex-wrap items-center gap-x-3">
-        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-accent" aria-hidden="true" />{t("legend.confirmed")}</span>
-        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-danger" aria-hidden="true" />{t("legend.cancelled")}</span>
+        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-brand-fill" aria-hidden="true" />{t("legend.confirmed")}</span>
+        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-danger-fill" aria-hidden="true" />{t("legend.cancelled")}</span>
       </p>
       {view === "slots" && <p className="mt-2 text-xs text-ink-faint">{t("definition")}</p>}
     </div>

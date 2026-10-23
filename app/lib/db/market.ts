@@ -17,7 +17,7 @@ export type ReputationTier = "platinum" | "bueno" | "intermedio" | "a_revisar" |
 // texto (t("tier.platinum"), etc.) sigue siendo responsabilidad de cada
 // página, ya que Overview todavía no pasó por su ronda de traducción.
 export const TIER_CLASS: Record<ReputationTier, string> = {
-  platinum: "bg-[#0b3b2e] text-white",
+  platinum: "bg-topbar text-white",
   bueno: "bg-brand-soft text-brand",
   intermedio: "bg-warning-soft text-warning",
   a_revisar: "bg-danger-soft text-danger",

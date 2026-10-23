@@ -31,7 +31,7 @@ function tone(a: Agg): "good" | "warn" | "bad" | "none" {
   return a.demandRate >= GREEN ? "good" : a.demandRate >= AMBER ? "warn" : "bad";
 }
 const CELL = { good: "bg-brand-soft text-brand", warn: "bg-warning-soft text-warning", bad: "bg-danger-soft text-danger", none: "bg-surface-sunken text-ink-faint" } as const;
-const BAR = { good: "bg-brand", warn: "bg-warning-fill", bad: "bg-danger", none: "bg-ink-faint/40" } as const;
+const BAR = { good: "bg-brand-fill", warn: "bg-warning-fill", bad: "bg-danger-fill", none: "bg-ink-faint/40" } as const;
 
 function Card({ title, sub, children }: { title: string; sub?: string; children: React.ReactNode }) {
   return (
@@ -127,7 +127,7 @@ function Reasons({ deep, t, locale }: { deep: FacilityDeep; t: T; locale: Locale
         return (
           <li key={r.category} className="grid grid-cols-[minmax(110px,1fr)_2fr_auto] items-center gap-3 text-sm">
             <span className={`truncate ${field ? "text-warning font-semibold" : "text-ink-muted"}`}>{labelForCancellationCategory(r.category, locale)}</span>
-            <span className="h-2.5 rounded-full bg-surface-sunken overflow-hidden"><span className={`block h-2.5 ${field ? "bg-warning-fill" : r.category === "NOT_ENOUGH_PLAYERS" ? "bg-danger" : "bg-ink-faint/60"}`} style={{ width: `${(r.cur / max) * 100}%` }} /></span>
+            <span className="h-2.5 rounded-full bg-surface-sunken overflow-hidden"><span className={`block h-2.5 ${field ? "bg-warning-fill" : r.category === "NOT_ENOUGH_PLAYERS" ? "bg-danger-fill" : "bg-ink-faint/60"}`} style={{ width: `${(r.cur / max) * 100}%` }} /></span>
             <span className="flex items-baseline gap-2 justify-end"><span className="font-semibold text-ink tabular-nums">{r.cur}</span><ChangeBadge value={rel(r.cur, r.prior)} invert /></span>
           </li>
         );
@@ -193,7 +193,7 @@ function MonthBars({ monthly, t, lc }: { monthly: MonthAgg[]; t: T; lc: string }
               <td className="py-1.5 px-2 text-ink-muted whitespace-nowrap">{label(m.month)}{i === monthly.length - 1 && <span className="text-[10px] text-ink-faint"> · {t("price.partial")}</span>}</td>
               <td className="py-1.5 px-2 w-1/2">
                 <div className="flex items-center gap-2">
-                  <span className="h-2.5 rounded-full bg-surface-sunken flex-1 overflow-hidden"><span className="block h-2.5 bg-brand" style={{ width: `${((m.agg.revenue ?? 0) / max) * 100}%` }} /></span>
+                  <span className="h-2.5 rounded-full bg-surface-sunken flex-1 overflow-hidden"><span className="block h-2.5 bg-brand-fill" style={{ width: `${((m.agg.revenue ?? 0) / max) * 100}%` }} /></span>
                   <span className="tabular-nums text-ink font-semibold w-16 text-right">{usd(m.agg.revenue)}</span>
                 </div>
               </td>
@@ -236,7 +236,7 @@ function PriceByHour({ deep, t }: { deep: FacilityDeep; t: T }) {
       {rows.map(([h, a]) => (
         <li key={h} className="grid grid-cols-[36px_1fr_auto] items-center gap-3 text-sm">
           <span className="text-ink-faint">{h}h</span>
-          <span className="h-2.5 rounded-full bg-surface-sunken overflow-hidden"><span className="block h-2.5 bg-accent" style={{ width: `${((a.avgPrice ?? 0) / max) * 100}%` }} /></span>
+          <span className="h-2.5 rounded-full bg-surface-sunken overflow-hidden"><span className="block h-2.5 bg-brand-fill" style={{ width: `${((a.avgPrice ?? 0) / max) * 100}%` }} /></span>
           <span className="text-right tabular-nums"><span className="font-semibold text-ink">{usd2(a.avgPrice)}</span> <span className="text-[11px] text-ink-faint">{t("demand.ofN", { n: a.published })}</span></span>
         </li>
       ))}

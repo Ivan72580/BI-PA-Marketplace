@@ -69,7 +69,7 @@ export default async function Facility360Position({ facilityId, date }: { facili
                 <li key={r.facilityId} className={`grid grid-cols-[24px_minmax(100px,1fr)_2fr_auto] items-center gap-3 text-sm rounded-lg px-2 py-1 ${isMe ? "bg-brand-soft" : ""}`}>
                   <span className="text-ink-faint tabular-nums">{i + 1}</span>
                   {isMe ? <span className="font-semibold text-brand truncate">{r.name}</span> : <Link href={`/facility?facilityId=${r.facilityId}${date ? `&date=${date}` : ""}`} className="text-ink hover:text-brand truncate">{r.name}</Link>}
-                  <span className="h-2.5 rounded-full bg-surface-sunken overflow-hidden"><span className={`block h-2.5 ${isMe ? "bg-brand" : "bg-ink-faint/50"}`} style={{ width: `${(r.confirmedGames / topMax) * 100}%` }} /></span>
+                  <span className="h-2.5 rounded-full bg-surface-sunken overflow-hidden"><span className={`block h-2.5 ${isMe ? "bg-brand-fill" : "bg-ink-faint/50"}`} style={{ width: `${(r.confirmedGames / topMax) * 100}%` }} /></span>
                   <span className="text-right tabular-nums text-ink-muted"><span className="font-semibold text-ink">{r.confirmedGames}</span> · {pct(r.confirmationRate)}</span>
                 </li>
               );

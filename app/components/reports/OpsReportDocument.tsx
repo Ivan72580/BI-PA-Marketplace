@@ -100,7 +100,7 @@ export default function OpsReportDocument({ core, t, scopeLabel, contribution, l
           <ul className="space-y-1.5">
             {current.insights.map((insight, i) => (
               <li key={i} className="flex items-start gap-2 text-sm print:text-[9pt]">
-                <span className="w-1.5 h-1.5 rounded-full bg-danger mt-1.5 shrink-0 print:bg-black" aria-hidden="true" />
+                <span className="w-1.5 h-1.5 rounded-full bg-danger-fill mt-1.5 shrink-0 print:bg-black" aria-hidden="true" />
                 <span className="text-ink">{insight}</span>
               </li>
             ))}
@@ -162,7 +162,7 @@ export default function OpsReportDocument({ core, t, scopeLabel, contribution, l
                   {item.kind === "decliningSlot" && item.trendSeries && item.trendSeries.length >= 2 && (
                     <div className="mt-2">
                       <div className="text-[10px] text-ink-faint mb-0.5 print:text-[7pt]">{t("opportunity.trend.label")}</div>
-                      <Sparkline values={item.trendSeries} height={32} color="#dc2626" fill={false} />
+                      <Sparkline values={item.trendSeries} height={32} color="var(--c-series-negative)" fill={false} />
                     </div>
                   )}
                   <ul className="mt-1.5 space-y-1 list-disc list-inside">

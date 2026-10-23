@@ -54,9 +54,9 @@ export default function WeeklySlotCalendar({
     <div className="space-y-5">
       <div>
         <div className="flex items-center gap-3 flex-wrap mb-2 text-[11px] text-ink-muted">
-          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-brand" aria-hidden="true" />{t("weeklyCalendar.legend.strong")}</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-brand-fill" aria-hidden="true" />{t("weeklyCalendar.legend.strong")}</span>
           <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-warning-fill" aria-hidden="true" />{t("weeklyCalendar.legend.moderate")}</span>
-          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-danger" aria-hidden="true" />{t("weeklyCalendar.legend.weak")}</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-danger-fill" aria-hidden="true" />{t("weeklyCalendar.legend.weak")}</span>
         </div>
 
         <div className="flex gap-2.5 overflow-x-auto pb-1">

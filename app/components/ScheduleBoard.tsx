@@ -66,7 +66,7 @@ function Card({ c, t }: { c: ScheduleCard; t: T }) {
 
       <div className="flex items-center gap-1" aria-label={t("card.recent")}>
         {c.recent.map((o) => (
-          <span key={o.date} title={`${o.date} · ${o.status === "CONFIRMED" ? t("legend.confirmed") : t("legend.cancelled")}`} className={`h-2 w-2 rounded-full ${o.status === "CONFIRMED" ? "bg-accent" : "bg-danger"}`} />
+          <span key={o.date} title={`${o.date} · ${o.status === "CONFIRMED" ? t("legend.confirmed") : t("legend.cancelled")}`} className={`h-2 w-2 rounded-full ${o.status === "CONFIRMED" ? "bg-brand-fill" : "bg-danger-fill"}`} />
         ))}
         <span className="ml-auto text-[10px] text-ink-faint">{t("card.lastSeen", { date: c.lastDate })}</span>
       </div>

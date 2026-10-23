@@ -53,8 +53,8 @@ export default function MustScheduleCalendar({
   const [expandedGridKey, setExpandedGridKey] = useState<string | null>(null);
   const MAX_VISIBLE = 2;
 
-  const bgClass = tone === "cancel" ? "bg-danger" : "bg-brand";
-  const popoverBgClass = tone === "cancel" ? "bg-danger/95" : "bg-brand/95";
+  const bgClass = tone === "cancel" ? "bg-danger-fill" : "bg-brand-fill";
+  const popoverBgClass = tone === "cancel" ? "bg-danger-fill/95" : "bg-brand-fill/95";
   const matchingLabel = tone === "cancel" ? t("cancelledLabel") : t("confirmedLabel");
   const rateWord = tone === "cancel" ? t("cancellationWord") : t("confirmationWord");
 
